@@ -1,0 +1,85 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Reverse an Array
+
+#### Description
+
+-   Given an array, the task is to reverse the array.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: arr = [21, 32, 30]
+    Output: [30, 32, 21]
+
+> Case2:
+    Input: arr = []
+    Output: []
+```
+
+#### Constraints
+
+-
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <stdio.h>
+    using namespace std;
+
+    void arrayReverse(int arr[], int n)
+    {
+        for (int i = 0, j = n - 1; i < n / 2 && j > n / 2; i++, j--)
+        {
+            int temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+        }
+    }
+
+    int main()
+    {
+        int arr[] = {12, 23, 43, 45, 15, 90, 32};
+        int n = sizeof(arr) / sizeof(arr[0]);
+        arrayReverse(arr, n); // 32 90 15 45 43 23 12
+        for (int i = 0; i < n; i++)
+            cout << arr[i] << " ";
+        return 0;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def array_reverse(arr):
+    n = len(arr)
+    for i in range(n // 2):
+        j = n - 1 - i
+        arr[i], arr[j] = arr[j], arr[i]
+
+    arr = [12, 23, 43, 45, 15, 90, 32]
+    array_reverse(arr)
+
+    for element in arr:
+        print(element, end=" ")
+    ```
+
+    #### Explanation
+
+    -   The `array_reverse` function takes a list `arr` as a parameter. It calculates the length of the list (n) using the len function.
+    -   The function then reverses the elements of the list by swapping corresponding elements from the beginning and end of the list.
+    -   In the main code, a list `arr` is initialized with some values.
+    -   The `array_reverse` function is called, passing the list `arr` as an argument, to reverse the elements of the list.
+    -   Finally, the reversed list is printed by iterating over the elements and printing each element separated by a space.
+
+    </Tab>
+
+</Tabs>
+
+#### Analysis
+
+-   Time Complexity: `O(n)`
+-   Space Complexity: `O(1)`

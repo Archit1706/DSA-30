@@ -1,0 +1,102 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Find Kth Smallest and Largest Element
+
+#### Description
+
+-   Given an array `arr[]` and an integer `K` where `K` is smaller than size of array, the task is to find the `Kth` smallest and largest element in the given array. It is given that all array elements are distinct.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: arr = [21, 43, 32, 30], K = 2
+    Output: [30, 32]
+
+> Case2:
+    Input: arr = [10, 5, 8, 3, 2, 7, 1], K = 3
+    Output: [3, 7]
+```
+
+#### Constraints
+
+-   `1 <= N <= 10^5`
+-   `1 <= arr[i] <= 10^5`
+-   `1 <= K <= N`
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <algorithm>
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    template <typename T>
+    pair<T, T> findKthSmallestLargest(vector<T> &arr, int K)
+    {
+        sort(arr.begin(), arr.end());       // Sort the array in ascending order
+        T kthSmallest = arr[K - 1];         // Retrieve the Kth smallest element
+        T kthLargest = arr[arr.size() - K]; // Retrieve the Kth largest element
+        return make_pair(kthSmallest, kthLargest);
+    }
+
+    int main()
+    {
+        vector<int> array = {10, 5, 8, 3, 2, 7, 1};
+        int K = 3;
+        auto result = findKthSmallestLargest(array, K);
+        cout << "Kth Smallest Element: " << result.first << endl;
+        cout << "Kth Largest Element: " << result.second << endl;
+        return 0;
+    }
+    ```
+
+    #### Explanation
+
+    - The `findKthSmallestLargest` function takes a vector `arr` by reference and an integer `K` as parameters.
+    - Inside the function, the `sort` algorithm is used to sort the elements of the array in ascending order.
+    - The `Kth` smallest element is then retrieved from the `arr` vector using `arr[K - 1]`, where `K - 1` corresponds to the index of the `Kth` smallest element.
+    - Similarly, the `Kth` largest element is retrieved using `arr[arr.size() - K]`, where `arr.size() - K` corresponds to the index of the `Kth` largest element.
+    - The function returns a pair containing the `Kth` smallest and `Kth` largest elements.
+    - In the main function, an example array is created, and the `findKthSmallestLargest` function is called with the array and the value of `K`.
+    - The resulting pair is stored in the result variable, and the `Kth` smallest and largest elements are printed to the console.
+
+
+    #### Analysis
+
+    - Time Complexity: `O(N log N)`
+    - Space Complexity: `O(N)`
+
+    </Tab>
+
+    <Tab>
+
+    ```python copy
+    def find_kth_smallest_largest(arr, K):
+        arr.sort()  # Sort the array in ascending order
+        kth_smallest = arr[K - 1]  # Retrieve the Kth smallest element
+        kth_largest = arr[len(arr) - K]  # Retrieve the Kth largest element
+        return kth_smallest, kth_largest
+
+    array = [10, 5, 8, 3, 2, 7, 1]
+    K = 3
+    kth_smallest, kth_largest = find_kth_smallest_largest(array, K)
+    print("Kth Smallest Element:", kth_smallest)
+    print("Kth Largest Element:", kth_largest)
+    ```
+
+    #### Explanation
+
+    -
+
+    #### Analysis
+
+    - Time Complexity:
+    - Space Complexity:
+
+    </Tab>
+
+</Tabs>

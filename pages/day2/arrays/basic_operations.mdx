@@ -1,0 +1,493 @@
+import { Steps, Tab, Tabs } from "nextra-theme-docs";
+
+### Basic Operations
+
+> We can perform the following basic operation on an Array:
+
+1. Insert an Element
+2. Delete an Element
+3. Find an Element
+4. FInd Minimum
+5. Find Maximum
+6. Calculate Sum
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+        <Steps>
+
+        ### Approach 1: Using Static Arrays
+
+        #### Insert an Element
+
+        - ALGORTIHM
+
+        ```python
+        Step 1: [INITIALIZATION] SET lower_bound = 0
+        Step 2: SET upper_bound = size - 1
+        Step 3: SET i = upper_bound
+        Step 4: Repeat Steps 5 to 6 while i >= lower_bound
+        Step 5:     SET A[i + 1] = A[i]
+        Step 6:     SET i = i - 1
+        [END OF LOOP]
+        Step 7: SET A[insertPosition] = element
+        Step 8: SET size = size + 1
+        Step 9: EXIT
+        ```
+
+        - CODE
+
+        ```cpp copy
+        void insertElement(int arr[], int &size, int element, int position)
+        {
+            if (size >= MAX_SIZE)
+            {
+                cout << "Array is full. Cannot insert element." << endl;
+                return;
+            }
+
+            if (position < 0 || position > size)
+            {
+                cout << "Invalid position. Cannot insert element." << endl;
+                return;
+            }
+
+            for (int i = size - 1; i >= position; i--)
+                arr[i + 1] = arr[i];
+
+            arr[position] = element;
+            size++;
+        }
+        ```
+
+        #### Delete an Element
+
+        - ALGORTIHM
+
+        ```python
+        Step 1: [INITIALIZATION] SET lower_bound = 0
+        Step 2: SET upper_bound = size - 1
+        Step 3: SET i = position
+        Step 4: Repeat Steps 5 to 6 while i < upper_bound
+        Step 5:     SET A[i] = A[i + 1]
+        Step 6:     SET i = i + 1
+        [END OF LOOP]
+        Step 7: SET size = size - 1
+        Step 8: EXIT
+        ```
+
+        - CODE
+
+        ```cpp copy
+        void deleteElement(int arr[], int &size, int position)
+        {
+            if (size <= 0)
+            {
+                cout << "Array is empty. Cannot delete element." << endl;
+                return;
+            }
+
+            if (position < 0 || position >= size)
+            {
+                cout << "Invalid position. Cannot delete element." << endl;
+                return;
+            }
+
+            for (int i = position; i < size - 1; i++)
+            {
+                arr[i] = arr[i + 1];
+            }
+
+            size--;
+        }
+        ```
+
+        #### Find an Element
+
+        - ALGORTIHM
+
+        ```python
+        Step 1: [INITIALIZATION] SET index = -1
+        Step 2: SET lower_bound = 0
+        Step 3: SET upper_bound = size - 1
+        Step 4: SET i = lower_bound
+        Step 5: Repeat Steps 6 to 7 while i <= upper_bound
+        Step 6:     If A[i] equals element, SET index = i and EXIT LOOP
+        Step 7:     SET i = i + 1
+        [END OF LOOP]
+        Step 8: RETURN index
+        Step 9: EXIT
+        ```
+
+        - CODE
+
+        ```cpp copy
+        int findElement(int arr[], int size, int element)
+        {
+            for (int i = 0; i < size; i++)
+            {
+                if (arr[i] == element)
+                {
+                    return i;
+                }
+            }
+            return -1; // Element not found
+        }
+        ```
+
+        #### Find Minimum Element
+
+        - ALGORTIHM
+
+        ```python
+        Step 1: [INITIALIZATION] SET min = A[0]
+        Step 2: SET lower_bound = 1
+        Step 3: SET upper_bound = size - 1
+        Step 4: SET i = lower_bound
+        Step 5: Repeat Steps 6 to 7 while i <= upper_bound
+        Step 6:     If A[i] < min, SET min = A[i]
+        Step 7:     SET i = i + 1
+        [END OF LOOP]
+        Step 8: RETURN min
+        Step 9: EXIT
+        ```
+
+        - CODE
+
+        ```cpp copy
+        int findMin(int arr[], int size)
+        {
+            int min = arr[0];
+            for (int i = 1; i < size; i++)
+            {
+                if (arr[i] < min)
+                {
+                    min = arr[i];
+                }
+            }
+            return min;
+        }
+        ```
+
+        #### Find Maximum Element
+
+        - ALGORTIHM
+
+        ```python
+        Step 1: [INITIALIZATION] SET max = A[0]
+        Step 2: SET lower_bound = 1
+        Step 3: SET upper_bound = size - 1
+        Step 4: SET i = lower_bound
+        Step 5: Repeat Steps 6 to 7 while i <= upper_bound
+        Step 6:     If A[i] > max, SET max = A[i]
+        Step 7:     SET i = i + 1
+        [END OF LOOP]
+        Step 8: RETURN max
+        Step 9: EXIT
+        ```
+
+        - CODE
+
+        ```cpp copy
+        int findMax(int arr[], int size)
+        {
+            int max = arr[0];
+            for (int i = 1; i < size; i++)
+            {
+                if (arr[i] > max)
+                {
+                    max = arr[i];
+                }
+            }
+            return max;
+        }
+
+        ```
+
+        #### Find Sum of all Elements
+
+        - ALGORTIHM
+
+        ```python
+        Step 1: [INITIALIZATION] SET sum = 0
+        Step 2: SET lower_bound = 0
+        Step 3: SET upper_bound = size - 1
+        Step 4: SET i = lower_bound
+        Step 5: Repeat Steps 6 to 7 while i <= upper_bound
+        Step 6:     SET sum = sum + A[i]
+        Step 7:     SET i = i + 1
+        [END OF LOOP]
+        Step 8: RETURN sum
+        Step 9: EXIT
+        ```
+
+        - CODE
+
+        ```cpp copy
+        int sumArray(int arr[], int size) {
+            int sum = 0;
+            for (int i = 0; i < size; i++) {
+                sum += arr[i];
+            }
+            return sum;
+        }
+        ```
+
+        #### Print the Array
+
+        - ALGORTIHM
+
+        ```python
+        Step 1: [INITIALIZATION] SET I = lower_bound
+        Step 2: Repeat Steps 3 to 4 while I <= upper_bound
+        Step 3: Print A[I]
+        Step 4: SET I = I + 1
+        [END OF LOOP]
+        Step 5: EXIT
+        ```
+
+        - CODE
+
+        ```cpp copy
+        void printArray(int arr[], int size)
+        {
+            for (int i = 0; i < size; i++)
+            {
+                cout << arr[i] << " ";
+            }
+            cout << endl;
+        }
+        ```
+
+        #### Main Function
+
+        ```cpp copy filename="arrays.cpp"
+        #include <iostream>
+        using namespace std;
+        const int MAX_SIZE = 100;
+
+        int main()
+        {
+            int arr[MAX_SIZE];
+            int size = 0;
+
+            cout << "Enter the initial size of the array (up to " << MAX_SIZE << "): ";
+            cin >> size;
+
+            cout << "Enter " << size << " elements: ";
+            for (int i = 0; i < size; i++)
+                cin >> arr[i];
+
+            cout << "Array elements: ";
+            printArray(arr, size);
+
+            int elementToFind;
+            cout << "Enter an element to find: ";
+            cin >> elementToFind;
+            int position = findElement(arr, size, elementToFind);
+            if (position != -1)
+                cout << "Element " << elementToFind << " found at position " << position << endl;
+            else
+                cout << "Element " << elementToFind << " not found in the array." << endl;
+
+            int elementToInsert, insertPosition;
+            cout << "Enter an element to insert: ";
+            cin >> elementToInsert;
+            cout << "Enter the position to insert: ";
+            cin >> insertPosition;
+            insertElement(arr, size, elementToInsert, insertPosition);
+            cout << "Array elements after insertion: ";
+            printArray(arr, size);
+
+            int deletePosition;
+            cout << "Enter the position to delete: ";
+            cin >> deletePosition;
+            deleteElement(arr, size, deletePosition);
+            cout << "Array elements after deletion: ";
+            printArray(arr, size);
+
+            int max = findMax(arr, size);
+            cout << "Maximum element: " << max << endl;
+
+            int min = findMin(arr, size);
+            cout << "Minimum element: " << min << endl;
+
+            int sum = sumArray(arr, size);
+            cout << "Sum of array elements: " << sum << endl;
+
+            return 0;
+        }
+        ```
+
+        ### Approach 2: Using Dynamic Vector
+
+        #### Insert an Element
+
+        - CODE
+
+        ```cpp copy
+        void insertElement(vector<int>& vec, int element, int position) {
+            if (position < 0 || position > vec.size()) {
+                cout << "Invalid position. Cannot insert element." << endl;
+                return;
+            }
+            vec.insert(vec.begin() + position, element);
+        }
+        ```
+
+        #### Delete an Element
+
+        - CODE
+
+        ```cpp copy
+        void deleteElement(vector<int>& vec, int position) {
+            if (position < 0 || position >= vec.size()) {
+                cout << "Invalid position. Cannot delete element." << endl;
+                return;
+            }
+            vec.erase(vec.begin() + position);
+        }
+        ```
+
+        #### Find an Element
+
+        - CODE
+
+        ```cpp copy
+        int findElement(const vector<int>& vec, int element) {
+            for (size_t i = 0; i < vec.size(); i++) {
+                if (vec[i] == element) {
+                    return i;
+                }
+            }
+            return -1; // Element not found
+        }
+        ```
+
+        #### Find Minimum Element
+
+        - CODE
+
+        ```cpp copy
+        int findMin(const vector<int>& vec) {
+            int min = numeric_limits<int>::max();
+            for (int num : vec) {
+                if (num < min) {
+                    min = num;
+                }
+            }
+            return min;
+        }
+        ```
+
+        #### Find Maximum Element
+
+        - CODE
+
+        ```cpp copy
+        int findMax(const vector<int>& vec) {
+            int max = numeric_limits<int>::min();
+            for (int num : vec) {
+                if (num > max) {
+                    max = num;
+                }
+            }
+            return max;
+        }
+
+        ```
+
+        #### Find Sum of all Elements
+
+        - CODE
+
+        ```cpp copy
+        int findSum(const vector<int>& vec) {
+            int sum = 0;
+            for (int num : vec) {
+                sum += num;
+            }
+            return sum;
+        }
+        ```
+
+        #### Print the Array
+
+        - CODE
+
+        ```cpp copy
+        void printVector(const vector<int>& vec) {
+            for (int num : vec) {
+                cout << num << " ";
+            }
+            cout << endl;
+        }
+        ```
+
+        #### Main Function
+
+        ```cpp copy filename="vectors.cpp"
+        #include <iostream>
+        #include <vector>
+        #include <limits>
+
+        int main() {
+            vector<int> vec;
+
+            cout << "Enter the initial size of the vector: ";
+            int size;
+            cin >> size;
+
+            cout << "Enter " << size << " elements: ";
+            for (int i = 0; i < size; i++) {
+                int num;
+                cin >> num;
+                vec.push_back(num);
+            }
+
+            cout << "Vector elements: ";
+            printVector(vec);
+
+            int elementToFind;
+            cout << "Enter an element to find: ";
+            cin >> elementToFind;
+            int position = findElement(vec, elementToFind);
+            if (position != -1) {
+                cout << "Element " << elementToFind << " found at position " << position << endl;
+            } else {
+                cout << "Element " << elementToFind << " not found in the vector." << endl;
+            }
+
+            int elementToInsert, insertPosition;
+            cout << "Enter an element to insert: ";
+            cin >> elementToInsert;
+            cout << "Enter the position to insert: ";
+            cin >> insertPosition;
+            insertElement(vec, elementToInsert, insertPosition);
+            cout << "Vector elements after insertion: ";
+            printVector(vec);
+
+            int deletePosition;
+            cout << "Enter the position to delete: ";
+            cin >> deletePosition;
+            deleteElement(vec, deletePosition);
+            cout << "Vector elements after deletion: ";
+            printVector(vec);
+
+            cout << "Minimum: " << findMin(vec) << endl;
+            cout << "Maximum: " << findMax(vec) << endl;
+            cout << "Sum: " << findSum(vec) << endl;
+            return 0;
+        }
+        ```
+
+        </Steps>
+
+    </Tab>
+
+    <Tab>
+        <Steps>
+        #### Comming soon...
+        </Steps>
+    </Tab>
+
+</Tabs>

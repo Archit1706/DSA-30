@@ -1,0 +1,75 @@
+import { Steps } from "nextra-theme-docs";
+
+<Steps>
+
+#### 1. Explain the difference between data structures and algorithms. Give an example of each.
+
+-   **Data structures** are the way data is `organized and stored`, while **algorithms** are `step-by-step procedures` for solving problems.
+-   An example of a data structure is an array, which is a collection of elements of the same type. An example of an algorithm is binary search, which finds the position of a target value within a sorted array.
+
+#### 2. What is the time complexity of the following code snippet? Analyze it using Big O notation.
+
+```cpp copy
+for (int i = 0; i < n; i++) {
+    cout << i << endl;
+}
+```
+
+-   The time complexity of the code snippet is `O(n)`, where n is the value of the input variable. It has a linear time complexity because the loop iterates n times, resulting in a direct relationship between the input size and the time taken to execute the code.
+
+#### 3. Consider an algorithm that takes input of size n and has a time complexity of `O(n^2)`. How will the algorithm's runtime change if the input size is doubled?
+
+-   If the input size is doubled, the runtime of the algorithm will increase by a factor of four. Since the time complexity is `O(n^2)`, doubling the input size will result in four times more operations to be performed, thus increasing the runtime accordingly.
+
+#### 5. What is the time complexity of the following code snippet? Analyze it using Big O notation.
+
+```cpp copy
+for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+        cout << i << " " << j << endl;
+    }
+}
+```
+
+-   The time complexity of the code snippet is `O(n^2)`, where n is the value of the input variable. It has a quadratic time complexity because it consists of nested loops, resulting in a nested iteration over the input. The number of iterations is proportional to the square of the input size.
+
+#### 6. Compare and contrast the best-case, worst-case, and average-case time complexities of an algorithm.
+
+-   The `best-case` time complexity represents the **minimum** amount of time an algorithm takes to run.
+-   The `worst-case` time complexity represents the **maximum** amount of time an algorithm takes to run.
+-   The `average-case` time complexity represents the **expected** or **average** amount of time an algorithm takes to run for a given input.
+-   It is important to consider all three cases to understand the behavior and efficiency of an algorithm in different scenarios.
+
+#### 7. What is the time complexity of the following code snippet? Analyze it using Big O notation.
+
+```cpp copy
+int i = 0, j = 0;
+while (i < n) {
+    while (j < n && array[i][j] == 1)
+        j++;
+    i++;
+}
+```
+
+-   The provided code snippet consists of a nested while loop that iterates over a two-dimensional array. It increments the variables `i` and `j` based on certain conditions. Let's analyze the code:
+
+    1. The outer while loop executes as long as `i` is less than n.
+    2. Inside the outer loop, the inner while loop executes as long as `j` is less than `n` and the value of `array[i][j]` is equal to `1`.
+    3. The inner while loop increments `j` until it reaches `n` or encounters a value other than `1` in `array[i][j]`.
+    4. Once the inner while loop finishes, `i` is incremented by `1`.
+    5. In terms of time complexity, the worst-case scenario occurs when all elements in the array are 1. In this case, the inner while loop will iterate `n` times for each iteration of the outer while loop. Since the outer while loop also executes `n` times, the total number of iterations will be `n^2`.
+
+Therefore, the time complexity of this code snippet can be expressed as `O(n^2)`, where `n` is the value of the input variable. This indicates a quadratic relationship between the input size and the number of iterations performed.
+
+#### 8. Explain the significance of logarithmic time complexity (O(log n)) and provide an example of an algorithm that has this time complexity.
+
+-   Logarithmic time complexity `(O(log n))` is significant because it represents algorithms that divide the problem space in half at each step, such as binary search. This allows for efficient searching, even with large input sizes. For example, when searching in a sorted array with binary search, the number of elements to be searched is halved in each step, resulting in a logarithmic relationship between the input size and the time taken to find the target value.
+
+#### 9. Explain the concept of space complexity and how it differs from time complexity.
+
+-   Space complexity refers to the amount of memory space required by an algorithm to solve a problem. It focuses on the additional space needed, apart from the input itself.
+-   Time complexity, on the other hand, measures the amount of time an algorithm takes to run. They are both essential considerations in analyzing and optimizing algorithms.
+
+---
+
+</Steps>

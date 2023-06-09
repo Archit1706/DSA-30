@@ -1,0 +1,114 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Sort an array of 0s, 1s and 2s without using any sorting algorithm
+
+#### Description
+
+-   Given an array `A` of size `N` containing only 0s, 1s, and 2s; sort the array in ascending order.
+
+#### Constraints
+
+-   `1 <= N <= 10^6`
+-   `0 <= A[i] <= 2`
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <iostream>
+    using namespace std;
+
+    void sort012(int a[], int arr_size) {
+        int lo = 0;
+        int hi = arr_size - 1;
+        int mid = 0;
+
+        while (mid <= hi) {
+            if (`a[mid]` == 0) {
+                swap(`a[lo]`, `a[mid]`);
+                lo++;
+                mid++;
+            }
+            else if (`a[mid]` == 1) {
+                mid++;
+            }
+            else {
+                swap(`a[mid]`, a[hi]);
+                hi--;
+            }
+        }
+    }
+
+    int main() {
+        int arr[] = {0, 1, 1, 0, 1, 2, 1, 2, 0, 0, 0, 1};
+        int arr_size = sizeof(arr) / sizeof(arr[0]);
+
+        sort012(arr, arr_size);
+
+        for (int i = 0; i < arr_size; i++) {
+            cout << arr[i] << " ";
+        }
+
+        return 0;
+    }
+    ```
+
+    #### Explanation
+
+    - The `sort012` function sorts the given array a consisting of 0s, 1s, and 2s in a single pass.
+    - It uses three pointers: `lo` pointing to the last 0 in the sorted region, `hi` pointing to the first 2 in the sorted region, and `mid` traversing through the array.
+    - The function checks the value of `a[mid]` and performs the following operations:
+        - If `a[mid]` is 0, it swaps `a[mid]` with `a[lo]`, increments both `lo` and `mid` pointers, and moves the `mid` pointer forward.
+        - If `a[mid]` is 1, it simply increments the `mid` pointer.
+        - If `a[mid]` is 2, it swaps `a[mid]` with `a[hi]`, decrements the `hi` pointer, and moves the `mid` pointer forward.
+    - The main function initializes an array arr with the given elements and determines the size of the array. It then calls the `sort012` function to sort the array.
+    - Finally, the sorted array is printed using a `for` loop.
+
+    #### Analysis
+
+    - Time Complexity: `O(N)`
+    - Space Complexity: `O(1)`
+
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def sort012(a, arr_size):
+        lo = 0
+        hi = arr_size - 1
+        mid = 0
+        while mid <= hi:
+            # If the element is 0
+            if a[mid] == 0:
+                a[lo], a[mid] = a[mid], a[lo]
+                lo = lo + 1
+                mid = mid + 1
+            # If the element is 1
+            elif a[mid] == 1:
+                mid = mid + 1
+            # If the element is 2
+            else:
+                a[mid], a[hi] = a[hi], a[mid]
+                hi = hi - 1
+        return a
+
+    arr = [0, 1, 1, 0, 1, 2, 1, 2, 0, 0, 0, 1]
+    arr_size = len(arr)
+    arr = sort012(arr, arr_size)
+    for k in a:
+        print(k, end=' ')
+    ```
+
+    #### Explanation
+
+    -
+
+    #### Analysis
+
+    - Time Complexity: `O(N)`
+    - Space Complexity: `O(1)`
+
+    </Tab>
+
+</Tabs>
