@@ -90,12 +90,19 @@ import { Tab, Tabs, Steps } from "nextra-theme-docs";
 
     #### Explanation
 
-    -
+    - The `find_kth_smallest_largest` function takes an array `arr` and an integer `K` as input.
+    - Inside the function, the arr array is sorted in ascending order using the sort() method.
+    - The `Kth` smallest element is retrieved from the sorted array using `arr[K - 1]`, as array indices start from `0`.
+    - The `Kth` largest element is retrieved from the sorted array using `arr[len(arr) - K]`, where `len(arr)` returns the size of the array.
+    - The function returns a `tuple` containing the `Kth` smallest and `Kth` largest elements.
+    - In the main code, an example array is defined, and the `find_kth_smallest_largest` function is called with the array and the value of `K`.
+    - The resulting `Kth` smallest and Kth largest elements are stored in the variables kth_smallest and kth_largest.
+    - Finally, the values of the `Kth` smallest and `Kth` largest elements are printed.
 
     #### Analysis
 
-    - Time Complexity:
-    - Space Complexity:
+    - Time Complexity: `O(n log n)`
+    - Space Complexity: `O(n)`
 
     </Tab>
 

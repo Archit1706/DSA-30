@@ -39,7 +39,7 @@ import { Tab, Tabs, Steps } from "nextra-theme-docs";
 
         #### Explanation
 
-        -
+        - Here we simply use the inbuilt `sort` function to re-arrange the array `arr` in an ascending order.
 
         #### Analysis
 
@@ -100,7 +100,14 @@ import { Tab, Tabs, Steps } from "nextra-theme-docs";
         ```
         #### Explanation
 
-        -
+        - The shiftall function takes an array `arr`, a left index `left`, and a right index `right` as input.
+        - The function uses a `while` loop to iterate while the `left` index is less than or equal to the `right` index.
+        - Inside the loop, the function checks the values at the `left` and `right` indices of the array.
+        - If both values are negative, the `left` index is incremented by `1`.
+        - If the value at the `left` index is positive and the value at the `right` index is negative, the function swaps the values and increments the `left` index by `1` and decrements the `right` index by `1`.
+        - If both values are positive, the `right` index is decremented by `1`.
+        - If none of the above conditions are met, it means that the value at the `left` index is negative and the value at the `right` index is positive. In this case, both indices are incremented and decremented by `1`, respectively.
+        - The function continues this shifting operation until the `left` index exceeds the `right` index.
 
         #### Analysis
 
@@ -112,17 +119,31 @@ import { Tab, Tabs, Steps } from "nextra-theme-docs";
 
     <Tab>
     ```python copy
-    Comming Soon...
+    def shift_all(arr, left, right):
+        while left <= right:
+            if arr[left] < 0 and arr[right] < 0:
+                left += 1
+            elif arr[left] > 0 and arr[right] < 0:
+                arr[left], arr[right] = arr[right], arr[left]
+                left += 1
+                right -= 1
+            elif arr[left] > 0 and arr[right] > 0:
+                right -= 1
+            else:
+                left += 1
+                right -= 1
     ```
 
     #### Explanation
 
-    -
+    - The function `shift_all` takes an array `arr`, a left index `left`, and a right index `right` as input. It performs the same shifting operation as the given C++ code.
+
+    - In Python, you don't need to explicitly define the array size when passing it to a function.
 
     #### Analysis
 
-    - Time Complexity:
-    - Space Complexity:
+    - Time Complexity: `O(N)`
+    - Space Complexity: `O(1)`
 
     </Tab>
 

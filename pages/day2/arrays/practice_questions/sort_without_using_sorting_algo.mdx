@@ -102,7 +102,15 @@ import { Tab, Tabs, Steps } from "nextra-theme-docs";
 
     #### Explanation
 
-    -
+    - The function takes an array a and its size arr_size as input.
+    - It initializes three pointers lo, mid, and hi to keep track of the positions of 0s, 1s, and 2s in the array.
+    - Using a while loop, the function iterates until the mid pointer exceeds the hi pointer.
+    - Inside the loop, it checks the value at the mid position:
+        - If the value is 0, it swaps the element at the lo position with the element at the mid position. Then, it increments both lo and mid by 1.
+        - If the value is 1, it simply increments the mid pointer by 1.
+        - If the value is 2, it swaps the element at the mid position with the element at the hi position. Then, it decrements hi by 1.
+    - The function continues this process until all 0s, 1s, and 2s are placed in their respective positions.
+    - Finally, the function returns the sorted array.
 
     #### Analysis
 
