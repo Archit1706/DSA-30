@@ -1,0 +1,328 @@
+import { Tabs, Tab, Steps } from "nextra-theme-docs";
+
+## Basic Operations on a Doubly Linked List
+
+> We can perform the following basic operation on an Array:
+
+1. Define a Doubly Linked List
+2. Insert a node at the beginning
+3. Insert a node at the end
+4. Insert a node after a given node
+5. Insert a node before a given node
+6. Delete the first node
+7. Delete the last node
+8. Delete a node after a given node
+9. Delete a node before a given node
+10. Traverse and Display all the nodes
+11. Reverse the Doubly Linked List
+
+<Steps>
+
+    ### Define a Doubly Linked List
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Insert a node at the beginning
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if AVAIL = NULL
+                Write Overflow
+                Go to step 9
+            [END OF if]
+    Step 2: SET newNode = AVAIL
+    Step 3: AVAIL = AVAIL->next
+    Step 4: SET newNode->prev = NULL
+    Step 5: SET newNode->data = val
+    Step 6: SET newNode->next = start
+    Step 7: SET start->prev = newNode
+    Step 8: SET start = newNode
+    Step 9: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Insert a node at the end
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if AVAIL = NULL
+                Write Overflow
+                Go to step 11
+            [END OF if]
+    Step 2: newNode = AVAIL
+    Step 3: AVAIL = AVAIL->next
+    Step 4: SET ptr = start
+    Step 5: Repeat step 6 while ptr->next != NULL
+    Step 6:     SET ptr = ptr->next
+            [END OF LOOP]
+    Step 7: SET newNode->data = val
+    Step 8: SET newNode->prev = ptr
+    Step 9: SET newNode->next = NULL
+    Step 10: ptr->next = newNode
+    Step 11: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Insert a node after a given node
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if AVAIL = NULL
+                Write Overflow
+                Go to step 12
+            [END OF if]
+    Step 2: newNode = AVAIL
+    Step 3: AVAIL = AVAIL->next
+    Step 4: SET newNode->data = val
+    Step 5: SET ptr = start
+    Step 6: Repeat step 7 while ptr->data != val
+    Step 7:     SET ptr = ptr->next
+            [END OF LOOP]
+    Step 8: SET ptr->next->prev = newNode
+    Step 9: SET newNode->next = ptr->next
+    Step 10: SET newNode->prev = ptr
+    Step 11: SET ptr->next = newNode
+    Step 12: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Insert a new node before a given node
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if AVAIL = NULL
+                Write Overflow
+                Go to step 12
+            [END OF if]
+    Step 2: newNode = AVAIL
+    Step 3: AVAIL = AVAIL->next
+    Step 4: SET newNode->data = val
+    Step 5: SET ptr = start
+    Step 6: Repeat step 7 while ptr->data != val
+    Step 7:     SET ptr = ptr->next
+            [END OF LOOP]
+    Step 8: SET newNode->prev = ptr->prev
+    Step 9: SET newNode->next = ptr
+    Step 10: SET ptr->prev->next = newNode
+    Step 11: SET ptr->prev = newNode
+    Step 12: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Delete the first node
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if start = NULL
+                Write Underflow
+                Go to step 6
+            [END OF if]
+    Step 2: SET ptr = start
+    Step 3: SET start = start->next
+    Step 4: SET start->prev = NULL
+    Step 5: free ptr
+    Step 6: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Delete the last node
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if start = NULL
+                    Write Underflow
+                    Go to step 7
+            [END OF if]
+    Step 2: SET ptr = start
+    Step 3: Repeat step 4 while ptr->next != NULL
+    Step 4:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 5: SET ptr->prev->next = NULL
+    Step 6: free ptr
+    Step 7: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Delete a node after a given node
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if start = NULL
+                    Write Underflow
+                    Go to step 9
+            [END OF if]
+    Step 2: SET ptr = start
+    Step 3: Repeat step 4 while ptr->data != val
+    Step 4:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 5: SET temp = ptr->next
+    Step 6: SET ptr->next = temp->next
+    Step 7: SET temp->next->prev = ptr
+    Step 8: free temp
+    Step 9: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Delete a node before a given node
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: if start = NULL
+                Write Underflow
+                Go to step 9
+            [END OF if]
+    Step 2: SET ptr = start
+    Step 3: Repeat step 4 while ptr->data != val
+    Step 4:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 5: SET temp = ptr->prev
+    Step 6: SET ptr->prev = temp->prev
+    Step 7: SET temp->prev->next = ptr
+    Step 8: free temp
+    Step 9: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+        </Tab>
+
+        <Tab>
+        ```py copy
+
+        ```
+        </Tab>
+    </Tabs>
+
+</Steps>

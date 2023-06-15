@@ -1,0 +1,709 @@
+import { Tabs, Tab, Steps } from "nextra-theme-docs";
+
+## Basic Operations on a Linked List
+
+> We can perform the following basic operation on an Array:
+
+1. Define a Linked List
+2. Insert an Element at the beginning
+3. Insert an Element at the end
+4. Insert an Element after a given position
+5. Insert an Element before a given position
+6. Delete an Element at the beginning
+7. Delete an Element at the end
+8. Delete an Element after a given position
+9. Delete an Element before a given position
+10. Count the number of Elements/Nodes
+11. Traverse and Display the Elements/Nodes
+12. Reverse the Linked List
+
+<Steps>
+    ### Define a Linked List
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        class Node {
+        public:
+            int data;
+            Node *next;
+
+            Node(int value) {
+                data = value;
+                next = nullptr;
+            }
+        };
+
+        class Linked_List {
+        private:
+            Node *start = nullptr;
+
+        public:
+            Linked_List() {
+                start = nullptr;
+            }
+        };
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        class node:
+            def __init__(self, data) -> None:
+                self.data = data
+                self.next = None
+
+        class LinkedList:
+            def __init__(self) -> None:
+                self.start = None
+
+        ```
+
+        </Tab>
+    </Tabs>
+
+    ### Insert an Element at the beginning
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: if AVAIL == NULL
+                Write Overflow
+                Go to step 7
+            [END OF if]
+    Step 2: SET newNode = AVAIL
+    Step 3: SET AVAIL = AVAIL -> next
+    Step 4: SET newNode -> data = val
+    Step 5: SET newNode -> next = start
+    Step 6: SET start = newNode
+    Step 7: EXIT
+    ```
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void insert_beginning(int value)
+        {
+            Node *new_node = new Node(value);
+            if (start == nullptr)
+                start = new_node;
+            else
+            {
+                new_node->next = start;
+                start = new_node;
+            }
+            return;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def insertAtBeginning(self, data):
+            if self.start == None:
+                print("Linked List is empty")
+                return
+            newNode = Node(data)
+            newNode.next = self.start
+            self.start = newNode
+
+        ---
+        def insertFirst(self, value):
+            newNode = node(value)
+            newNode.next = self.start
+            self.start = newNode
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Insert an Element at the End
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: if AVAIL = NULL
+                Write Overflow
+                Go to step 10
+            [END OF if]
+    Step 2: SET newNode = AVAIL
+    Step 3: SET AVAIL = AVAIL->next
+    Step 4: SET newNode->data = val
+    Step 5: SET newNode->next = NULL
+    Step 6: SET last = start
+    Step 7:Repeat Step 8 while last->next != NULL
+    Step 8:         SET last = last->next
+            [END OF LOOP]
+    Step 9: SET last->next = newNode
+    Step 10: EXIT
+    ```
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void insert_end(int value)
+        {
+            Node *new_node = new Node(value);
+            if (start == nullptr)
+                start = new_node;
+            else
+            {
+                Node *temp = start;
+                while (temp->next != nullptr)
+                    temp = temp->next;
+
+                temp->next = new_node;
+                new_node->next = nullptr;
+            }
+            return;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def insertLast(self, value):
+            newNode = node(value)
+            if self.start == None:
+                self.start = newNode
+            else:
+                temp = self.start
+                while temp.next is not None:
+                    temp = temp.next
+                temp.next = newNode
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Insert an Element after a given position/element
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: if AVAIL = NULL
+                Write Overflow
+                Go to step 12
+            [END OF if]
+    Step 2: SET newNode = AVAIL
+    Step 3: SET AVAIL = AVAIL->next
+    Step 4: SET newNode->data = val
+    Step 5: SET ptr = start
+    Step 6: SET prePtr = ptr
+    Step 7: Repeat Steps 8 and 9 while prePtr->data != val
+    Step 8:         SET prePtr = ptr
+    Step 9:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 10: SET prePtr -> next = newNode
+    Step 11: SET newNode->next = ptr
+    Step 12: EXIT
+    ```
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void insert_after(int value, int pos)
+        {
+            if (head == nullptr) {
+                cout << "Empty List!" << endl;
+                return;
+            }
+
+            Node *new_node = new Node(value);
+            Node *temp = head;
+
+            while (temp != nullptr && temp->data != pos)
+                temp = temp->next;
+
+            if (temp == nullptr)
+            {
+                cout << "No such element found" << endl;
+                delete new_node; // Clean up the dynamically allocated node
+                return;
+            }
+            new_node->next = temp->next;
+            temp->next = new_node;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def insertAfter(self, value, pos):
+            newNode = node(value)
+            if self.start == None:
+                print("The node is not present in the list")
+            else:
+                temp = self.start
+                while temp.data != pos:
+                    temp = temp.next
+                newNode.next = temp.next
+                temp.next = newNode
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Insert an Element before a given position/element
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: if AVAIL = NULL
+                Write Overflow
+                Go to step 7
+    Step 2: SET newNode = AVAIL
+    Step 3: SET AVAIL = AVAIL->next
+    Step 4: SET newNode->data = val
+    Step 5: SET ptr = start
+    Step 6: SET prePtr = ptr
+    Step 7: Repeat Steps 8 and 9 while ptr->data
+    Step 8:         SET prePtr = ptr
+    Step 9:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 10: SET prePtr -> next = newNode
+    Step 11: SET newNode->next = ptr
+    Step 12: EXIT
+    ```
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void insert_before(int value, int pos) {
+            if (head == nullptr) {
+                cout << "Empty List!" << endl;
+                return;
+            }
+
+            Node *new_node = new Node(value);
+            Node *ptr = head;
+            Node *pre_ptr = nullptr;
+
+            while (ptr != nullptr && ptr->data != pos) {
+                pre_ptr = ptr;
+                ptr = ptr->next;
+            }
+
+            if (ptr == nullptr) {
+                cout << "No such element found" << endl;
+                delete new_node; // Clean up the dynamically allocated node
+                return;
+            }
+
+            if (pre_ptr == nullptr) {
+                new_node->next = head;
+                head = new_node;
+            }
+            else {
+                new_node->next = ptr;
+                pre_ptr->next = new_node;
+            }
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def insertBefore(self, value, pos):
+            newNode = node(value)
+            if self.start == None:
+                print("The node is not present in the linked List")
+            else:
+                temp = self.start
+                while temp.next.data != pos:
+                    temp = temp.next
+                newNode.next = temp.next
+                temp.next = newNode
+        ```
+        </Tab>
+    </Tabs>
+
+    ### Delete an Element at the Beginning
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: if start = NULL
+                Write Underflow
+                Go to step 5
+            [END OF if]
+    Step 2: SET ptr = start
+    Step 3: SET start = start->next
+    Step 4: free ptr
+    Step 5: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void delete_beginning() {
+            if (head == nullptr) {
+                cout << "List is empty!" << endl;
+                return;
+            }
+
+            Node *ptr = head;
+            head = head->next;
+            delete ptr;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def deleteFirst(self):
+            if self.start == None:
+                print("The Linked List is Empty!")
+            else:
+                self.start = self.start.next
+        ```
+
+        </Tab>
+    </Tabs>
+
+    ### Delete an Element at the End
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: if start = NULL
+                Write Underflow
+                Go to step 8
+            [END OF if]
+    Step 2: SET ptr = start
+    Step 3: Repeat steps 4 to 5 while ptr->next != NULL
+    Step 4:         SET prePtr = ptr
+    Step 5:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 6: SET prePtr->next = NULL
+    Step 7: free ptr
+    Step 8: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void delete_end() {
+            if (head == nullptr) {
+                cout << "List is empty!" << endl;
+                return;
+            }
+
+            Node *temp = head;
+            if (temp->next == nullptr) {
+                // Only one node in the list
+                delete temp;
+                head = nullptr;
+                return;
+            }
+
+            while (temp->next->next != nullptr)
+                temp = temp->next;
+
+            delete temp->next;
+            temp->next = nullptr;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def deleteLast(self):
+            if self.start == None:
+                print("The Linked list is Empty!")
+            else:
+                temp = self.start
+                while temp.next.next != None:
+                    temp = temp.next
+                temp.next = None
+        ```
+
+        </Tab>
+    </Tabs>
+
+    ### Delete an Element after a given position
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: if start = NULL
+                Write Underflow
+                Go to step 10
+            [END OF if]
+    Step 2: SET ptr = start
+    Step 3: SET prePtr = ptr
+    Step 4: Repeat steps 5 to 6 while prePtr->data != val
+    Step 5:         SET prePtr = ptr
+    Step 6:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 7: SET temp = ptr
+    Step 8: SET prePtr-> next = ptr->next
+    Step 9: free temp
+    Step 10: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void delete_after(int pos) {
+            if (head == nullptr) {
+                cout << "List is empty!" << endl;
+                return;
+            }
+
+            Node *ptr = head;
+            while (ptr != nullptr && ptr->data != pos)
+                ptr = ptr->next;
+
+            if (ptr == nullptr || ptr->next == nullptr) {
+                cout << "No such element found!" << endl;
+                return;
+            }
+
+            Node *temp = ptr->next;
+            ptr->next = temp->next;
+            delete temp;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def deleteAfter(self, pos):
+            if self.start != None:
+                temp = self.start
+                while temp.data != pos:
+                    temp = temp.next
+                temp.next = temp.next.next
+        ```
+
+        </Tab>
+    </Tabs>
+
+
+
+
+    ### Delete an Element before a given position
+
+    {/* - ALGORTIHM */}
+
+    {/* ```py copy */}
+
+    {/* ``` */}
+
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void delete_before(int pos) {
+            if (head == nullptr || head->next == nullptr) {
+                cout << "List is empty or has only one node!" << endl;
+                return;
+            }
+
+            if (head->data == pos) {
+                cout << "No element found before the specified position!" << endl;
+                return;
+            }
+
+            if (head->next->data == pos) {
+                Node *temp = head;
+                head = head->next;
+                delete temp;
+                return;
+            }
+
+            Node *ptr = head->next;
+            Node *pre_ptr = head;
+
+            while (ptr != nullptr && ptr->data != pos) {
+                pre_ptr = ptr;
+                ptr = ptr->next;
+            }
+
+            if (ptr == nullptr) {
+                cout << "No such element found!" << endl;
+                return;
+            }
+
+            pre_ptr->next = ptr->next;
+            delete ptr;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def deleteBefore(self, pos):
+            if self.start != None:
+                temp = self.start
+                while temp.next.next.data != pos:
+                    temp = temp.next
+                temp.next = temp.next.next
+        ```
+
+        </Tab>
+    </Tabs>
+
+    ### Count the number of Elements/Nodes
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: [Initialize] SET ptr = start, count = 0
+    Step 2: Repeat Steps 3 to 4 while ptr != NULL
+    Step 3:         Apply process to ptr->data
+    Step 4:         SET ptr = ptr->next
+                    SET count = count + 1
+            [END OF LOOP]
+    Step 5: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void count_nodes()
+        {
+            int count = 0;
+            Node *ptr = head;
+
+            while (ptr != nullptr) {
+                count++;
+                ptr = ptr->next;
+            }
+
+            cout << "There are " << count << " nodes in the linked list." << endl;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def countNodes(self):
+            count = 0
+            temp = self.start
+            while temp:
+                count += 1
+                temp = temp.next
+            print(f"There are {count} nodes in the linked list.")
+        ```
+
+        </Tab>
+    </Tabs>
+
+    ### Traverse and Display the Elements/Nodes
+
+    - ALGORTIHM
+
+    ```py copy
+    Step 1: [Initialize] SET ptr = start, count = 0
+    Step 2: Repeat Steps 3 to 4 while ptr != NULL
+    Step 3:         Apply process to ptr->data
+    Step 4:         PRINT ptr->data
+                    SET ptr = ptr->next
+            [END OF LOOP]
+    Step 5: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void display() {
+            if (head == nullptr) {
+                cout << "Empty List!" << endl;
+                return;
+            }
+
+            cout << "The elements in the linked list are:" << endl;
+            Node *ptr = head;
+
+            while (ptr != nullptr) {
+                cout << ptr->data << "\t";
+                ptr = ptr->next;
+            }
+            cout << endl;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def display(self):
+            if self.start == None:
+                print("The Linked list is Empty!")
+            else:
+                temp = self.start
+                while temp:
+                    print(temp.data , end=" ")
+                    temp = temp.next
+        ```
+
+        </Tab>
+    </Tabs>
+
+    ### Reverse a Linked List
+
+    - ALGORITHM
+
+    ```py copy
+    Step 1: SET current = start
+    Step 2: SET prev = NULL
+    Step 3: SET nextPtr = NULL
+    Step 4: Repeat steps 5 to 7 while current is not NULL
+    Step 5:     SET nextPtr = current->next
+    Step 6:     SET current->next = prev
+    Step 7:     SET prev = current
+                SET current = nextPtr
+            [END OF LOOP]
+    Step 8: SET start = prev
+    Step 9: EXIT
+    ```
+
+    - CODE
+
+    <Tabs items={["C++", "Python"]} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void reverse()
+        {
+            if (head == nullptr)
+            {
+                cout << "Empty List!" << endl;
+                return;
+            }
+            Node *prev_ptr = nullptr, *current_ptr = head, *next_ptr = nullptr;
+            while (current_ptr != nullptr)
+            {
+                next_ptr = current_ptr->next;
+                current_ptr->next = prev_ptr;
+                prev_ptr = current_ptr;
+                current_ptr = next_ptr;
+            }
+            head = prev_ptr;
+        }
+        ```
+        </Tab>
+        <Tab>
+        ```py copy
+        def reverse(self):
+            if self.start == None:
+                print("The Linked list is Empty!")
+                return
+            prevPtr = None
+            currentPtr = self.start
+            nextPtr = None
+
+            while (currentPtr != None):
+                nextPtr = currentPtr.next
+                currentPtr.next = prevPtr
+                prevPtr = currentPtr
+                currentPtr = nextPtr
+
+            self.start = prevPtr
+        ```
+
+        </Tab>
+    </Tabs>
+
+</Steps>
