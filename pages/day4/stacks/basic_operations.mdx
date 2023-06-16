@@ -1,0 +1,206 @@
+import { Tabs, Tab, Steps } from "nextra-theme-docs";
+
+### Basic Operations on a Stack
+
+<Steps>
+
+### Stack using Arrays
+
+    <Steps>
+        ### Insert an Element
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if top = max - 1
+                        Write Overflow
+                        Go to step 4
+                [END OF if]
+        Step 2: SET top = top + 1
+        Step 3: SET top = val
+        Step 4: END
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+    <Steps>
+        ### Delete an Element
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if top = NULL
+                    Write Underflow
+                    Go to step 4
+                [END OF if]
+        Step 2: SET val = stack[top]
+        Step 3: SET top = top - 1
+        Step 4: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+    <Steps>
+        ### Peek Operation
+
+        - ALGORITHM
+
+        ```py copy
+        step 1: if top = NULL
+                    Write Underflow
+                    Go to step 3
+                [END OF if]
+        step 2: return stack[top]
+        step 3: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+### Stack using Linked List
+
+    <Steps>
+        ### Insert an Element
+
+        - ALGORITHM
+
+        ```cpp copy
+        Step 1: Allocate memory for the new node and name it newNode
+        Step 2: SET newNode->data = val
+        Step 3: if top = NULL
+                    SET newNode->next = NULL
+                    SET top = newNode
+                else
+                    SET newNode->next = top
+                    SET top = newNode
+                [END OF if]
+        Step 4: END
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+    <Steps>
+        ### Delete an Element
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if top = NULL
+                    Write Underflow
+                    Go to step 5
+                [END OF if]
+        Step 2: SET ptr = top
+        Step 3: SET top = top->next
+        Step 4: free ptr
+        Step 5: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+
+    <Steps>
+        ### Peek Operation
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if top = NULL
+                        Write Underflow
+                        Go to step 3
+                [END OF if]
+        Step 2: return top->data
+        Step 3: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+</Steps>

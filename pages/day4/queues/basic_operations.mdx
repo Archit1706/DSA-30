@@ -1,0 +1,211 @@
+import { Tabs, Tab, Steps } from "nextra-theme-docs";
+
+### Basic Operations on a Queue
+
+<Steps>
+
+### Queue using Arrays
+
+    <Steps>
+        #### Insert an Element
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if rear = max - 1
+                Write Overflow
+                Go to step 4
+                [END OF if]
+        Step 2: if front = -1 and rear = -1
+                        SET front = rear = 0
+                else
+                        SET rear = rear + 1
+                [END OF if]
+        Step 3: SET queue[rear] = val
+        Step 4: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+    <Steps>
+        #### Delete an Element
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if front = -1 or front > rear
+                    Write Underflow
+                else
+                    SET val = Queue[front]
+                    SET front = front + 1
+                [END OF if]
+        Step 2: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+    <Steps>
+        #### Peek Operation
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if front = -1 or front > rear
+                        Write Underflow
+                else
+                        return Queue[front]
+                [END OF if]
+        Step 2: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+### Queue using Linked List
+
+    <Steps>
+        #### Insert an Element
+
+        - ALGORITHM
+
+        ```cpp copy
+        Step 1: Allocate memory for the new node and name it newNode
+        Step 2: SET newNode->data = val
+        Step 3: if front = NULL
+                        SET front = rear = newNode
+                        SET front->next = rear->next = NULL
+                else
+                        SET rear->next = newNode
+                        SET rear = newNode
+                        SET rear->next = NULL
+                [END OF if]
+        Step 4: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+    <Steps>
+        #### Delete an Element
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if front = NULL
+                    Write Underflow
+                    Go to step 5
+                [END OF if]
+        Step 2: set ptr = front;
+        Step 3: set ptr = ptr->next
+        Step 4: free ptr
+        Step 5: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+
+    <Steps>
+        #### Peek Operation
+
+        - ALGORITHM
+
+        ```py copy
+        Step 1: if front = NULL
+                        Write Underflow
+                else
+                        return front->data
+                [END OF if]
+        Step 2: EXIT
+        ```
+
+        - CODE
+
+        <Tabs items={['C++', 'Python']} defaultIndex="0">
+            <Tab>
+            ```cpp copy
+
+            ```
+            </Tab>
+
+            <Tab>
+            ```py copy
+
+            ```
+            </Tab>
+        </Tabs>
+    </Steps>
+
+</Steps>

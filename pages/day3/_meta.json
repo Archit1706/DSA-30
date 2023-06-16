@@ -1,9 +1,9 @@
 {
     "index": "TODO",
     "introduction": "Introduction",
-    "linked-list": "Singly Linked List",
-    "circular-linked-list": "Circular Linked List",
-    "doubly-linked-list": "Doubly Linked List",
-    "circular-doubly-linked-list": "Circular Doubly Linked List",
+    "linked_list": "Singly Linked List",
+    "circular_linked_list": "Circular Linked List",
+    "doubly_linked_list": "Doubly Linked List",
+    "circular_doubly_linked_list": "Circular Doubly Linked List",
     "practice_questions": "Practice Questions"
 }

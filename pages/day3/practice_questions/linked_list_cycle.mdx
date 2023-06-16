@@ -1,0 +1,125 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Linked List Cycle
+
+#### Description
+
+-   Given `head`, the head of a linked list, determine if the linked list has a cycle in it.
+
+There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the `next` pointer. Internally, `pos` is used to denote the index of the node that tail's `next` pointer is connected to. Note that `pos` is not passed as a parameter.
+
+Return `true` if there is a cycle in the linked list. Otherwise, return `false`.
+
+#### Constraints
+
+-   The number of the nodes in the list is in the range `[0, 10^4]`.
+-   `-10^5 <= Node.val <= 10^5`
+-   `pos` is `-1` or a valid index in the linked-list.
+
+#### Test Cases
+
+-   Input: `head = [3,2,0,-4], pos = 1`
+    Output: `true`
+
+-   Input: `head = [1], pos = -1`
+    Output: `false`
+
+#### Code
+
+<Steps>
+
+    ##### Approach 1: `Using slow and fast pointers`
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        bool hasCycle(ListNode *head) {
+            ListNode *slow = head, *fast = head;
+            while (fast && fast->next) {
+                slow = slow->next;
+                fast = fast->next->next;
+                if (slow == fast)
+                    break;
+            }
+            if (slow != fast)
+                return NULL;
+            fast = head;
+            while (fast && fast->next) {
+                if (slow == fast)
+                    return slow;
+                slow = slow->next;
+                fast = fast->next;
+            }
+            return NULL;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def hasCycle(self, head):
+            slow = fast = head
+            while (fast and fast.next):
+                slow = slow.next
+                fast = fast.next.next
+                if (slow == fast):
+                    break
+            if slow != fast :
+                return None
+
+            fast = head
+            while (fast and fast.next):
+                if slow == fast :
+                    return slow
+                slow = slow.next
+                fast = fast.next
+            return None
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Initialize two pointers `slow` and `fast` to `head`.
+        2. Move `slow` by one node and `fast` by two nodes.
+        3. If `slow` and `fast` meet, then there is a cycle.
+        4. Move `fast` to `head` and move both `slow` and `fast` by one node.
+        5. If `slow` and `fast` meet, then return `slow`.
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(1)`
+    </Tabs>
+
+    ---
+
+    {/* ### Using
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        Comming Soon...
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1.
+
+        #### Analysis
+
+        - Time Complexity: ``
+        - Space Complexity: ``
+    </Tabs> */}
+
+</Steps>
