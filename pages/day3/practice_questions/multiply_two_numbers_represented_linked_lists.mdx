@@ -1,0 +1,75 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Multiply Two Numbers Represented as Linked Lists
+
+#### Description
+
+-   Given two numbers represented by two linked lists, write a function that returns the _multiplication_ of these two linked lists.
+
+#### Constraints
+
+-   `1 <= N, M <= 100` - Size of Linked Lists
+
+#### Test Cases
+
+-   Input: `l1 = [9, 4, 6], l2 = [8, 5]` <br />
+    Output: `79464`
+
+-   Input: `l1 = [3, 2, 1], l2 = [1, 2]` <br />
+    Output: `3852`
+
+#### Code
+
+<Steps>
+
+    ##### Approach 1: `Iterative`
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int multiply(Node *l1, Node *l2) {
+            int num1 = 0, num2 = 0;
+            while (l1 || l2) {
+                if (l1) {
+                    num1 = num1 * 10 + l1->data;
+                    l1 = l1->next;
+                }
+                if (l2) {
+                    num2 = num2 * 10 + l2->data;
+                    l2 = l2->next;
+                }
+            }
+            return num1 * num2;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def multiply(l1, l2):
+            num1, num2 = 0, 0
+            while l1 or l2:
+                if l1:
+                    num1 = num1 * 10 + l1.data
+                    l1 = l1.next
+                if l2:
+                    num2 = num2 * 10 + l2.data
+                    l2 = l2.next
+            return num1 * num2
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Traverse both the linked lists and convert them into numbers.
+        2. Multiply the numbers and return the result.
+
+        #### Analysis
+
+        - Time Complexity: `O(max(N, M))`
+        - Space Complexity: `O(1)`
+    </Tabs>
+
+</Steps>

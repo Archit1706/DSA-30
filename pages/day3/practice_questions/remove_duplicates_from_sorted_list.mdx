@@ -1,0 +1,112 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Remove Duplicates from Sorted List
+
+#### Description
+
+-   Given the `head` of a sorted linked list, _delete all duplicates such that each element appears only once_. Return the _linked list_ **sorted** as well.
+
+#### Constraints
+
+-   The number of nodes in the list is in the range `[0, 300]`.
+-   `-100 <= Node.val <= 100`
+-   The list is guaranteed to be sorted in ascending order.
+
+#### Test Cases
+
+-   Input: `head = [1,1,2]`
+    Output: `[1,2]`
+
+-   Input: `head = [1,1,2,3,3]`
+    Output: `[1,2,3]`
+
+#### Code
+
+<Steps>
+
+    ##### Approach 1: `Iterative`
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        ListNode* deleteDuplicates(ListNode* head) {
+            if(!head) return head;
+            ListNode* current = head;
+            while (current->next != NULL) {
+                if (current->val == current->next->val) {
+                    ListNode *temp = current->next;
+                    current->next = current->next->next;
+                    delete temp;
+                }
+                else {
+                    current = current->next;
+                }
+            }
+            return head;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def deleteDuplicates(self, head):
+            if head == None:
+                return head
+            current = head
+            while current.next != None:
+                if current.val == current.next.val:
+                    current.next = current.next.next
+                else:
+                    current = current.next
+
+            return head
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Traverse the list from the head (or start) node.
+        2. While traversing, compare each node with its next node.
+        3. If the data of the next node is the same as the current node then delete the next node.
+        4. Before we delete a node, we need to store the next pointer of the node.
+        5. Repeat step 2 until the next node of the current node is the NULL pointer.
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(1)`
+    </Tabs>
+
+    ---
+
+    {/* ##### Approach 2: ``
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        Comming Soon...
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1.
+
+        #### Analysis
+
+        - Time Complexity: ``
+        - Space Complexity: ``
+
+    </Tabs> */}
+
+</Steps>

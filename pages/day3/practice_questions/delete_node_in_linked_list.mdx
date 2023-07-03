@@ -1,0 +1,106 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Delete Node in a Singly Linked List
+
+#### Description
+
+There is a singly-linked list head and we want to delete a node node in it.
+
+You are given the node to be deleted node. You will not be given access to the first node of head.
+
+All the values of the linked list are unique, and it is guaranteed that the given node node is not the last node in the linked list.
+
+Delete the given node. Note that by deleting the node, we do not mean removing it from memory. We mean:
+
+-   The value of the given node should not exist in the linked list.
+-   The number of nodes in the linked list should decrease by one.
+-   All the values before node should be in the same order.
+-   All the values after node should be in the same order.
+
+| ![Example](/assets/delete_ll.jpg) |
+| :-------------------------------: |
+|             _Example_             |
+
+#### Constraints
+
+-   The number of the nodes in the given list is in the range `[2, 1000]`.
+-   `-1000 <= Node.val <= 1000`
+-   The value of each `node` in the list is **unique**.
+-   The `node` to be deleted is in the list and is not a tail node.
+
+#### Test Cases
+
+-   Input: `head = [4,5,1,9], node = 5` <br />
+    Output: `[4,1,9]`
+
+-   Input: `head = [4,5,1,9], node = 1` <br />
+    Output: `[4,5,9]`
+
+#### Code
+
+<Steps>
+
+    ##### Approach 1: `Copy and Delete`
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void deleteNode(ListNode* node) {
+            node->val = node->next->val;
+            node->next = node->next->next;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def deleteNode(node):
+            node.val = node.next.val
+            node.next = node.next.next
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Copy the value of the next node to the current node.
+        2. Delete the next node.
+
+        #### Analysis
+
+        - Time Complexity: `O(1)`
+        - Space Complexity: `O(1)`
+    </Tabs>
+
+    ---
+
+    {/* ##### Approach 2: ``
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        Comming Soon...
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1.
+
+        #### Analysis
+
+        - Time Complexity: `O()`
+        - Space Complexity: `O()`
+
+    </Tabs> */}
+
+</Steps>

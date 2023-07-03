@@ -1,0 +1,152 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Palindrome Linked List
+
+#### Description
+
+-   Given the `head` of a singly linked list, return `true` if it is a <span title="A palindrome is a sequence that reads the same forward and backward."> _palindrome_ </span> or `false` otherwise.
+
+#### Constraints
+
+-   The number of nodes in the list is in the range `[1, 10^5]`.
+-   `0 <= Node.val <= 9`
+
+#### Test Cases
+
+-   Input: `head = [1,2,2,1]` <br />
+    Output: `true`
+
+-   Input: `[1, 2]`<br />
+    Output: `false`
+
+#### Code
+
+<Steps>
+
+    ##### Approach 1: `Using an Array or a Vector`
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        bool isPalindrome(ListNode* head) {
+            vector<int> nums;
+            ListNode* temp = head;
+            while (temp) {
+                nums.push_back(temp->val);
+                temp = temp->next;
+            }
+            int start = 0, end = nums.size() - 1;
+            while (start <= end) {
+                if (nums[start++] != nums[end--])
+                    return false;
+            }
+            return true;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def isPalindrome(self, head: ListNode) -> bool:
+            nums = []
+            temp = head
+            while temp:
+                nums.append(temp.val)
+                temp = temp.next
+            start, end = 0, len(nums) - 1
+            while start <= end:
+                if nums[start] != nums[end]:
+                    return False
+                start += 1
+                end -= 1
+            return True
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Traverse the linked list and store the values in an array or a vector.
+        2. Use two pointers, one at the start and the other at the end of the array.
+        3. If the values at the two pointers are not equal, return false.
+        4. If the loop completes, return true.
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+    ---
+
+    ##### Approach 2: `Using fast and slow pointers`
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        bool isPalindrome(ListNode* head) {
+            ListNode* slow = head;
+            ListNode* fast = head;
+            while (fast && fast->next) {
+                slow = slow->next;
+                fast = fast->next->next;
+            }
+            ListNode* prev = NULL;
+            while (slow) {
+                ListNode* temp = slow->next;
+                slow->next = prev;
+                prev = slow;
+                slow = temp;
+            }
+            while (prev) {
+                if (prev->val != head->val)
+                    return false;
+                prev = prev->next;
+                head = head->next;
+            }
+            return true;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def isPalindrome(self, head: ListNode) -> bool:
+            slow = fast = head
+            while fast and fast.next:
+                slow = slow.next
+                fast = fast.next.next
+            prev = None
+            while slow:
+                temp = slow.next
+                slow.next = prev
+                prev = slow
+                slow = temp
+            while prev:
+                if prev.val != head.val:
+                    return False
+                prev = prev.next
+                head = head.next
+            return True
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Use two pointers, one slow and one fast.
+        2. Traverse the linked list using the fast pointer, and move the slow pointer to the middle of the linked list.
+        3. Reverse the second half of the linked list.
+        4. Traverse the first half and the reversed second half of the linked list and check if the values are equal.
+        5. If the loop completes, return true.
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(1)`
+
+    </Tabs>
+
+</Steps>

@@ -1,0 +1,105 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Convert Binary Number in a Linked List to Integer
+
+#### Description
+
+-   Given `head` which is a reference node to a singly-linked list. The value of each node in the linked list is either `0` or `1`. The linked list holds the binary representation of a number.
+
+Return the _decimal value_ of the number in the linked list.
+
+The most significant bit is at the head of the linked list.
+
+#### Constraints
+
+-   The Linked List is not empty.
+-   Number of nodes will not exceed `30`.
+-   Each node's value is either `0` or `1`.
+
+#### Test Cases
+
+-   Input: `head = [1,0,1]` <br />
+    Output: `5`
+
+-   Input: `head = [0]` <br />
+    Output: `0`
+
+#### Code
+
+<Steps>
+
+    ##### Approach 1: `Iterative`
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int getDecimalValue(ListNode* head) {
+            int decimal = 0;
+            ListNode *current = head;
+            while (current) {
+                decimal = 2 * decimal + current->val;
+                current = current->next;
+            }
+            return decimal;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def getDecimalValue(head):
+            cur = head
+            decimal = 0
+            while cur:
+                decimal = 2*decimal + cur.val
+                cur = cur.next
+            return decimal
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Initialize `decimal` to `0` and `current` to `head`.
+        2. Iterate over the linked list until `current` is `NULL`.
+        3. Update `decimal` to `2 * decimal + current->val`.
+        4. Update `current` to `current->next`.
+        5. Return `decimal`.
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(1)`
+    </Tabs>
+
+    ---
+
+    {/* ### Using
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        Comming Soon...
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1.
+
+        #### Analysis
+
+        - Time Complexity: ``
+        - Space Complexity: ``
+    </Tabs> */}
+
+</Steps>
