@@ -1,0 +1,332 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+## Basic Questions
+
+<Steps>
+
+### Sum of Natural Numbers
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int sum(int n) {
+            if (n == 1) return n;
+            return n + sum(n - 1);
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def sum(n):
+            if n == 1:
+                return n
+            return n + sum(n - 1)
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `n == 1`
+        2. Recursive case: `n + sum(n - 1)`
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+    ### Decimal to Binary COnversion
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int decimalToBinnary(int num) {
+            if (num == 0) return;
+            decimalToBinnary(num / 2);
+            cout << num % 2;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def decimal_to_binary(num):
+            if num == 0:
+                return
+            decimal_to_binary(num // 2)
+            print(num % 2, end='')
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `n == 0`
+        2. Recursive case: `decimalToBinnary(num / 2)`
+        3. Print the remainder of `num / 2`
+
+        #### Analysis
+
+        - Time Complexity: `O(log n)`
+        - Space Complexity: `O(log n)`
+    </Tabs>
+
+    ### Modulo Operation
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int mod(int num, int den) {
+            if (num < den) return num;
+            return mod(num - den, den);
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def mod(num, den):
+            if num < den:
+                return num
+            return mod(num - den, den)
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `num < den`
+        2. Recursive case: `mod(num - den, den)`
+        3. Return `num` when `num < den`
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+    ### Find String Length
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int stringLength(string str) {
+            if (str[0] == '\0') return 0;
+            return 1 + stringLength(str.substr(1));
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def string_length(str):
+            if str[0] == '\0':
+                return 0
+            return 1 + string_length(str[1:])
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `str[0] == '\0'`
+        2. Recursive case: `stringLength(str.substr(1))`
+        3. Return `1` when `str[0] == '\0'`
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+    ### Reverse a String
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void reverse(string str) {
+            if (str[0] == '\0') return;
+            reverse(str.substr(1));
+            cout << str[0];
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def reverse(str):
+            if str[0] == '\0':
+                return
+            reverse(str[1:])
+            print(str[0], end='')
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `str[0] == '\0'`
+        2. Recursive case: `reverse(str.substr(1))`
+        3. Print `str[0]` when `str[0] == '\0'`
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+
+    ### Check if string is Palindrome
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        bool isPalindrome(string str, int start, int end) {
+            if (start >= end) return true;
+            if (str[start] != str[end]) return false;
+            return isPalindrome(str, start + 1, end - 1);
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def is_palindrome(str, start, end):
+            if start >= end:
+                return True
+            if str[start] != str[end]:
+                return False
+            return is_palindrome(str, start + 1, end - 1)
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `start >= end`
+        2. Recursive case: `isPalindrome(str, start + 1, end - 1)`
+        3. Return `true` when `start >= end`
+        4. Return `false` when `str[start] != str[end]`
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+    ### Count Vowels in a String
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int countVowels(string str, int start, int end) {
+            if (start >= end) return 0;
+            int count = countVowels(str, start + 1, end);
+            if (str[start] == 'a' || str[start] == 'e' || str[start] == 'i' || str[start] == 'o' || str[start] == 'u') {
+                count++;
+            }
+            return count;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def count_vowels(str, start, end):
+            if start >= end:
+                return 0
+            count = count_vowels(str, start + 1, end)
+            if str[start] == 'a' or str[start] == 'e' or str[start] == 'i' or str[start] == 'o' or str[start] == 'u':
+                count += 1
+            return count
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `start >= end`
+        2. Recursive case: `countVowels(str, start + 1, end)`
+        3. Return `0` when `start >= end`
+        4. Return `count + 1` when `str[start]` is a vowel
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+    ### Sum of numbers in a Singly Linked List
+
+    #### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int sumNodes(Node* head) {
+            if (head == NULL) return 0;
+            return head->data + sumNodes(head->next);
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def sum_nodes(head):
+            if head == None:
+                return 0
+            return head.data + sum_nodes(head.next)
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Base case: `head == NULL`
+        2. Recursive case: `sumNodes(head->next)`
+        3. Return `0` when `head == NULL`
+        4. Return `head->data + sumNodes(head->next)` when `head != NULL`
+
+        #### Analysis
+
+        - Time Complexity: `O(n)`
+        - Space Complexity: `O(n)`
+    </Tabs>
+
+</Steps>
+
+> **Note**: Once you have understood the above examples, try to solve the following problems on your own. (`Using Recursion`)
+
+### Extra Problems
+
+1. Print numbers from 1 to n
+
+2. Print numbers from n to 1
+
+3. Print numbers from 1 to n in increasing order
+
+4. Print numbers from n to 1 in decreasing order

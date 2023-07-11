@@ -1,0 +1,239 @@
+import { Steps } from "nextra-theme-docs";
+import React, { useState } from "react";
+
+# Recursion
+
+## Definition
+
+-   The process in which a **function calls itself** directly or indirectly is called `recursion` and the corresponding function is called as `recursive function`.
+
+<RecursionGif />
+
+```cpp copy
+void func() {
+    // Some code
+    func(); // Function call
+    // Some code
+}
+```
+
+## Basic Rules of Recursion
+
+1. Function should call itself.
+2. Function should have a base condition.
+3. Function should change its state and move towards the base condition.
+
+> Below is a simple C++ program to demonstrate working of recursion.
+
+```cpp copy
+void fun(int N) {
+
+    // Base condition/case
+    if (N == 0) {
+        return;
+    }
+    cout << N << " ";
+
+    // Recursive call
+    fun(N - 1);
+}
+```
+
+## Factorial using Recursion
+
+<Steps>
+
+### Understanding
+
+1. `Factorial(N) = N * (N - 1) * (N - 2) * ... * 2 * 1`
+2. Recursively, `Factorial(N) = N * Factorial(N - 1)`
+3. Base condition: `Factorial(0) = 1`
+
+### Code
+
+```cpp copy
+int factorial(int N) {
+    // Base condition
+    if (N == 0) {
+        return 1;
+    }
+    // Recursive call
+    return N * factorial(N - 1);
+}
+```
+
+### Deep Dive
+
+-   During Recursion a stack is created to store the fuction calls and the function calls are pushed or popped from the stack one by one as the function calls are made or returned respectively.
+
+-   The stack is a LIFO (Last In First Out) data structure.
+
+| ![Factorial using Recutsion - Stack](/assets/recursion_intro_stack.png) |
+| :---------------------------------------------------------------------: |
+|                   _Factorial using Recutsion - Stack_                   |
+
+-   In the above image, the function calls are pushed into the stack and the function calls are popped from the stack one by one as the function calls are returned.
+
+</Steps>
+
+## Stack Overflow in Recursion
+
+-   The stack used to store the function calls can store only a finite number of funtion callls (say `n`). If the number of function calls exceeds `n`, then the stack overflows and the program crashes.
+
+-   Cases when stack overflow occurs:
+    1. **No base condition** - The function calls are pushed into the stack infinitely and the stack overflows.
+    2. **Recursive call do not align towards the base condition** - The function never reaches the base condition and the stack overflows.
+
+## Recursion vs Iteration
+
+| Parameter                          |                                                                               Iteration                                                                               |                                                                         Recursion                                                                         |
+| ---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| Working Principle                  | We initialize the loop control variable and increment / decrement based on the the need. Before execution control variable is checked with the termination condition. |                          Function calls itself to solve the problem. Here we define a base case which is the termination point.                           |
+| Control Variable and Control Logic |                                         Value of the control variable continuously movees towards the termination condition.                                          |                                                        Function call moves towards the base case.                                                         |
+| Storage                            |                                      Control Variable holds the value and it will be incremented / decremented based on the need                                      |                Every function state is maintained in the stack memory and when the base case is met, the execution follows LOFO principle.                |
+| Infinite Loop                      |              When control variable do not move towards the terminating condition, the loop is executed infinte times. A lot of CPU cycles are consumed.               | If no base case defined or the function call not aligned to the base case then the function calls may overflow the stack memory and will crash the system |
+
+### Converting an Iterative Solution to Recursive Solution
+
+<Steps>
+
+#### Iteration
+
+```cpp copy
+void iteration(int n) {
+    while ( n >= 1) {
+        cout << n << " ";
+        n--;
+    }
+}
+```
+
+    - Logic: `n` is printed and decremented till it reaches `1`.
+
+#### Recursion
+
+```cpp copy
+void recursion(int n) {
+    if (n == 0) {
+        return;
+    }
+    cout << n << " ";
+    recursion(n - 1);
+}
+```
+
+    - Logic: `n` is printed and the function is called with `n - 1` as the parameter.
+
+> **Activity**: Can you write iterative and recursive function for `reversing a string`?
+
+</Steps>
+
+## Types of Recursion
+
+| ![Types of Recursion](/assets/types_recursion.png) |
+| :------------------------------------------------: |
+|                _Types of Recursion_                |
+
+<Steps>
+
+### Direct Recursion
+
+#### Tail Recursion
+
+-   When the recursive call is the `last statement` in the function, it is called **tail recursion**.
+
+```cpp copy
+void tailRecursion() {
+    // some code
+    tailRecursion();
+}
+```
+
+#### Head Recursion
+
+-   When the recursive call is the `first statement` in the function, it is called **head recursion**.
+
+```cpp copy
+void headRecursion() {
+    headRecursion();
+    // some code
+}
+```
+
+#### Nested Recursion
+
+-   When a recursive function calls itself as a `parameter` in the function call, it is called **nested recursion**.
+
+```cpp copy
+void nestedRecursion() {
+    // some code
+    nestedRecursion(nestedRecursion(nestedRecursion()));
+}
+```
+
+#### Tree recursion
+
+-   When a recursive function calls itself `more than one time`, it is called **tree recursion**.
+
+```cpp copy
+void treeRecursion() {
+    // some code
+    treeRecursion();
+    // some code
+    treeRecursion();
+}
+```
+
+### Indirect Recursion
+
+-   When a recursive function calls another function and that function calls the first function, it is called **indirect recursion**.
+
+```cpp copy
+void indirectRecursion1() {
+    // some code
+    indirectRecursion2();
+}
+
+void indirectRecursion2() {
+    // some code
+    indirectRecursion1();
+}
+```
+
+> **Fun Fact**: If you are a fan of the movie `Inception`, you can relate the types of recursion with the movie.
+
+</Steps>
+
+---
+
+-   The stack is created in the memory and the memory is divided into two parts: Stack and Heap.
+
+-   The stack is used to store the function calls and the heap is used to store the variables and the data where the stack is of fixed size and the heap is of dynamic size.
+
+-   Using recursive algorithm, certain problems can be solved quite easily. Examples of such problems are Towers of Hanoi (TOH), Inorder/Preorder/Postorder Tree Traversals, DFS of Graph, etc.
+
+export function RecursionGif() {
+    const gifUrl = "https://i.giphy.com/media/3ov9jQX2Ow4bM5xxuM/giphy.webp"
+    const [isPlaying, setIsPlaying] = useState(true);
+
+const togglePlay = () => {
+setIsPlaying(!isPlaying);
+};
+
+// Replace the pausedGifUrl with the URL of the paused GIF
+const pausedGifUrl = '/assets/recursion-gif.jpg';
+
+    return (
+        <div style={{"display": "flex", "justify-content": "center", "align-items": "center"}}>
+            <img
+                style={{"height": "280", "width": "280"}}
+                src={isPlaying ? gifUrl : pausedGifUrl}
+                alt="GIF"
+                onClick={togglePlay}
+                style={{ cursor: "pointer" }}
+            />
+
+        </div>
+    );
+
+}

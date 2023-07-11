@@ -6,5 +6,24 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^4.9.0"
-  }
+  },
+  "name": "dsa30",
+  "version": "1.0.0",
+  "description": "The easiest way to learn DSA in 30 steps.",
+  "main": "next.config.js",
+  "devDependencies": {},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Archit1706/DSA-30.git"
+  },
+  "author": "Archit Rathod",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Archit1706/DSA-30/issues"
+  },
+  "homepage": "https://github.com/Archit1706/DSA-30#readme"
 }

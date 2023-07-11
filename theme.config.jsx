@@ -43,6 +43,9 @@ export default {
                 property="og:description"
                 content="Master DSA in 30 days with DSA-30"
             />
+
+            <meta name="author" content="Archit Rathod" />
+            <link rel="manifest" href="/manifest.json" />
         </>
     ),
     banner: {
@@ -75,10 +78,11 @@ export default {
     },
     sidebar: {
         toggleButton: true,
+        defaultMenuCollapseLevel: 1,
     },
     faviconGlyph: "30",
     feedback: {
-        useLink: () => "mailto:architrathod77@gmail.com",
+        useLink: () => " https://mailto:architrathod77@gmail.com",
         content: () => (
             <p>
                 <b>DSA-30</b> is yet to be an open-source project. If you find a
