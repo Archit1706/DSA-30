@@ -1,5 +1,7 @@
-import { Steps } from "nextra-theme-docs";
+import { Steps, Tabs, Tab } from "nextra-theme-docs";
 import React, { useState } from "react";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { ShowHideGif } from "../../components/ShowHideGif";
 
 # Recursion
 
@@ -7,7 +9,10 @@ import React, { useState } from "react";
 
 -   The process in which a **function calls itself** directly or indirectly is called `recursion` and the corresponding function is called as `recursive function`.
 
-<RecursionGif />
+<ShowHideGif
+    gifUrl={"https://i.giphy.com/media/3ov9jQX2Ow4bM5xxuM/giphy.webp"}
+    pausedGifUrl={"/assets/recursion-gif.jpg"}
+/>
 
 ```cpp copy
 void func() {
@@ -99,32 +104,127 @@ int factorial(int N) {
 
 #### Iteration
 
-```cpp copy
-void iteration(int n) {
-    while ( n >= 1) {
-        cout << n << " ";
-        n--;
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void iteration(int n) {
+        while ( n >= 1) {
+            cout << n << " ";
+            n--;
+        }
     }
-}
-```
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def iteration(n):
+        while n >= 1:
+            print(n, end=" ")
+            n -= 1
+    ```
+    </Tab>
+
+</Tabs>
 
     - Logic: `n` is printed and decremented till it reaches `1`.
 
 #### Recursion
 
-```cpp copy
-void recursion(int n) {
-    if (n == 0) {
-        return;
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void recursion(int n) {
+        if (n == 0) {
+            return;
+        }
+        cout << n << " ";
+        recursion(n - 1);
     }
-    cout << n << " ";
-    recursion(n - 1);
-}
-```
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def recursion(n):
+        if n == 0:
+            return
+        print(n, end=" ")
+        recursion(n - 1)
+    ```
+    </Tab>
+
+</Tabs>
 
     - Logic: `n` is printed and the function is called with `n - 1` as the parameter.
 
 > **Activity**: Can you write iterative and recursive function for `reversing a string`?
+
+<ShowHideSolution>
+
+    - Iteration
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void reverseString(string str) {
+            int n = str.length();
+            for (int i = 0; i < n / 2; i++) {
+                swap(str[i], str[n - i - 1]);
+            }
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def reverse_string(str):
+            n = len(str)
+            for i in range(n // 2):
+                str[i], str[n - i - 1] = str[n - i - 1], str[i]
+        ```
+        </Tab>
+    </Tabs>
+
+    - Explanation
+
+    1. The string is reversed by swapping the first and last characters, second and second last characters and so on.
+    2. The loop runs till the middle of the string.
+
+
+    - Recursion
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        void reverseString(string str, int i, int n) {
+            if (i == n / 2)
+                return;
+            swap(str[i], str[n - i - 1]);
+            reverseString(str, i + 1, n);
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def reverse_string(str, i, n):
+            if i == n // 2:
+                return
+            str[i], str[n - i - 1] = str[n - i - 1], str[i]
+            reverse_string(str, i + 1, n)
+        ```
+        </Tab>
+    </Tabs>
+
+    - Explanation
+
+    1. The string is reversed by swapping the first and last characters, second and second last characters and so on.
+    2. The function is called recursively till the middle of the string.
+
+</ShowHideSolution>
 
 </Steps>
 
@@ -211,29 +311,3 @@ void indirectRecursion2() {
 -   The stack is used to store the function calls and the heap is used to store the variables and the data where the stack is of fixed size and the heap is of dynamic size.
 
 -   Using recursive algorithm, certain problems can be solved quite easily. Examples of such problems are Towers of Hanoi (TOH), Inorder/Preorder/Postorder Tree Traversals, DFS of Graph, etc.
-
-export function RecursionGif() {
-    const gifUrl = "https://i.giphy.com/media/3ov9jQX2Ow4bM5xxuM/giphy.webp"
-    const [isPlaying, setIsPlaying] = useState(true);
-
-const togglePlay = () => {
-setIsPlaying(!isPlaying);
-};
-
-// Replace the pausedGifUrl with the URL of the paused GIF
-const pausedGifUrl = '/assets/recursion-gif.jpg';
-
-    return (
-        <div style={{"display": "flex", "justify-content": "center", "align-items": "center"}}>
-            <img
-                style={{"height": "280", "width": "280"}}
-                src={isPlaying ? gifUrl : pausedGifUrl}
-                alt="GIF"
-                onClick={togglePlay}
-                style={{ cursor: "pointer" }}
-            />
-
-        </div>
-    );
-
-}
