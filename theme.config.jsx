@@ -34,18 +34,49 @@ export default {
     },
     head: (
         <>
+            {/* Manifest */}
+            <link rel="manifest" href="/manifest.json" />
+
+            <meta charSet="UTF-8" />
             <meta
                 name="viewport"
                 content="width=device-width, initial-scale=1.0"
             />
+            <meta httpEquiv="X-UA-Compatible" content="ie=edge" />
+            <meta
+                name="description"
+                content="Master Data Structures and Algorithms (DSA) in 30 days with DSA-30. Learn key concepts, algorithms, and data structures through a structured study plan."
+            />
+            <meta
+                name="keywords"
+                content="DSA, Data Structures, Algorithms, 30 days, DSA-30, Study Plan, Big O Notation, Arrays, Linked Lists, Stacks, Queues, Recursion, Binary Trees, Heaps, Hash Tables, Graphs, Sorting, Searching, Dynamic Programming, Greedy Algorithms, Backtracking, System Design, Object-oriented Programming, Tries, Skip Lists, String Algorithms, Bit Manipulation, Divide and Conquer, Dijkstra's Algorithm, Floyd-Warshall Algorithm"
+            />
+            <meta name="author" content="Archit Rathod" />
+            {/* Open Graph meta tags */}
             <meta property="og:title" content="DSA-30" />
             <meta
                 property="og:description"
                 content="Master DSA in 30 days with DSA-30"
             />
-
-            <meta name="author" content="Archit Rathod" />
-            <link rel="manifest" href="/manifest.json" />
+            <meta
+                property="og:image"
+                content="https://dsa30.vercel.app/preview-image.jpg"
+            />
+            <meta property="og:url" content="https://dsa30.vercel.app/" />
+            <meta property="og:type" content="website" />
+            <meta property="og:site_name" content="DSA-30" />
+            {/* Twitter Card meta tags */}
+            <meta name="twitter:card" content="summary_large_image" />
+            <meta name="twitter:title" content="DSA-30" />
+            <meta
+                name="twitter:description"
+                content="Master DSA in 30 days with DSA-30"
+            />
+            <meta
+                name="twitter:image"
+                content="https://dsa30.vercel.app/preview-image.jpg"
+            />
+            <meta name="twitter:site" content="@ArchitRathod_17" />
         </>
     ),
     banner: {
