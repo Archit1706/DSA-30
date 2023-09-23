@@ -11,7 +11,9 @@
   "version": "1.0.0",
   "description": "The easiest way to learn DSA in 30 steps.",
   "main": "next.config.js",
-  "devDependencies": {},
+  "devDependencies": {
+    "tailwindcss": "^3.3.3"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build"
