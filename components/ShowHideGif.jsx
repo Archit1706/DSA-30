@@ -1,14 +1,9 @@
 import React, { useState } from "react";
 function ShowHideGif({ gifUrl, pausedGifUrl }) {
-    // const gifUrl = "https://i.giphy.com/media/3ov9jQX2Ow4bM5xxuM/giphy.webp";
     const [isPlaying, setIsPlaying] = useState(true);
-
     const togglePlay = () => {
         setIsPlaying(!isPlaying);
     };
-
-    // Replace the pausedGifUrl with the URL of the paused GIF
-    // const pausedGifUrl = "/assets/recursion-gif.jpg";
 
     return (
         <div
