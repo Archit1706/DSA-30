@@ -10,25 +10,25 @@ Welcome to "DSA-30," your go-to platform for mastering Data Structures and Algor
 
 ## Features
 
-- 📆 **30-Day Learning Program**: We've organized the entire DSA curriculum into a 30-day journey, making your learning process systematic and manageable.
+-   📆 **30-Day Learning Program**: We've organized the entire DSA curriculum into a 30-day journey, making your learning process systematic and manageable.
 
-- 🚀 **Interactive and Engaging**: Say goodbye to boring textbooks. "DSA-30" adds a fun twist with fun facts and funny GIFs in every chapter, keeping you engaged throughout your learning journey.
+-   🚀 **Interactive and Engaging**: Say goodbye to boring textbooks. "DSA-30" adds a fun twist with fun facts and funny GIFs in every chapter, keeping you engaged throughout your learning journey.
 
-- 📖 **Comprehensive Content**: We've consolidated DSA materials from various sources, including LeetCode, GeeksforGeeks, and Striver's cheat sheet, into one convenient platform.
+-   📖 **Comprehensive Content**: We've consolidated DSA materials from various sources, including LeetCode, GeeksforGeeks, and Striver's cheat sheet, into one convenient platform.
 
-- 💡 **Multiple Approaches**: For every problem, we provide solutions in both C++ and Python, so you can learn and code in your preferred language.
+-   💡 **Multiple Approaches**: For every problem, we provide solutions in both C++ and Python, so you can learn and code in your preferred language.
 
-- 🔥 **Difficulty Levels**: Problems are categorized by difficulty levels, allowing you to start with the basics and progress to advanced challenges.
+-   🔥 **Difficulty Levels**: Problems are categorized by difficulty levels, allowing you to start with the basics and progress to advanced challenges.
 
-- ✅ **Homework Challenges**: Test your knowledge with homework challenges, complete with solutions for self-assessment.
+-   ✅ **Homework Challenges**: Test your knowledge with homework challenges, complete with solutions for self-assessment.
 
 ## Table of Contents
 
-- [Getting Started](#getting-started)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+-   [Getting Started](#getting-started)
+-   [Installation](#installation)
+-   [Usage](#usage)
+-   [Contributing](#contributing)
+-   [License](#license)
 
 ## Getting Started
 
@@ -36,22 +36,22 @@ Ready to embark on your DSA learning journey with "dsa30"? Follow these simple s
 
 1. Clone the repository:
 
-   ```shell
-   git clone https://github.com/Archit1706/DSA-30.git
-   ```
+    ```shell
+    git clone https://github.com/Archit1706/DSA-30.git
+    ```
 
 2. Install the necessary dependencies:
 
-   ```shell
-   cd dsa30
-   npm install
-   ```
+    ```shell
+    cd dsa30
+    npm install
+    ```
 
 3. Start the development server:
 
-   ```shell
-   npm run dev
-   ```
+    ```shell
+    npm run dev
+    ```
 
 4. Access the website in your browser at `http://localhost:3000`.
 
@@ -73,9 +73,9 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-- Special thanks to the creators of LeetCode, GeeksforGeeks, and Striver's cheat sheet for their valuable DSA resources.
+-   Special thanks to the creators of LeetCode, GeeksforGeeks, and Striver's cheat sheet for their valuable DSA resources.
 
-- Icons used in this README are provided by [FontAwesome](https://fontawesome.com/).
+-   Icons used in this README are provided by [FontAwesome](https://fontawesome.com/).
 
 ---
 
