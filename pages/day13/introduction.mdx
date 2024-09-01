@@ -1,0 +1,185 @@
+import { Steps, Tabs, Tab } from "nextra-theme-docs";
+import React, { useState } from "react";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { ShowHideGif } from "../../components/ShowHideGif";
+
+# Searching Algorithms
+
+<ShowHideGif
+    gifUrl={"/assets/search-fun.gif"}
+    pausedGifUrl={"/assets/search-fun.png"}
+/>
+
+## Definition
+
+-   Searching algorithms are designed to find an element in a list or array.
+-   The most common searching algorithms are:
+    -   Linear Search
+    -   Binary Search
+
+### Linear Search
+
+-   Linear search is the simplest searching algorithm.
+-   It sequentially checks each element of the list until a match is found or the whole list has been searched.
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+        ```cpp copy
+        int linearSearch(int arr[], int n, int x) {
+            for (int i = 0; i < n; i++) {
+                if (arr[i] == x) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+        ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def linear_search(arr, n, x):
+        for i in range(n):
+            if arr[i] == x:
+                return i
+        return -1
+    ```
+    </Tab>
+
+</Tabs>
+
+#### Explanation
+
+1. The function `linearSearch` takes an array `arr`, the size of the array `n`, and the element to be searched `x` as input.
+2. It iterates through each element of the array and compares it with the element to be searched.
+3. If a match is found, it returns the index of the element. Otherwise, it returns `-1`.
+
+#### Analysis
+
+-   Time Complexity: `O(n)` where `n` is the number of elements in the array.
+-   Space Complexity: `O(1)` as no extra space is used.
+
+---
+
+### Binary Search
+
+-   Binary search is a more efficient searching algorithm for sorted arrays only.
+-   It works by repeatedly dividing the search interval in half.
+
+#### Iterative Approach
+
+##### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+        ```cpp copy
+        int binarySearch(int arr[], int n, int x) {
+            int left = 0, right = n - 1;
+            while (left <= right) {
+                int mid = left + (right - left) / 2;
+                if (arr[mid] == x) {
+                    return mid;
+                }
+                if (arr[mid] < x) {
+                    left = mid + 1;
+                } else {
+                    right = mid - 1;
+                }
+            }
+            return -1;
+        }
+        ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def binary_search(arr, n, x):
+        left, right = 0, n - 1
+        while left <= right:
+            mid = left + (right - left) // 2
+            if arr[mid] == x:
+                return mid
+            if arr[mid] < x:
+                left = mid + 1
+            else:
+                right = mid - 1
+        return -1
+    ```
+    </Tab>
+
+</Tabs>
+
+##### Explanation
+
+1. The function `binarySearch` takes an array `arr`, the size of the array `n`, and the element to be searched `x` as input.
+2. It initializes two pointers `left` and `right` to the start and end of the array respectively.
+3. It iteratively divides the search interval in half by calculating the middle index `mid`.
+4. If the element at the middle index is equal to the element to be searched, it returns the index.
+5. If the element at the middle index is less than the element to be searched, it updates the left pointer to `mid + 1`.
+6. If the element at the middle index is greater than the element to be searched, it updates the right pointer to `mid - 1`.
+7. If the element is not found in the array, it returns `-1`.
+
+##### Analysis
+
+-   Time Complexity: `O(log n)` where `n` is the number of elements in the array.
+-   Space Complexity: `O(1)` as no extra space is used.
+
+#### Recursive Approach
+
+##### Code
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+            ```cpp copy
+            int binarySearch(int arr[], int l, int r, int x) {
+                if (r >= l) {
+                    int mid = l + (r - l) / 2;
+                    if (arr[mid] == x) {
+                        return mid;
+                    }
+                    if (arr[mid] > x) {
+                        return binarySearch(arr, l, mid - 1, x);
+                    }
+                    return binarySearch(arr, mid + 1, r, x);
+                }
+                return -1;
+            }
+            ```
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def binary_search(arr, l, r, x):
+            if r >= l:
+                mid = l + (r - l) // 2
+                if arr[mid] == x:
+                    return mid
+                if arr[mid] > x:
+                    return binary_search(arr, l, mid - 1, x)
+                return binary_search(arr, mid + 1, r, x)
+            return -1
+        ```
+
+        </Tab>
+    </Tabs>
+
+##### Explanation
+
+1. The function `binarySearch` takes an array `arr`, the left index `l`, the right index `r`, and the element to be searched `x` as input.
+2. It calculates the middle index `mid` of the array.
+3. If the element at the middle index is equal to the element to be searched, it returns the index.
+4. If the element at the middle index is greater than the element to be searched, it recursively searches the left half of the array.
+5. If the element at the middle index is less than the element to be searched, it recursively searches the right half of the array.
+6. If the element is not found in the array, it returns `-1`.
+
+##### Analysis
+
+-   Time Complexity: `O(log n)` where `n` is the number of elements in the array.
+-   Space Complexity: `O(log n)` due to the recursive calls.
+
+<ShowHideGif
+    gifUrl={"/assets/binary-search-sequence-search.gif"}
+    pausedGifUrl={"/assets/binary-search-sequence-search.png"}
+/>
