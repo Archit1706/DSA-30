@@ -90,14 +90,14 @@ export default {
     },
     primaryHue: 190,
     chat: {
-        link: "mailto:architrathod77@gmail.com",
+        link: "mailto:arath21@uic.edu",
         icon: <AiFillMail style={{ width: "24", height: "24" }} />,
     },
     footer: {
         text: (
             <span>
                 DSA-30 © 2023 | Made by{" "}
-                <a href="https://www.architrathod.codes/" target="_blank">
+                <a href="https://archit-rathod.vercel.app/" target="_blank">
                     Archit Rathod😍
                 </a>
                 .
