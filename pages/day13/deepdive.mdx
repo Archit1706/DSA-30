@@ -1,0 +1,358 @@
+import { Steps, Tabs, Tab } from "nextra-theme-docs";
+import React, { useState } from "react";
+import { ShowHideGif } from "../../components/ShowHideGif";
+
+Mastering searching algorithms is essential for tackling a wide range of problems in computer science and performing well in technical interviews
+
+## **1. Basic Searching Algorithms**
+
+### **1.1. Linear Search**
+
+-   **Description**: Sequentially checks each element in the data structure until the desired element is found or the end is reached.
+-   **Use Cases**: Unsorted or small datasets.
+-   **Time Complexity**:
+    -   Worst-case: O(n)
+    -   Best-case: O(1)
+-   **Space Complexity**: O(1)
+
+### **1.2. Binary Search**
+
+-   **Description**: Efficiently searches a **sorted** array by repeatedly dividing the search interval in half.
+-   **Variants**:
+    -   **Iterative Binary Search**
+    -   **Recursive Binary Search**
+-   **Use Cases**: Sorted datasets where frequent searches are required.
+-   **Time Complexity**:
+    -   Worst-case: O(log n)
+    -   Best-case: O(1)
+-   **Space Complexity**:
+    -   Iterative: O(1)
+    -   Recursive: O(log n) due to call stack
+
+**Practice Problems**:
+
+-   [Binary Search - LeetCode](https://leetcode.com/problems/binary-search/)
+-   [Search Insert Position - LeetCode](https://leetcode.com/problems/search-insert-position/)
+
+---
+
+## **2. Intermediate Searching Algorithms**
+
+### **2.1. Jump Search**
+
+-   **Description**: Moves ahead by fixed steps (jumps) and performs linear search within the block where the element may exist.
+-   **Use Cases**: Sorted arrays where jumping can reduce comparisons.
+-   **Optimal Step Size**: √n
+-   **Time Complexity**: O(√n)
+-   **Space Complexity**: O(1)
+
+### **2.2. Interpolation Search**
+
+-   **Description**: Improves upon binary search by estimating the position of the target value based on the distribution of values.
+-   **Use Cases**: Uniformly distributed sorted arrays.
+-   **Time Complexity**:
+    -   Average-case: O(log log n)
+    -   Worst-case: O(n)
+-   **Space Complexity**: O(1)
+
+### **2.3. Exponential Search**
+
+-   **Description**: Finds the range where the element may exist using exponential steps and then applies binary search.
+-   **Use Cases**: Unbounded or infinite lists.
+-   **Time Complexity**: O(log n)
+-   **Space Complexity**: O(1)
+
+### **2.4. Fibonacci Search**
+
+-   **Description**: Similar to binary search but divides the array using Fibonacci numbers.
+-   **Use Cases**: Sorted arrays, useful when the cost of comparison is high.
+-   **Time Complexity**: O(log n)
+-   **Space Complexity**: O(1)
+
+**Practice Problems**:
+
+-   [Search in Rotated Sorted Array - LeetCode](https://leetcode.com/problems/search-in-rotated-sorted-array/)
+-   [Find Minimum in Rotated Sorted Array - LeetCode](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/)
+
+---
+
+## **3. Advanced Searching Algorithms**
+
+### **3.1. Ternary Search**
+
+-   **Description**: Divides the array into three parts and determines which part may contain the search key.
+-   **Use Cases**: Unimodal functions where you need to find maximum or minimum.
+-   **Time Complexity**: O(log₃ n)
+-   **Space Complexity**: O(1)
+
+### **3.2. Search Algorithms in Data Structures**
+
+#### **3.2.1. Binary Search Trees (BST)**
+
+-   **Description**: Searches by traversing the tree, choosing left or right child based on comparison.
+-   **Time Complexity**:
+    -   Average-case: O(log n)
+    -   Worst-case (unbalanced tree): O(n)
+-   **Balancing Techniques**:
+    -   **AVL Trees**
+    -   **Red-Black Trees**
+
+#### **3.2.2. Hash Tables**
+
+-   **Description**: Uses hash functions to map keys to indices for constant time search.
+-   **Time Complexity**:
+    -   Average-case: O(1)
+    -   Worst-case: O(n) (when collisions occur)
+-   **Collision Resolution Techniques**:
+    -   **Chaining**
+    -   **Open Addressing**
+
+#### **3.2.3. Trie (Prefix Tree)**
+
+-   **Description**: Specialized tree used for efficient retrieval of a key in a dataset of strings.
+-   **Use Cases**: Autocomplete, spell checker.
+-   **Time Complexity**: O(m) where m is the length of the key.
+
+#### **3.2.4. Graph Search Algorithms**
+
+-   **Breadth-First Search (BFS)**:
+    -   **Description**: Explores all neighbors at the present depth before moving to nodes at the next depth level.
+    -   **Use Cases**: Shortest path in unweighted graphs, level-order traversal.
+    -   **Time Complexity**: O(V + E)
+    -   **Space Complexity**: O(V)
+-   **Depth-First Search (DFS)**:
+    -   **Description**: Explores as far as possible along each branch before backtracking.
+    -   **Use Cases**: Detecting cycles, topological sorting, path finding.
+    -   **Time Complexity**: O(V + E)
+    -   **Space Complexity**: O(V)
+
+**Practice Problems**:
+
+-   [Validate Binary Search Tree - LeetCode](https://leetcode.com/problems/validate-binary-search-tree/)
+-   [Word Search II - LeetCode](https://leetcode.com/problems/word-search-ii/)
+-   [Number of Islands - LeetCode](https://leetcode.com/problems/number-of-islands/)
+
+---
+
+## **4. String Searching Algorithms (Pattern Searching)**
+
+### **4.1. Naive Pattern Search**
+
+-   **Description**: Checks for the pattern at every position in the text.
+-   **Time Complexity**: O(n\*m)
+
+### **4.2. Knuth-Morris-Pratt (KMP) Algorithm**
+
+-   **Description**: Uses partial match table (lps array) to avoid unnecessary comparisons.
+-   **Time Complexity**: O(n + m)
+-   **Space Complexity**: O(m)
+
+### **4.3. Rabin-Karp Algorithm**
+
+-   **Description**: Uses hashing to find any one set of pattern matches in a text.
+-   **Time Complexity**:
+    -   Average-case: O(n + m)
+    -   Worst-case: O(n\*m) due to hash collisions
+-   **Space Complexity**: O(1)
+
+### **4.4. Boyer-Moore Algorithm**
+
+-   **Description**: Starts matching from the end of the pattern and skips sections of text.
+-   **Time Complexity**:
+    -   Best-case: O(n/m)
+    -   Worst-case: O(n\*m)
+-   **Space Complexity**: O(m)
+
+### **4.5. Aho-Corasick Algorithm**
+
+-   **Description**: Searches for multiple patterns simultaneously using a trie and failure links.
+-   **Time Complexity**: O(n + m + z) where z is the total number of occurrences.
+-   **Space Complexity**: O(m)
+
+**Practice Problems**:
+
+-   [Implement strStr() - LeetCode](https://leetcode.com/problems/implement-strstr/)
+-   [Repeated Substring Pattern - LeetCode](https://leetcode.com/problems/repeated-substring-pattern/)
+-   [Find All Anagrams in a String - LeetCode](https://leetcode.com/problems/find-all-anagrams-in-a-string/)
+
+---
+
+## **5. Heuristic and Probabilistic Search Algorithms**
+
+### **5.1. A\* Search Algorithm**
+
+-   **Description**: Searches for the shortest path between nodes using heuristics to guide its search.
+-   **Use Cases**: Pathfinding in games, navigation systems.
+-   **Time Complexity**: Depends on heuristic; can be exponential in worst-case.
+-   **Space Complexity**: O(b^d) where b is the branching factor and d is the depth.
+
+### **5.2. Beam Search**
+
+-   **Description**: Explores a graph by expanding the most promising nodes limited by a fixed beam width.
+-   **Use Cases**: Natural Language Processing, speech recognition.
+
+### **5.3. Genetic Algorithms**
+
+-   **Description**: Search heuristic inspired by the process of natural selection.
+-   **Use Cases**: Optimization problems, machine learning.
+
+### **5.4. Bloom Filters**
+
+-   **Description**: Probabilistic data structure to test whether an element is a member of a set.
+-   **Characteristics**: False positives possible, false negatives not.
+-   **Use Cases**: Web caching, database systems.
+-   **Space Complexity**: Efficient for large datasets.
+
+**Practice Problems**:
+
+-   [Sliding Puzzle - LeetCode](https://leetcode.com/problems/sliding-puzzle/)
+-   [Heuristic Search - Hackerrank](https://www.hackerrank.com/challenges/heuristic-search/problem)
+
+---
+
+## **6. Specialized Searching Techniques**
+
+### **6.1. Search in Databases**
+
+-   **Indexing**: B-Trees, B+ Trees
+-   **Full-Text Search**
+-   **Spatial Search**: R-Trees for geographic data.
+
+### **6.2. Concurrent and Parallel Searching**
+
+-   **Parallel Binary Search**
+-   **MapReduce for large-scale searches**
+
+### **6.3. External Searching**
+
+-   **Description**: Techniques for data that cannot fit into main memory.
+-   **Algorithms**:
+    -   **External Merge Sort**
+    -   **B-Trees**
+
+**Practice Problems**:
+
+-   Explore distributed systems problems on platforms like [Hadoop MapReduce](https://hadoop.apache.org/docs/r1.2.1/mapred_tutorial.html).
+
+---
+
+## **7. Algorithm Analysis and Optimization**
+
+### **7.1. Time and Space Complexity Analysis**
+
+-   Understand Big O, Theta, and Omega notations.
+-   Analyze best-case, average-case, and worst-case scenarios.
+
+### **7.2. Trade-offs**
+
+-   Time vs. space complexity.
+-   Readability vs. performance.
+-   Preprocessing time vs. query time (e.g., building indexes).
+
+### **7.3. Practical Considerations**
+
+-   **Cache Performance**: How algorithms utilize CPU cache.
+-   **Data Distribution**: Tailoring search algorithms based on data characteristics.
+-   **Robustness and Stability**: Handling edge cases and errors gracefully.
+
+**Practice Problems**:
+
+-   Analyze and optimize existing algorithms for different scenarios.
+
+---
+
+## **8. Preparation for Interviews**
+
+### **8.1. Understanding Fundamentals**
+
+-   Be comfortable with implementing basic and intermediate search algorithms from scratch.
+-   Understand how and when to apply different algorithms.
+
+### **8.2. Solving Diverse Problems**
+
+-   Practice problems that require modifications or combinations of standard algorithms.
+-   Engage with problems that involve novel data structures or constraints.
+
+### **8.3. Coding Practice**
+
+-   Write clean, efficient, and bug-free code.
+-   Explain your thought process clearly during coding interviews.
+
+### **8.4. Common Interview Questions**
+
+-   Explain the difference between various search algorithms.
+-   Optimize a given search operation under specific constraints.
+-   Discuss real-world applications and scenarios.
+
+**Recommended Practice Platforms**:
+
+-   [LeetCode](https://leetcode.com/)
+-   [HackerRank](https://www.hackerrank.com/)
+-   [GeeksforGeeks](https://www.geeksforgeeks.org/)
+-   [InterviewBit](https://www.interviewbit.com/)
+
+**Additional Resources**:
+
+-   **Books**:
+    -   "Introduction to Algorithms" by Cormen, Leiserson, Rivest, and Stein
+    -   "Algorithms" by Robert Sedgewick and Kevin Wayne
+-   **Online Courses**:
+    -   [Algorithms Specialization - Coursera](https://www.coursera.org/specializations/algorithms)
+    -   [Data Structures and Algorithms - edX](https://www.edx.org/course/data-structures-and-algorithms)
+
+---
+
+## **Conclusion**
+
+Mastering searching algorithms involves understanding a wide range of techniques and knowing when to apply each one effectively. Consistent practice and problem-solving will enhance your proficiency and prepare you for tackling complex challenges in interviews and real-world applications.
+
+**Next Steps**:
+
+-   Start by reinforcing your understanding of basic algorithms.
+-   Gradually progress to more complex and specialized algorithms.
+-   Solve diverse problems to apply and test your knowledge.
+-   Review and analyze your solutions to understand areas for improvement.
+
+---
+
+<ShowHideGif
+    gifUrl={
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2M1dTFzYXBoeXpsZnpwcnoxNHF3a20yenBhcnRwaWIyaTFoNDN6byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/0NwSQpGY6ipgOSt8LL/giphy.gif"
+    }
+    pausedGifUrl={"/assets/search-fun.png"}
+/>
+
+I know this is a lot of information to digest, but don't worry! You can always revisit this guide whenever you need a refresher or want to explore a new searching algorithm. Happy learning and problem-solving! 🚀
+
+## **Summary**
+
+For ease lets represent the above information in a tabular format:
+
+| **Category**                | **Algorithm**                          | **Description**                                                                                                                                                          | **Use Cases**                                        | **Time Complexity**                             | **Space Complexity**                    | **Practice Problems**                                                                                                                                                |
+| --------------------------- | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- | ----------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Basic Searching**         | **Linear Search**                      | Sequentially checks each element in the data structure until the desired element is found or the end is reached.                                                         | Unsorted or small datasets                           | O(n)                                            | O(1)                                    | [Binary Search - LeetCode](https://leetcode.com/problems/binary-search/), [Search Insert Position - LeetCode](https://leetcode.com/problems/search-insert-position/) |
+| **Basic Searching**         | **Binary Search**                      | Efficiently searches a **sorted** array by repeatedly dividing the search interval in half.                                                                              | Sorted datasets                                      | O(log n)                                        | O(1) (Iterative) / O(log n) (Recursive) | [Binary Search - LeetCode](https://leetcode.com/problems/binary-search/), [Search Insert Position - LeetCode](https://leetcode.com/problems/search-insert-position/) |
+| **Intermediate Searching**  | **Jump Search**                        | Moves ahead by fixed steps (jumps) and performs linear search within the block where the element may exist.                                                              | Sorted arrays                                        | O(√n)                                           | O(1)                                    | [Search in Rotated Sorted Array - LeetCode](https://leetcode.com/problems/search-in-rotated-sorted-array/)                                                           |
+| **Intermediate Searching**  | **Interpolation Search**               | Improves upon binary search by estimating the position of the target value based on the distribution of values.                                                          | Uniformly distributed sorted arrays                  | O(log log n) (Avg.) / O(n) (Worst)              | O(1)                                    | [Find Minimum in Rotated Sorted Array - LeetCode](https://leetcode.com/problems/find-minimum-in-rotated-sorted-array/)                                               |
+| **Intermediate Searching**  | **Exponential Search**                 | Finds the range where the element may exist using exponential steps and then applies binary search.                                                                      | Unbounded or infinite lists                          | O(log n)                                        | O(1)                                    |                                                                                                                                                                      |
+| **Intermediate Searching**  | **Fibonacci Search**                   | Similar to binary search but divides the array using Fibonacci numbers.                                                                                                  | Sorted arrays, costly comparisons                    | O(log n)                                        | O(1)                                    |                                                                                                                                                                      |
+| **Advanced Searching**      | **Ternary Search**                     | Divides the array into three parts and determines which part may contain the search key.                                                                                 | Unimodal functions                                   | O(log₃ n)                                       | O(1)                                    |                                                                                                                                                                      |
+| **Advanced Searching**      | **Binary Search Tree (BST)**           | Searches by traversing the tree, choosing left or right child based on comparison.                                                                                       | Dynamic datasets                                     | O(log n) (Avg.) / O(n) (Worst)                  | O(n)                                    | [Validate Binary Search Tree - LeetCode](https://leetcode.com/problems/validate-binary-search-tree/)                                                                 |
+| **Advanced Searching**      | **Hash Table**                         | Uses hash functions to map keys to indices for constant time search.                                                                                                     | Constant time search                                 | O(1) (Avg.) / O(n) (Worst)                      | O(n)                                    |                                                                                                                                                                      |
+| **Advanced Searching**      | **Trie (Prefix Tree)**                 | Specialized tree used for efficient retrieval of a key in a dataset of strings.                                                                                          | Autocomplete, spell checker                          | O(m)                                            | O(m\*n)                                 | [Word Search II - LeetCode](https://leetcode.com/problems/word-search-ii/)                                                                                           |
+| **Advanced Searching**      | **Graph Search (BFS/DFS)**             | BFS: Explores all neighbors at the present depth before moving to nodes at the next depth level. DFS: Explores as far as possible along each branch before backtracking. | Graph traversal, pathfinding                         | O(V + E)                                        | O(V)                                    | [Number of Islands - LeetCode](https://leetcode.com/problems/number-of-islands/)                                                                                     |
+| **String Searching**        | **Naive Pattern Search**               | Checks for the pattern at every position in the text.                                                                                                                    | Simple pattern searching                             | O(n\*m)                                         | O(1)                                    | [Implement strStr() - LeetCode](https://leetcode.com/problems/implement-strstr/)                                                                                     |
+| **String Searching**        | **KMP Algorithm**                      | Uses partial match table (lps array) to avoid unnecessary comparisons.                                                                                                   | Efficient pattern matching                           | O(n + m)                                        | O(m)                                    |                                                                                                                                                                      |
+| **String Searching**        | **Rabin-Karp Algorithm**               | Uses hashing to find any one set of pattern matches in a text.                                                                                                           | Multiple pattern searches                            | O(n + m) (Avg.) / O(n\*m) (Worst)               | O(1)                                    |                                                                                                                                                                      |
+| **String Searching**        | **Boyer-Moore Algorithm**              | Starts matching from the end of the pattern and skips sections of text.                                                                                                  | Optimized pattern matching                           | O(n/m) (Best) / O(n\*m) (Worst)                 | O(m)                                    |                                                                                                                                                                      |
+| **String Searching**        | **Aho-Corasick Algorithm**             | Searches for multiple patterns simultaneously using a trie and failure links.                                                                                            | Multi-pattern search                                 | O(n + m + z)                                    | O(m)                                    |                                                                                                                                                                      |
+| **Heuristic/Probabilistic** | **A\* Search Algorithm**               | Searches for the shortest path between nodes using heuristics to guide its search.                                                                                       | Pathfinding in games, navigation systems             | Depends on heuristic                            | O(b^d)                                  | [Sliding Puzzle - LeetCode](https://leetcode.com/problems/sliding-puzzle/)                                                                                           |
+| **Heuristic/Probabilistic** | **Beam Search**                        | Explores a graph by expanding the most promising nodes limited by a fixed beam width.                                                                                    | Natural Language Processing, speech recognition      | Problem-specific                                | Problem-specific                        |                                                                                                                                                                      |
+| **Heuristic/Probabilistic** | **Genetic Algorithms**                 | Search heuristic inspired by the process of natural selection.                                                                                                           | Optimization problems, machine learning              | Problem-specific                                | Problem-specific                        |                                                                                                                                                                      |
+| **Heuristic/Probabilistic** | **Bloom Filters**                      | Probabilistic data structure to test whether an element is a member of a set.                                                                                            | Web caching, database systems                        | O(k) (depends on hash functions)                | O(m) (memory size)                      |                                                                                                                                                                      |
+| **Specialized Searching**   | **Search in Databases**                | Techniques for optimizing search within large datasets. Examples: B-Trees, full-text search, R-Trees for geographic data.                                                | Database indexing, full-text search, geographic data | O(log n) (B-Trees), Varies (Full-text, Spatial) | Varies                                  |                                                                                                                                                                      |
+| **Specialized Searching**   | **Concurrent and Parallel Search**     | Techniques that allow searches to be performed in parallel, reducing time complexity.                                                                                    | Large datasets, distributed systems                  | Varies                                          | Varies                                  |                                                                                                                                                                      |
+| **Specialized Searching**   | **External Searching**                 | Techniques for searching data that cannot fit into main memory, often involving disk I/O. Example: External Merge Sort.                                                  | Large-scale data storage and retrieval               | O(n log n) (Merge Sort), Varies                 | Varies                                  |                                                                                                                                                                      |
+| **Algorithm Analysis**      | **Time and Space Complexity Analysis** | Techniques for evaluating the efficiency of algorithms, including Big O, Theta, and Omega notations.                                                                     | All algorithms                                       | N/A                                             | N/A                                     |                                                                                                                                                                      |
+| **Algorithm Analysis**      | **Trade-offs**                         | Balancing time complexity, space complexity, readability, and performance based on the problem requirements.                                                             | All algorithms                                       | N/A                                             | N/A                                     |                                                                                                                                                                      |
+| **Algorithm Analysis**      | **Practical Considerations**           | Understanding cache performance, data distribution, robustness, and stability in real-world applications.                                                                | Real-world applications                              | N/A                                             | N/A                                     |                                                                                                                                                                      |
