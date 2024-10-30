@@ -1,0 +1,99 @@
+import { Tab, Tabs, Steps } from "nextra-theme-docs";
+
+### Search in Rotated Sorted Array
+
+#### Description
+
+-   There is an integer array `nums` sorted in ascending order (with distinct values).
+-   Prior to being passed to your function, `nums` is possibly rotated at an unknown pivot index `k` (1 &lt;= k &lt; nums.length) such that the resulting array is `[nums[k], nums[k+1], ..., nums[n-1], nums[0], nums[1], ..., nums[k-1]]` (0-indexed). For example, `[0,1,2,4,5,6,7]` might be rotated at pivot index `3` to become `[4,5,6,7,0,1,2]`.
+-   Given the array `nums` after the possible rotation and an integer `target`, return the index of `target` if it is in `nums`, or `-1` if it is not in `nums`.
+
+#### Constraints
+
+-   `1 <= nums.length <= 5000`
+-   `-10^4 <= nums[i] <= 10^4`
+-   All values of `nums` are unique.
+-   `nums` is an ascending array that has been rotated between `1` and `5000` times.
+-   `-10^4 <= target <= 10^4`
+
+#### Test Cases
+
+-   Input: `nums = [4,5,6,7,0,1,2], target = 0` <br />
+    Output: `4`
+
+-   Input: `nums = [4,5,6,7,0,1,2], target = 3` <br />
+    Output: `-1`
+
+#### Code
+
+<Steps>
+
+    ##### Approach 1: Binary Search
+
+    <Tabs items={['C++', 'Python']} defaultIndex="0">
+        <Tab>
+        ```cpp copy
+        int search(vector<int>& nums, int target) {
+            int left = 0, right = nums.size() - 1;
+            while (left <= right) {
+                int mid = left + (right - left) / 2;
+                if (nums[mid] == target) return mid;
+                if (nums[left] <= nums[mid]) {
+                    if (nums[left] <= target && target < nums[mid]) {
+                        right = mid - 1;
+                    } else {
+                        left = mid + 1;
+                    }
+                } else {
+                    if (nums[mid] < target && target <= nums[right]) {
+                        left = mid + 1;
+                    } else {
+                        right = mid - 1;
+                    }
+                }
+            }
+            return -1;
+        }
+        ```
+
+        </Tab>
+
+        <Tab>
+        ```python copy
+        def search(nums, target):
+            left, right = 0, len(nums) - 1
+            while left <= right:
+                mid = (left + right) // 2
+                if nums[mid] == target:
+                    return mid
+                if nums[left] <= nums[mid]:
+                    if nums[left] <= target < nums[mid]:
+                        right = mid - 1
+                    else:
+                        left = mid + 1
+                else:
+                    if nums[mid] < target <= nums[right]:
+                        left = mid + 1
+                    else:
+                        right = mid - 1
+            return -1
+        ```
+
+        </Tab>
+
+        #### Explanation
+
+        1. Initialize two pointers, `left` and `right`, to the start and end of the array, respectively.
+        2. While `left` is less than or equal to `right`, calculate the middle index `mid`.
+        3. If the element at `mid` is equal to `target`, return `mid`.
+        4. If the left half of the array is sorted, check if the `target` is in the sorted half. If it is, move the `right` pointer to `mid - 1`. Otherwise, move the `left` pointer to `mid + 1`.
+        5. If the right half of the array is sorted, check if the `target` is in the sorted half. If it is, move the `left` pointer to `mid + 1`. Otherwise, move the `right` pointer to `mid - 1`.
+        6. If the `target` is not found, return `-1`.
+
+        #### Analysis
+
+        - Time Complexity: `O(log n)`
+        - Space Complexity: `O(1)`
+    </Tabs>
+
+</Steps>
