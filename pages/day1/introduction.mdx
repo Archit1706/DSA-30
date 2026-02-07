@@ -11,39 +11,44 @@ import { Steps } from 'nextra/components'
  
 ### Basic Concepts and Terminologies Related to DSA
  
-- `Data Structure`: It is a way of organizing and storing data to perform operations efficiently. Examples include arrays, linked lists, stacks, queues, trees, graphs, and hash tables.
-- `Algorithm`: It is a set of well-defined steps or instructions to solve a specific problem or perform a task.
-- `Searching`: The process of finding a particular element in a data structure.
-- `Sorting`: The process of arranging elements in a specific order, such as ascending or descending.
-- `Insertion`: Adding an element into a data structure.
-- `Deletion`: Removing an element from a data structure.
-- `Traversal`: Visiting and accessing each element in a data structure.
-- `Recursion`: A technique in which a function calls itself during its execution.
+- **Data Structure**: Think of it as **Kitchen Organization**.
+    - Tupperware containers -> Arrays (Fixed size)
+    - Stack of plates -> Stacks (LIFO)
+    - Queue line at Starbucks -> Queues (FIFO)
+    - Family Tree -> Trees (Hierarchical)
+    - City Map -> Graphs (Connections)
 
-### Different Types of Data Structures and Algorithms
+- **Algorithm**: Think of it as a **Recipe**.
+    - It's a specific set of instructions to get a result (e.g., "How to bake a cake" or "How to find a user in a database").
 
--   `Arrays`: A collection of elements stored at contiguous memory locations.
--   `Linked Lists`: A sequence of nodes where each node contains data and a reference to the next node.
--   `Stacks`: A Last-In-First-Out (LIFO) data structure that allows insertion and removal of elements from one end.
--   `Queues`: A First-In-First-Out (FIFO) data structure that allows insertion at one end and removal at the other end.
--   `Trees`: Hierarchical data structures with nodes connected by edges, commonly used for organizing hierarchical data.
--   `Graphs`: Representations of relationships between objects, consisting of vertices (nodes) connected by edges.
--   `Hash Tables`: Data structures that use a hash function to map keys to values, enabling efficient key-value pair lookups.
--   `Searching Algorithms`: Techniques to find a specific element or record within a data structure, such as linear search, binary search, or hash-based search.
--   `Sorting Algorithms`: Techniques to arrange elements in a particular order, including bubble sort, insertion sort, selection sort, merge sort, quicksort, and heapsort.
+### Visualizing Data Structures
+
+- **Linked Lists**: A chain of nodes.
+  ![Linked List](/assets/linked-list.png)
+
+- **Trees**: A family hierarchy.
+  ![Tree Example](/assets/tree_example.jpg)
+
+### Core Concepts
+
+- `Searching`: Finding the needle in the haystack.
+- `Sorting`: Organizing your bookshelf alphabetically.
+- `Recursion`: A function that calls itself (like looking in a mirror reflection of a mirror).
 
 ### Time Complexity and Efficiency of Algorithms
 
--   `Time Complexity`: A measure of the amount of time required by an algorithm to run as a function of the input size.
--   It helps analyze and predict the running time of an algorithm for different input sizes.
--   Time complexity is commonly expressed using **Big O** notation.
--   It enables comparison and evaluation of different algorithms based on their efficiency and scalability.
+- `Time Complexity`: A measure of the amount of time required by an algorithm to run as a function of the input size.
+- It helps analyze and predict the running time of an algorithm for different input sizes.
+- Time complexity is commonly expressed using **Big O** notation.
+- It enables comparison and evaluation of different algorithms based on their efficiency and scalability.
 
 ### Big O Notation for Analyzing Time Complexity
 
--   `Big O Notation`: It is a mathematical notation used to describe the **_upper bound_** or **_worst-case_** scenario of an algorithm's time complexity.
--   It represents the growth rate of an algorithm's running time relative to the input size.
--   Common Big O notations include:
+- `Big O Notation`: It is a mathematical notation used to describe the **_upper bound_** or **_worst-case_** scenario of an algorithm's time complexity.
+- It represents the growth rate of an algorithm's running time relative to the input size.
+- Common Big O notations include:
+
+![Big O Graph](/assets/big-o-graph.png)
 
 | Big-O Notation |    Definition    |
 | :------------: | :--------------: |
@@ -54,6 +59,6 @@ import { Steps } from 'nextra/components'
 |   O(n log n)   | Log-Linear Time  |
 |     O(2^n)     | Exponential Time |
 
--   By analyzing an algorithm's time complexity using Big O notation, developers can make informed decisions about choosing the most efficient algorithm for a given problem and optimize the performance of their programs.
+- By analyzing an algorithm's time complexity using Big O notation, developers can make informed decisions about choosing the most efficient algorithm for a given problem and optimize the performance of their programs.
 
 </Steps>

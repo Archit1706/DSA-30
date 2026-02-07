@@ -1,13 +1,41 @@
 import { ShowHideGif } from "../components/ShowHideGif";
+import Link from "next/link";
 
-# Hello There!
+# How you doin'?
 
 <ShowHideGif
     gifUrl={"https://i.giphy.com/media/Vbtc9VG51NtzT1Qnv1/giphy.webp"}
     pausedGifUrl={"/assets/hello-gif.jpg"}
 />
-## Welcome to the 30 days DSA Challenge
 
--   DSA 30 is a place where you challenge yourself to master Data Structures and Algorithms in 30 Days
+<div className="flex flex-col items-center justify-center space-y-8 mt-12">
+  <div className="text-center max-w-2xl px-4">
+    <h2 className="text-4xl font-bold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-teal-400">
+      Master DSA in 30 Days
+    </h2>
+    <div className="text-xl text-gray-400 mb-8">
+      The most interactive, fun, and memorable way to learn Data Structures and Algorithms.
+    </div>
+    <Link href="/getting_started" className="inline-block px-8 py-4 text-lg font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-colors duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+      Start the Challenge
+    </Link>
+  </div>
 
--   So what are you waiting for? Create a daily reminder in your calendar and explore the amazing world of dsa!
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl px-4 mt-8">
+    <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-800 backdrop-blur-sm hover:border-blue-500/50 transition-colors">
+      <div className="text-3xl mb-4">🧠</div>
+      <h3 className="text-xl font-bold mb-2">Visual Learning</h3>
+      <div className="text-gray-400">Forget boring text. Learn with interactive GIFs, memes, and diagrams that stick.</div>
+    </div>
+    <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-800 backdrop-blur-sm hover:border-purple-500/50 transition-colors">
+      <div className="text-3xl mb-4">⚡</div>
+      <h3 className="text-xl font-bold mb-2">Daily Bites</h3>
+      <div className="text-gray-400">Structured lessons designed to fit into your busy schedule. Just 30 mins a day.</div>
+    </div>
+    <div className="p-6 rounded-2xl bg-gray-900/50 border border-gray-800 backdrop-blur-sm hover:border-green-500/50 transition-colors">
+      <div className="text-3xl mb-4">🚀</div>
+      <h3 className="text-xl font-bold mb-2">Interview Ready</h3>
+      <div className="text-gray-400">Master the patterns top tech companies ask for. Crack the code interview.</div>
+    </div>
+  </div>
+</div>
