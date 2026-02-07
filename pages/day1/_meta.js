@@ -1,7 +1,6 @@
-{
+export default {
     "index": "TODO",
     "introduction": "Introduction",
-    "deepdive": "Deep Dive",
-    "basic_questions": "Basic Questions",
     "practice_questions": "Practice Questions"
 }
+

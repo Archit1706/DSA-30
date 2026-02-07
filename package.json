@@ -1,18 +1,20 @@
 {
   "dependencies": {
-    "next": "^13.4.4",
-    "nextra": "^2.7.1",
-    "nextra-theme-docs": "^2.7.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-icons": "^4.9.0"
+    "next": "^14.2.0",
+    "nextra": "^3.2.2",
+    "nextra-theme-docs": "^3.2.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.5.0"
   },
   "name": "dsa30",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "The easiest way to learn DSA in 30 steps.",
-  "main": "next.config.js",
+  "main": "next.config.mjs",
   "devDependencies": {
-    "tailwindcss": "^3.3.3"
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
   },
   "scripts": {
     "dev": "next dev",
