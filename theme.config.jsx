@@ -21,16 +21,8 @@ export default {
             DSA-30
         </p>
     ),
-    footer: {
-        text: "DSA-30 © 2023",
-    },
     project: {
         link: "https://github.com/Archit1706",
-    },
-    useNextSeoProps() {
-        return {
-            titleTemplate: "%s | DSA-30",
-        };
     },
     head: (
         <>
@@ -81,9 +73,9 @@ export default {
     ),
     banner: {
         key: "1.0-release",
-        text: (
+        content: (
             <a href="" target="_blank">
-                🎉 Yay! DSA-30 is now live!
+                DSA-30 is now live!
             </a>
         ),
         dismissible: true,
@@ -98,7 +90,7 @@ export default {
             <span>
                 DSA-30 © 2023 | Made by{" "}
                 <a href="https://archit-rathod.vercel.app/" target="_blank">
-                    Archit Rathod😍
+                    Archit Rathod
                 </a>
                 .
             </span>

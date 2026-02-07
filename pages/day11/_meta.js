@@ -1,4 +1,5 @@
-{
+export default {
     "index": "Home",
     "getting_started": "Getting Started"
 }
+

@@ -1,4 +1,4 @@
-{
+export default {
     "index": "Problem List",
     "middle_of_the_linked_list": "Middle of the Linked List",
     "linked_list_cycle": "Linked List Cycle",
@@ -8,6 +8,6 @@
     "multiply_two_numbers_represented_linked_lists": "Multiply Two Numbers Represented as Linked Lists",
     "intersection_of_two_linked_lists": "Intersection of Two Linked Lists",
     "delete_node_in_linked_list": "Delete Node in a Linked List",
-    "palindrome_lin ked_list": "Palindrome Linked List",
-    "reverse_linked_list": "Reverse a Linked List"
+    "palindrome_linked_list": "Palindrome Linked List"
 }
+
