@@ -1,0 +1,113 @@
+import { Steps, Tabs, Callout } from "nextra/components";
+
+# Basic Array Algorithms
+
+Understanding basic algorithms like searching is crucial for effectively working with arrays.
+
+<Steps>
+
+### Linear Search
+
+The simplest searching algorithm. We traverse the array sequentially and check each element.
+
+- **Analogy:** Looking for a specific book on an unsorted shelf. You have to check every single book until you find it or reach the end.
+
+<Tabs items={['C++', 'Java']}>
+  <Tabs.Tab>
+    ```cpp
+    int linearSearch(int arr[], int n, int x)
+    {
+        for (int i = 0; i < n; i++)
+            if (arr[i] == x)
+                return i; // Return index if found
+        return -1; // Return -1 if not found
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```java
+    public static int linearSearch(int[] arr, int x) {
+        for (int i = 0; i < arr.length; i++) {
+            if (arr[i] == x) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+- **Time Complexity:** O(N) (Scan the entire array in worst case)
+- **Space Complexity:** O(1)
+
+### Binary Search
+
+A much faster searching algorithm for **sorted** arrays. It works by repeatedly dividing the search interval in half.
+
+- **Analogy:** Looking for a word in a dictionary. You open the middle, see if the word is earlier or later alphabetically, and repeat on that half.
+
+<Callout type="info">
+    **Crucial Condition:** Binary Search **only** works on sorted arrays. If the
+    array is unsorted, you must sort it first or use Linear Search.
+</Callout>
+
+<Tabs items={['C++', 'Java']}>
+  <Tabs.Tab>
+    ```cpp
+    int binarySearch(int arr[], int l, int r, int x)
+    {
+        while (l <= r) {
+            int m = l + (r - l) / 2;
+
+            // Check if x is present at mid
+            if (arr[m] == x)
+                return m;
+
+            // If x greater, ignore left half
+            if (arr[m] < x)
+                l = m + 1;
+
+            // If x is smaller, ignore right half
+            else
+                r = m - 1;
+        }
+
+        // If we reach here, then element was not present
+        return -1;
+    }
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```java
+    int binarySearch(int arr[], int x) {
+        int l = 0, r = arr.length - 1;
+        while (l <= r) {
+            int m = l + (r - l) / 2;
+
+            if (arr[m] == x)
+                return m;
+
+            if (arr[m] < x)
+                l = m + 1;
+
+            else
+                r = m - 1;
+        }
+        return -1;
+    }
+    ```
+
+  </Tabs.Tab>
+</Tabs>
+
+- **Time Complexity:** O(log N) - much faster than O(N) for large arrays!
+- **Space Complexity:** O(1)
+
+</Steps>
+
+<Callout emoji="🚀">
+    **Pro Tip:** Always sort your data if you plan to search frequently! The
+    cost of sorting once is outweighed by the speed of many binary searches.
+</Callout>

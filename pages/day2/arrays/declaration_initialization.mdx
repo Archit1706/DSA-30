@@ -1,0 +1,95 @@
+import { Tabs, Callout } from "nextra/components";
+
+# Declaration and Initialization
+
+Before we can use an array, we need to declare and initialize it. The syntax varies slightly between programming languages, but the underlying concept remains the same: reserving a block of memory for our data.
+
+<Callout type="info">
+    Remember: In languages like C++ and Java, arrays have a fixed size once
+    declared. In Python (Lists) and JavaScript, they are dynamic and can grow or
+    shrink.
+</Callout>
+
+## How to Declare an Array
+
+Declaring an array tells the compiler or interpreter that we want to create an array variable.
+
+<Tabs items={['C++', 'Java', 'Python', 'JavaScript']}>
+  <Tabs.Tab>
+    In C++, we specify the type of elements and the name of the array. The size is often required for static arrays.
+
+    ```cpp
+    // Declaration with size
+    int numbers[5];
+
+    // Declaration with initialization
+    int scores[] = {85, 90, 78, 92, 88};
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+    In Java, we declare the array type using brackets `[]`.
+
+    ```java
+    // Declaration
+    int[] numbers;
+
+    // Initialization with size
+    numbers = new int[5];
+
+    // Declaration and Initialization in one line
+    int[] scores = {85, 90, 78, 92, 88};
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+    Python uses Lists, which are dynamic arrays. They don't require explicit type declaration.
+
+    ```python
+    # Empty list
+    numbers = []
+
+    # List with initial values
+    scores = [85, 90, 78, 92, 88]
+
+    # List of specific size (initialized with None or 0)
+    zeros = [0] * 5
+    ```
+
+  </Tabs.Tab>
+  <Tabs.Tab>
+    JavaScript arrays are also dynamic and can hold mixed types.
+
+    ```javascript
+    // Empty array
+    let numbers = [];
+
+    // Array with initial values
+    let scores = [85, 90, 78, 92, 88];
+
+    // Array constructor (less common)
+    let fixedSize = new Array(5);
+    ```
+
+  </Tabs.Tab>
+</Tabs>
+
+## Accessing Elements
+
+Once declared, you can access elements using their index. Remember that array indexing typically starts at **0**.
+
+<Callout type="warning">
+    Attempting to access an index outside the bounds of the array (e.g., index 5
+    in an array of size 5) will result in an error or undefined behavior
+    depending on the language.
+</Callout>
+
+```cpp
+int scores[] = {85, 90, 78, 92, 88};
+
+// Accessing the first element
+int firstScore = scores[0]; // 85
+
+// Accessing the last element
+int lastScore = scores[4]; // 88
+```

@@ -1,0 +1,51 @@
+import { Callout } from "nextra/components";
+
+# Memory Representation
+
+One of the defining characteristics of an array is how it is stored in computer memory.
+
+<Callout emoji="💡">
+    **Key Concept:** Arrays are stored in **contiguous** memory locations. This
+    means the elements are placed right next to each other in memory, like
+    houses on a street.
+</Callout>
+
+## Visualizing Memory
+
+Imagine memory as a long strip of slots. If each integer takes up 4 bytes, an array of 5 integers will occupy 20 consecutive bytes.
+
+Let's visualize an array `int Arr[5] = {10, 20, 30, 40, 50}` starting at memory address `1000`.
+
+| Index | Element | Memory Address (Example) |
+| :---: | :-----: | :----------------------: |
+|   0   |   10    |           1000           |
+|   1   |   20    |           1004           |
+|   2   |   30    |           1008           |
+|   3   |   40    |           1012           |
+|   4   |   50    |           1016           |
+
+Because of this contiguous storage, the computer can calculate the address of any element instantly using a simple formula:
+
+```math
+Address of Arr[i] = Base Address + (i * Size of Element)
+```
+
+For example, to find `Arr[3]`:
+
+```math
+1000 + (3 * 4) = 1000 + 12 = 1012
+```
+
+This property allows **O(1)** random access, meaning accessing any element takes the same amount of time regardless of the array size.
+
+## Why Does This Matter?
+
+- **Speed:** The CPU is optimized to read sequential memory, making arrays very fast to iterate over.
+- **Cache Friendly:** Due to spatial locality, accessing one element often loads neighboring elements into the CPU cache.
+- **Fixed Size:** The downside is that resizing is expensive because we need to find a new, larger block of contiguous memory and copy everything over.
+
+<Callout type="error">
+    **Think about it:** What happens if the memory slots after `1016` are
+    already occupied by another variable? We can't just extend the array! This
+    is why arrays in languages like C++ and Java have a fixed size.
+</Callout>
