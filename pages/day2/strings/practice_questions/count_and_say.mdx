@@ -1,0 +1,173 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { AlgorithmStepper } from "../../../../components/AlgorithmStepper";
+export const Tab = Tabs.Tab
+
+### Count and Say <DifficultyBadge level="easy" />
+
+#### Description
+
+The **count-and-say** sequence is a sequence of digit strings defined by the recursive formula:
+
+- `countAndSay(1) = "1"`
+- `countAndSay(n)` is the run-length encoding of `countAndSay(n - 1)`
+
+**Run-length encoding** (RLE) replaces consecutive identical characters with the count followed by the character. For example, `"3322251"` is encoded as `"23321511"` (two 3s, two 2s, one 5, one 1).
+
+Given a positive integer `n`, return the n-th element of the count-and-say sequence.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: n = 1
+    Output: "1"
+
+> Case 2:
+    Input: n = 4
+    Output: "1211"
+    Explanation:
+    countAndSay(1) = "1"
+    countAndSay(2) = "11"       (one 1)
+    countAndSay(3) = "21"       (two 1s)
+    countAndSay(4) = "1211"     (one 2, one 1)
+```
+
+#### Constraints
+
+- 1 to 30 inclusive (`1 <= n <= 30`)
+
+#### How the Sequence Grows
+
+<AlgorithmStepper
+    title="Building the count-and-say sequence"
+    steps={[
+        { array: ["1"], description: 'n=1: "1". Read it aloud: "one 1".' },
+        { array: ["1","1"], description: 'n=2: "11". (one 1). Read it aloud: "two 1s".' },
+        { array: ["2","1"], description: 'n=3: "21". (two 1s). Read it aloud: "one 2, then one 1".' },
+        { array: ["1","2","1","1"], description: 'n=4: "1211". (one 2, one 1). Read it aloud: "one 1, one 2, two 1s".' },
+        { array: ["1","1","1","2","2","1"], description: 'n=5: "111221". (one 1, one 2, two 1s). Read it aloud: "three 1s, two 2s, one 1".' },
+        { array: ["3","1","2","2","1","1"], description: 'n=6: "312211". (three 1s, two 2s, one 1).' },
+    ]}
+/>
+
+#### Approach: Iterative String Building
+
+Build each term from the previous one by scanning for runs of identical characters.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <string>
+    using namespace std;
+
+    string countAndSay(int n) {
+        string result = "1";
+
+        for (int i = 2; i <= n; i++) {
+            string next = "";
+            int j = 0;
+
+            while (j < result.length()) {
+                char ch = result[j];
+                int count = 0;
+
+                // Count consecutive identical characters
+                while (j < result.length() && result[j] == ch) {
+                    count++;
+                    j++;
+                }
+
+                next += to_string(count) + ch;
+            }
+
+            result = next;
+        }
+
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def count_and_say(n):
+        result = "1"
+
+        for _ in range(n - 1):
+            next_str = []
+            j = 0
+
+            while j < len(result):
+                ch = result[j]
+                count = 0
+
+                # Count consecutive identical characters
+                while j < len(result) and result[j] == ch:
+                    count += 1
+                    j += 1
+
+                next_str.append(str(count) + ch)
+
+            result = "".join(next_str)
+
+        return result
+
+    for i in range(1, 7):
+        print(f"n={i}: {count_and_say(i)}")
+    # n=1: 1
+    # n=2: 11
+    # n=3: 21
+    # n=4: 1211
+    # n=5: 111221
+    # n=6: 312211
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        public String countAndSay(int n) {
+            String result = "1";
+
+            for (int i = 2; i <= n; i++) {
+                StringBuilder next = new StringBuilder();
+                int j = 0;
+
+                while (j < result.length()) {
+                    char ch = result.charAt(j);
+                    int count = 0;
+
+                    while (j < result.length() && result.charAt(j) == ch) {
+                        count++;
+                        j++;
+                    }
+
+                    next.append(count).append(ch);
+                }
+
+                result = next.toString();
+            }
+
+            return result;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- Start with `"1"` (base case)
+- For each subsequent term, scan the current string for groups of consecutive identical characters
+- For each group, append the count and the character to build the next string
+- Use a list/StringBuilder to build efficiently (avoid O(n^2) string concatenation)
+
+<Callout type="info">
+    **Run-Length Encoding (RLE)** is a real compression technique used in formats
+    like BMP images and fax transmissions. It works best on data with many consecutive
+    repeated values. This problem is a direct application of RLE.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n * L)` where L is the length of the sequence at step n (grows roughly exponentially but is bounded for n up to 30)
+- Space Complexity: `O(L)` for the current and next strings

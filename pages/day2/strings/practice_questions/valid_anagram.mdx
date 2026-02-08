@@ -1,0 +1,163 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { AlgorithmStepper } from "../../../../components/AlgorithmStepper";
+export const Tab = Tabs.Tab
+
+### Valid Anagram <DifficultyBadge level="easy" />
+
+#### Description
+
+Given two strings `s` and `t`, return `true` if `t` is an anagram of `s`, and `false` otherwise.
+
+An **anagram** is a word formed by rearranging the letters of a different word, using all the original letters exactly once.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: s = "anagram", t = "nagaram"
+    Output: true
+
+> Case 2:
+    Input: s = "rat", t = "car"
+    Output: false
+```
+
+#### Constraints
+
+- `1 <= s.length, t.length <= 5 * 10^4`
+- `s` and `t` consist of lowercase English letters
+
+**Follow up:** What if the inputs contain Unicode characters?
+
+#### Approach 1: Sorting
+
+If two strings are anagrams, their sorted versions are identical.
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <string>
+    #include <algorithm>
+    using namespace std;
+
+    bool isAnagram(string s, string t) {
+        if (s.length() != t.length()) return false;
+        sort(s.begin(), s.end());
+        sort(t.begin(), t.end());
+        return s == t;
+    }
+    ```
+
+    - Time: `O(n log n)`, Space: `O(1)` (in-place sort)
+
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_anagram_sort(s, t):
+        return sorted(s) == sorted(t)
+
+    print(is_anagram_sort("anagram", "nagaram"))  # True
+    ```
+
+    - Time: `O(n log n)`, Space: `O(n)` (sorted creates new list)
+
+    </Tab>
+</Tabs>
+
+#### Approach 2: Character Frequency Array (Optimal)
+
+Count character frequencies in `s`, then subtract frequencies in `t`. If all counts are zero, they are anagrams.
+
+<AlgorithmStepper
+    title='Anagram check: "anagram" vs "nagaram"'
+    steps={[
+        { array: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], activeIndices: [0], description: "Start with freq[26] = all zeros. Process 'anagram': a:3, g:1, m:1, n:1, r:1." },
+        { array: [3,0,0,0,0,0,1,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0], activeIndices: [0, 6, 12, 13, 17], description: "After counting 'anagram': freq[a]=3, freq[g]=1, freq[m]=1, freq[n]=1, freq[r]=1." },
+        { array: [3,0,0,0,0,0,1,0,0,0,0,0,1,1,0,0,0,1,0,0,0,0,0,0,0,0], activeIndices: [0, 6, 12, 13, 17], description: "Now subtract 'nagaram': n:freq[n]-=1, a:freq[a]-=1, g:freq[g]-=1, ..." },
+        { array: [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], description: "All frequencies are 0. The strings ARE anagrams!" },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <string>
+    using namespace std;
+
+    bool isAnagram(string s, string t) {
+        if (s.length() != t.length()) return false;
+
+        int freq[26] = {0};
+
+        for (char c : s) freq[c - 'a']++;
+        for (char c : t) freq[c - 'a']--;
+
+        for (int i = 0; i < 26; i++) {
+            if (freq[i] != 0) return false;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_anagram(s, t):
+        if len(s) != len(t):
+            return False
+
+        freq = [0] * 26
+        for c in s:
+            freq[ord(c) - ord('a')] += 1
+        for c in t:
+            freq[ord(c) - ord('a')] -= 1
+
+        return all(f == 0 for f in freq)
+
+    # One-liner with Counter (also works for Unicode):
+    from collections import Counter
+    def is_anagram_counter(s, t):
+        return Counter(s) == Counter(t)
+
+    print(is_anagram("anagram", "nagaram"))  # True
+    print(is_anagram("rat", "car"))          # False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        public boolean isAnagram(String s, String t) {
+            if (s.length() != t.length()) return false;
+
+            int[] freq = new int[26];
+            for (char c : s.toCharArray()) freq[c - 'a']++;
+            for (char c : t.toCharArray()) freq[c - 'a']--;
+
+            for (int count : freq) {
+                if (count != 0) return false;
+            }
+            return true;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- Early return if lengths differ (can't be anagrams)
+- Use a 26-element array to count character frequencies
+- Increment for each character in `s`, decrement for each character in `t`
+- If all counts end up at zero, both strings have identical character compositions
+
+<Callout type="info">
+    **Follow-up answer:** For Unicode characters, replace the fixed-size array with
+    a hash map (`unordered_map` in C++, `Counter` in Python, `HashMap` in Java).
+    The time complexity stays O(n) but space becomes O(k) where k is the number of
+    distinct characters.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n)` -- two passes through the strings
+- Space Complexity: `O(1)` -- fixed 26-element array (constant regardless of input size)

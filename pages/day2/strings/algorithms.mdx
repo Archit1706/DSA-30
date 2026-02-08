@@ -1,0 +1,813 @@
+import { Steps, Tabs, Callout } from "nextra/components";
+import { AlgorithmStepper } from "../../../components/AlgorithmStepper";
+import { StringPatternMatcher } from "../../../components/StringPatternMatcher";
+import { ComplexityTable } from "../../../components/ComplexityTable";
+import { QuizBox } from "../../../components/QuizBox";
+import { ShowHideGif } from "../../../components/ShowHideGif";
+export const Tab = Tabs.Tab;
+
+# String Algorithms & Techniques
+
+Strings introduce a set of algorithmic techniques beyond what you saw with arrays. Pattern matching, character frequency analysis, and the sliding window on characters are the core skills that separate those who struggle with string problems from those who solve them in minutes.
+
+<ComplexityTable
+    operations={[
+        {
+            name: "Naive Pattern Match",
+            time: "O(n*m)",
+            space: "O(1)",
+            notes: "Check every position",
+        },
+        {
+            name: "KMP Algorithm",
+            time: "O(n+m)",
+            space: "O(m)",
+            notes: "Preprocess pattern with failure function",
+        },
+        {
+            name: "Rabin-Karp",
+            time: "O(n+m)",
+            space: "O(1)",
+            notes: "Rolling hash; O(n*m) worst case",
+        },
+        {
+            name: "Two Pointers (palindrome)",
+            time: "O(n)",
+            space: "O(1)",
+            notes: "Compare from both ends",
+        },
+        {
+            name: "Sliding Window",
+            time: "O(n)",
+            space: "O(k)",
+            notes: "k = character set size",
+        },
+        {
+            name: "Character Frequency",
+            time: "O(n)",
+            space: "O(1)",
+            notes: "Fixed 26 or 128 array",
+        },
+    ]}
+/>
+
+---
+
+<Steps>
+
+### Naive Pattern Matching
+
+The simplest way to find a pattern in a text: try every position and check character by character.
+
+- **Analogy:** You lost your house key somewhere in a row of boxes. You open each box, check if the key pattern matches -- if not, move to the next box.
+
+<StringPatternMatcher
+    text="ABCABCABD"
+    pattern="ABD"
+    steps={[
+        {
+            offset: 0,
+            patternIndex: 0,
+            textIndices: [0],
+            description:
+                "Position 0: Compare text[0]='A' with pattern[0]='A'. Match! Continue.",
+            matchedIndices: [],
+            matchedPatternIndices: [],
+        },
+        {
+            offset: 0,
+            patternIndex: 1,
+            textIndices: [1],
+            description:
+                "Position 0: Compare text[1]='B' with pattern[1]='B'. Match! Continue.",
+            matchedIndices: [],
+            matchedPatternIndices: [],
+        },
+        {
+            offset: 0,
+            patternIndex: 2,
+            textIndices: [2],
+            description:
+                "Position 0: Compare text[2]='C' with pattern[2]='D'. Mismatch! Shift pattern.",
+            matchedIndices: [],
+            matchedPatternIndices: [],
+        },
+        {
+            offset: 3,
+            patternIndex: 0,
+            textIndices: [3],
+            description:
+                "Position 3: Compare text[3]='A' with pattern[0]='A'. Match! Continue.",
+            matchedIndices: [],
+            matchedPatternIndices: [],
+        },
+        {
+            offset: 3,
+            patternIndex: 1,
+            textIndices: [4],
+            description:
+                "Position 3: Compare text[4]='B' with pattern[1]='B'. Match! Continue.",
+            matchedIndices: [],
+            matchedPatternIndices: [],
+        },
+        {
+            offset: 3,
+            patternIndex: 2,
+            textIndices: [5],
+            description:
+                "Position 3: Compare text[5]='C' with pattern[2]='D'. Mismatch! Shift pattern.",
+            matchedIndices: [],
+            matchedPatternIndices: [],
+        },
+        {
+            offset: 6,
+            patternIndex: 0,
+            textIndices: [6],
+            description:
+                "Position 6: Compare text[6]='A' with pattern[0]='A'. Match!",
+            matchedIndices: [6],
+            matchedPatternIndices: [0],
+        },
+        {
+            offset: 6,
+            patternIndex: 1,
+            textIndices: [7],
+            description:
+                "Position 6: Compare text[7]='B' with pattern[1]='B'. Match!",
+            matchedIndices: [6, 7],
+            matchedPatternIndices: [0, 1],
+        },
+        {
+            offset: 6,
+            patternIndex: 2,
+            textIndices: [8],
+            description:
+                "Position 6: Compare text[8]='D' with pattern[2]='D'. Match! Pattern found at index 6!",
+            match: true,
+            matchedIndices: [6, 7, 8],
+            matchedPatternIndices: [0, 1, 2],
+        },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python']}>
+  <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    vector<int> naiveSearch(const string& text, const string& pattern) {
+        vector<int> positions;
+        int n = text.length(), m = pattern.length();
+
+        for (int i = 0; i <= n - m; i++) {
+            int j = 0;
+            while (j < m && text[i + j] == pattern[j]) {
+                j++;
+            }
+            if (j == m) {
+                positions.push_back(i);  // Pattern found at index i
+            }
+        }
+        return positions;
+    }
+    ```
+
+  </Tab>
+  <Tab>
+    ```python copy
+    def naive_search(text, pattern):
+        """Find all occurrences of pattern in text."""
+        positions = []
+        n, m = len(text), len(pattern)
+
+        for i in range(n - m + 1):
+            if text[i:i+m] == pattern:
+                positions.append(i)
+
+        return positions
+
+    print(naive_search("ABCABCABD", "ABD"))  # [6]
+    ```
+
+  </Tab>
+</Tabs>
+
+- **Time Complexity:** O((n - m + 1) _ m) which simplifies to O(n _ m)
+- **Space Complexity:** O(1) extra (excluding output)
+- **When to use:** Small inputs, quick prototyping, or when the interviewer says "start with brute force"
+
+### KMP (Knuth-Morris-Pratt) Algorithm
+
+KMP avoids re-examining characters by preprocessing the pattern to build a "failure function" (also called the prefix table or LPS array). When a mismatch occurs, instead of going back to the start, we skip ahead using the failure function.
+
+- **Analogy:** Imagine you are comparing two rulers. When you find a mismatch, instead of starting over completely, you notice that part of what you already matched is also a prefix of the pattern -- so you slide the pattern forward just enough to align that repeated prefix.
+
+<br />
+<ShowHideGif
+    gifUrl="/gifs/kmp-algorithm.svg"
+    pausedGifUrl="/gifs/kmp-algorithm.svg"
+/>
+<br />
+
+**The LPS (Longest Proper Prefix which is also Suffix) Array:**
+
+For pattern `"ABCABD"`, the LPS array is `[0, 0, 0, 1, 2, 0]`.
+
+- `LPS[3] = 1` because `"ABCA"` has prefix `"A"` that equals suffix `"A"` (length 1)
+- `LPS[4] = 2` because `"ABCAB"` has prefix `"AB"` that equals suffix `"AB"` (length 2)
+
+<AlgorithmStepper
+    title="Building LPS array for pattern ABCABD"
+    steps={[
+        {
+            array: ["A", "B", "C", "A", "B", "D"],
+            activeIndices: [0],
+            description:
+                "LPS[0] is always 0. Pattern prefix of length 1 has no proper prefix that is also a suffix.",
+        },
+        {
+            array: [0, "B", "C", "A", "B", "D"],
+            activeIndices: [1],
+            description: "i=1, len=0. 'B' != 'A'. LPS[1] = 0.",
+        },
+        {
+            array: [0, 0, "C", "A", "B", "D"],
+            activeIndices: [2],
+            description: "i=2, len=0. 'C' != 'A'. LPS[2] = 0.",
+        },
+        {
+            array: [0, 0, 0, "A", "B", "D"],
+            activeIndices: [3],
+            description: "i=3, len=0. 'A' == 'A'. len becomes 1. LPS[3] = 1.",
+        },
+        {
+            array: [0, 0, 0, 1, "B", "D"],
+            activeIndices: [4],
+            description:
+                "i=4, len=1. 'B' == 'B' (pattern[1]). len becomes 2. LPS[4] = 2.",
+        },
+        {
+            array: [0, 0, 0, 1, 2, "D"],
+            activeIndices: [5],
+            description:
+                "i=5, len=2. 'D' != 'C' (pattern[2]). Fall back: len = LPS[1] = 0. 'D' != 'A'. LPS[5] = 0.",
+        },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python']}>
+  <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    vector<int> buildLPS(const string& pattern) {
+        int m = pattern.length();
+        vector<int> lps(m, 0);
+        int len = 0;  // Length of previous longest prefix suffix
+        int i = 1;
+
+        while (i < m) {
+            if (pattern[i] == pattern[len]) {
+                len++;
+                lps[i] = len;
+                i++;
+            } else {
+                if (len != 0) {
+                    len = lps[len - 1];  // Fall back (don't increment i)
+                } else {
+                    lps[i] = 0;
+                    i++;
+                }
+            }
+        }
+        return lps;
+    }
+
+    vector<int> kmpSearch(const string& text, const string& pattern) {
+        int n = text.length(), m = pattern.length();
+        vector<int> lps = buildLPS(pattern);
+        vector<int> positions;
+
+        int i = 0, j = 0;
+        while (i < n) {
+            if (text[i] == pattern[j]) {
+                i++;
+                j++;
+            }
+            if (j == m) {
+                positions.push_back(i - j);
+                j = lps[j - 1];
+            } else if (i < n && text[i] != pattern[j]) {
+                if (j != 0)
+                    j = lps[j - 1];
+                else
+                    i++;
+            }
+        }
+        return positions;
+    }
+    ```
+
+  </Tab>
+  <Tab>
+    ```python copy
+    def build_lps(pattern):
+        """Build the Longest Proper Prefix which is also Suffix array."""
+        m = len(pattern)
+        lps = [0] * m
+        length = 0  # Length of previous longest prefix suffix
+        i = 1
+
+        while i < m:
+            if pattern[i] == pattern[length]:
+                length += 1
+                lps[i] = length
+                i += 1
+            else:
+                if length != 0:
+                    length = lps[length - 1]  # Fall back
+                else:
+                    lps[i] = 0
+                    i += 1
+        return lps
+
+    def kmp_search(text, pattern):
+        """Find all occurrences of pattern in text using KMP."""
+        n, m = len(text), len(pattern)
+        lps = build_lps(pattern)
+        positions = []
+
+        i = j = 0
+        while i < n:
+            if text[i] == pattern[j]:
+                i += 1
+                j += 1
+
+            if j == m:
+                positions.append(i - j)
+                j = lps[j - 1]
+            elif i < n and text[i] != pattern[j]:
+                if j != 0:
+                    j = lps[j - 1]
+                else:
+                    i += 1
+
+        return positions
+
+    print(kmp_search("ABABDABACDABABCABAB", "ABABCABAB"))  # [9]
+    ```
+
+  </Tab>
+</Tabs>
+
+- **Time Complexity:** O(n + m) -- linear!
+- **Space Complexity:** O(m) for the LPS array
+- **When to use:** Large texts with repeated patterns, when O(n\*m) is too slow
+
+<Callout type="info">
+    **Interview reality:** You rarely need to code KMP from scratch in
+    interviews. But understanding *why* it works (the LPS array) is frequently
+    asked. Focus on being able to explain the concept and compute the LPS array
+    by hand.
+</Callout>
+
+### Rabin-Karp Algorithm
+
+Rabin-Karp uses a **rolling hash** to quickly compare the pattern with substrings of the text. Instead of comparing characters one by one, it compares hash values. Only when hashes match does it verify character by character.
+
+- **Analogy:** Instead of reading every book title to find a match, you compare the number of letters first (a quick hash). Only if the count matches do you actually read the title.
+
+<br />
+<ShowHideGif
+    gifUrl="/gifs/rabin-karp.svg"
+    pausedGifUrl="/gifs/rabin-karp.svg"
+/>
+<br />
+
+**Rolling Hash Formula:**
+
+For a window of text `t[i..i+m-1]`, the hash is:
+
+```
+hash = (t[i] * d^(m-1) + t[i+1] * d^(m-2) + ... + t[i+m-1]) mod q
+```
+
+When sliding the window by one position:
+
+```
+new_hash = (d * (old_hash - t[i] * d^(m-1)) + t[i+m]) mod q
+```
+
+This recalculation takes O(1) -- that is the power of rolling hash.
+
+<Tabs items={['C++', 'Python']}>
+  <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    vector<int> rabinKarp(const string& text, const string& pattern) {
+        int n = text.length(), m = pattern.length();
+        int d = 256;      // Number of characters in alphabet
+        int q = 101;      // A prime number for hashing
+        vector<int> result;
+
+        int h = 1;  // d^(m-1) % q
+        for (int i = 0; i < m - 1; i++)
+            h = (h * d) % q;
+
+        // Calculate initial hashes
+        int patternHash = 0, textHash = 0;
+        for (int i = 0; i < m; i++) {
+            patternHash = (d * patternHash + pattern[i]) % q;
+            textHash = (d * textHash + text[i]) % q;
+        }
+
+        // Slide the pattern over text
+        for (int i = 0; i <= n - m; i++) {
+            if (patternHash == textHash) {
+                // Hash match -- verify characters
+                if (text.substr(i, m) == pattern) {
+                    result.push_back(i);
+                }
+            }
+            // Calculate hash for next window
+            if (i < n - m) {
+                textHash = (d * (textHash - text[i] * h) + text[i + m]) % q;
+                if (textHash < 0) textHash += q;
+            }
+        }
+        return result;
+    }
+    ```
+
+  </Tab>
+  <Tab>
+    ```python copy
+    def rabin_karp(text, pattern):
+        """Find all occurrences using Rabin-Karp rolling hash."""
+        n, m = len(text), len(pattern)
+        d = 256       # Character set size
+        q = 101       # Prime for modular hashing
+        result = []
+
+        h = pow(d, m - 1) % q  # d^(m-1) mod q
+        p_hash = 0  # Pattern hash
+        t_hash = 0  # Text window hash
+
+        # Initial hash values
+        for i in range(m):
+            p_hash = (d * p_hash + ord(pattern[i])) % q
+            t_hash = (d * t_hash + ord(text[i])) % q
+
+        # Slide the window
+        for i in range(n - m + 1):
+            if p_hash == t_hash:
+                if text[i:i+m] == pattern:  # Verify on hash match
+                    result.append(i)
+
+            if i < n - m:
+                t_hash = (d * (t_hash - ord(text[i]) * h) + ord(text[i + m])) % q
+                if t_hash < 0:
+                    t_hash += q
+
+        return result
+
+    print(rabin_karp("AABAACAADAABAABA", "AABA"))  # [0, 9, 12]
+    ```
+
+  </Tab>
+</Tabs>
+
+- **Time Complexity:** O(n + m) average, O(n \* m) worst case (hash collisions)
+- **Space Complexity:** O(1) extra
+- **When to use:** Searching for multiple patterns, plagiarism detection, DNA sequence matching
+
+### Two Pointers for Palindrome Checking
+
+The most common string technique in interviews: start from both ends and walk inward, comparing characters.
+
+- **Analogy:** Two people reading the same word from opposite ends of a banner. If they always see the same letter, it is a palindrome.
+
+<br />
+<ShowHideGif
+    gifUrl="/gifs/palindrome-two-pointers.svg"
+    pausedGifUrl="/gifs/palindrome-two-pointers.svg"
+/>
+<br />
+
+<AlgorithmStepper
+    title="Palindrome check: Is 'racecar' a palindrome?"
+    steps={[
+        {
+            array: ["r", "a", "c", "e", "c", "a", "r"],
+            pointerIndices: [0, 6],
+            description:
+                "left=0, right=6. s[0]='r' == s[6]='r'. Match! Move inward.",
+        },
+        {
+            array: ["r", "a", "c", "e", "c", "a", "r"],
+            pointerIndices: [1, 5],
+            description:
+                "left=1, right=5. s[1]='a' == s[5]='a'. Match! Move inward.",
+        },
+        {
+            array: ["r", "a", "c", "e", "c", "a", "r"],
+            pointerIndices: [2, 4],
+            description:
+                "left=2, right=4. s[2]='c' == s[4]='c'. Match! Move inward.",
+        },
+        {
+            array: ["r", "a", "c", "e", "c", "a", "r"],
+            pointerIndices: [3, 3],
+            activeIndices: [3],
+            description:
+                "left=3, right=3. Pointers crossed. All characters matched. 'racecar' IS a palindrome!",
+        },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python']}>
+  <Tab>
+    ```cpp copy
+    bool isPalindrome(const string& s) {
+        int left = 0, right = s.length() - 1;
+        while (left < right) {
+            if (s[left] != s[right]) return false;
+            left++;
+            right--;
+        }
+        return true;
+    }
+
+    // With alphanumeric filtering (LeetCode-style)
+    bool isPalindromeClean(const string& s) {
+        int left = 0, right = s.length() - 1;
+        while (left < right) {
+            while (left < right && !isalnum(s[left])) left++;
+            while (left < right && !isalnum(s[right])) right--;
+            if (tolower(s[left]) != tolower(s[right])) return false;
+            left++;
+            right--;
+        }
+        return true;
+    }
+    ```
+
+  </Tab>
+  <Tab>
+    ```python copy
+    def is_palindrome(s):
+        left, right = 0, len(s) - 1
+        while left < right:
+            if s[left] != s[right]:
+                return False
+            left += 1
+            right -= 1
+        return True
+
+    # With alphanumeric filtering
+    def is_palindrome_clean(s):
+        cleaned = [c.lower() for c in s if c.isalnum()]
+        return cleaned == cleaned[::-1]
+
+    # Or using two pointers with filtering
+    def is_palindrome_optimal(s):
+        left, right = 0, len(s) - 1
+        while left < right:
+            while left < right and not s[left].isalnum():
+                left += 1
+            while left < right and not s[right].isalnum():
+                right -= 1
+            if s[left].lower() != s[right].lower():
+                return False
+            left += 1
+            right -= 1
+        return True
+
+    print(is_palindrome("racecar"))  # True
+    print(is_palindrome_clean("A man, a plan, a canal: Panama"))  # True
+    ```
+
+  </Tab>
+</Tabs>
+
+- **Time Complexity:** O(n) -- single pass from both ends
+- **Space Complexity:** O(1)
+
+### Sliding Window on Strings
+
+The sliding window technique from arrays works even better on strings. It is the go-to approach for substring problems.
+
+**Key pattern:** Maintain a window `[left, right)` and a character frequency map. Expand `right` to include more characters, shrink `left` when a condition is violated.
+
+<br />
+<ShowHideGif
+    gifUrl="/gifs/sliding-window.svg"
+    pausedGifUrl="/gifs/sliding-window.svg"
+/>
+<br />
+
+#### Example: Longest Substring Without Repeating Characters
+
+<AlgorithmStepper
+    title='Sliding window on "abcabcbb"'
+    steps={[
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [0],
+            description: "Window: 'a'. Set: {a}. Length=1. Max=1.",
+        },
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [0, 1],
+            description: "Window: 'ab'. Set: {a,b}. Length=2. Max=2.",
+        },
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [0, 1, 2],
+            description: "Window: 'abc'. Set: {a,b,c}. Length=3. Max=3.",
+        },
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [0, 1, 2, 3],
+            pointerIndices: [3],
+            description:
+                "right=3, char='a' is in set. Remove 'a', shrink left to 1.",
+        },
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [1, 2, 3],
+            description: "Window: 'bca'. Set: {b,c,a}. Length=3. Max still 3.",
+        },
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [1, 2, 3, 4],
+            pointerIndices: [4],
+            description:
+                "right=4, char='b' is in set. Remove 'b', shrink left to 2.",
+        },
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [2, 3, 4],
+            description: "Window: 'cab'. Set: {c,a,b}. Length=3. Max still 3.",
+        },
+        {
+            array: ["a", "b", "c", "a", "b", "c", "b", "b"],
+            activeIndices: [3, 4, 5],
+            description:
+                "Continue sliding... Final answer: max length = 3 ('abc').",
+        },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python']}>
+  <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstring(const string& s) {
+        unordered_set<char> window;
+        int left = 0, maxLen = 0;
+
+        for (int right = 0; right < s.length(); right++) {
+            while (window.count(s[right])) {
+                window.erase(s[left]);
+                left++;
+            }
+            window.insert(s[right]);
+            maxLen = max(maxLen, right - left + 1);
+        }
+        return maxLen;
+    }
+    ```
+
+  </Tab>
+  <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        """Find length of longest substring without repeating characters."""
+        char_set = set()
+        left = 0
+        max_len = 0
+
+        for right in range(len(s)):
+            while s[right] in char_set:
+                char_set.remove(s[left])
+                left += 1
+            char_set.add(s[right])
+            max_len = max(max_len, right - left + 1)
+
+        return max_len
+
+    print(length_of_longest_substring("abcabcbb"))  # 3
+    print(length_of_longest_substring("bbbbb"))      # 1
+    print(length_of_longest_substring("pwwkew"))     # 3
+    ```
+
+  </Tab>
+</Tabs>
+
+- **Time Complexity:** O(n) -- each character is added and removed at most once
+- **Space Complexity:** O(min(n, k)) where k is the character set size
+
+### Character Frequency Counting
+
+The bread and butter of string problems. Counting character frequencies with an array or hash map unlocks solutions to anagrams, permutations, and character-based comparisons.
+
+<Tabs items={['C++', 'Python']}>
+  <Tab>
+    ```cpp copy
+    // Check if two strings are anagrams
+    bool isAnagram(const string& s, const string& t) {
+        if (s.length() != t.length()) return false;
+
+        int freq[26] = {0};
+        for (char c : s) freq[c - 'a']++;
+        for (char c : t) freq[c - 'a']--;
+
+        for (int i = 0; i < 26; i++) {
+            if (freq[i] != 0) return false;
+        }
+        return true;
+    }
+    ```
+
+  </Tab>
+  <Tab>
+    ```python copy
+    from collections import Counter
+
+    def is_anagram(s, t):
+        """Check if t is an anagram of s."""
+        return Counter(s) == Counter(t)
+
+    # Manual approach (interview-friendly)
+    def is_anagram_manual(s, t):
+        if len(s) != len(t):
+            return False
+        freq = [0] * 26
+        for c in s:
+            freq[ord(c) - ord('a')] += 1
+        for c in t:
+            freq[ord(c) - ord('a')] -= 1
+        return all(f == 0 for f in freq)
+
+    print(is_anagram("anagram", "nagaram"))  # True
+    print(is_anagram("rat", "car"))          # False
+    ```
+
+  </Tab>
+</Tabs>
+
+- **Time Complexity:** O(n) -- single pass to count, single pass to compare
+- **Space Complexity:** O(1) -- fixed 26-element array for lowercase English
+
+</Steps>
+
+## Choosing the Right Technique
+
+| Problem Pattern                              | Technique                         | Time             |
+| :------------------------------------------- | :-------------------------------- | :--------------- |
+| "Find pattern in text"                       | Naive / KMP / Rabin-Karp          | O(n\*m) / O(n+m) |
+| "Is it a palindrome?"                        | Two Pointers from ends            | O(n)             |
+| "Longest/shortest substring with property X" | Sliding Window                    | O(n)             |
+| "Are these anagrams?"                        | Character Frequency Array         | O(n)             |
+| "Group similar strings"                      | Sort each string or frequency key | O(n \* k log k)  |
+| "All permutations of pattern in text"        | Sliding Window + Frequency        | O(n)             |
+
+<Callout type="info">
+    **Mental model:** If the problem is about a *substring* (contiguous), think
+    Sliding Window. If it is about *character composition* (order does not
+    matter), think Frequency Counting. If it is about *matching from both ends*,
+    think Two Pointers.
+</Callout>
+
+## Quick Check
+
+<QuizBox
+    question="What does the LPS array in KMP represent?"
+    options={[
+        "Longest Palindromic Substring at each position",
+        "Longest Proper Prefix which is also a Suffix for each prefix of the pattern",
+        "Length of Pattern String at each comparison step",
+        "Last Position Searched in the text",
+    ]}
+    correctIndex={1}
+    explanation="LPS stands for Longest Proper Prefix which is also Suffix. For each index i in the pattern, LPS[i] stores the length of the longest prefix of pattern[0..i] that is also a suffix of pattern[0..i]. This allows KMP to skip redundant comparisons when a mismatch occurs."
+/>
+
+<QuizBox
+    question="You need to find all anagrams of a pattern (length m) in a text (length n). What is the optimal approach?"
+    options={[
+        "Sort each window of size m and compare: O(n * m log m)",
+        "Sliding window with character frequency array: O(n)",
+        "KMP pattern matching: O(n + m)",
+        "Compare every substring with the sorted pattern: O(n * m)",
+    ]}
+    correctIndex={1}
+    explanation="Use a sliding window of size m with a character frequency array. Initialize the frequency for the pattern, then slide across the text: add the new character and remove the old one. When the window's frequency matches the pattern's frequency, you found an anagram. Each slide is O(1) with a 26-element array, so total is O(n)."
+/>

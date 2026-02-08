@@ -1,0 +1,196 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { AlgorithmStepper } from "../../../../components/AlgorithmStepper";
+export const Tab = Tabs.Tab
+
+### String to Integer (atoi) <DifficultyBadge level="medium" />
+
+#### Description
+
+Implement the `myAtoi(string s)` function, which converts a string to a 32-bit signed integer.
+
+The algorithm:
+1. Read in and ignore any leading whitespace
+2. Check if the next character is `'-'` or `'+'`. Read this character in if it is either. This determines if the final result is negative or positive.
+3. Read in next characters until the next non-digit character or the end of the input is reached. The rest of the string is ignored.
+4. Convert these digits into an integer. If no digits were read, then the integer is `0`.
+5. Clamp the integer to the 32-bit signed integer range: `[-2^31, 2^31 - 1]`
+
+#### Examples
+
+```py
+> Case 1:
+    Input: s = "42"
+    Output: 42
+
+> Case 2:
+    Input: s = "   -42"
+    Output: -42
+
+> Case 3:
+    Input: s = "4193 with words"
+    Output: 4193
+
+> Case 4:
+    Input: s = "words and 987"
+    Output: 0
+
+> Case 5:
+    Input: s = "-91283472332"
+    Output: -2147483648
+    Explanation: Clamped to INT_MIN (-2^31)
+```
+
+#### Constraints
+
+- `0 <= s.length <= 200`
+- `s` consists of English letters, digits, `' '`, `'+'`, `'-'`, and `'.'`
+
+#### Approach: Sequential Parsing
+
+Process the string character by character, handling each edge case in order.
+
+<AlgorithmStepper
+    title='Parsing "   -42abc"'
+    steps={[
+        { array: [" "," "," ","-","4","2","a","b","c"], activeIndices: [0, 1, 2], description: "Step 1: Skip leading whitespace. i moves from 0 to 3." },
+        { array: [" "," "," ","-","4","2","a","b","c"], activeIndices: [3], description: "Step 2: Read sign. s[3]='-', so sign = -1. Move to i=4." },
+        { array: [" "," "," ","-","4","2","a","b","c"], activeIndices: [4], description: "Step 3: Read digit '4'. result = 0 * 10 + 4 = 4." },
+        { array: [" "," "," ","-","4","2","a","b","c"], activeIndices: [5], description: "Step 3: Read digit '2'. result = 4 * 10 + 2 = 42." },
+        { array: [" "," "," ","-","4","2","a","b","c"], activeIndices: [6], description: "Step 4: s[6]='a' is not a digit. Stop reading. Final: sign * result = -42." },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <string>
+    #include <climits>
+    using namespace std;
+
+    int myAtoi(string s) {
+        int i = 0, n = s.length();
+        int sign = 1;
+        long result = 0;
+
+        // 1. Skip whitespace
+        while (i < n && s[i] == ' ') i++;
+
+        // 2. Read sign
+        if (i < n && (s[i] == '+' || s[i] == '-')) {
+            sign = (s[i] == '-') ? -1 : 1;
+            i++;
+        }
+
+        // 3. Read digits
+        while (i < n && isdigit(s[i])) {
+            result = result * 10 + (s[i] - '0');
+
+            // 4. Clamp to 32-bit range
+            if (result * sign <= INT_MIN) return INT_MIN;
+            if (result * sign >= INT_MAX) return INT_MAX;
+            i++;
+        }
+
+        return (int)(result * sign);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def my_atoi(s):
+        INT_MAX = 2**31 - 1   # 2147483647
+        INT_MIN = -(2**31)     # -2147483648
+
+        i, n = 0, len(s)
+        sign = 1
+        result = 0
+
+        # 1. Skip whitespace
+        while i < n and s[i] == ' ':
+            i += 1
+
+        # 2. Read sign
+        if i < n and s[i] in ('+', '-'):
+            sign = -1 if s[i] == '-' else 1
+            i += 1
+
+        # 3. Read digits
+        while i < n and s[i].isdigit():
+            result = result * 10 + int(s[i])
+
+            # 4. Clamp check (early exit)
+            if result * sign <= INT_MIN:
+                return INT_MIN
+            if result * sign >= INT_MAX:
+                return INT_MAX
+            i += 1
+
+        return result * sign
+
+    print(my_atoi("42"))              # 42
+    print(my_atoi("   -42"))          # -42
+    print(my_atoi("4193 with words")) # 4193
+    print(my_atoi("-91283472332"))     # -2147483648
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        public int myAtoi(String s) {
+            int i = 0, n = s.length();
+            int sign = 1;
+            long result = 0;
+
+            // 1. Skip whitespace
+            while (i < n && s.charAt(i) == ' ') i++;
+
+            // 2. Read sign
+            if (i < n && (s.charAt(i) == '+' || s.charAt(i) == '-')) {
+                sign = (s.charAt(i) == '-') ? -1 : 1;
+                i++;
+            }
+
+            // 3. Read digits
+            while (i < n && Character.isDigit(s.charAt(i))) {
+                result = result * 10 + (s.charAt(i) - '0');
+
+                // 4. Clamp
+                if (result * sign <= Integer.MIN_VALUE) return Integer.MIN_VALUE;
+                if (result * sign >= Integer.MAX_VALUE) return Integer.MAX_VALUE;
+                i++;
+            }
+
+            return (int)(result * sign);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+This problem is really about careful edge case handling. The algorithm follows four sequential steps:
+
+1. **Skip whitespace** -- standard trimming from the left
+2. **Determine sign** -- check for `+` or `-` (default positive)
+3. **Extract digits** -- multiply running result by 10 and add current digit
+4. **Overflow protection** -- clamp to `[-2^31, 2^31 - 1]` before overflow actually occurs
+
+<Callout type="warning">
+    **The overflow trap:** In C++ and Java, checking overflow *after* it happens is
+    undefined behavior. You must check *before* the multiplication: if
+    `result > INT_MAX / 10` or `result == INT_MAX / 10 && digit > 7`, you will
+    overflow. The code above uses `long` to avoid this issue.
+</Callout>
+
+<Callout type="info">
+    **Why interviewers love this problem:** It tests your ability to handle messy
+    real-world input. The algorithm is simple, but the edge cases (empty string,
+    only whitespace, only signs, overflow) catch most candidates.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n)` -- single pass through the string
+- Space Complexity: `O(1)` -- only uses a few variables

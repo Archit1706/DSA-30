@@ -1,0 +1,110 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { AlgorithmStepper } from "../../../../components/AlgorithmStepper";
+export const Tab = Tabs.Tab
+
+### Reverse a String <DifficultyBadge level="easy" />
+
+#### Description
+
+Write a function that reverses a string. The input string is given as an array of characters `s`. You must do this by modifying the input array **in-place** with O(1) extra memory.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: s = ["h","e","l","l","o"]
+    Output: ["o","l","l","e","h"]
+
+> Case 2:
+    Input: s = ["H","a","n","n","a","h"]
+    Output: ["h","a","n","n","a","H"]
+```
+
+#### Constraints
+
+- `1 <= s.length <= 10^5`
+- `s[i]` is a printable ASCII character
+
+#### Approach 1: Two Pointers (Optimal)
+
+The classic two-pointer approach: one pointer starts at the beginning, the other at the end. Swap and move inward until they meet.
+
+<AlgorithmStepper
+    title='Reversing "hello" with two pointers'
+    steps={[
+        { array: ["h","e","l","l","o"], pointerIndices: [0, 4], description: "left=0, right=4. Swap 'h' and 'o'." },
+        { array: ["o","e","l","l","h"], pointerIndices: [1, 3], description: "left=1, right=3. Swap 'e' and 'l'." },
+        { array: ["o","l","l","e","h"], pointerIndices: [2, 2], activeIndices: [2], description: "left=2, right=2. Pointers met. Done! Result: 'olleh'." },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    using namespace std;
+
+    void reverseString(vector<char>& s) {
+        int left = 0, right = s.size() - 1;
+        while (left < right) {
+            swap(s[left], s[right]);
+            left++;
+            right--;
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse_string(s):
+        left, right = 0, len(s) - 1
+        while left < right:
+            s[left], s[right] = s[right], s[left]
+            left += 1
+            right -= 1
+
+    # Example
+    s = ["h", "e", "l", "l", "o"]
+    reverse_string(s)
+    print(s)  # ["o", "l", "l", "e", "h"]
+
+    # Python shortcut (but less educational):
+    # s.reverse() or s[:] = s[::-1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        public void reverseString(char[] s) {
+            int left = 0, right = s.length - 1;
+            while (left < right) {
+                char temp = s[left];
+                s[left] = s[right];
+                s[right] = temp;
+                left++;
+                right--;
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- Initialize two pointers: `left` at position 0 and `right` at the last position
+- While `left < right`, swap the characters at these two positions
+- Move `left` forward and `right` backward
+- When the pointers meet or cross, every character has been swapped and the string is reversed
+
+<Callout type="info">
+    **Why this is problem #1 for strings:** This two-pointer swap technique is the
+    foundation of dozens of problems. Palindrome checking, partitioning, and the
+    Dutch National Flag problem all use the same core idea.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n)` -- each character is visited once
+- Space Complexity: `O(1)` -- only uses two pointer variables

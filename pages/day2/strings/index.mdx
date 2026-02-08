@@ -1,1 +1,153 @@
-Comming soon...
+import { Callout } from "nextra/components";
+import {
+    StringVisualizer,
+    InteractiveString,
+    StringCompare,
+} from "../../../components/StringVisualizer";
+import { QuizBox } from "../../../components/QuizBox";
+import { ShowHideGif } from "../../../components/ShowHideGif";
+
+# Introduction to Strings
+
+Strings are sequences of characters -- the building blocks of text processing, user input, file handling, and nearly everything you see on a screen. If arrays are the bread of data structures, strings are the butter.
+
+## What is a String?
+
+A string is an ordered sequence of characters. Depending on the language, a string might be:
+
+- **An array of characters** (C/C++) -- literally a `char[]` with a null terminator `\0`
+- **An immutable object** (Python, Java) -- once created, its contents cannot be changed
+- **A dynamic primitive** (JavaScript) -- primitive type but with object-like methods
+
+<StringVisualizer
+    value="HELLO"
+    label='string greeting = "HELLO"'
+    showNullTerminator={true}
+/>
+
+<br />
+<ShowHideGif
+    gifUrl="/gifs/string-memory.svg"
+    pausedGifUrl="/gifs/string-memory.svg"
+/>
+<br />
+
+<Callout type="info">
+    In C, strings are null-terminated character arrays. The `\0` at the end
+    tells functions like `printf` where the string ends. Forgetting it causes
+    bugs that read garbage memory -- a classic source of security
+    vulnerabilities.
+</Callout>
+
+## Strings vs. Character Arrays
+
+This distinction trips up many beginners:
+
+| Feature             | Character Array (C)           | String Object (Python/Java)    |
+| :------------------ | :---------------------------- | :----------------------------- |
+| **Storage**         | Contiguous chars + `\0`       | Internal char array + metadata |
+| **Mutability**      | Mutable (can modify in-place) | Immutable (creates new string) |
+| **Size**            | Fixed at declaration          | Dynamic (grows as needed)      |
+| **Null terminator** | Required (`\0`)               | Handled internally             |
+
+<br />
+<ShowHideGif
+    gifUrl="/gifs/string-immutability.svg"
+    pausedGifUrl="/gifs/string-immutability.svg"
+/>
+<br />
+
+<Callout type="warning">
+    **Immutability trap:** In Python and Java, every time you "modify" a string,
+    you actually create a brand new string. Doing `s += "x"` in a loop is O(n^2)
+    total work because each concatenation copies the entire string. Use
+    `"".join(list)` in Python or `StringBuilder` in Java instead.
+</Callout>
+
+## How Strings Are Stored in Memory
+
+Strings are stored as contiguous blocks of characters, just like arrays. Each character occupies a fixed number of bytes based on the encoding:
+
+| Encoding           | Bytes per Char | Character Set                             |
+| :----------------- | :------------- | :---------------------------------------- |
+| **ASCII**          | 1 byte         | 128 characters (English, digits, symbols) |
+| **Extended ASCII** | 1 byte         | 256 characters                            |
+| **UTF-8**          | 1-4 bytes      | All Unicode (1.1M+ characters)            |
+| **UTF-16**         | 2-4 bytes      | Used internally by Java, JavaScript       |
+
+<StringVisualizer
+    value={["H", "e", "l", "l", "o"]}
+    label="ASCII values: H=72, e=101, l=108, l=108, o=111"
+    highlights={[0, 4]}
+/>
+
+<Callout type="info">
+    **Why encoding matters for interviews:** When a problem says "lowercase
+    English letters only," you know there are exactly 26 possible characters --
+    this lets you use a fixed-size array of 26 instead of a hash map. That
+    constraint is a hint.
+</Callout>
+
+## Types of String Problems
+
+String problems in interviews generally fall into these categories:
+
+| Category           | Techniques                  | Example Problems                    |
+| :----------------- | :-------------------------- | :---------------------------------- |
+| **Traversal**      | Single/double pointer       | Reverse a string, palindrome check  |
+| **Matching**       | Hash map, KMP, Rabin-Karp   | Pattern matching, anagram detection |
+| **Transformation** | Stack, recursion            | String to integer, decode ways      |
+| **Substring**      | Sliding window, DP          | Longest substring without repeating |
+| **Comparison**     | Sorting, character counting | Anagram groups, common prefix       |
+
+## Try It Yourself
+
+Type any string and explore how it looks as a character array. Try checking palindromes, reversing, and counting characters:
+
+<InteractiveString />
+
+## Strings vs. Arrays -- Key Differences
+
+If you just came from the Arrays section, here is what changes with strings:
+
+1. **Character encoding** -- arrays hold numbers, strings hold encoded characters
+2. **Immutability** -- most languages make strings immutable (arrays usually aren't)
+3. **Built-in methods** -- strings come with rich libraries (split, join, replace, regex)
+4. **Null termination** -- C strings need `\0`, arrays don't
+5. **Comparison semantics** -- comparing strings requires character-by-character checks, while arrays of primitives compare values
+
+<StringCompare
+    string1="listen"
+    string2="silent"
+    label1="String A"
+    label2="String B"
+    matchHighlight={true}
+/>
+
+The two strings above share only some characters at the same positions, but they are anagrams of each other (same characters, different order). Spotting relationships like this is the core of string problem-solving.
+
+## Quick Check
+
+<QuizBox
+    question="In Python, what happens when you do s = 'hello'; s[0] = 'H'?"
+    options={[
+        "Changes the string to 'Hello'",
+        "Raises a TypeError (strings are immutable)",
+        "Creates a new string 'Hello'",
+        "Silently does nothing",
+    ]}
+    correctIndex={1}
+    explanation="Python strings are immutable. Attempting to assign to an index raises TypeError: 'str' object does not support item assignment. To modify, create a new string: s = 'H' + s[1:]."
+/>
+
+<QuizBox
+    question="Why is concatenating strings in a loop (s += char) considered O(n^2) in languages with immutable strings?"
+    options={[
+        "Each concatenation searches the entire string",
+        "Each concatenation creates a new copy of the entire string so far",
+        "The loop itself runs n^2 times",
+        "String comparison is expensive",
+    ]}
+    correctIndex={1}
+    explanation="Since strings are immutable, s += char creates a brand new string each time, copying all previous characters. On iteration k, you copy k characters. Total work: 1 + 2 + ... + n = n(n+1)/2 = O(n^2). Use StringBuilder (Java) or join a list (Python) to keep it O(n)."
+/>

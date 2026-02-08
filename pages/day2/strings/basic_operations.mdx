@@ -1,1 +1,442 @@
-Comming soon...
+import { Steps, Tabs, Callout } from "nextra/components";
+import { ComplexityTable } from "../../../components/ComplexityTable";
+import { StringVisualizer } from "../../../components/StringVisualizer";
+import { AlgorithmStepper } from "../../../components/AlgorithmStepper";
+import { QuizBox } from "../../../components/QuizBox";
+export const Tab = Tabs.Tab
+
+# Basic Operations
+
+Every string operation you'll encounter in interviews boils down to these fundamentals. Knowing their time complexities is the difference between an O(n) solution and an accidental O(n^2) one.
+
+<ComplexityTable operations={[
+    { name: "Access character by index", time: "O(1)", space: "O(1)", notes: "Direct offset calculation" },
+    { name: "Search for character", time: "O(n)", space: "O(1)", notes: "Linear scan" },
+    { name: "Search for substring", time: "O(n*m)", space: "O(1)", notes: "Naive; O(n+m) with KMP" },
+    { name: "Concatenation", time: "O(n+m)", space: "O(n+m)", notes: "Creates new string (immutable languages)" },
+    { name: "Substring extraction", time: "O(k)", space: "O(k)", notes: "k = length of substring" },
+    { name: "Compare two strings", time: "O(n)", space: "O(1)", notes: "Character-by-character" },
+    { name: "Reverse a string", time: "O(n)", space: "O(1)", notes: "In-place with two pointers (mutable)" },
+    { name: "Convert case", time: "O(n)", space: "O(n)", notes: "Must create new string (immutable)" },
+]} />
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+        <Steps>
+
+        ### C++ String Operations
+
+        C++ offers both C-style strings (`char[]`) and the `std::string` class. Always prefer `std::string` unless you have a specific reason to use C-style.
+
+        #### Creating and Accessing Strings
+
+        ```cpp copy
+        #include <iostream>
+        #include <string>
+        using namespace std;
+
+        int main() {
+            // Creating strings
+            string s1 = "hello";          // From literal
+            string s2(5, 'a');            // "aaaaa" (repeat char)
+            string s3 = s1;               // Copy
+
+            // Accessing characters - O(1)
+            char first = s1[0];           // 'h' (no bounds check)
+            char safe = s1.at(0);         // 'h' (throws if out of bounds)
+            char last = s1.back();        // 'o'
+            char front = s1.front();      // 'h'
+
+            // Length - O(1) (stored internally)
+            int len = s1.length();        // 5
+            int sz = s1.size();           // 5 (same as length)
+            bool empty = s1.empty();      // false
+
+            cout << first << " " << len << endl;
+            return 0;
+        }
+        ```
+
+        #### Modifying Strings
+
+        ```cpp copy
+        string s = "hello";
+
+        // Append - O(1) amortized (like vector)
+        s += " world";                  // "hello world"
+        s.append("!");                  // "hello world!"
+        s.push_back('?');               // "hello world!?"
+
+        // Insert - O(n) (shifts characters)
+        s.insert(5, ",");               // "hello, world!?"
+
+        // Erase - O(n) (shifts characters)
+        s.erase(12, 2);                 // "hello, world" (remove last 2)
+        s.erase(5, 2);                  // "helloworld" (remove ", ")
+
+        // Replace - O(n)
+        s.replace(5, 5, " earth");      // "hello earth"
+
+        // Clear - O(1)
+        s.clear();                      // ""
+        ```
+
+        #### Searching in Strings
+
+        ```cpp copy
+        string s = "hello world hello";
+
+        // Find first occurrence - O(n*m)
+        size_t pos = s.find("hello");       // 0
+        size_t pos2 = s.find("hello", 1);   // 12 (search from index 1)
+        size_t pos3 = s.find("xyz");        // string::npos (not found)
+
+        if (pos != string::npos) {
+            cout << "Found at index " << pos << endl;
+        }
+
+        // Find last occurrence
+        size_t rpos = s.rfind("hello");     // 12
+
+        // Find any character from a set
+        size_t vowel = s.find_first_of("aeiou");   // 1 ('e')
+        size_t last_vowel = s.find_last_of("aeiou"); // 16 ('o')
+        ```
+
+        #### Substring and Comparison
+
+        ```cpp copy
+        string s = "hello world";
+
+        // Substring - O(k)
+        string sub = s.substr(6, 5);    // "world" (start, length)
+        string rest = s.substr(6);      // "world" (start to end)
+
+        // Comparison - O(n)
+        string a = "abc", b = "abd";
+        if (a == b) cout << "equal";
+        if (a < b) cout << "a comes first";     // Lexicographic
+        int cmp = a.compare(b);                   // negative if a < b
+
+        // Starts with / ends with (C++20)
+        // s.starts_with("hello");  // true
+        // s.ends_with("world");    // true
+        ```
+
+        #### Conversion Functions
+
+        ```cpp copy
+        // String to number
+        int n = stoi("42");             // 42
+        long l = stol("123456789");
+        double d = stod("3.14");
+
+        // Number to string
+        string s1 = to_string(42);      // "42"
+        string s2 = to_string(3.14);    // "3.140000"
+
+        // Character operations
+        char c = 'a';
+        bool isAlpha = isalpha(c);      // true
+        bool isDigit = isdigit(c);      // false
+        char upper = toupper(c);        // 'A'
+        char lower = tolower('Z');      // 'z'
+        ```
+
+        </Steps>
+    </Tab>
+
+    <Tab>
+        <Steps>
+
+        ### Python String Operations
+
+        Python strings are immutable sequences. Every "modification" creates a new string.
+
+        #### Creating and Accessing Strings
+
+        ```python copy
+        # Creating strings
+        s1 = "hello"
+        s2 = 'hello'                 # Same thing
+        s3 = "hello" * 3             # "hellohellohello"
+        s4 = "".join(['h', 'e', 'l', 'l', 'o'])  # From list
+
+        # Accessing characters - O(1)
+        first = s1[0]               # 'h'
+        last = s1[-1]               # 'o'
+        second_last = s1[-2]        # 'l'
+
+        # Slicing - O(k) where k = slice length
+        sub = s1[1:4]               # "ell"
+        reversed_s = s1[::-1]       # "olleh"
+        every_other = s1[::2]       # "hlo"
+
+        # Length - O(1)
+        length = len(s1)            # 5
+        is_empty = len(s1) == 0     # False
+        # or: is_empty = not s1
+        ```
+
+        #### String Methods (Non-Mutating)
+
+        ```python copy
+        s = "Hello, World!"
+
+        # Case conversion - O(n)
+        s.lower()                   # "hello, world!"
+        s.upper()                   # "HELLO, WORLD!"
+        s.capitalize()              # "Hello, world!"
+        s.title()                   # "Hello, World!"
+        s.swapcase()                # "hELLO, wORLD!"
+
+        # Stripping whitespace - O(n)
+        "  hello  ".strip()         # "hello"
+        "  hello  ".lstrip()        # "hello  "
+        "  hello  ".rstrip()        # "  hello"
+
+        # Checking content - O(n)
+        "abc123".isalnum()          # True
+        "abc".isalpha()             # True
+        "123".isdigit()             # True
+        "hello".islower()           # True
+        "HELLO".isupper()           # True
+        ```
+
+        #### Searching and Replacing
+
+        ```python copy
+        s = "hello world hello"
+
+        # Find - O(n*m)
+        s.find("hello")             # 0 (first occurrence)
+        s.find("hello", 1)          # 12 (search from index 1)
+        s.find("xyz")               # -1 (not found)
+        s.rfind("hello")            # 12 (last occurrence)
+
+        # Index (like find but raises ValueError if not found)
+        s.index("world")            # 6
+
+        # Count occurrences - O(n)
+        s.count("hello")            # 2
+        s.count("l")                # 5
+
+        # Check containment - O(n)
+        "world" in s                # True
+        s.startswith("hello")       # True
+        s.endswith("hello")         # True
+
+        # Replace - O(n)
+        s.replace("hello", "hi")    # "hi world hi"
+        s.replace("hello", "hi", 1) # "hi world hello" (max 1 replacement)
+        ```
+
+        #### Splitting and Joining
+
+        ```python copy
+        # Split - O(n)
+        "a,b,c".split(",")                   # ['a', 'b', 'c']
+        "hello world".split()                 # ['hello', 'world']
+        "hello world foo".split(maxsplit=1)   # ['hello', 'world foo']
+
+        # Join - O(n) total characters
+        ",".join(["a", "b", "c"])             # "a,b,c"
+        " ".join(["hello", "world"])          # "hello world"
+        "".join(["h", "e", "l", "l", "o"])    # "hello"
+
+        # This is the CORRECT way to build strings:
+        chars = []
+        for c in "hello":
+            chars.append(c.upper())
+        result = "".join(chars)  # "HELLO" -- O(n) total
+        ```
+
+        #### Conversion Functions
+
+        ```python copy
+        # String to number
+        n = int("42")               # 42
+        f = float("3.14")           # 3.14
+
+        # Number to string
+        s = str(42)                 # "42"
+        s = f"{42}"                 # "42" (f-string)
+
+        # Character <-> ASCII
+        ord('a')                    # 97
+        chr(97)                     # 'a'
+        ord('A')                    # 65
+        chr(ord('a') + 2)           # 'c'
+
+        # Check character type
+        'a'.isalpha()               # True
+        '5'.isdigit()               # True
+        ' '.isspace()               # True
+        ```
+
+        </Steps>
+    </Tab>
+
+    <Tab>
+        <Steps>
+
+        ### Java String Operations
+
+        Java has three string types: `String` (immutable), `StringBuilder` (mutable, not thread-safe), and `StringBuffer` (mutable, thread-safe).
+
+        #### Creating and Accessing Strings
+
+        ```java copy
+        // Creating strings
+        String s1 = "hello";                    // String pool
+        String s2 = new String("hello");        // New object (avoid)
+        String s3 = String.valueOf(42);         // From number
+        char[] chars = {'h', 'e', 'l', 'l', 'o'};
+        String s4 = new String(chars);          // From char array
+
+        // Accessing characters - O(1)
+        char first = s1.charAt(0);              // 'h'
+        char last = s1.charAt(s1.length() - 1); // 'o'
+
+        // Length - O(1)
+        int len = s1.length();                  // 5
+        boolean empty = s1.isEmpty();           // false
+        ```
+
+        #### String Methods (Return New Strings)
+
+        ```java copy
+        String s = "Hello, World!";
+
+        // Case conversion - O(n)
+        s.toLowerCase();            // "hello, world!"
+        s.toUpperCase();            // "HELLO, WORLD!"
+
+        // Trimming - O(n)
+        "  hello  ".trim();         // "hello"
+        "  hello  ".strip();        // "hello" (Java 11+, Unicode-aware)
+
+        // Substring - O(k)
+        s.substring(7);             // "World!"
+        s.substring(0, 5);          // "Hello"
+
+        // Replace - O(n)
+        s.replace('l', 'r');        // "Herro, Worrd!"
+        s.replace("World", "Java"); // "Hello, Java!"
+        s.replaceAll("[aeiou]", "*"); // Regex replace
+        ```
+
+        #### Searching and Comparison
+
+        ```java copy
+        String s = "hello world hello";
+
+        // Find - O(n*m)
+        s.indexOf("hello");         // 0
+        s.indexOf("hello", 1);      // 12
+        s.indexOf("xyz");           // -1
+        s.lastIndexOf("hello");     // 12
+
+        // Check containment
+        s.contains("world");        // true
+        s.startsWith("hello");      // true
+        s.endsWith("hello");        // true
+
+        // Comparison - O(n)
+        "abc".equals("abc");                  // true (USE THIS, not ==)
+        "abc".equalsIgnoreCase("ABC");        // true
+        "abc".compareTo("abd");               // negative (lexicographic)
+        ```
+
+        #### StringBuilder for Efficient Concatenation
+
+        ```java copy
+        // BAD: O(n^2) -- creates new string each iteration
+        String bad = "";
+        for (int i = 0; i < 10000; i++) {
+            bad += "x";  // Creates new String object each time!
+        }
+
+        // GOOD: O(n) -- appends to internal buffer
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 10000; i++) {
+            sb.append("x");
+        }
+        String good = sb.toString();
+
+        // StringBuilder methods
+        sb.append("hello");         // Add to end
+        sb.insert(0, "oh ");        // Insert at position
+        sb.delete(0, 3);            // Delete range
+        sb.reverse();               // Reverse in-place
+        sb.charAt(0);               // Access character
+        sb.setCharAt(0, 'H');       // Modify character
+        String result = sb.toString();
+        ```
+
+        #### Conversion Functions
+
+        ```java copy
+        // String to number
+        int n = Integer.parseInt("42");
+        double d = Double.parseDouble("3.14");
+
+        // Number to string
+        String s = String.valueOf(42);
+        String s2 = Integer.toString(42);
+        String s3 = "" + 42;  // Works but less clean
+
+        // Character operations
+        Character.isLetter('a');        // true
+        Character.isDigit('5');         // true
+        Character.isLetterOrDigit('a'); // true
+        Character.toLowerCase('A');     // 'a'
+        Character.toUpperCase('a');     // 'A'
+
+        // String to char array and back
+        char[] arr = "hello".toCharArray();
+        String back = new String(arr);
+        ```
+
+        </Steps>
+    </Tab>
+</Tabs>
+
+## Common Patterns to Remember
+
+<Callout type="info">
+    **The 26-array trick:** When a problem involves only lowercase English letters,
+    use `int freq[26]` (or `[0]*26` in Python) indexed by `char - 'a'`. This is faster
+    and more space-efficient than a hash map for character counting.
+</Callout>
+
+```python
+# Character frequency with the 26-array trick
+def char_freq(s):
+    freq = [0] * 26
+    for ch in s.lower():
+        if ch.isalpha():
+            freq[ord(ch) - ord('a')] += 1
+    return freq
+```
+
+## Quick Check
+
+<QuizBox
+    question="What is the time complexity of checking if a string of length n contains a substring of length m using the naive approach?"
+    options={["O(n)", "O(m)", "O(n * m)", "O(n + m)"]}
+    correctIndex={2}
+    explanation="The naive approach checks each of the (n - m + 1) possible starting positions, and at each position compares up to m characters. Worst case: O(n * m). Advanced algorithms like KMP achieve O(n + m) by preprocessing the pattern."
+/>
+
+<QuizBox
+    question="In Java, what is wrong with comparing strings using == instead of .equals()?"
+    options={[
+        "== compares the actual characters and is slower",
+        "== compares object references, not string content",
+        "== only works for single characters",
+        "There is no difference"
+    ]}
+    correctIndex={1}
+    explanation='In Java, == checks if two variables point to the same object in memory, not whether the strings have the same characters. "hello" == "hello" might be true (string pool) but new String("hello") == new String("hello") is false. Always use .equals() for string content comparison.'
+/>

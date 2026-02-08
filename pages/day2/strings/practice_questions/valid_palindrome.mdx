@@ -1,0 +1,185 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { AlgorithmStepper } from "../../../../components/AlgorithmStepper";
+export const Tab = Tabs.Tab
+
+### Valid Palindrome <DifficultyBadge level="easy" />
+
+#### Description
+
+A phrase is a **palindrome** if, after converting all uppercase letters into lowercase letters and removing all non-alphanumeric characters, it reads the same forward and backward. Alphanumeric characters include letters and numbers.
+
+Given a string `s`, return `true` if it is a palindrome, or `false` otherwise.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: s = "A man, a plan, a canal: Panama"
+    Output: true
+    Explanation: "amanaplanacanalpanama" is a palindrome.
+
+> Case 2:
+    Input: s = "race a car"
+    Output: false
+    Explanation: "raceacar" is not a palindrome.
+
+> Case 3:
+    Input: s = " "
+    Output: true
+    Explanation: After removing non-alphanumeric characters, s is an empty string.
+```
+
+#### Constraints
+
+- `1 <= s.length <= 2 * 10^5`
+- `s` consists only of printable ASCII characters
+
+#### Approach 1: Clean and Compare
+
+Simple approach: clean the string first, then check.
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <string>
+    #include <algorithm>
+    using namespace std;
+
+    bool isPalindrome(string s) {
+        string cleaned;
+        for (char c : s) {
+            if (isalnum(c)) {
+                cleaned += tolower(c);
+            }
+        }
+        string rev = cleaned;
+        reverse(rev.begin(), rev.end());
+        return cleaned == rev;
+    }
+    ```
+
+    - Time: `O(n)`, Space: `O(n)` -- creates cleaned copy
+
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_palindrome(s):
+        cleaned = "".join(c.lower() for c in s if c.isalnum())
+        return cleaned == cleaned[::-1]
+
+    print(is_palindrome("A man, a plan, a canal: Panama"))  # True
+    ```
+
+    - Time: `O(n)`, Space: `O(n)`
+
+    </Tab>
+</Tabs>
+
+#### Approach 2: Two Pointers (Optimal)
+
+Skip non-alphanumeric characters in-place without creating a cleaned string.
+
+<AlgorithmStepper
+    title='Palindrome check: "A man, a plan, a canal: Panama"'
+    steps={[
+        { array: ["A"," ","m","a","n",","," ","a"," ","p","l","a","n"], pointerIndices: [0, 12], description: "left=0 ('A'), right=12 ('n'). Compare: 'a' == 'n'? No wait -- we need the full string. Left='a', skip to last alnum on right." },
+        { array: ["a","m","a","n","a","p","l","a","n","a","c","a","n","a","l","p","a","n","a","m","a"], pointerIndices: [0, 20], description: "On cleaned string: left='a', right='a'. Match! Move inward." },
+        { array: ["a","m","a","n","a","p","l","a","n","a","c","a","n","a","l","p","a","n","a","m","a"], pointerIndices: [1, 19], description: "left='m', right='m'. Match! Move inward." },
+        { array: ["a","m","a","n","a","p","l","a","n","a","c","a","n","a","l","p","a","n","a","m","a"], pointerIndices: [9, 11], description: "...continuing... left='a', right='a'. Match! Eventually pointers meet. It IS a palindrome!" },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <string>
+    using namespace std;
+
+    bool isPalindrome(string s) {
+        int left = 0, right = s.length() - 1;
+
+        while (left < right) {
+            // Skip non-alphanumeric from left
+            while (left < right && !isalnum(s[left])) left++;
+            // Skip non-alphanumeric from right
+            while (left < right && !isalnum(s[right])) right--;
+
+            if (tolower(s[left]) != tolower(s[right])) {
+                return false;
+            }
+            left++;
+            right--;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_palindrome(s):
+        left, right = 0, len(s) - 1
+
+        while left < right:
+            # Skip non-alphanumeric from left
+            while left < right and not s[left].isalnum():
+                left += 1
+            # Skip non-alphanumeric from right
+            while left < right and not s[right].isalnum():
+                right -= 1
+
+            if s[left].lower() != s[right].lower():
+                return False
+            left += 1
+            right -= 1
+
+        return True
+
+    print(is_palindrome("A man, a plan, a canal: Panama"))  # True
+    print(is_palindrome("race a car"))                       # False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        public boolean isPalindrome(String s) {
+            int left = 0, right = s.length() - 1;
+
+            while (left < right) {
+                while (left < right && !Character.isLetterOrDigit(s.charAt(left)))
+                    left++;
+                while (left < right && !Character.isLetterOrDigit(s.charAt(right)))
+                    right--;
+
+                if (Character.toLowerCase(s.charAt(left)) !=
+                    Character.toLowerCase(s.charAt(right))) {
+                    return false;
+                }
+                left++;
+                right--;
+            }
+            return true;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- Use two pointers starting from both ends of the string
+- Skip any characters that are not letters or digits
+- Compare the lowercase versions of the characters at the two pointers
+- If any pair mismatches, it is not a palindrome
+- If all pairs match (or pointers cross), it is a palindrome
+
+<Callout type="info">
+    **The two-pointer advantage:** Approach 2 avoids creating a cleaned copy of the
+    string, saving O(n) space. In interviews, this optimization shows awareness of
+    space complexity trade-offs.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n)` -- each character is examined at most once
+- Space Complexity: `O(1)` -- no extra string created
