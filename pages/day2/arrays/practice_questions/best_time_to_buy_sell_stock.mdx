@@ -1,0 +1,120 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { AlgorithmStepper } from "../../../../components/AlgorithmStepper";
+export const Tab = Tabs.Tab
+
+### Best Time to Buy and Sell Stock <DifficultyBadge level="easy" />
+
+#### Description
+
+You are given an array `prices` where `prices[i]` is the price of a given stock on the `i`-th day.
+
+You want to maximize your profit by choosing a **single day** to buy and a **single day** to sell in the future. Return the maximum profit you can achieve. If you can't achieve any profit, return `0`.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: prices = [7, 1, 5, 3, 6, 4]
+    Output: 5
+    Explanation: Buy on day 1 (price = 1) and sell on day 4 (price = 6).
+                 Profit = 6 - 1 = 5.
+
+> Case 2:
+    Input: prices = [7, 6, 4, 3, 1]
+    Output: 0
+    Explanation: Prices only decrease. No profitable transaction possible.
+```
+
+#### Constraints
+
+-   `1 <= prices.length <= 10^5`
+-   `0 <= prices[i] <= 10^4`
+
+#### Key Insight
+
+We want to find the maximum difference `prices[j] - prices[i]` where `j > i`. We track the minimum price seen so far and check if selling at the current price gives a better profit.
+
+<AlgorithmStepper
+    title="Buy & Sell: prices = [7, 1, 5, 3, 6, 4]"
+    steps={[
+        { array: [7, 1, 5, 3, 6, 4], activeIndices: [0], description: "Day 0: price=7. minPrice=7, profit=0." },
+        { array: [7, 1, 5, 3, 6, 4], activeIndices: [1], description: "Day 1: price=1. New minimum! minPrice=1, profit=0." },
+        { array: [7, 1, 5, 3, 6, 4], activeIndices: [2], pointerIndices: [1], description: "Day 2: price=5. Sell at 5, bought at 1. Profit=4. maxProfit=4." },
+        { array: [7, 1, 5, 3, 6, 4], activeIndices: [3], pointerIndices: [1], description: "Day 3: price=3. Profit=2. maxProfit stays 4." },
+        { array: [7, 1, 5, 3, 6, 4], activeIndices: [4], pointerIndices: [1], description: "Day 4: price=6. Profit=5. New maxProfit=5!" },
+        { array: [7, 1, 5, 3, 6, 4], activeIndices: [5], pointerIndices: [1], description: "Day 5: price=4. Profit=3. maxProfit stays 5. Done!" },
+    ]}
+/>
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    int maxProfit(vector<int>& prices) {
+        int minPrice = prices[0];
+        int maxProfit = 0;
+
+        for (int i = 1; i < prices.size(); i++) {
+            // Could we profit by selling today?
+            maxProfit = max(maxProfit, prices[i] - minPrice);
+            // Update the cheapest buying price seen so far
+            minPrice = min(minPrice, prices[i]);
+        }
+
+        return maxProfit;
+    }
+
+    int main() {
+        vector<int> prices = {7, 1, 5, 3, 6, 4};
+        cout << maxProfit(prices) << endl;  // 5
+        return 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_profit(prices):
+        """Find max profit from one buy-sell transaction."""
+        min_price = prices[0]
+        max_profit = 0
+
+        for price in prices[1:]:
+            # Check if selling today gives better profit
+            max_profit = max(max_profit, price - min_price)
+            # Update cheapest buying price
+            min_price = min(min_price, price)
+
+        return max_profit
+
+    # Examples
+    print(max_profit([7, 1, 5, 3, 6, 4]))  # 5
+    print(max_profit([7, 6, 4, 3, 1]))      # 0
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- We iterate through prices left to right
+- At each day, we know the cheapest price we could have bought at (everything to the left)
+- The profit of selling today is `prices[i] - minPrice`
+- We keep track of the best profit seen across all days
+- If prices only decrease, `maxProfit` stays at 0 (we simply don't trade)
+
+<Callout type="info">
+    **Connection to Kadane's:** This problem is actually a variant of Kadane's
+    algorithm. If you compute the daily price changes `[−6, 4, −2, 3, −2]`
+    and find the max subarray sum, you get 5 -- the same answer. The "best
+    buying day" corresponds to the start of the max subarray.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n)` -- single pass through the array
+- Space Complexity: `O(1)` -- two variables

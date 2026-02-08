@@ -1,4 +1,6 @@
 import { Callout } from "nextra/components";
+import { ArrayVisualizer, InteractiveArray } from "../../../components/ArrayVisualizer";
+import { QuizBox } from "../../../components/QuizBox";
 
 # Introduction to Arrays
 
@@ -32,15 +34,83 @@ Creating 20,000 individual variables is impossible to manage! You can't loop thr
 
 This is where **Arrays** come in. An array allows you to store all these values in a single variable structure, accessible by an index.
 
-<Callout emoji="💡">
+<Callout type="info">
     Think of an array as a row of lockers in a school hallway. Each locker has a
     unique number (index) and can hold one item (student's marks).
 </Callout>
 
 Instead of `mark1`, `mark2`, etc., we have `marks[0]`, `marks[1]`, `marks[2]`, and so on.
 
+<ArrayVisualizer
+    initialArray={[90, 85, 78, 92, 88]}
+    labels={{ 0: "marks" }}
+/>
+
 ### Key Characteristics
 
 1.  **Fixed Size:** In many languages (like C and Java), the size of the array must be known at compile time.
 2.  **Same Data Type:** You can't store an integer in one slot and a string in another (in strictly typed languages).
 3.  **Indexed Access:** You can access any element instantly if you know its index.
+4.  **Contiguous Memory:** Elements live next to each other in memory -- this is what makes arrays fast.
+
+## Types of Arrays
+
+### By Dimensions
+
+| Type | Description | Example |
+| :--- | :--- | :--- |
+| **1D Array** | A single row of elements | `[1, 2, 3, 4, 5]` |
+| **2D Array** | A table/matrix of elements | `[[1,2], [3,4], [5,6]]` |
+| **3D+ Array** | Multi-dimensional grids | Used in image processing, scientific computing |
+
+### By Size Behavior
+
+| Type | Languages | Resizable? |
+| :--- | :--- | :--- |
+| **Static Array** | C, C++ (`int arr[5]`), Java | No -- size fixed at creation |
+| **Dynamic Array** | Python (`list`), JavaScript, C++ (`vector`) | Yes -- grows/shrinks as needed |
+
+<Callout type="warning">
+    Dynamic arrays aren't magic. When a dynamic array runs out of space, it
+    allocates a new, larger block of memory (usually 2x), copies everything
+    over, and frees the old block. This resize operation costs O(n), but it
+    happens rarely enough that insertions are still O(1) **amortized**.
+</Callout>
+
+## Where Are Arrays Used?
+
+Arrays are everywhere. Here are some places you've already used them without realizing:
+
+- **Storing pixel data** -- every image is a 2D array of pixel values
+- **Strings** -- in C, a string is just an array of characters ending with `\0`
+- **Lookup tables** -- mapping an index to a value in O(1)
+- **Stacks and Queues** -- often implemented using arrays under the hood
+- **Sorting and Searching** -- almost every algorithm operates on arrays
+- **Database records** -- rows of data stored in contiguous blocks
+
+## Try It Yourself
+
+Play with this interactive array. Insert, delete, and search for elements to build intuition for how arrays work:
+
+<InteractiveArray />
+
+## Quick Check
+
+<QuizBox
+    question="What is the index of the first element in an array?"
+    options={["1", "0", "-1", "Depends on the language"]}
+    correctIndex={1}
+    explanation="In most programming languages (C, C++, Java, Python, JavaScript), array indexing starts at 0. Some languages like Lua and MATLAB start at 1, but 0-based indexing is the standard."
+/>
+
+<QuizBox
+    question="What does 'contiguous memory' mean for arrays?"
+    options={[
+        "Elements can be stored anywhere in memory",
+        "Elements are stored next to each other in memory",
+        "Elements are stored in a linked list format",
+        "Each element has a pointer to the next"
+    ]}
+    correctIndex={1}
+    explanation="Contiguous memory means elements are stored side-by-side with no gaps. This is what enables O(1) random access -- the computer can calculate any element's address using: base_address + (index * element_size)."
+/>

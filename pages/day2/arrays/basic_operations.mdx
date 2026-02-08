@@ -1,16 +1,22 @@
-import { Steps,Tabs } from "nextra/components";
+import { Steps, Tabs, Callout } from "nextra/components";
+import { ComplexityTable } from "../../../components/ComplexityTable";
+import { QuizBox } from "../../../components/QuizBox";
 export const Tab = Tabs.Tab
 
-### Basic Operations
+# Basic Operations
 
-> We can perform the following basic operation on an Array:
+Every data structure is defined by the operations you can perform on it. Here are the core operations for arrays:
 
-1. Insert an Element
-2. Delete an Element
-3. Find an Element
-4. FInd Minimum
-5. Find Maximum
-6. Calculate Sum
+<ComplexityTable operations={[
+    { name: "Access by index", time: "O(1)", space: "O(1)", notes: "Direct calculation using address formula" },
+    { name: "Search (unsorted)", time: "O(n)", space: "O(1)", notes: "Must check every element" },
+    { name: "Search (sorted)", time: "O(log n)", space: "O(1)", notes: "Binary search" },
+    { name: "Insert at end", time: "O(1)", space: "O(1)", notes: "O(n) if array needs resizing" },
+    { name: "Insert at position", time: "O(n)", space: "O(1)", notes: "Must shift elements right" },
+    { name: "Delete at end", time: "O(1)", space: "O(1)", notes: "Just decrement size" },
+    { name: "Delete at position", time: "O(n)", space: "O(1)", notes: "Must shift elements left" },
+    { name: "Find min/max", time: "O(n)", space: "O(1)", notes: "Must scan entire array" },
+]} />
 
 <Tabs items={['C++', 'Python']} defaultIndex="0">
     <Tab>
@@ -20,7 +26,7 @@ export const Tab = Tabs.Tab
 
         #### Insert an Element
 
-        - ALGORTIHM
+        - ALGORITHM
 
         ```python
         Step 1: [INITIALIZATION] SET lower_bound = 0
@@ -62,7 +68,7 @@ export const Tab = Tabs.Tab
 
         #### Delete an Element
 
-        - ALGORTIHM
+        - ALGORITHM
 
         ```python
         Step 1: [INITIALIZATION] SET lower_bound = 0
@@ -104,7 +110,7 @@ export const Tab = Tabs.Tab
 
         #### Find an Element
 
-        - ALGORTIHM
+        - ALGORITHM
 
         ```python
         Step 1: [INITIALIZATION] SET index = -1
@@ -137,7 +143,7 @@ export const Tab = Tabs.Tab
 
         #### Find Minimum Element
 
-        - ALGORTIHM
+        - ALGORITHM
 
         ```python
         Step 1: [INITIALIZATION] SET min = A[0]
@@ -171,7 +177,7 @@ export const Tab = Tabs.Tab
 
         #### Find Maximum Element
 
-        - ALGORTIHM
+        - ALGORITHM
 
         ```python
         Step 1: [INITIALIZATION] SET max = A[0]
@@ -206,7 +212,7 @@ export const Tab = Tabs.Tab
 
         #### Find Sum of all Elements
 
-        - ALGORTIHM
+        - ALGORITHM
 
         ```python
         Step 1: [INITIALIZATION] SET sum = 0
@@ -235,7 +241,7 @@ export const Tab = Tabs.Tab
 
         #### Print the Array
 
-        - ALGORTIHM
+        - ALGORITHM
 
         ```python
         Step 1: [INITIALIZATION] SET I = lower_bound
@@ -487,8 +493,195 @@ export const Tab = Tabs.Tab
 
     <Tab>
         <Steps>
-        #### Comming soon...
+
+        ### Python List Operations
+
+        Python lists are dynamic arrays, so operations are simpler and more Pythonic.
+
+        #### Insert an Element
+
+        ```python copy
+        def insert_element(arr, element, position):
+            """Insert element at given position."""
+            if position < 0 or position > len(arr):
+                print("Invalid position.")
+                return
+            arr.insert(position, element)
+
+        # Example
+        arr = [10, 20, 30, 40, 50]
+        insert_element(arr, 25, 2)
+        print(arr)  # [10, 20, 25, 30, 40, 50]
+
+        # Even simpler: just use .insert() directly
+        arr.insert(0, 5)   # Insert at beginning
+        arr.append(60)     # Insert at end -- O(1) amortized
+        ```
+
+        #### Delete an Element
+
+        ```python copy
+        def delete_element(arr, position):
+            """Delete element at given position."""
+            if position < 0 or position >= len(arr):
+                print("Invalid position.")
+                return
+            arr.pop(position)
+
+        # Example
+        arr = [10, 20, 30, 40, 50]
+        delete_element(arr, 2)
+        print(arr)  # [10, 20, 40, 50]
+
+        # Other ways to delete
+        arr.remove(40)      # Remove first occurrence of value 40
+        del arr[0]          # Delete by index
+        last = arr.pop()    # Remove and return last element
+        ```
+
+        #### Find an Element
+
+        ```python copy
+        def find_element(arr, element):
+            """Return index of element, or -1 if not found."""
+            for i in range(len(arr)):
+                if arr[i] == element:
+                    return i
+            return -1
+
+        # Pythonic way: use 'in' keyword and .index()
+        arr = [10, 20, 30, 40, 50]
+        if 30 in arr:
+            idx = arr.index(30)  # 2
+            print(f"Found at index {idx}")
+        ```
+
+        #### Find Minimum and Maximum
+
+        ```python copy
+        def find_min(arr):
+            """Find minimum element."""
+            minimum = arr[0]
+            for num in arr[1:]:
+                if num < minimum:
+                    minimum = num
+            return minimum
+
+        def find_max(arr):
+            """Find maximum element."""
+            maximum = arr[0]
+            for num in arr[1:]:
+                if num > maximum:
+                    maximum = num
+            return maximum
+
+        # Pythonic way: use built-in functions
+        arr = [10, 20, 30, 40, 50]
+        print(min(arr))  # 10
+        print(max(arr))  # 50
+        ```
+
+        #### Find Sum of All Elements
+
+        ```python copy
+        def find_sum(arr):
+            """Calculate sum of all elements."""
+            total = 0
+            for num in arr:
+                total += num
+            return total
+
+        # Pythonic way: use built-in sum()
+        arr = [10, 20, 30, 40, 50]
+        print(sum(arr))  # 150
+        ```
+
+        #### Print the Array
+
+        ```python copy
+        def print_array(arr):
+            """Print all elements."""
+            for element in arr:
+                print(element, end=" ")
+            print()
+
+        # Pythonic ways
+        arr = [10, 20, 30, 40, 50]
+        print(arr)                    # [10, 20, 30, 40, 50]
+        print(*arr)                   # 10 20 30 40 50
+        print(" ".join(map(str, arr)))  # 10 20 30 40 50
+        ```
+
+        #### Complete Example
+
+        ```python copy filename="arrays.py"
+        def main():
+            arr = []
+
+            size = int(input("Enter the initial size: "))
+            print(f"Enter {size} elements: ", end="")
+            arr = list(map(int, input().split()))
+
+            print(f"Array elements: {arr}")
+
+            element = int(input("Enter element to find: "))
+            if element in arr:
+                print(f"Found at index {arr.index(element)}")
+            else:
+                print("Not found")
+
+            element = int(input("Enter element to insert: "))
+            position = int(input("Enter position: "))
+            arr.insert(position, element)
+            print(f"After insertion: {arr}")
+
+            position = int(input("Enter position to delete: "))
+            arr.pop(position)
+            print(f"After deletion: {arr}")
+
+            print(f"Min: {min(arr)}")
+            print(f"Max: {max(arr)}")
+            print(f"Sum: {sum(arr)}")
+
+        if __name__ == "__main__":
+            main()
+        ```
+
+        ### Useful Python List Methods
+
+        Here's a quick reference for the most commonly used list methods:
+
+        ```python
+        arr = [3, 1, 4, 1, 5, 9, 2, 6]
+
+        arr.sort()              # Sort in-place: [1, 1, 2, 3, 4, 5, 6, 9]
+        arr.sort(reverse=True)  # Descending: [9, 6, 5, 4, 3, 2, 1, 1]
+        sorted_arr = sorted(arr)  # Returns new sorted list
+
+        arr.reverse()           # Reverse in-place
+        arr[::-1]               # Returns reversed copy (slicing)
+
+        arr.count(1)            # Count occurrences of 1
+        len(arr)                # Length of array
+
+        # Slicing -- powerful and frequently tested
+        arr[1:4]    # Elements from index 1 to 3
+        arr[:3]     # First 3 elements
+        arr[-2:]    # Last 2 elements
+        arr[::2]    # Every other element
+        ```
+
         </Steps>
+
     </Tab>
 
 </Tabs>
+
+## Quick Check
+
+<QuizBox
+    question="What is the time complexity of inserting an element at the beginning of an array of size n?"
+    options={["O(1)", "O(log n)", "O(n)", "O(n^2)"]}
+    correctIndex={2}
+    explanation="Inserting at position 0 requires shifting all n existing elements one position to the right to make room. Each element needs to move, so it's O(n). This is why inserting at the end (O(1) amortized) is preferred when order doesn't matter."
+/>

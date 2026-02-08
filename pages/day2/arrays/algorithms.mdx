@@ -1,8 +1,20 @@
 import { Steps, Tabs, Callout } from "nextra/components";
+import { AlgorithmStepper } from "../../../components/AlgorithmStepper";
+import { ComplexityTable } from "../../../components/ComplexityTable";
+import { QuizBox } from "../../../components/QuizBox";
 
-# Basic Array Algorithms
+# Array Algorithms & Techniques
 
-Understanding basic algorithms like searching is crucial for effectively working with arrays.
+Understanding core algorithms and patterns is essential for solving array problems efficiently. This page covers searching algorithms and two widely-used techniques that come up constantly in interviews.
+
+<ComplexityTable operations={[
+    { name: "Linear Search", time: "O(n)", space: "O(1)", notes: "Works on any array" },
+    { name: "Binary Search", time: "O(log n)", space: "O(1)", notes: "Requires sorted array" },
+    { name: "Two Pointer", time: "O(n)", space: "O(1)", notes: "Sorted array or specific patterns" },
+    { name: "Sliding Window", time: "O(n)", space: "O(1)", notes: "Subarray/substring problems" },
+]} />
+
+---
 
 <Steps>
 
@@ -12,7 +24,16 @@ The simplest searching algorithm. We traverse the array sequentially and check e
 
 - **Analogy:** Looking for a specific book on an unsorted shelf. You have to check every single book until you find it or reach the end.
 
-<Tabs items={['C++', 'Java']}>
+<AlgorithmStepper
+    title="Linear Search: Finding value 30"
+    steps={[
+        { array: [10, 25, 30, 45, 50], activeIndices: [0], description: "Start at index 0. Is arr[0] = 10 equal to 30? No. Move to next." },
+        { array: [10, 25, 30, 45, 50], activeIndices: [1], description: "Check index 1. Is arr[1] = 25 equal to 30? No. Move to next." },
+        { array: [10, 25, 30, 45, 50], activeIndices: [2], description: "Check index 2. Is arr[2] = 30 equal to 30? Yes! Return index 2." },
+    ]}
+/>
+
+<Tabs items={['C++', 'Java', 'Python']}>
   <Tabs.Tab>
     ```cpp
     int linearSearch(int arr[], int n, int x)
@@ -36,10 +57,24 @@ The simplest searching algorithm. We traverse the array sequentially and check e
     }
     ```
   </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    def linear_search(arr, x):
+        for i in range(len(arr)):
+            if arr[i] == x:
+                return i
+        return -1
+
+    # Pythonic alternative
+    def linear_search_pythonic(arr, x):
+        return arr.index(x) if x in arr else -1
+    ```
+  </Tabs.Tab>
 </Tabs>
 
-- **Time Complexity:** O(N) (Scan the entire array in worst case)
+- **Time Complexity:** O(N) -- scans the entire array in worst case
 - **Space Complexity:** O(1)
+- **When to use:** Unsorted data, small arrays, or when you need to find all occurrences
 
 ### Binary Search
 
@@ -52,7 +87,16 @@ A much faster searching algorithm for **sorted** arrays. It works by repeatedly 
     array is unsorted, you must sort it first or use Linear Search.
 </Callout>
 
-<Tabs items={['C++', 'Java']}>
+<AlgorithmStepper
+    title="Binary Search: Finding value 30 in sorted array"
+    steps={[
+        { array: [5, 10, 15, 20, 25, 30, 35, 40, 45], activeIndices: [4], pointerIndices: [0, 8], description: "left=0, right=8, mid=4. arr[4]=25 < 30, so search right half." },
+        { array: [5, 10, 15, 20, 25, 30, 35, 40, 45], activeIndices: [6], pointerIndices: [5, 8], description: "left=5, right=8, mid=6. arr[6]=35 > 30, so search left half." },
+        { array: [5, 10, 15, 20, 25, 30, 35, 40, 45], activeIndices: [5], pointerIndices: [5, 5], description: "left=5, right=5, mid=5. arr[5]=30 == 30. Found at index 5!" },
+    ]}
+/>
+
+<Tabs items={['C++', 'Java', 'Python']}>
   <Tabs.Tab>
     ```cpp
     int binarySearch(int arr[], int l, int r, int x)
@@ -100,14 +144,280 @@ A much faster searching algorithm for **sorted** arrays. It works by repeatedly 
     ```
 
   </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    def binary_search(arr, x):
+        left, right = 0, len(arr) - 1
+
+        while left <= right:
+            mid = left + (right - left) // 2
+
+            if arr[mid] == x:
+                return mid
+            elif arr[mid] < x:
+                left = mid + 1
+            else:
+                right = mid - 1
+
+        return -1
+    ```
+  </Tabs.Tab>
 </Tabs>
 
-- **Time Complexity:** O(log N) - much faster than O(N) for large arrays!
+- **Time Complexity:** O(log N) -- much faster than O(N) for large arrays!
+- **Space Complexity:** O(1)
+- **When to use:** Sorted arrays, or problems where you can define a monotonic search condition
+
+<Callout type="warning">
+    **Common bug:** Using `(l + r) / 2` for the midpoint can cause integer
+    overflow when `l` and `r` are large. Always use `l + (r - l) / 2` instead.
+</Callout>
+
+### Two Pointer Technique
+
+The Two Pointer technique uses two indices that move through the array, usually from opposite ends or at different speeds. It converts many O(n^2) problems into O(n).
+
+- **Analogy:** Two people searching a library shelf from opposite ends, moving toward each other until they meet.
+
+**When to use Two Pointers:**
+- Finding pairs that satisfy a condition (e.g., two numbers that sum to a target)
+- Removing duplicates from a sorted array
+- Reversing an array in-place
+- Partitioning arrays (like in quicksort)
+
+#### Example: Find a pair with given sum in a sorted array
+
+<AlgorithmStepper
+    title="Two Pointers: Find pair summing to 9"
+    steps={[
+        { array: [1, 3, 4, 5, 7, 8], pointerIndices: [0, 5], description: "left=0, right=5. Sum = arr[0]+arr[5] = 1+8 = 9. Found the pair (1, 8)!" },
+    ]}
+/>
+
+In this example the pair was found in the first step, but typically the pointers walk inward:
+- If `sum < target`: move left pointer right (need a larger number)
+- If `sum > target`: move right pointer left (need a smaller number)
+- If `sum == target`: found it!
+
+<Tabs items={['C++', 'Python']}>
+  <Tabs.Tab>
+    ```cpp copy
+    // Find two numbers in a sorted array that add up to target
+    pair<int, int> twoSumSorted(int arr[], int n, int target) {
+        int left = 0, right = n - 1;
+
+        while (left < right) {
+            int sum = arr[left] + arr[right];
+
+            if (sum == target)
+                return {left, right};
+            else if (sum < target)
+                left++;    // Need larger sum
+            else
+                right--;   // Need smaller sum
+        }
+
+        return {-1, -1};  // No pair found
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python copy
+    def two_sum_sorted(arr, target):
+        """Find two numbers in sorted array that add up to target."""
+        left, right = 0, len(arr) - 1
+
+        while left < right:
+            current_sum = arr[left] + arr[right]
+
+            if current_sum == target:
+                return (left, right)
+            elif current_sum < target:
+                left += 1    # Need larger sum
+            else:
+                right -= 1   # Need smaller sum
+
+        return (-1, -1)  # No pair found
+
+    # Example
+    arr = [1, 3, 4, 5, 7, 8]
+    print(two_sum_sorted(arr, 9))  # (0, 5) -> indices of 1 and 8
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+- **Time Complexity:** O(N) -- each pointer moves at most N times
+- **Space Complexity:** O(1)
+
+#### Example: Remove duplicates from sorted array (in-place)
+
+<Tabs items={['C++', 'Python']}>
+  <Tabs.Tab>
+    ```cpp copy
+    // Returns new length with duplicates removed
+    int removeDuplicates(int arr[], int n) {
+        if (n == 0) return 0;
+
+        int writeIdx = 1;  // Slow pointer (where to write next unique)
+
+        for (int readIdx = 1; readIdx < n; readIdx++) {  // Fast pointer
+            if (arr[readIdx] != arr[readIdx - 1]) {
+                arr[writeIdx] = arr[readIdx];
+                writeIdx++;
+            }
+        }
+
+        return writeIdx;  // New length
+    }
+    // Input:  [1, 1, 2, 2, 3, 4, 4, 5]
+    // Output: [1, 2, 3, 4, 5, ...]  length = 5
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python copy
+    def remove_duplicates(arr):
+        """Remove duplicates from sorted array in-place. Returns new length."""
+        if not arr:
+            return 0
+
+        write_idx = 1  # Slow pointer
+
+        for read_idx in range(1, len(arr)):  # Fast pointer
+            if arr[read_idx] != arr[read_idx - 1]:
+                arr[write_idx] = arr[read_idx]
+                write_idx += 1
+
+        return write_idx
+
+    arr = [1, 1, 2, 2, 3, 4, 4, 5]
+    new_len = remove_duplicates(arr)
+    print(arr[:new_len])  # [1, 2, 3, 4, 5]
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+
+### Sliding Window Technique
+
+The Sliding Window maintains a "window" (subarray) that slides across the array. Instead of recalculating everything for each position, you add the new element and remove the old one.
+
+- **Analogy:** Looking through a train window at scenery passing by. The window frame stays the same size, but the view changes as you move.
+
+**When to use Sliding Window:**
+- Maximum/minimum sum subarray of size k
+- Longest substring with certain property
+- Counting subarrays satisfying a condition
+
+#### Example: Maximum sum of subarray of size k
+
+Without sliding window, you'd compute the sum from scratch for each position: O(n*k).
+With sliding window, you update the sum incrementally: O(n).
+
+<AlgorithmStepper
+    title="Sliding Window: Max sum of subarray of size 3"
+    steps={[
+        { array: [2, 1, 5, 1, 3, 2], activeIndices: [0, 1, 2], description: "Window [2, 1, 5] = sum 8. This is our initial max." },
+        { array: [2, 1, 5, 1, 3, 2], activeIndices: [1, 2, 3], description: "Slide: remove 2, add 1. Window [1, 5, 1] = sum 7. Max stays 8." },
+        { array: [2, 1, 5, 1, 3, 2], activeIndices: [2, 3, 4], description: "Slide: remove 1, add 3. Window [5, 1, 3] = sum 9. New max = 9!" },
+        { array: [2, 1, 5, 1, 3, 2], activeIndices: [3, 4, 5], description: "Slide: remove 5, add 2. Window [1, 3, 2] = sum 6. Max stays 9. Done!" },
+    ]}
+/>
+
+<Tabs items={['C++', 'Python']}>
+  <Tabs.Tab>
+    ```cpp copy
+    int maxSumSubarray(int arr[], int n, int k) {
+        // Compute sum of first window
+        int windowSum = 0;
+        for (int i = 0; i < k; i++)
+            windowSum += arr[i];
+
+        int maxSum = windowSum;
+
+        // Slide the window: add next element, remove first element
+        for (int i = k; i < n; i++) {
+            windowSum += arr[i] - arr[i - k];
+            maxSum = max(maxSum, windowSum);
+        }
+
+        return maxSum;
+    }
+
+    // arr = {2, 1, 5, 1, 3, 2}, k = 3
+    // Windows: [2,1,5]=8, [1,5,1]=7, [5,1,3]=9, [1,3,2]=6
+    // Answer: 9
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python copy
+    def max_sum_subarray(arr, k):
+        """Find maximum sum of any subarray of size k."""
+        n = len(arr)
+        if n < k:
+            return -1
+
+        # Sum of first window
+        window_sum = sum(arr[:k])
+        max_sum = window_sum
+
+        # Slide the window
+        for i in range(k, n):
+            window_sum += arr[i] - arr[i - k]
+            max_sum = max(max_sum, window_sum)
+
+        return max_sum
+
+    arr = [2, 1, 5, 1, 3, 2]
+    print(max_sum_subarray(arr, 3))  # 9
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+- **Time Complexity:** O(N) -- single pass through the array
 - **Space Complexity:** O(1)
 
 </Steps>
 
-<Callout emoji="🚀">
-    **Pro Tip:** Always sort your data if you plan to search frequently! The
-    cost of sorting once is outweighed by the speed of many binary searches.
+## Choosing the Right Technique
+
+| Problem Pattern | Technique | Example |
+| :--- | :--- | :--- |
+| Find element in unsorted array | Linear Search | "Is 42 in this array?" |
+| Find element in sorted array | Binary Search | "Find position of 42 in sorted array" |
+| Pair with target sum (sorted) | Two Pointers | "Two numbers that add to 10" |
+| Subarray of fixed size | Sliding Window | "Max sum of 3 consecutive elements" |
+| In-place rearrangement | Two Pointers | "Remove duplicates", "Partition" |
+| Search with a condition | Binary Search | "First element >= 50" |
+
+<Callout type="info">
+    **Pro Tip:** Many problems can be solved with multiple techniques. The key is
+    recognizing which one gives you the best time complexity. When in doubt: sort
+    first if you need Binary Search or Two Pointers; use Sliding Window for
+    subarray problems with a size constraint.
 </Callout>
+
+## Quick Check
+
+<QuizBox
+    question="You need to find if there's a pair of numbers in an unsorted array that sums to a target. What's the most efficient approach?"
+    options={[
+        "Sort + Two Pointers: O(n log n)",
+        "Brute force nested loops: O(n^2)",
+        "Hash map: O(n) time, O(n) space",
+        "Binary search each element: O(n log n)"
+    ]}
+    correctIndex={2}
+    explanation="Using a hash map (or set), you can check for each element x whether (target - x) exists in O(1) per lookup. Total: O(n) time with O(n) extra space. Sort + Two Pointers is also good at O(n log n) but modifies the array. The hash map approach is covered in the Two Sum practice problem."
+/>
+
+<QuizBox
+    question="What is the key insight that makes the sliding window technique O(n) instead of O(n*k)?"
+    options={[
+        "It uses binary search internally",
+        "It reuses computation: only adds/removes one element per slide",
+        "It skips elements that can't be part of the answer",
+        "It uses extra space to cache results"
+    ]}
+    correctIndex={1}
+    explanation="Instead of recalculating the sum (or other aggregate) from scratch for each window position, the sliding window technique updates incrementally: subtract the element leaving the window and add the element entering. This makes each step O(1) instead of O(k)."
+/>

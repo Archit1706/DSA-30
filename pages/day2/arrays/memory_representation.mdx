@@ -1,10 +1,12 @@
 import { Callout } from "nextra/components";
+import { MemoryDiagram } from "../../../components/MemoryDiagram";
+import { QuizBox } from "../../../components/QuizBox";
 
 # Memory Representation
 
 One of the defining characteristics of an array is how it is stored in computer memory.
 
-<Callout emoji="💡">
+<Callout type="info">
     **Key Concept:** Arrays are stored in **contiguous** memory locations. This
     means the elements are placed right next to each other in memory, like
     houses on a street.
@@ -14,38 +16,119 @@ One of the defining characteristics of an array is how it is stored in computer 
 
 Imagine memory as a long strip of slots. If each integer takes up 4 bytes, an array of 5 integers will occupy 20 consecutive bytes.
 
-Let's visualize an array `int Arr[5] = {10, 20, 30, 40, 50}` starting at memory address `1000`.
+Hover over each cell below to see the address calculation in action:
 
-| Index | Element | Memory Address (Example) |
-| :---: | :-----: | :----------------------: |
-|   0   |   10    |           1000           |
-|   1   |   20    |           1004           |
-|   2   |   30    |           1008           |
-|   3   |   40    |           1012           |
-|   4   |   50    |           1016           |
+<MemoryDiagram
+    baseAddress={1000}
+    elementSize={4}
+    values={[10, 20, 30, 40, 50]}
+    variableName="Arr"
+/>
 
-Because of this contiguous storage, the computer can calculate the address of any element instantly using a simple formula:
+## The Address Formula
 
-```math
+Because of this contiguous storage, the computer can calculate the address of any element instantly:
+
+```
 Address of Arr[i] = Base Address + (i * Size of Element)
 ```
 
 For example, to find `Arr[3]`:
 
-```math
+```
 1000 + (3 * 4) = 1000 + 12 = 1012
 ```
 
-This property allows **O(1)** random access, meaning accessing any element takes the same amount of time regardless of the array size.
+This property allows **O(1)** random access, meaning accessing any element takes the same amount of time regardless of the array size. It doesn't matter if the array has 5 elements or 5 million -- accessing `arr[0]` is just as fast as accessing `arr[4999999]`.
 
 ## Why Does This Matter?
 
-- **Speed:** The CPU is optimized to read sequential memory, making arrays very fast to iterate over.
-- **Cache Friendly:** Due to spatial locality, accessing one element often loads neighboring elements into the CPU cache.
-- **Fixed Size:** The downside is that resizing is expensive because we need to find a new, larger block of contiguous memory and copy everything over.
+### The Speed Advantage
+
+- **O(1) Access:** The CPU calculates the address with a single multiplication and addition. No searching required.
+- **Cache Friendly:** Due to spatial locality, accessing one element often loads neighboring elements into the CPU cache. This means iterating through an array is extremely fast -- the next element is likely already in the fast cache.
+- **Predictable Performance:** No matter which element you access, the time is constant.
+
+### The Trade-offs
+
+- **Fixed Size:** We need to know the size upfront (for static arrays). The downside is that resizing is expensive because we need to find a new, larger block of contiguous memory and copy everything over.
+- **Costly Insertions/Deletions:** Inserting in the middle means shifting all subsequent elements to make room. Same for deletion.
+- **Memory Waste:** If you allocate an array of size 1000 but only use 10 elements, you waste memory.
 
 <Callout type="error">
     **Think about it:** What happens if the memory slots after `1016` are
     already occupied by another variable? We can't just extend the array! This
     is why arrays in languages like C++ and Java have a fixed size.
 </Callout>
+
+## Stack vs Heap Allocation
+
+Where your array lives in memory matters:
+
+| Property | Stack | Heap |
+| :--- | :--- | :--- |
+| **Declaration** | `int arr[5];` | `int* arr = new int[5];` |
+| **Speed** | Faster (automatic allocation) | Slower (manual/runtime allocation) |
+| **Size** | Must be known at compile time | Can be determined at runtime |
+| **Lifetime** | Destroyed when scope ends | Lives until explicitly freed |
+| **Risk** | Stack overflow for large arrays | Memory leaks if not freed |
+
+```cpp
+// Stack allocation -- fast, automatic cleanup
+void stackExample() {
+    int arr[100];  // Lives on the stack
+}  // Automatically freed here
+
+// Heap allocation -- flexible, manual cleanup
+void heapExample() {
+    int* arr = new int[100];  // Lives on the heap
+    // ... use arr ...
+    delete[] arr;  // Must free manually!
+}
+```
+
+<Callout type="warning">
+    In Python and JavaScript, you don't deal with stack vs heap directly -- the
+    runtime handles it. But understanding this helps you reason about
+    performance in systems languages like C++ and Rust.
+</Callout>
+
+## Different Data Types, Different Sizes
+
+The element size in the address formula varies by data type:
+
+| Data Type | Size (typical) | Example Array of 5 | Total Memory |
+| :--- | :--- | :--- | :--- |
+| `char` | 1 byte | `{'a','b','c','d','e'}` | 5 bytes |
+| `int` | 4 bytes | `{10, 20, 30, 40, 50}` | 20 bytes |
+| `double` | 8 bytes | `{1.1, 2.2, 3.3, 4.4, 5.5}` | 40 bytes |
+
+Here's how a `double` array looks in memory (8 bytes per element):
+
+<MemoryDiagram
+    baseAddress={2000}
+    elementSize={8}
+    values={[1.1, 2.2, 3.3, 4.4, 5.5]}
+    variableName="doubles"
+/>
+
+## Quick Check
+
+<QuizBox
+    question="If an integer array starts at address 500 and each int is 4 bytes, what is the address of arr[7]?"
+    options={["528", "507", "532", "524"]}
+    correctIndex={0}
+    explanation="Using the formula: Address = 500 + (7 * 4) = 500 + 28 = 528. The base address is 500, and we skip 7 elements of 4 bytes each."
+/>
+
+<QuizBox
+    question="Why are arrays cache-friendly?"
+    options={[
+        "Because they use pointers internally",
+        "Because elements are stored contiguously, so loading one loads neighbors into cache",
+        "Because they are always small enough to fit in cache",
+        "Because the CPU has special instructions for arrays"
+    ]}
+    correctIndex={1}
+    explanation="When the CPU reads arr[0] from memory, it loads a chunk of memory (a cache line, typically 64 bytes) into the cache. Since arr[1], arr[2], etc. sit right next to arr[0], they're already in the cache when you need them. This is called spatial locality."
+/>

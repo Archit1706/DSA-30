@@ -1,4 +1,6 @@
 import { Tabs, Callout } from "nextra/components";
+import { ArrayVisualizer } from "../../../components/ArrayVisualizer";
+import { QuizBox } from "../../../components/QuizBox";
 
 # Declaration and Initialization
 
@@ -24,6 +26,10 @@ Declaring an array tells the compiler or interpreter that we want to create an a
 
     // Declaration with initialization
     int scores[] = {85, 90, 78, 92, 88};
+
+    // Using a vector (dynamic array)
+    #include <vector>
+    vector<int> dynamicArr = {1, 2, 3, 4, 5};
     ```
 
   </Tabs.Tab>
@@ -39,6 +45,10 @@ Declaring an array tells the compiler or interpreter that we want to create an a
 
     // Declaration and Initialization in one line
     int[] scores = {85, 90, 78, 92, 88};
+
+    // Using ArrayList (dynamic)
+    import java.util.ArrayList;
+    ArrayList<Integer> dynamicArr = new ArrayList<>();
     ```
 
   </Tabs.Tab>
@@ -52,8 +62,11 @@ Declaring an array tells the compiler or interpreter that we want to create an a
     # List with initial values
     scores = [85, 90, 78, 92, 88]
 
-    # List of specific size (initialized with None or 0)
+    # List of specific size (initialized with 0)
     zeros = [0] * 5
+
+    # List comprehension -- a powerful Python feature
+    squares = [x**2 for x in range(5)]  # [0, 1, 4, 9, 16]
     ```
 
   </Tabs.Tab>
@@ -69,6 +82,9 @@ Declaring an array tells the compiler or interpreter that we want to create an a
 
     // Array constructor (less common)
     let fixedSize = new Array(5);
+
+    // Fill with a value
+    let zeros = new Array(5).fill(0);
     ```
 
   </Tabs.Tab>
@@ -92,4 +108,180 @@ int firstScore = scores[0]; // 85
 
 // Accessing the last element
 int lastScore = scores[4]; // 88
+
+// Modifying an element
+scores[2] = 95;  // Changes 78 to 95
 ```
+
+<ArrayVisualizer
+    initialArray={[85, 90, 95, 92, 88]}
+    highlightIndices={[2]}
+    labels={{ 2: "modified" }}
+/>
+
+## 2D Arrays (Matrices)
+
+A 2D array is essentially an array of arrays -- think of it as a table with rows and columns.
+
+<Tabs items={['C++', 'Java', 'Python', 'JavaScript']}>
+  <Tabs.Tab>
+    ```cpp
+    // Declaration: 3 rows, 4 columns
+    int matrix[3][4];
+
+    // Declaration with initialization
+    int grid[3][3] = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    // Accessing: grid[row][col]
+    int center = grid[1][1];  // 5
+
+    // Iterating through a 2D array
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            cout << grid[i][j] << " ";
+        }
+        cout << endl;
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```java
+    // Declaration: 3 rows, 4 columns
+    int[][] matrix = new int[3][4];
+
+    // Declaration with initialization
+    int[][] grid = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    // Accessing: grid[row][col]
+    int center = grid[1][1];  // 5
+
+    // Iterating with enhanced for
+    for (int[] row : grid) {
+        for (int val : row) {
+            System.out.print(val + " ");
+        }
+        System.out.println();
+    }
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```python
+    # 2D list (list of lists)
+    grid = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ]
+
+    # Accessing: grid[row][col]
+    center = grid[1][1]  # 5
+
+    # Creating a 3x4 matrix of zeros
+    matrix = [[0] * 4 for _ in range(3)]
+
+    # WARNING: This creates shared references!
+    # bad_matrix = [[0] * 4] * 3  # DON'T do this!
+    ```
+  </Tabs.Tab>
+  <Tabs.Tab>
+    ```javascript
+    // 2D array
+    let grid = [
+        [1, 2, 3],
+        [4, 5, 6],
+        [7, 8, 9]
+    ];
+
+    // Accessing: grid[row][col]
+    let center = grid[1][1];  // 5
+
+    // Creating a 3x4 matrix of zeros
+    let matrix = Array.from({ length: 3 },
+        () => new Array(4).fill(0)
+    );
+    ```
+  </Tabs.Tab>
+</Tabs>
+
+## 2D Array Memory Layout
+
+In memory, a 2D array is actually stored as a 1D array. There are two ways to lay it out:
+
+**Row-Major Order** (C, C++, Java, Python): Elements of each row are stored together.
+```
+grid[0][0], grid[0][1], grid[0][2], grid[1][0], grid[1][1], ...
+```
+
+**Column-Major Order** (Fortran, MATLAB): Elements of each column are stored together.
+```
+grid[0][0], grid[1][0], grid[2][0], grid[0][1], grid[1][1], ...
+```
+
+<Callout type="info">
+    **Performance tip:** When iterating through a 2D array in a row-major
+    language (C++, Java, Python), iterate row-by-row (`for i... for j...`) for
+    better cache performance. Going column-by-column causes cache misses.
+</Callout>
+
+## Common Pitfalls
+
+### 1. Off-by-One Errors
+```cpp
+int arr[5] = {10, 20, 30, 40, 50};
+// Valid indices: 0, 1, 2, 3, 4
+// arr[5] is OUT OF BOUNDS -- undefined behavior in C++!
+```
+
+### 2. Uninitialized Arrays
+```cpp
+int arr[5];  // In C++, contains garbage values!
+// Always initialize: int arr[5] = {0};  // All zeros
+```
+
+### 3. Python's Shallow Copy Trap
+```python
+# This creates 3 references to the SAME inner list
+bad = [[0] * 3] * 3
+bad[0][0] = 1
+print(bad)  # [[1, 0, 0], [1, 0, 0], [1, 0, 0]]  -- Surprise!
+
+# Correct way: each row is a separate list
+good = [[0] * 3 for _ in range(3)]
+good[0][0] = 1
+print(good)  # [[1, 0, 0], [0, 0, 0], [0, 0, 0]]  -- As expected
+```
+
+### 4. Array Size Confusion
+```cpp
+int arr[] = {1, 2, 3, 4, 5};
+int size = sizeof(arr) / sizeof(arr[0]);  // 5 -- works here
+
+void broken(int arr[]) {
+    // sizeof(arr) gives pointer size (8 bytes), NOT array size!
+    // Always pass size as a separate parameter
+}
+```
+
+## Quick Check
+
+<QuizBox
+    question="What is the output of this Python code?\n\na = [[0]*3]*2\na[0][1] = 5\nprint(a[1][1])"
+    options={["0", "5", "Error", "None"]}
+    correctIndex={1}
+    explanation="Using [[0]*3]*2 creates two references to the same inner list. Modifying a[0][1] also changes a[1][1] because they point to the same list. The correct way is [[0]*3 for _ in range(2)]."
+/>
+
+<QuizBox
+    question="In a 3x3 grid stored in row-major order starting at address 100 (4 bytes per int), what is the address of grid[2][1]?"
+    options={["128", "124", "108", "112"]}
+    correctIndex={0}
+    explanation="In row-major order, grid[2][1] is the (2*3 + 1) = 7th element (0-indexed). Address = 100 + (7 * 4) = 128."
+/>

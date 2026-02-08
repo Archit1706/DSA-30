@@ -1,0 +1,230 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab
+
+### Union and Intersection of Two Sorted Arrays <DifficultyBadge level="easy" />
+
+#### Description
+
+Given two **sorted** arrays `a[]` and `b[]`, find their **union** and **intersection**.
+
+- **Union:** All distinct elements present in either array.
+- **Intersection:** All distinct elements present in both arrays.
+
+The result should be in sorted order.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: a = [1, 2, 3, 4, 5], b = [2, 3, 4, 4, 5, 6]
+    Union: [1, 2, 3, 4, 5, 6]
+    Intersection: [2, 3, 4, 5]
+
+> Case 2:
+    Input: a = [1, 1, 2, 3], b = [2, 2, 4, 5]
+    Union: [1, 2, 3, 4, 5]
+    Intersection: [2]
+```
+
+#### Constraints
+
+-   `1 <= a.length, b.length <= 10^5`
+-   Arrays are sorted in non-decreasing order
+
+#### Approach: Two Pointers (Merge-Like)
+
+Since both arrays are sorted, we can use a technique similar to the merge step of merge sort. Two pointers walk through both arrays simultaneously.
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <iostream>
+    #include <vector>
+    using namespace std;
+
+    vector<int> findUnion(int a[], int n, int b[], int m) {
+        vector<int> result;
+        int i = 0, j = 0;
+
+        while (i < n && j < m) {
+            // Skip duplicates in a
+            if (i > 0 && a[i] == a[i - 1]) { i++; continue; }
+            // Skip duplicates in b
+            if (j > 0 && b[j] == b[j - 1]) { j++; continue; }
+
+            if (a[i] < b[j]) {
+                result.push_back(a[i++]);
+            } else if (a[i] > b[j]) {
+                result.push_back(b[j++]);
+            } else {
+                // Equal -- add once, advance both
+                result.push_back(a[i]);
+                i++; j++;
+            }
+        }
+
+        // Remaining elements from a
+        while (i < n) {
+            if (i == 0 || a[i] != a[i - 1])
+                result.push_back(a[i]);
+            i++;
+        }
+
+        // Remaining elements from b
+        while (j < m) {
+            if (j == 0 || b[j] != b[j - 1])
+                result.push_back(b[j]);
+            j++;
+        }
+
+        return result;
+    }
+
+    vector<int> findIntersection(int a[], int n, int b[], int m) {
+        vector<int> result;
+        int i = 0, j = 0;
+
+        while (i < n && j < m) {
+            // Skip duplicates
+            if (i > 0 && a[i] == a[i - 1]) { i++; continue; }
+            if (j > 0 && b[j] == b[j - 1]) { j++; continue; }
+
+            if (a[i] < b[j]) {
+                i++;
+            } else if (a[i] > b[j]) {
+                j++;
+            } else {
+                result.push_back(a[i]);
+                i++; j++;
+            }
+        }
+
+        return result;
+    }
+
+    int main() {
+        int a[] = {1, 2, 3, 4, 5};
+        int b[] = {2, 3, 4, 4, 5, 6};
+
+        auto unionResult = findUnion(a, 5, b, 6);
+        auto interResult = findIntersection(a, 5, b, 6);
+
+        cout << "Union: ";
+        for (int x : unionResult) cout << x << " ";  // 1 2 3 4 5 6
+        cout << endl;
+
+        cout << "Intersection: ";
+        for (int x : interResult) cout << x << " ";  // 2 3 4 5
+        cout << endl;
+
+        return 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_union(a, b):
+        """Find union of two sorted arrays."""
+        result = []
+        i, j = 0, 0
+
+        while i < len(a) and j < len(b):
+            # Skip duplicates
+            if i > 0 and a[i] == a[i - 1]:
+                i += 1
+                continue
+            if j > 0 and b[j] == b[j - 1]:
+                j += 1
+                continue
+
+            if a[i] < b[j]:
+                result.append(a[i])
+                i += 1
+            elif a[i] > b[j]:
+                result.append(b[j])
+                j += 1
+            else:
+                result.append(a[i])
+                i += 1
+                j += 1
+
+        # Remaining from a (skip dups)
+        while i < len(a):
+            if i == 0 or a[i] != a[i - 1]:
+                result.append(a[i])
+            i += 1
+
+        # Remaining from b (skip dups)
+        while j < len(b):
+            if j == 0 or b[j] != b[j - 1]:
+                result.append(b[j])
+            j += 1
+
+        return result
+
+
+    def find_intersection(a, b):
+        """Find intersection of two sorted arrays."""
+        result = []
+        i, j = 0, 0
+
+        while i < len(a) and j < len(b):
+            # Skip duplicates
+            if i > 0 and a[i] == a[i - 1]:
+                i += 1
+                continue
+            if j > 0 and b[j] == b[j - 1]:
+                j += 1
+                continue
+
+            if a[i] < b[j]:
+                i += 1
+            elif a[i] > b[j]:
+                j += 1
+            else:
+                result.append(a[i])
+                i += 1
+                j += 1
+
+        return result
+
+
+    # Example
+    a = [1, 2, 3, 4, 5]
+    b = [2, 3, 4, 4, 5, 6]
+
+    print("Union:", find_union(a, b))
+    # Union: [1, 2, 3, 4, 5, 6]
+
+    print("Intersection:", find_intersection(a, b))
+    # Intersection: [2, 3, 4, 5]
+
+    # Pythonic way (using sets -- but doesn't preserve sorted order guarantees):
+    # set(a) | set(b)  -> union
+    # set(a) & set(b)  -> intersection
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+**Union:** Walk both pointers forward. At each step, take the smaller element. If both are equal, take it once and advance both. Skip duplicates within each array.
+
+**Intersection:** Walk both pointers forward. Only add to the result when both point to equal elements. If one is smaller, advance that pointer to "catch up."
+
+This is the same merge logic used in merge sort, adapted to produce union/intersection instead of a fully merged array.
+
+<Callout type="info">
+    **Why not just use sets?** Sets work, but the two-pointer approach:
+    (1) preserves sorted order, (2) uses O(1) extra space (besides the result),
+    and (3) runs in O(n+m) time. A set-based approach is O(n+m) on average
+    but O(n log n) worst-case for tree-based sets, and doesn't guarantee order.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n + m)` -- each pointer moves at most n or m times
+- Space Complexity: `O(n + m)` -- for the result array

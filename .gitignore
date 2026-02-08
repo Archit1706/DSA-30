@@ -133,3 +133,5 @@ sample.mdx
 *.cpp
 *.py
 formats.mdx
+
+.claude

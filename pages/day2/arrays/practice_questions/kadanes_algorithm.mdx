@@ -1,0 +1,183 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { AlgorithmStepper } from "../../../../components/AlgorithmStepper";
+export const Tab = Tabs.Tab
+
+### Largest Sum Contiguous Subarray (Kadane's Algorithm) <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums`, find the **subarray** with the largest sum, and return its sum.
+
+A subarray is a contiguous non-empty sequence of elements within the array.
+
+#### Examples
+
+```py
+> Case 1:
+    Input: nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]
+    Output: 6
+    Explanation: The subarray [4, -1, 2, 1] has the largest sum = 6.
+
+> Case 2:
+    Input: nums = [1]
+    Output: 1
+
+> Case 3:
+    Input: nums = [5, 4, -1, 7, 8]
+    Output: 23
+    Explanation: The entire array [5, 4, -1, 7, 8] has the largest sum = 23.
+```
+
+#### Constraints
+
+-   `1 <= nums.length <= 10^5`
+-   `-10^4 <= nums[i] <= 10^4`
+
+#### The Brute Force (Don't Do This)
+
+Checking all possible subarrays takes O(n^2) or O(n^3). Kadane's algorithm solves it in O(n).
+
+#### Kadane's Algorithm
+
+The core idea: at each position, decide whether to **extend the current subarray** or **start a new one**. If the running sum becomes negative, it's better to start fresh.
+
+<AlgorithmStepper
+    title="Kadane's Algorithm: [-2, 1, -3, 4, -1, 2, 1, -5, 4]"
+    steps={[
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [0], description: "i=0: currentSum = max(-2, -2) = -2. maxSum = -2." },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [1], description: "i=1: currentSum = max(1, -2+1) = max(1, -1) = 1. Start fresh! maxSum = 1." },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [2], description: "i=2: currentSum = max(-3, 1+(-3)) = max(-3, -2) = -2. maxSum stays 1." },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [3], description: "i=3: currentSum = max(4, -2+4) = max(4, 2) = 4. Start fresh! maxSum = 4." },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [3, 4], description: "i=4: currentSum = max(-1, 4+(-1)) = max(-1, 3) = 3. Extend. maxSum = 4." },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [3, 4, 5], description: "i=5: currentSum = max(2, 3+2) = 5. Extend. maxSum = 5." },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [3, 4, 5, 6], description: "i=6: currentSum = max(1, 5+1) = 6. Extend. maxSum = 6!" },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [3, 4, 5, 6, 7], description: "i=7: currentSum = max(-5, 6+(-5)) = 1. Extend but sum drops. maxSum = 6." },
+        { array: [-2, 1, -3, 4, -1, 2, 1, -5, 4], activeIndices: [3, 4, 5, 6, 7, 8], description: "i=8: currentSum = max(4, 1+4) = 5. Extend. maxSum stays 6. Done!" },
+    ]}
+/>
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <iostream>
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    int maxSubArray(vector<int>& nums) {
+        int currentSum = nums[0];
+        int maxSum = nums[0];
+
+        for (int i = 1; i < nums.size(); i++) {
+            // Either extend current subarray or start new one
+            currentSum = max(nums[i], currentSum + nums[i]);
+            maxSum = max(maxSum, currentSum);
+        }
+
+        return maxSum;
+    }
+
+    // To also find the subarray itself:
+    pair<int, pair<int,int>> maxSubArrayWithIndices(vector<int>& nums) {
+        int currentSum = nums[0], maxSum = nums[0];
+        int start = 0, end = 0, tempStart = 0;
+
+        for (int i = 1; i < nums.size(); i++) {
+            if (nums[i] > currentSum + nums[i]) {
+                currentSum = nums[i];
+                tempStart = i;
+            } else {
+                currentSum += nums[i];
+            }
+
+            if (currentSum > maxSum) {
+                maxSum = currentSum;
+                start = tempStart;
+                end = i;
+            }
+        }
+
+        return {maxSum, {start, end}};
+    }
+
+    int main() {
+        vector<int> nums = {-2, 1, -3, 4, -1, 2, 1, -5, 4};
+        cout << "Max subarray sum: " << maxSubArray(nums) << endl;  // 6
+
+        auto result = maxSubArrayWithIndices(nums);
+        cout << "Sum: " << result.first
+             << " from index " << result.second.first
+             << " to " << result.second.second << endl;
+        // Sum: 6 from index 3 to 6 -> [4, -1, 2, 1]
+        return 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_sub_array(nums):
+        """Kadane's Algorithm -- find max subarray sum."""
+        current_sum = max_sum = nums[0]
+
+        for num in nums[1:]:
+            # Key decision: extend or start fresh?
+            current_sum = max(num, current_sum + num)
+            max_sum = max(max_sum, current_sum)
+
+        return max_sum
+
+    def max_sub_array_with_indices(nums):
+        """Also returns the start and end indices of the max subarray."""
+        current_sum = max_sum = nums[0]
+        start = end = temp_start = 0
+
+        for i in range(1, len(nums)):
+            if nums[i] > current_sum + nums[i]:
+                current_sum = nums[i]
+                temp_start = i
+            else:
+                current_sum += nums[i]
+
+            if current_sum > max_sum:
+                max_sum = current_sum
+                start = temp_start
+                end = i
+
+        return max_sum, start, end
+
+    # Examples
+    nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]
+    print(max_sub_array(nums))  # 6
+
+    total, s, e = max_sub_array_with_indices(nums)
+    print(f"Sum: {total}, subarray: {nums[s:e+1]}")
+    # Sum: 6, subarray: [4, -1, 2, 1]
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+The algorithm maintains two variables:
+- **`currentSum`**: the maximum sum of a subarray **ending at the current position**
+- **`maxSum`**: the overall maximum sum seen so far
+
+At each element, we make a simple choice:
+1. **Extend** the existing subarray: `currentSum + nums[i]`
+2. **Start fresh** from this element: `nums[i]`
+
+We pick whichever is larger. If `currentSum` has gone negative, the current element alone is better than dragging along a negative prefix.
+
+<Callout type="info">
+    **Why Kadane's works:** A negative prefix can never improve a subarray sum.
+    If `currentSum` drops below 0, any future subarray is better off starting
+    from scratch. This greedy insight makes the single-pass O(n) solution possible.
+</Callout>
+
+#### Analysis
+
+- Time Complexity: `O(n)` -- single pass through the array
+- Space Complexity: `O(1)` -- only two extra variables
