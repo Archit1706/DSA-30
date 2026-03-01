@@ -1,11 +1,126 @@
-# Day 3
+import { Callout } from "nextra/components";
+import { LinkedListVisualizer, InteractiveLinkedList } from "../../components/LinkedListVisualizer";
+import { QuizBox } from "../../components/QuizBox";
 
-### Hello peeps! Welcome to Day 3
+# Introduction to Linked Lists
 
-> What we learn today?
+Linked lists are the first **dynamic** data structure you'll encounter. Unlike arrays, they don't need a fixed size upfront — and that changes everything.
 
--   Understand the concept of linked lists and their advantages over arrays.
--   Learn about the different types of linked lists, such as singly linked lists, doubly linked lists, and circular linked lists.
--   Study the implementation of linked lists and how to perform basic operations like insertion, deletion, and traversal.
--   Explore advanced operations on linked lists, such as reversing a linked list and finding the middle element.
--   Understand the time and space complexity of various linked list operations.
+## The Problem Arrays Can't Solve Well
+
+You learned in Day 2 that arrays are stored in **contiguous memory** — every element sits right next to the previous one. That's great for random access (`arr[42]` in O(1)), but it creates a painful problem: **insertions and deletions in the middle require shifting elements**.
+
+Imagine you have an array of 10,000 sorted names and you need to insert a new name at position 0. Every single element has to shift one spot to the right — that's O(n) work just to make room.
+
+But there's a deeper issue: **what if you don't know the size ahead of time?**
+
+```cpp
+int names[50];  // What if you get the 51st student?
+```
+
+You're stuck. You either over-allocate (wasting memory) or run out of space.
+
+## Enter the Linked List
+
+A linked list solves both problems elegantly. Instead of storing elements in a contiguous block, each element (called a **node**) is stored wherever there's free memory — and each node carries a **pointer** to the next node.
+
+<Callout type="info">
+    Think of a linked list like a **scavenger hunt**. Each clue (node) tells you
+    where the next clue is hidden. You can't jump to clue #5 directly — you
+    must follow the trail from clue #1.
+</Callout>
+
+Here's what a linked list with 5 nodes looks like:
+
+<LinkedListVisualizer initialList={[10, 20, 30, 40, 50]} />
+
+Each node has two parts:
+- **Data** — the actual value stored
+- **Next** — the memory address (pointer) of the next node
+
+The last node's `next` pointer holds `NULL`, signaling the end of the list.
+
+## Arrays vs Linked Lists — The Trade-off
+
+Neither is universally better. Choose based on your use case:
+
+| Feature | Array | Linked List |
+| :--- | :---: | :---: |
+| **Random access** (get element by index) | ✅ O(1) | ❌ O(n) |
+| **Insert at beginning** | ❌ O(n) | ✅ O(1) |
+| **Insert at end** | ✅ O(1)† | ✅ O(1) with tail pointer |
+| **Insert in middle** | ❌ O(n) shift | ✅ O(1) once position found |
+| **Delete at beginning** | ❌ O(n) shift | ✅ O(1) |
+| **Memory layout** | Contiguous | Scattered |
+| **Extra memory** | None | Pointer per node |
+| **Dynamic size** | ❌ Fixed (or costly resize) | ✅ Grows/shrinks freely |
+
+†_Dynamic arrays like C++ `vector` or Python `list` amortize to O(1)_
+
+<Callout type="warning">
+    Linked lists use **more memory per element** than arrays because each node
+    must store a pointer (typically 8 bytes on a 64-bit system) in addition to
+    the data. For a list of 1 million integers, that's 8 MB of extra overhead
+    just for pointers.
+</Callout>
+
+## Where Are Linked Lists Used?
+
+Linked lists aren't just textbook theory — they power many real systems:
+
+- **Undo/Redo history** — Each action is a node; undo = traverse backward
+- **Browser history** — Back/forward = doubly linked list navigation
+- **Music playlists** — Next/previous song = linked list traversal
+- **OS memory management** — Free memory blocks tracked as a linked list
+- **Hash tables** — Chaining for collision resolution uses linked lists
+- **Implementing stacks & queues** — Dynamic push/pop without size limits
+
+## Try It Yourself
+
+Play with this interactive linked list. Insert nodes at the front or end, search for values, and delete nodes:
+
+<InteractiveLinkedList />
+
+<Callout type="info">
+    Notice how **Insert Front** is always instant (O(1)) — we just update the
+    HEAD pointer. But **Insert End** needs to traverse all nodes to find the
+    last one (O(n)). You can fix this by keeping a **tail pointer** alongside
+    `head`.
+</Callout>
+
+## Quick Check
+
+<QuizBox
+    question="Why can't you access element at index 5 directly in a linked list?"
+    options={[
+        "Linked lists don't support indexing at all",
+        "Nodes aren't stored in contiguous memory, so you can't calculate the address",
+        "Linked lists only store up to 4 elements",
+        "You need a special function to access any element"
+    ]}
+    correctIndex={1}
+    explanation="In arrays, element addresses are calculated as: base_address + (index × element_size). This works because elements sit next to each other. In linked lists, nodes are scattered in memory — the only way to reach node #5 is to start at HEAD and follow pointers: node1→node2→node3→node4→node5. That's O(n)."
+/>
+
+<QuizBox
+    question="You need a data structure to implement a queue of print jobs where new jobs are always added at the end and processed from the front. Which fits better?"
+    options={[
+        "Static array — fast random access",
+        "Linked list — O(1) insert at end (with tail pointer) and O(1) delete from front",
+        "2D array — better memory layout",
+        "Array is always better"
+    ]}
+    correctIndex={1}
+    explanation="A linked list with both head and tail pointers gives O(1) enqueue (insert at tail) and O(1) dequeue (remove from head). With a static array, deleting from the front requires shifting all elements — O(n). This is exactly why queues are often implemented using linked lists."
+/>
+
+## What's Next?
+
+In the following sections you'll learn:
+
+1. **Introduction** — Deep dive into node structure and all four linked list types
+2. **Singly Linked List** — Complete operations with code in C++ and Python
+3. **Circular Linked List** — When the last node points back to the first
+4. **Doubly Linked List** — Bidirectional traversal with `prev` and `next` pointers
+5. **Circular Doubly Linked List** — The most flexible variant
+6. **Practice Questions** — Curated problems to sharpen your skills

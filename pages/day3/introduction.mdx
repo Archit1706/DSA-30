@@ -1,12 +1,14 @@
-import { Steps } from 'nextra/components'
-import {ShowHideGif} from '../../components/ShowHideGif'
- 
+import { Steps, Callout } from 'nextra/components'
+import { ShowHideGif } from '../../components/ShowHideGif'
+import { LinkedListVisualizer } from '../../components/LinkedListVisualizer'
+import { QuizBox } from '../../components/QuizBox'
+
 <Steps>
- 
+
 ### Linked Lists
- 
-- A linked list, in simple terms, is a linear collection of data elements. These data elements are called `nodes`. 
-- Linked list is a data structure which in turn can be used to implement other data structures. Thus, it acts as a building block to implement data structures such as `stacks`, `queues`, and their variations. 
+
+- A linked list, in simple terms, is a linear collection of data elements. These data elements are called `nodes`.
+- Linked list is a data structure which in turn can be used to implement other data structures. Thus, it acts as a building block to implement data structures such as `stacks`, `queues`, and their variations.
 - A linked list can be perceived as a `train` or a `sequence` of nodes in which each node contains one or more **_data_** fields and a **_pointer_** to the next node.
 
 <ShowHideGif
@@ -26,22 +28,40 @@ import {ShowHideGif} from '../../components/ShowHideGif'
 | :------------------------------------------------------------: |
 |                 _Single Node in a Linked List_                 |
 
+<Callout type="info">
+    In C++, the `NULL` pointer typically holds the value `0` or `nullptr`. In
+    Python, the equivalent is `None`. Always check for `NULL` before
+    dereferencing a pointer — accessing a `NULL` pointer causes a **segmentation
+    fault** (crash)!
+</Callout>
+
 -   Now we are going to discuss different types of linked lists and the operations that can be
     performed on these lists.
 
 ### Linked Lists v/s Arrays
 
 -   Both arrays and linked lists are a linear collection of data elements. But unlike an array, a linked list does not store its nodes in consecutive memory locations.
--   Another point of difference between an array and a linked list is that a linked list does not allow random access of data. Nodes in a linked list can be accessed only in a sequential manner. - But like an array, insertions and deletions can be done at any point in the list in a constant time.
--   Another advantage of a linked list over an array is that we can add any number of elements in the list. This is not possible in case of an array.
+-   Another point of difference between an array and a linked list is that a linked list does not allow random access of data. Nodes in a linked list can be accessed only in a sequential manner. But like an array, insertions and deletions can be done at any point in the list in a constant time (once you have a pointer to the right position).
+-   Another advantage of a linked list over an array is that we can add any number of elements in the list. This is not possible in case of a array.
 
     > For example, if we declare an array as `int marks[20]`, then the array can store a maximum of 20 data elements only. There is no such restriction in case of a linked list.
+
+| Property | Array | Linked List |
+| :--- | :---: | :---: |
+| Memory layout | Contiguous | Scattered |
+| Random access | ✅ O(1) | ❌ O(n) |
+| Insert/Delete at front | ❌ O(n) | ✅ O(1) |
+| Memory overhead | None | 1 pointer per node |
+| Size at creation | Fixed (static) | Dynamic |
+| Cache performance | ✅ Great | ❌ Poor |
 
 ### Different Types of Linked Lists
 
 #### Singly Linked Lists
 
 -   A singly linked list is the simplest type of linked list in which every node contains some data and a pointer to the next node of the same data type. By saying that the node contains a pointer to the next node, we mean that the node stores the address of the next node in sequence. A singly linked list allows traversal of data only in one way.
+
+<LinkedListVisualizer initialList={[1, 2, 3, 4, 5]} label="head" />
 
 | ![Singly Linked List](/assets/linked-list.png) |
 | :--------------------------------------------: |
@@ -51,23 +71,36 @@ import {ShowHideGif} from '../../components/ShowHideGif'
 
 -   In a circular linked list, the last node contains a pointer to the first node of the list. We can have a circular singly linked list as well as a circular doubly linked list. While traversing a circular linked list, we can begin at any node and traverse the list in any direction, forward or backward, until we reach the same node where we started. Thus, a circular linked list has no beginning and no ending.
 
+<Callout type="warning">
+    Be careful with circular linked lists! A naive traversal loop `while (ptr !=
+    NULL)` will run **forever** because the last node never points to NULL. You
+    must detect when you've returned to the starting node and stop there.
+</Callout>
+
 | ![Circular Linked List](/assets/circular-linked-list.png) |
 | :-------------------------------------------------------: |
 |                  _Circular Linked List_                   |
 
 #### Doubly Linked Lists
 
--   A doubly linked list or a two-way linked list is a more complex type of linked list which contains a pointer to the next as well as the previous node in the sequence. Therefore, it consists of three parts—data, a pointer to the next node, and a pointer to the previous node.
+-   A doubly linked list or a two-way linked list is a more complex type of linked list which contains a pointer to the next as well as the previous node in the sequence. Therefore, it consists of three parts — data, a pointer to the next node, and a pointer to the previous node.
 
 | ![Doubly Linked List](/assets/doubly-linked-list.png) |
 | :---------------------------------------------------: |
 |                 _Doubly Linked List_                  |
 
+<Callout type="info">
+    Doubly linked lists allow **backward traversal** — something a singly linked
+    list can't do. This makes delete operations easier: you can reach the
+    previous node directly instead of keeping a `pre_ptr` during traversal.
+    The trade-off is **double the pointer memory** per node.
+</Callout>
+
 #### Circular Doubly Linked Lists
 
 -   A circular doubly linked list or a circular two-way linked list is a more complex type of linked list which contains a pointer to the next as well as the previous node in the sequence.
--   The difference between a doubly linked and a circular doubly linked list is same as that exists between a singly linked list and a circular linked list.
--   The circular doubly linked list does not contain NULL in the previous field of the first node and the next field of the last node. Rather, the next field of the last node stores the address of the first node of the list, i.e., `START`. Similarly, the previous field of the first field stores the address of the last node.
+-   The difference between a doubly linked and a circular doubly linked list is the same as that which exists between a singly linked list and a circular linked list.
+-   The circular doubly linked list does not contain NULL in the previous field of the first node and the next field of the last node. Rather, the next field of the last node stores the address of the first node of the list, i.e., `START`. Similarly, the previous field of the first node stores the address of the last node.
 
 | ![Circular Doubly Linked List](/assets/circular-doubly-linked-list.png) |
 | :---------------------------------------------------------------------: |
@@ -76,3 +109,31 @@ import {ShowHideGif} from '../../components/ShowHideGif'
 Hop on to the next section to learn about the `operations` that can be performed on a `linked list`.
 
 </Steps>
+
+## Quick Check
+
+<QuizBox
+    question="What does the last node of a singly linked list store in its 'next' pointer?"
+    options={["The address of the first node", "NULL (or nullptr / None)", "The address of the previous node", "0"]}
+    correctIndex={1}
+    explanation="The last node's 'next' pointer holds NULL (nullptr in C++, None in Python). This is how you detect the end of the list during traversal — when ptr->next == NULL, you're at the tail."
+/>
+
+<QuizBox
+    question="Which linked list type allows traversal in BOTH directions?"
+    options={["Singly Linked List", "Circular Linked List", "Doubly Linked List", "All of the above"]}
+    correctIndex={2}
+    explanation="Doubly linked lists store both a 'next' and a 'prev' pointer in each node, making backward traversal possible. Singly and circular (singly) linked lists only have a 'next' pointer."
+/>
+
+<QuizBox
+    question="A circular linked list differs from a singly linked list because..."
+    options={[
+        "It stores data differently",
+        "Its last node points back to the first node instead of NULL",
+        "It has no head pointer",
+        "It uses arrays internally"
+    ]}
+    correctIndex={1}
+    explanation="The defining characteristic of a circular linked list is that the tail node's 'next' pointer points back to the head node, forming a loop. There is no NULL terminator — traversal must stop when you return to the starting node."
+/>
