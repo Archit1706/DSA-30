@@ -1,46 +1,57 @@
-### Problem List
+import { Callout } from "nextra/components";
 
-|                     Problem                      | Dificulty | Link |
-| :----------------------------------------------: | :-------: | :--: |
-|            Middle of the Linked List             |   Easy    |      |
-|                Linked List cycle                 |   Easy    |      |
-|       Convert Binary Number to an Integer        |   Easy    |      |
-|        Remove Duplicates from sorted list        |   Easy    |      |
-|       Sort a Linked List of 0s, 1s and 2s        |   Easy    |      |
-|           Remove Linked List elements            |   Easy    |      |
-|              Merge Two sorted Lists              |   Easy    |      |
-| Multiply two numbers represented by Linked Lists |   Easy    |      |
-|         Intersection of two Linked Lists         |   Easy    |      |
-|       Delete Node in a Singly Linked List        |   Easy    |      |
-|              Palindrome Linked List              |   Easy    |      |
+# Practice Questions
 
-https://leetcode.com/problems/middle-of-the-linked-list/
-https://leetcode.com/problems/linked-list-cycle/
-https://leetcode.com/problems/convert-binary-number-in-a-linked-list-to-integer/
-https://leetcode.com/problems/remove-duplicates-from-sorted-list/
-https://www.geeksforgeeks.org/sort-a-linked-list-of-0s-1s-or-2s/
-https://leetcode.com/problems/remove-linked-list-elements/
-https://leetcode.com/problems/merge-two-sorted-lists/
-https://www.geeksforgeeks.org/multiply-two-numbers-represented-linked-lists/
-https://leetcode.com/problems/intersection-of-two-linked-lists/
-https://www.geeksforgeeks.org/given-only-a-pointer-to-a-node-to-be-deleted-in-a-singly-linked-list-how-do-you-delete-it/
-https://leetcode.com/problems/palindrome-linked-list/
-https://leetcode.com/problems/reverse-linked-list/
-https://leetcode.com/problems/add-two-numbers/
-https://leetcode.com/problems/copy-list-with-random-pointer/
-https://leetcode.com/problems/add-two-numbers-ii/
-https://leetcode.com/problems/reverse-linked-list-ii/
-https://leetcode.com/problems/reorder-list/
-https://leetcode.com/problems/remove-nth-node-from-end-of-list/
-https://leetcode.com/problems/flatten-a-multilevel-doubly-linked-list/
-https://leetcode.com/problems/partition-list/
-https://leetcode.com/problems/remove-duplicates-from-sorted-list-ii/
-https://www.geeksforgeeks.org/linked-list-in-zig-zag-fashion/
-https://leetcode.com/problems/sort-list/
-https://www.geeksforgeeks.org/segregate-even-and-odd-elements-in-a-linked-list/
-https://www.geeksforgeeks.org/rearrange-a-given-linked-list-in-place/
-https://leetcode.com/problems/merge-k-sorted-lists/
-https://leetcode.com/problems/reverse-nodes-in-k-group/
-https://www.geeksforgeeks.org/merge-sort-for-linked-list/
-https://www.geeksforgeeks.org/flattening-a-linked-list/
-https://www.geeksforgeeks.org/subtract-two-numbers-represented-as-linked-lists/
+Here is a curated list of practice questions to test your understanding of linked lists.
+
+<Callout type="info">
+    Try to solve these on your own before looking at the solutions! Start with
+    Easy problems and work your way up. The two-pointer (slow/fast) technique
+    appears in many of these — master it and you'll fly through the list.
+</Callout>
+
+## Easy
+
+| Problem | Technique | Status |
+| :--- | :--- | :--- |
+| [Middle of the Linked List](/day3/practice_questions/middle_of_the_linked_list) | Two Pointers (slow/fast) | Available |
+| [Linked List Cycle](/day3/practice_questions/linked_list_cycle) | Two Pointers (Floyd's) | Available |
+| [Convert Binary Number in a Linked List to Integer](/day3/practice_questions/convert_binary_number_in_linked_list_to_integer) | Traversal | Available |
+| [Remove Duplicates from Sorted List](/day3/practice_questions/remove_duplicates_from_sorted_list) | Two Pointers | Available |
+| [Merge Two Sorted Lists](/day3/practice_questions/merge_two_sorted_lists) | Two Pointers / Recursion | Available |
+| [Multiply Two Numbers Represented by Linked Lists](/day3/practice_questions/multiply_two_numbers_represented_linked_lists) | Traversal + Math | Available |
+| [Intersection of Two Linked Lists](/day3/practice_questions/intersection_of_two_linked_lists) | Two Pointers | Available |
+| [Delete Node in a Linked List](/day3/practice_questions/delete_node_in_linked_list) | Node Manipulation | Available |
+| [Palindrome Linked List](/day3/practice_questions/palindrome_linked_list) | Slow/Fast + Reverse | Available |
+
+## Medium
+
+| Problem | Technique | Status |
+| :--- | :--- | :--- |
+| Reverse Linked List II | Two Pointers + Reversal | Coming Soon |
+| Add Two Numbers | Traversal + Carry | Coming Soon |
+| Remove Nth Node from End of List | Two Pointers | Coming Soon |
+| Reorder List | Slow/Fast + Merge | Coming Soon |
+| Copy List with Random Pointer | Hash Map | Coming Soon |
+
+## Hard
+
+| Problem | Technique | Status |
+| :--- | :--- | :--- |
+| Merge k Sorted Lists | Divide & Conquer / Heap | Coming Soon |
+| Reverse Nodes in k-Group | Recursion + Pointer Rewiring | Coming Soon |
+| Flatten a Multilevel Doubly Linked List | DFS / Recursion | Coming Soon |
+
+## More Practice (External Links)
+
+These are great follow-up problems to solidify your understanding:
+
+| Problem | Platform | Technique |
+| :--- | :--- | :--- |
+| [Sort List](https://leetcode.com/problems/sort-list/) | LeetCode | Merge Sort on LL |
+| [Sort 0s, 1s and 2s](https://www.geeksforgeeks.org/sort-a-linked-list-of-0s-1s-or-2s/) | GFG | Dutch National Flag |
+| [Partition List](https://leetcode.com/problems/partition-list/) | LeetCode | Two Lists + Merge |
+| [Segregate Even and Odd](https://www.geeksforgeeks.org/segregate-even-and-odd-elements-in-a-linked-list/) | GFG | Two Pointers |
+| [Merge Sort for Linked List](https://www.geeksforgeeks.org/merge-sort-for-linked-list/) | GFG | Divide & Conquer |
+| [Flattening a Linked List](https://www.geeksforgeeks.org/flattening-a-linked-list/) | GFG | Merge + Recursion |
+| [Subtract Two Numbers as Linked Lists](https://www.geeksforgeeks.org/subtract-two-numbers-represented-as-linked-lists/) | GFG | Traversal + Math |

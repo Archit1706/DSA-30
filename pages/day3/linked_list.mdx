@@ -1,9 +1,11 @@
-import { Tabs,Steps } from "nextra/components";
+import { Tabs, Steps, Callout } from "nextra/components";
+import { ComplexityTable } from "../../components/ComplexityTable";
+import { QuizBox } from "../../components/QuizBox";
 export const Tab = Tabs.Tab
 
-## Basic Operations on a Linked List
+## Basic Operations on a Singly Linked List
 
-> We can perform the following basic operation on a Linked List:
+> We can perform the following basic operations on a Singly Linked List:
 
 1. Define a Linked List
 2. Insert an Element at the beginning
@@ -17,6 +19,28 @@ export const Tab = Tabs.Tab
 10. Count the number of Elements/Nodes
 11. Traverse and Display the Elements/Nodes
 12. Reverse the Linked List
+
+## Complexity at a Glance
+
+<ComplexityTable operations={[
+    { name: "Access by index (traverse to position k)", time: "O(n)", space: "O(1)", notes: "No random access — must follow pointers" },
+    { name: "Search (find by value)", time: "O(n)", space: "O(1)", notes: "Must scan from HEAD in worst case" },
+    { name: "Insert at beginning", time: "O(1)", space: "O(1)", notes: "Just update HEAD pointer" },
+    { name: "Insert at end (no tail ptr)", time: "O(n)", space: "O(1)", notes: "Must traverse to find last node" },
+    { name: "Insert at end (with tail ptr)", time: "O(1)", space: "O(1)", notes: "Directly update TAIL pointer" },
+    { name: "Insert at position k", time: "O(n)", space: "O(1)", notes: "Traverse to k-1, then rewire pointers" },
+    { name: "Delete at beginning", time: "O(1)", space: "O(1)", notes: "Move HEAD to HEAD→next" },
+    { name: "Delete at end", time: "O(n)", space: "O(1)", notes: "Traverse to second-to-last node" },
+    { name: "Delete at position k", time: "O(n)", space: "O(1)", notes: "Traverse to k-1, bypass node k" },
+    { name: "Count nodes", time: "O(n)", space: "O(1)", notes: "Single pass from HEAD to NULL" },
+    { name: "Reverse", time: "O(n)", space: "O(1)", notes: "Three-pointer iterative approach" },
+]} />
+
+<Callout type="info">
+    The key insight: **insertion and deletion themselves are O(1)** once you
+    have a pointer to the right position. The O(n) cost comes from **finding**
+    that position, not from the rewiring of pointers.
+</Callout>
 
 <Steps>
     ### Define a Linked List
@@ -56,15 +80,13 @@ export const Tab = Tabs.Tab
         class LinkedList:
             def __init__(self) -> None:
                 self.start = None
-
         ```
-
         </Tab>
     </Tabs>
 
     ### Insert an Element at the beginning
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: if AVAIL == NULL
@@ -99,15 +121,6 @@ export const Tab = Tabs.Tab
         </Tab>
         <Tab>
         ```py copy
-        def insertAtBeginning(self, data):
-            if self.start == None:
-                print("Linked List is empty")
-                return
-            newNode = Node(data)
-            newNode.next = self.start
-            self.start = newNode
-
-        ---
         def insertFirst(self, value):
             newNode = node(value)
             newNode.next = self.start
@@ -118,7 +131,7 @@ export const Tab = Tabs.Tab
 
     ### Insert an Element at the End
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: if AVAIL = NULL
@@ -130,7 +143,7 @@ export const Tab = Tabs.Tab
     Step 4: SET newNode->data = val
     Step 5: SET newNode->next = NULL
     Step 6: SET last = start
-    Step 7:Repeat Step 8 while last->next != NULL
+    Step 7: Repeat Step 8 while last->next != NULL
     Step 8:         SET last = last->next
             [END OF LOOP]
     Step 9: SET last->next = newNode
@@ -176,7 +189,7 @@ export const Tab = Tabs.Tab
 
     ### Insert an Element after a given position/element
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: if AVAIL = NULL
@@ -188,11 +201,11 @@ export const Tab = Tabs.Tab
     Step 4: SET newNode->data = val
     Step 5: SET ptr = start
     Step 6: SET prePtr = ptr
-    Step 7: Repeat Steps 8 and 9 while prePtr->data != val
+    Step 7: Repeat Steps 8 and 9 while prePtr->data != pos
     Step 8:         SET prePtr = ptr
     Step 9:         SET ptr = ptr->next
             [END OF LOOP]
-    Step 10: SET prePtr -> next = newNode
+    Step 10: SET prePtr->next = newNode
     Step 11: SET newNode->next = ptr
     Step 12: EXIT
     ```
@@ -203,13 +216,13 @@ export const Tab = Tabs.Tab
         ```cpp copy
         void insert_after(int value, int pos)
         {
-            if (head == nullptr) {
+            if (start == nullptr) {
                 cout << "Empty List!" << endl;
                 return;
             }
 
             Node *new_node = new Node(value);
-            Node *temp = head;
+            Node *temp = start;
 
             while (temp != nullptr && temp->data != pos)
                 temp = temp->next;
@@ -217,7 +230,7 @@ export const Tab = Tabs.Tab
             if (temp == nullptr)
             {
                 cout << "No such element found" << endl;
-                delete new_node; // Clean up the dynamically allocated node
+                delete new_node;
                 return;
             }
             new_node->next = temp->next;
@@ -243,22 +256,23 @@ export const Tab = Tabs.Tab
 
     ### Insert an Element before a given position/element
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: if AVAIL = NULL
                 Write Overflow
-                Go to step 7
+                Go to step 12
+            [END OF if]
     Step 2: SET newNode = AVAIL
     Step 3: SET AVAIL = AVAIL->next
     Step 4: SET newNode->data = val
     Step 5: SET ptr = start
-    Step 6: SET prePtr = ptr
-    Step 7: Repeat Steps 8 and 9 while ptr->data
+    Step 6: SET prePtr = NULL
+    Step 7: Repeat Steps 8 and 9 while ptr->data != pos
     Step 8:         SET prePtr = ptr
     Step 9:         SET ptr = ptr->next
             [END OF LOOP]
-    Step 10: SET prePtr -> next = newNode
+    Step 10: SET prePtr->next = newNode
     Step 11: SET newNode->next = ptr
     Step 12: EXIT
     ```
@@ -268,13 +282,13 @@ export const Tab = Tabs.Tab
         <Tab>
         ```cpp copy
         void insert_before(int value, int pos) {
-            if (head == nullptr) {
+            if (start == nullptr) {
                 cout << "Empty List!" << endl;
                 return;
             }
 
             Node *new_node = new Node(value);
-            Node *ptr = head;
+            Node *ptr = start;
             Node *pre_ptr = nullptr;
 
             while (ptr != nullptr && ptr->data != pos) {
@@ -284,13 +298,13 @@ export const Tab = Tabs.Tab
 
             if (ptr == nullptr) {
                 cout << "No such element found" << endl;
-                delete new_node; // Clean up the dynamically allocated node
+                delete new_node;
                 return;
             }
 
             if (pre_ptr == nullptr) {
-                new_node->next = head;
-                head = new_node;
+                new_node->next = start;
+                start = new_node;
             }
             else {
                 new_node->next = ptr;
@@ -317,7 +331,7 @@ export const Tab = Tabs.Tab
 
     ### Delete an Element at the Beginning
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: if start = NULL
@@ -336,13 +350,13 @@ export const Tab = Tabs.Tab
         <Tab>
         ```cpp copy
         void delete_beginning() {
-            if (head == nullptr) {
+            if (start == nullptr) {
                 cout << "List is empty!" << endl;
                 return;
             }
 
-            Node *ptr = head;
-            head = head->next;
+            Node *ptr = start;
+            start = start->next;
             delete ptr;
         }
         ```
@@ -355,13 +369,12 @@ export const Tab = Tabs.Tab
             else:
                 self.start = self.start.next
         ```
-
         </Tab>
     </Tabs>
 
     ### Delete an Element at the End
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: if start = NULL
@@ -384,16 +397,16 @@ export const Tab = Tabs.Tab
         <Tab>
         ```cpp copy
         void delete_end() {
-            if (head == nullptr) {
+            if (start == nullptr) {
                 cout << "List is empty!" << endl;
                 return;
             }
 
-            Node *temp = head;
+            Node *temp = start;
             if (temp->next == nullptr) {
                 // Only one node in the list
                 delete temp;
-                head = nullptr;
+                start = nullptr;
                 return;
             }
 
@@ -416,13 +429,12 @@ export const Tab = Tabs.Tab
                     temp = temp.next
                 temp.next = None
         ```
-
         </Tab>
     </Tabs>
 
     ### Delete an Element after a given position
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: if start = NULL
@@ -436,7 +448,7 @@ export const Tab = Tabs.Tab
     Step 6:         SET ptr = ptr->next
             [END OF LOOP]
     Step 7: SET temp = ptr
-    Step 8: SET prePtr-> next = ptr->next
+    Step 8: SET prePtr->next = ptr->next
     Step 9: free temp
     Step 10: EXIT
     ```
@@ -447,12 +459,12 @@ export const Tab = Tabs.Tab
         <Tab>
         ```cpp copy
         void delete_after(int pos) {
-            if (head == nullptr) {
+            if (start == nullptr) {
                 cout << "List is empty!" << endl;
                 return;
             }
 
-            Node *ptr = head;
+            Node *ptr = start;
             while (ptr != nullptr && ptr->data != pos)
                 ptr = ptr->next;
 
@@ -476,20 +488,34 @@ export const Tab = Tabs.Tab
                     temp = temp.next
                 temp.next = temp.next.next
         ```
-
         </Tab>
     </Tabs>
 
-
-
-
     ### Delete an Element before a given position
 
-    {/* - ALGORTIHM */}
+    - ALGORITHM
 
-    {/* ```py copy */}
-
-    {/* ``` */}
+    ```py copy
+    Step 1: if start = NULL or start->next = NULL
+                Write Underflow (list too short)
+                Go to step 12
+            [END OF if]
+    Step 2: if start->next->data = pos
+                Write "No element before pos"
+                Go to step 12
+            [END OF if]
+    Step 3: SET ptr = start->next
+    Step 4: SET prePtr = start
+    Step 5: SET prePre = NULL
+    Step 6: Repeat Steps 7 to 9 while ptr->data != pos
+    Step 7:         SET prePre = prePtr
+    Step 8:         SET prePtr = ptr
+    Step 9:         SET ptr = ptr->next
+            [END OF LOOP]
+    Step 10: SET prePre->next = ptr   (bypass prePtr)
+    Step 11: free prePtr
+    Step 12: EXIT
+    ```
 
     - CODE
 
@@ -497,27 +523,29 @@ export const Tab = Tabs.Tab
         <Tab>
         ```cpp copy
         void delete_before(int pos) {
-            if (head == nullptr || head->next == nullptr) {
+            if (start == nullptr || start->next == nullptr) {
                 cout << "List is empty or has only one node!" << endl;
                 return;
             }
 
-            if (head->data == pos) {
+            if (start->data == pos) {
                 cout << "No element found before the specified position!" << endl;
                 return;
             }
 
-            if (head->next->data == pos) {
-                Node *temp = head;
-                head = head->next;
+            if (start->next->data == pos) {
+                Node *temp = start;
+                start = start->next;
                 delete temp;
                 return;
             }
 
-            Node *ptr = head->next;
-            Node *pre_ptr = head;
+            Node *ptr = start->next;
+            Node *pre_ptr = start;
+            Node *pre_pre = nullptr;
 
             while (ptr != nullptr && ptr->data != pos) {
+                pre_pre = pre_ptr;
                 pre_ptr = ptr;
                 ptr = ptr->next;
             }
@@ -527,27 +555,34 @@ export const Tab = Tabs.Tab
                 return;
             }
 
-            pre_ptr->next = ptr->next;
-            delete ptr;
+            pre_pre->next = ptr;
+            delete pre_ptr;
         }
         ```
         </Tab>
         <Tab>
         ```py copy
         def deleteBefore(self, pos):
-            if self.start != None:
-                temp = self.start
-                while temp.next.next.data != pos:
-                    temp = temp.next
-                temp.next = temp.next.next
+            if self.start is None or self.start.next is None:
+                print("List is too short!")
+                return
+            if self.start.next.data == pos:
+                self.start = self.start.next
+                return
+            temp = self.start
+            while temp.next.next is not None and temp.next.next.data != pos:
+                temp = temp.next
+            if temp.next.next is None:
+                print("No such element found!")
+                return
+            temp.next = temp.next.next
         ```
-
         </Tab>
     </Tabs>
 
     ### Count the number of Elements/Nodes
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
     Step 1: [Initialize] SET ptr = start, count = 0
@@ -567,7 +602,7 @@ export const Tab = Tabs.Tab
         void count_nodes()
         {
             int count = 0;
-            Node *ptr = head;
+            Node *ptr = start;
 
             while (ptr != nullptr) {
                 count++;
@@ -588,20 +623,18 @@ export const Tab = Tabs.Tab
                 temp = temp.next
             print(f"There are {count} nodes in the linked list.")
         ```
-
         </Tab>
     </Tabs>
 
     ### Traverse and Display the Elements/Nodes
 
-    - ALGORTIHM
+    - ALGORITHM
 
     ```py copy
-    Step 1: [Initialize] SET ptr = start, count = 0
+    Step 1: [Initialize] SET ptr = start
     Step 2: Repeat Steps 3 to 4 while ptr != NULL
-    Step 3:         Apply process to ptr->data
-    Step 4:         PRINT ptr->data
-                    SET ptr = ptr->next
+    Step 3:         PRINT ptr->data
+    Step 4:         SET ptr = ptr->next
             [END OF LOOP]
     Step 5: EXIT
     ```
@@ -612,19 +645,19 @@ export const Tab = Tabs.Tab
         <Tab>
         ```cpp copy
         void display() {
-            if (head == nullptr) {
+            if (start == nullptr) {
                 cout << "Empty List!" << endl;
                 return;
             }
 
             cout << "The elements in the linked list are:" << endl;
-            Node *ptr = head;
+            Node *ptr = start;
 
             while (ptr != nullptr) {
-                cout << ptr->data << "\t";
+                cout << ptr->data << " -> ";
                 ptr = ptr->next;
             }
-            cout << endl;
+            cout << "NULL" << endl;
         }
         ```
         </Tab>
@@ -636,10 +669,10 @@ export const Tab = Tabs.Tab
             else:
                 temp = self.start
                 while temp:
-                    print(temp.data , end=" ")
+                    print(temp.data, end=" -> ")
                     temp = temp.next
+                print("None")
         ```
-
         </Tab>
     </Tabs>
 
@@ -661,6 +694,12 @@ export const Tab = Tabs.Tab
     Step 9: EXIT
     ```
 
+    <Callout type="info">
+        This is called the **three-pointer technique**. At each step: save `next`,
+        flip the arrow backward (`current→prev`), then advance both pointers. After
+        the loop, `prev` points to the new head.
+    </Callout>
+
     - CODE
 
     <Tabs items={["C++", "Python"]} defaultIndex="0">
@@ -668,12 +707,12 @@ export const Tab = Tabs.Tab
         ```cpp copy
         void reverse()
         {
-            if (head == nullptr)
+            if (start == nullptr)
             {
                 cout << "Empty List!" << endl;
                 return;
             }
-            Node *prev_ptr = nullptr, *current_ptr = head, *next_ptr = nullptr;
+            Node *prev_ptr = nullptr, *current_ptr = start, *next_ptr = nullptr;
             while (current_ptr != nullptr)
             {
                 next_ptr = current_ptr->next;
@@ -681,7 +720,7 @@ export const Tab = Tabs.Tab
                 prev_ptr = current_ptr;
                 current_ptr = next_ptr;
             }
-            head = prev_ptr;
+            start = prev_ptr;
         }
         ```
         </Tab>
@@ -703,8 +742,35 @@ export const Tab = Tabs.Tab
 
             self.start = prevPtr
         ```
-
         </Tab>
     </Tabs>
 
 </Steps>
+
+## Quick Check
+
+<QuizBox
+    question="What is the time complexity of inserting a node at the BEGINNING of a singly linked list?"
+    options={["O(n) — must traverse to the end", "O(log n) — binary search for position", "O(1) — just update the HEAD pointer", "O(n²) — nested traversal"]}
+    correctIndex={2}
+    explanation="Inserting at the beginning is O(1): create a new node, set new_node→next = HEAD, then update HEAD = new_node. No traversal needed — you already have a pointer to the head."
+/>
+
+<QuizBox
+    question="You need to delete the last node of a singly linked list with n nodes and NO tail pointer. What is the time complexity?"
+    options={["O(1)", "O(log n)", "O(n)", "O(n²)"]}
+    correctIndex={2}
+    explanation="To delete the last node you need to find the second-to-last node (so you can set its next to NULL). Starting from HEAD, you must traverse n-1 nodes — that's O(n). This is why maintaining a tail pointer is useful: deletion at end is still O(n) without the pointer, but a tail pointer enables O(1) insertion at end."
+/>
+
+<QuizBox
+    question="What is the THREE-POINTER technique used for in reversing a linked list?"
+    options={[
+        "To store three separate linked lists",
+        "To track current, previous, and next nodes while reversing arrows",
+        "To skip every third node during traversal",
+        "It refers to pointer arithmetic with three offsets"
+    ]}
+    correctIndex={1}
+    explanation="When reversing a linked list, you maintain three pointers: prev (starts at NULL), current (starts at HEAD), and next (saves current→next before overwriting it). At each step you: (1) save next = current→next, (2) flip current→next = prev, (3) advance prev = current, current = next. After the loop, prev is the new HEAD."
+/>
