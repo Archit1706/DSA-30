@@ -1,7 +1,22 @@
-# Day 10
+import { Callout } from "nextra/components";
 
-### Hello peeps! Welcome to Day 10 - Graph Traversal (BFS & DFS)
+# Day 10 — Graph Traversal (BFS and DFS)
 
-> What we learn today?
+<Callout type="info">
+    This chapter is being written. Check back soon!
+</Callout>
 
--
+## What you'll learn here
+
+- **Depth-First Search (DFS)** — go as deep as possible, then backtrack. The recursive cousin of trees and the foundation of cycle detection, topological sort, and connected components.
+- **Breadth-First Search (BFS)** — explore layer by layer using a queue. The natural fit for **shortest path on unweighted graphs** and "spread outward" problems.
+- The **visited set** pattern that turns infinite loops into termination
+- How DFS and BFS differ on the same graph — and why each is right for different problem shapes
+- Real applications: **connected components, bipartite check, maze solving, web crawling, flood fill, social network distances**
+
+You've already seen both in disguise:
+
+- DFS = the call stack from [Day 5 — Recursion](/day5) applied to graph nodes
+- BFS = the [queue from Day 4](/day4/queues) processing nodes one layer at a time, as in [Rotting Oranges](/day4/queues/practice_questions/rotting_oranges)
+
+This chapter formalizes both into the universal templates you'll use for the rest of the course — and for every graph problem you'll ever see in an interview.

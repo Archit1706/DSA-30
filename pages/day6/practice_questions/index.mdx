@@ -1,5 +1,30 @@
-### Problem List
+import { Callout } from "nextra/components";
 
-| Problem | Dificulty | Link |
-| :-----: | :-------: | :--: |
-|         |           |      |
+# Tree Practice Questions
+
+Four classic tree problems. Each one is a small variation on the **three-question recipe** from [Day 5 — Thinking Recursively](/day5/thinking_recursively): base case for null, recursive call on each child, combine.
+
+<Callout type="info">
+    Notice how *short* the solutions are — most of these are 3–5 lines. That's the magic of recursion on trees: you describe one level, and the call stack handles the entire structure.
+</Callout>
+
+## Easy
+
+| Problem                                                                                                | Pattern                | Status     |
+| :----------------------------------------------------------------------------------------------------- | :--------------------- | :--------- |
+| [Same Tree](/day6/practice_questions/same_tree)                                                        | Pair-wise recursion    | Available  |
+| [Symmetric Tree](/day6/practice_questions/symmetric_tree)                                              | Mirror recursion       | Available  |
+| [Balanced Binary Tree](/day6/practice_questions/balanced_binary_tree)                                  | Postorder + height     | Available  |
+| [Convert Sorted Array to BST](/day6/practice_questions/convert_sorted_array_to_binary_tree)            | Divide & conquer       | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                    | Status        |
+| :------------------------------------- | :------------------------- | :------------ |
+| Maximum Depth of Binary Tree           | Postorder                  | Coming Soon   |
+| Invert Binary Tree                     | Recursion                  | Coming Soon   |
+| Path Sum                               | Top-down recursion         | Coming Soon   |
+| Validate Binary Search Tree            | Inorder / bounds           | Coming Soon   |
+| Lowest Common Ancestor of a BST        | Tree walk                  | Coming Soon   |
+| Binary Tree Level Order Traversal      | BFS with queue             | Coming Soon   |
+| Diameter of Binary Tree                | Postorder + accumulator    | Coming Soon   |

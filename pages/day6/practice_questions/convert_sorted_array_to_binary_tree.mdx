@@ -1,0 +1,125 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Convert Sorted Array to Binary Search Tree <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an integer array `nums` sorted in **ascending order**, convert it to a **height-balanced** binary search tree.
+
+A height-balanced BST is one where the depth of the two subtrees of every node differs by at most 1.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [-10, -3, 0, 5, 9]
+    Output:           0
+                    /   \
+                  -3     9
+                  /     /
+                -10    5
+
+> Case 2:
+    Input:  nums = [1, 3]
+    Output:    3            (or 1)
+              /                \
+             1                  3
+```
+
+There are multiple valid answers — any height-balanced BST works.
+
+#### Intuition
+
+For the tree to be a **BST**, an inorder traversal must produce the input array (since the array is sorted). For the tree to be **balanced**, every node must have roughly equal-sized subtrees.
+
+Both fall out of one decision: **pick the middle element as the root**. Then recursively do the same for the left and right halves.
+
+- The middle element is the root.
+- The left half (`nums[0..mid-1]`) becomes the left subtree — recursively balanced.
+- The right half (`nums[mid+1..end]`) becomes the right subtree — recursively balanced.
+
+Because we always pick the middle, the two subtrees differ in size by at most 1 — so the tree is balanced. Because the left half is all less than `mid` and the right half all greater, the BST property is preserved.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    TreeNode* build(vector<int>& nums, int lo, int hi) {
+        if (lo > hi) return nullptr;
+        int mid = lo + (hi - lo) / 2;
+        TreeNode* node = new TreeNode(nums[mid]);
+        node->left  = build(nums, lo, mid - 1);
+        node->right = build(nums, mid + 1, hi);
+        return node;
+    }
+
+    TreeNode* sortedArrayToBST(vector<int>& nums) {
+        return build(nums, 0, (int)nums.size() - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sorted_array_to_bst(nums):
+        def build(lo, hi):
+            if lo > hi:
+                return None
+            mid = (lo + hi) // 2
+            node = TreeNode(nums[mid])
+            node.left  = build(lo, mid - 1)
+            node.right = build(mid + 1, hi)
+            return node
+        return build(0, len(nums) - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public TreeNode sortedArrayToBST(int[] nums) {
+        return build(nums, 0, nums.length - 1);
+    }
+
+    private TreeNode build(int[] nums, int lo, int hi) {
+        if (lo > hi) return null;
+        int mid = lo + (hi - lo) / 2;
+        TreeNode node = new TreeNode(nums[mid]);
+        node.left  = build(nums, lo, mid - 1);
+        node.right = build(nums, mid + 1, hi);
+        return node;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    Use `lo + (hi - lo) / 2` rather than `(lo + hi) / 2` to avoid integer overflow on very large `lo + hi`. Same trick as the binary-search midpoint calculation — it's a real bug that lived undetected in Java's library for years.
+</Callout>
+
+#### Why it's balanced
+
+Each recursion splits the remaining array exactly in half (give or take one element). So the recursion tree has height **O(log n)** — and the resulting BST has the same shape, also height O(log n). Balanced by construction.
+
+#### What if we picked the left middle instead of the right?
+
+The convention `mid = (lo + hi) // 2` picks the **left** of the two middle elements when the slice has even length. You could pick the right instead with `(lo + hi + 1) // 2`. Both produce valid balanced BSTs — they just give different (mirror-ish) shapes.
+
+#### The bigger pattern
+
+This is **divide-and-conquer**:
+
+```text
+build(slice):
+    pick middle as root
+    root.left  = build(left half)
+    root.right = build(right half)
+    return root
+```
+
+The same shape appears in [Merge Sort](/day11/merge_sort), in binary search, in building **segment trees**, and in **balanced BST insertions**. Once you recognize it, half a dozen problems share the template.
+
+#### Analysis
+
+- **Time:** **O(n)** — every array element becomes exactly one tree node.
+- **Space:** **O(log n)** for the recursion stack (the tree's height); plus O(n) for the output tree.

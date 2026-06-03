@@ -1,0 +1,88 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Same Tree <DifficultyBadge level="easy" />
+
+#### Description
+
+Given the roots of two binary trees `p` and `q`, return `true` if they are **structurally identical** *and* every corresponding pair of nodes has the **same value**.
+
+#### Examples
+
+```py
+> Case 1:
+    p = [1, 2, 3]
+    q = [1, 2, 3]
+    Output: true
+
+> Case 2:
+    p = [1, 2]
+    q = [1, null, 2]
+    Output: false      # Different structure — 2 is on the left in p, the right in q
+
+> Case 3:
+    p = [1, 2, 1]
+    q = [1, 1, 2]
+    Output: false      # Same structure but mirrored values
+```
+
+#### Intuition
+
+Apply the three-question recipe:
+
+1. **Base case:** if both nodes are `null`, they're equal — return `true`. If exactly one is `null`, they're unequal — return `false`.
+2. **Recursive case:** otherwise, the trees match iff the current values match **and** the left subtrees match **and** the right subtrees match.
+3. **Combine:** boolean AND of three checks.
+
+That's it. One function, four lines.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isSameTree(TreeNode* p, TreeNode* q) {
+        if (p == nullptr && q == nullptr) return true;
+        if (p == nullptr || q == nullptr) return false;
+        return p->val == q->val
+            && isSameTree(p->left,  q->left)
+            && isSameTree(p->right, q->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_same_tree(p, q):
+        if p is None and q is None: return True
+        if p is None or  q is None: return False
+        return (p.val == q.val
+                and is_same_tree(p.left,  q.left)
+                and is_same_tree(p.right, q.right))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isSameTree(TreeNode p, TreeNode q) {
+        if (p == null && q == null) return true;
+        if (p == null || q == null) return false;
+        return p.val == q.val
+            && isSameTree(p.left,  q.left)
+            && isSameTree(p.right, q.right);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    Notice the order of base cases: **both null first**, then **exactly one null**. If you flip them, you'd return `false` for the trivially-equal pair of empty trees. Order matters.
+</Callout>
+
+#### Why it works
+
+This is **structural induction** on the tree shape. The base cases are the simplest pairs (both empty, one empty), and the recursive case reduces a comparison of size-`n` trees to comparisons of three things: the roots and two smaller trees.
+
+#### Analysis
+
+- **Time:** **O(min(|p|, |q|))** — we stop comparing as soon as we find a mismatch, but in the worst case (identical trees) we touch every node.
+- **Space:** **O(min(hₚ, h_q))** for the recursion stack — bounded by the shorter tree's height.

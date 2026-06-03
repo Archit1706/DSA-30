@@ -1,7 +1,19 @@
-# Day 8
+import { Callout } from "nextra/components";
 
-### Hello peeps! Welcome to Day 8 - Hash Tables and Hash Functions
+# Day 8 — Hash Tables and Hash Functions
 
-> What we learn today?
+<Callout type="info">
+    This chapter is being written. Check back soon!
+</Callout>
 
--
+## What you'll learn here
+
+- **Hash tables** — the data structure that turns "find this thing in a million-element collection" into **O(1)** on average
+- **Hash functions** — how strings, integers, and arbitrary objects get mapped to bucket indices, and what makes a good hash
+- The two main collision-resolution strategies: **chaining** (linked lists per bucket) and **open addressing** (linear / quadratic / double probing)
+- **Load factor** — when to grow the table, and the amortized analysis that keeps insert at O(1)
+- **Real-world use:** dictionary lookups, deduplication, two-pointer-killer problems (Two Sum, Group Anagrams), database indices, caching
+
+Hash tables are the most-used data structure in modern code after the array. Once you internalize them, dozens of problems collapse from O(n²) to O(n) — usually by adding a single line: "store this in a hash map."
+
+You've already met hash maps in passing — they're what makes [Two Sum](/day2/arrays/practice_questions/two_sum) O(n), what powers [Counter](/day12/practice_questions/top_k_frequent), and what `dict` is built on in Python. This chapter goes under the hood.

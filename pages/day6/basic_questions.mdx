@@ -1,115 +1,294 @@
-import { Tabs,Steps } from "nextra/components";
-export const Tab = Tabs.Tab
+import { Tabs, Steps, Callout } from "nextra/components";
 import { ShowHideSolution } from "../../components/ShowHideSolution";
+export const Tab = Tabs.Tab;
 
-## Basic Questions
+# Basic Tree Questions
+
+Five fundamental operations on a binary tree. Every harder tree problem you'll see builds on these — get them automatic and the practice questions become routine.
+
+For all examples, assume a `TreeNode` defined as:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct TreeNode {
+        int val;
+        TreeNode* left;
+        TreeNode* right;
+        TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class TreeNode:
+        def __init__(self, val=0, left=None, right=None):
+            self.val   = val
+            self.left  = left
+            self.right = right
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class TreeNode {
+        int val;
+        TreeNode left, right;
+        TreeNode(int v) { val = v; }
+    }
+    ```
+    </Tab>
+</Tabs>
 
 <Steps>
 
-### Title of Question 1
+### 1. Inorder Traversal (Left → Root → Right)
 
-    #### Code
+For a **BST**, inorder traversal visits nodes in **sorted ascending order** — that single property powers a huge number of BST problems.
 
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void inorder(TreeNode* root) {
+        if (root == nullptr) return;
+        inorder(root->left);
+        cout << root->val << " ";
+        inorder(root->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def inorder(root):
+        if root is None:
+            return
+        inorder(root.left)
+        print(root.val, end=" ")
+        inorder(root.right)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void inorder(TreeNode root) {
+        if (root == null) return;
+        inorder(root.left);
+        System.out.print(root.val + " ");
+        inorder(root.right);
+    }
+    ```
+    </Tab>
+</Tabs>
 
-        ```
+**Time: O(n)** — every node visited once. **Space: O(h)** for the recursion stack, where `h` is the tree's height.
 
-        </Tab>
+### 2. Preorder Traversal (Root → Left → Right)
 
-        <Tab>
-        ```python copy
+Useful when you need to **process the root first** — e.g. serializing a tree, copying a tree, computing a path from root to anywhere.
 
-        ```
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void preorder(TreeNode* root) {
+        if (root == nullptr) return;
+        cout << root->val << " ";
+        preorder(root->left);
+        preorder(root->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def preorder(root):
+        if root is None:
+            return
+        print(root.val, end=" ")
+        preorder(root.left)
+        preorder(root.right)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void preorder(TreeNode root) {
+        if (root == null) return;
+        System.out.print(root.val + " ");
+        preorder(root.left);
+        preorder(root.right);
+    }
+    ```
+    </Tab>
+</Tabs>
 
-        </Tab>
+### 3. Postorder Traversal (Left → Right → Root)
 
-        #### Explanation
+The right choice when you need to **process children before the parent** — e.g. computing a node's height (need both children's heights first), deleting a tree (free children, then the root).
 
-        1.
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void postorder(TreeNode* root) {
+        if (root == nullptr) return;
+        postorder(root->left);
+        postorder(root->right);
+        cout << root->val << " ";
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def postorder(root):
+        if root is None:
+            return
+        postorder(root.left)
+        postorder(root.right)
+        print(root.val, end=" ")
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void postorder(TreeNode root) {
+        if (root == null) return;
+        postorder(root.left);
+        postorder(root.right);
+        System.out.print(root.val + " ");
+    }
+    ```
+    </Tab>
+</Tabs>
 
-        #### Analysis
+<Callout type="info">
+    All three traversals are the same algorithm — just the position of the "visit" statement changes. **Pre** = visit first, **In** = visit middle, **Post** = visit last. The recursion stack handles the rest.
+</Callout>
 
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
+### 4. Height of a Binary Tree
 
-    ### Title of Question 2
+A tree's height is the longest path from the root to any leaf. **Postorder fits this naturally**: a node's height depends on its children's heights.
 
-    #### Code
+```text
+height(node) = 0                                    if node is null
+             = 1 + max(height(left), height(right)) otherwise
+```
 
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int height(TreeNode* root) {
+        if (root == nullptr) return 0;
+        return 1 + max(height(root->left), height(root->right));
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def height(root):
+        if root is None:
+            return 0
+        return 1 + max(height(root.left), height(root.right))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int height(TreeNode root) {
+        if (root == null) return 0;
+        return 1 + Math.max(height(root.left), height(root.right));
+    }
+    ```
+    </Tab>
+</Tabs>
 
-        ```
+**Time: O(n)** — touch every node once. **Space: O(h)** for the call stack.
 
-        </Tab>
+### 5. Count the Nodes
 
-        <Tab>
-        ```python copy
+Same recursive shape. Each node contributes 1 plus whatever the subtrees contribute.
 
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1.
-
-        #### Analysis
-
-        - Time Complexity: `O(log n)`
-        - Space Complexity: `O(log n)`
-    </Tabs>
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int countNodes(TreeNode* root) {
+        if (root == nullptr) return 0;
+        return 1 + countNodes(root->left) + countNodes(root->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def count_nodes(root):
+        if root is None:
+            return 0
+        return 1 + count_nodes(root.left) + count_nodes(root.right)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int countNodes(TreeNode root) {
+        if (root == null) return 0;
+        return 1 + countNodes(root.left) + countNodes(root.right);
+    }
+    ```
+    </Tab>
+</Tabs>
 
 </Steps>
 
-{/* home work problems */}
+## The pattern to notice
 
-> **Note**: Once you have understood the above examples, try to solve the following problems on your own.
+Every solution above has the same shape:
 
-### Extra Problems
+```text
+solve(node):
+    if node is null:
+        return base value
+    left_answer  = solve(node.left)
+    right_answer = solve(node.right)
+    return combine(node, left_answer, right_answer)
+```
 
-1.  Problem 1 title
+Three questions: **base case for null**, **recursive call on each child**, **how to combine**. Once you have those, the tree problem is written.
 
-<ShowHideSolution>
+This is the same three-question recipe from [Day 5 — Thinking Recursively](/day5/thinking_recursively), applied to trees. The recursion does all the bookkeeping; you only describe one level.
 
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
+## Extra problems
 
-        ```
+Try these on your own. Each is a 5-line variation on the templates above.
 
-        </Tab>
-
-        <Tab>
-        ```python copy
-
-        ```
-        </Tab>
-    </Tabs>
-
-</ShowHideSolution>
-
-2. Problem 2 title
+**Find the maximum value in a binary tree.**
 
 <ShowHideSolution>
 
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-
-        ```
-        </Tab>
-    </Tabs>
+```python copy
+def max_value(root):
+    if root is None:
+        return float('-inf')
+    return max(root.val, max_value(root.left), max_value(root.right))
+```
 
 </ShowHideSolution>
+
+**Sum all values in a binary tree.**
+
+<ShowHideSolution>
+
+```python copy
+def sum_tree(root):
+    if root is None:
+        return 0
+    return root.val + sum_tree(root.left) + sum_tree(root.right)
+```
+
+</ShowHideSolution>
+
+**Count leaf nodes (nodes with no children).**
+
+<ShowHideSolution>
+
+```python copy
+def count_leaves(root):
+    if root is None:
+        return 0
+    if root.left is None and root.right is None:
+        return 1
+    return count_leaves(root.left) + count_leaves(root.right)
+```
+
+</ShowHideSolution>
+
+Ready for the harder versions? Head to **Practice Questions**.

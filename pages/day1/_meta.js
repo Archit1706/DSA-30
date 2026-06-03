@@ -1,6 +1,5 @@
 export default {
-    "index": "TODO",
+    "index": "Overview",
     "introduction": "Introduction",
     "practice_questions": "Practice Questions"
 }
-

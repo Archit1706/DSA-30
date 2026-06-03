@@ -1,0 +1,122 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Balanced Binary Tree <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a binary tree, determine if it is **height-balanced** — a tree where the depths of every node's two subtrees differ by **at most 1**.
+
+#### Examples
+
+```py
+> Case 1: balanced            > Case 2: NOT balanced
+        3                              1
+       / \                            / \
+      9  20                          2   2
+         / \                        / \
+        15  7                      3   3
+                                  / \
+                                 4   4
+    Output: true                Output: false
+                                # The root's left subtree has height 4 while
+                                # its right subtree has height 1.
+```
+
+#### Constraints
+
+- Solve in **O(n)** time — the naive solution is O(n²) and will TLE on skewed trees.
+
+#### The naive O(n²) approach
+
+Walk every node; for each node, compute its left height and right height separately and check the difference.
+
+```python copy
+def is_balanced_naive(root):
+    if root is None: return True
+    def height(node):
+        if node is None: return 0
+        return 1 + max(height(node.left), height(node.right))
+    return (abs(height(root.left) - height(root.right)) <= 1
+            and is_balanced_naive(root.left)
+            and is_balanced_naive(root.right))
+```
+
+For each node we call `height`, which is O(n). Across n nodes, that's **O(n²)** worst case — and on a long skewed tree it bites hard.
+
+#### The O(n) trick: combine the checks
+
+The right way: **compute the height once, but make the height function also report whether the subtree is balanced.** A single bottom-up post-order pass.
+
+The convention: return the height if balanced, return `-1` (a sentinel for "imbalanced") otherwise. Once any subtree reports `-1`, the whole tree is unbalanced — short-circuit up.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int check(TreeNode* root) {
+        if (root == nullptr) return 0;
+        int left = check(root->left);
+        if (left == -1) return -1;
+        int right = check(root->right);
+        if (right == -1) return -1;
+        if (abs(left - right) > 1) return -1;
+        return 1 + max(left, right);
+    }
+
+    bool isBalanced(TreeNode* root) {
+        return check(root) != -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_balanced(root):
+        def check(node):
+            if node is None: return 0
+            left = check(node.left)
+            if left == -1: return -1
+            right = check(node.right)
+            if right == -1: return -1
+            if abs(left - right) > 1: return -1
+            return 1 + max(left, right)
+        return check(root) != -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isBalanced(TreeNode root) {
+        return check(root) != -1;
+    }
+
+    private int check(TreeNode root) {
+        if (root == null) return 0;
+        int left = check(root.left);
+        if (left == -1) return -1;
+        int right = check(root.right);
+        if (right == -1) return -1;
+        if (Math.abs(left - right) > 1) return -1;
+        return 1 + Math.max(left, right);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The trick to remember:** when a "predicate" recursion needs the same information that "compute X" recursion produces, **fuse them** — return `X` on success and a sentinel on failure. This avoids doing the same traversal twice.
+</Callout>
+
+#### Why it's O(n)
+
+Each node is visited **once**. The `check` function returns the height of the subtree, and the balance check is O(1) at each node. Total work: O(n).
+
+Compare to the naive version where computing `height` is itself O(n), invoked at every node — O(n²).
+
+#### Analysis
+
+| Approach        | Time    | Space   |
+| :-------------- | :-----: | :-----: |
+| Naive (per-node height) | O(n²) | O(h) |
+| **Fused check** | **O(n)** | O(h) |
+
+The "compute and check in one pass" pattern shows up again in **Maximum Depth**, **Diameter of Binary Tree**, and **Validate BST** — all problems where naive splits into two passes but a single traversal does it.

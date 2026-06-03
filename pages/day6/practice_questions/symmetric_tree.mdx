@@ -1,0 +1,124 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Symmetric Tree <DifficultyBadge level="easy" />
+
+#### Description
+
+Given the root of a binary tree, check whether it is a **mirror of itself** around its center.
+
+#### Examples
+
+```py
+> Case 1:                       > Case 2:
+        1                                1
+       / \                              / \
+      2   2                            2   2
+     / \ / \                            \   \
+    3  4 4  3                            3   3
+    Output: true                       Output: false
+```
+
+#### Intuition
+
+This looks like *Same Tree* — but instead of comparing two trees against each other, we compare the tree against its mirror.
+
+The trick: define a helper `isMirror(left, right)` that checks two subtrees are mirror images. The recursive case becomes:
+
+- The current pair's values must match.
+- The **left's left subtree** must mirror the **right's right subtree**.
+- The **left's right subtree** must mirror the **right's left subtree**.
+
+Notice the swap in the recursive calls — that's where "mirror" comes from.
+
+```text
+        1
+       / \
+      2   2
+     / \ / \
+    3  4 4  3
+
+isMirror(2, 2):
+    2 == 2 ✓
+    isMirror(2.left=3, 2.right=3)  ✓
+    isMirror(2.right=4, 2.left=4)  ✓
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isMirror(TreeNode* a, TreeNode* b) {
+        if (a == nullptr && b == nullptr) return true;
+        if (a == nullptr || b == nullptr) return false;
+        return a->val == b->val
+            && isMirror(a->left,  b->right)
+            && isMirror(a->right, b->left);
+    }
+
+    bool isSymmetric(TreeNode* root) {
+        if (root == nullptr) return true;
+        return isMirror(root->left, root->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_symmetric(root):
+        def is_mirror(a, b):
+            if a is None and b is None: return True
+            if a is None or  b is None: return False
+            return (a.val == b.val
+                    and is_mirror(a.left,  b.right)
+                    and is_mirror(a.right, b.left))
+        return root is None or is_mirror(root.left, root.right)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isSymmetric(TreeNode root) {
+        if (root == null) return true;
+        return isMirror(root.left, root.right);
+    }
+
+    private boolean isMirror(TreeNode a, TreeNode b) {
+        if (a == null && b == null) return true;
+        if (a == null || b == null) return false;
+        return a.val == b.val
+            && isMirror(a.left,  b.right)
+            && isMirror(a.right, b.left);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The whole twist** versus *Same Tree* is the swap `a.left ↔ b.right` and `a.right ↔ b.left`. That's the entire difference between "equal" and "mirror." Once you see the pattern, both problems collapse into the same template.
+</Callout>
+
+#### Iterative alternative (using a queue)
+
+You can also solve this iteratively by pushing pairs `(left, right)` into a queue and processing two at a time. Useful when you want to avoid recursion entirely (e.g. extremely deep trees that would stack-overflow).
+
+```python copy
+from collections import deque
+
+def is_symmetric(root):
+    if root is None: return True
+    q = deque([(root.left, root.right)])
+    while q:
+        a, b = q.popleft()
+        if a is None and b is None: continue
+        if a is None or  b is None: return False
+        if a.val != b.val: return False
+        q.append((a.left,  b.right))
+        q.append((a.right, b.left))
+    return True
+```
+
+#### Analysis
+
+- **Time:** **O(n)** — every node visited once.
+- **Space:** **O(h)** for the recursion stack, where `h` is the height.

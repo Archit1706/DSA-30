@@ -1,7 +1,19 @@
-# Day 7
+import { Callout } from "nextra/components";
 
-### Hello peeps! Welcome to Day 7 - Heaps and Priority Queues
+# Day 7 — Heaps and Priority Queues
 
-> What we learn today?
+<Callout type="info">
+    This chapter is being written. Check back soon!
+</Callout>
 
--
+## What you'll learn here
+
+- **Binary heaps** — the array-backed tree structure where the parent is always smaller (min-heap) or larger (max-heap) than its children
+- The four core operations: **`push`, `pop`, `peek`, `heapify`** — all in O(log n) or better
+- The surprising **O(n) build-heap** result and why it isn't O(n log n)
+- **Priority queues** — the universal API that heaps implement under the hood
+- Real applications: **Dijkstra's algorithm, A\*, Huffman coding, top-K problems, median maintenance**
+
+You already saw heaps in passing on [Day 12 — Heap Sort](/day12/heap_sort) and in [Day 4 — Queue Variants](/day4/queues/variants). This chapter goes deep on the data structure itself — how it works, how to build one from scratch in C++/Python/Java, and the problems where it's the right tool.
+
+Once you have heaps in your toolbox, the door opens to graph algorithms ([Day 21 — Shortest Paths](/day21)) and a whole family of "top-K" interview problems.

@@ -1,29 +1,27 @@
-# Day 6
+import { Callout } from "nextra/components";
 
-### Hello peeps! Welcome to Day 6 - Binary Trees and BST
+# Day 6 — Binary Trees and BSTs
 
-> What we learn today?
+Today we move from linear data (arrays, lists, stacks, queues) to **hierarchical data**. Trees are the structure behind file systems, syntax parsers, expression evaluators, decision processes — anything where one thing branches into many.
 
-1. Binary Trees:
+We'll focus on the workhorse of the family: the **binary tree** (every node has at most two children) and its sorted variant, the **Binary Search Tree (BST)**.
 
--   A binary tree is a hierarchical structure where each node has at most two children (left and right).
--   Terminology: Root, leaf, depth, height, etc.
--   Types of Binary Trees:
-    -   Full Binary Tree: Every node has either 0 or 2 children.
-    -   Complete Binary Tree: All levels are fully filled except possibly the last level.
-    -   Perfect Binary Tree: All internal nodes have 2 children and all leaves are at the same level.
-    -   Balanced Binary Tree: Ensures the height of the tree is minimized.
+## What you'll learn today
 
-2. Binary Search Trees (BSTs):
+- The vocabulary of trees — root, leaf, depth, height, ancestor, descendant
+- Common **binary tree types**: full, complete, perfect, balanced, BST, AVL, heap
+- How a **BST** keeps elements sorted automatically and gives you O(log n) search
+- The three **traversal orders** every interview asks about: inorder, preorder, postorder
+- Four classic problems to lock in the recursion-on-trees pattern
 
--   A binary tree with the property that each node's left child is less than the node, and each right child is greater.
--   Operations: Insert, search, delete.
--   Applications: Efficient searching, range queries, and ordered data storage.
+<Callout type="info">
+    Trees are where recursion really shines. Almost every tree operation has a clean recursive solution: "do something with this node, then recursively do it for the left and right subtrees." Day 5 prepared you for this.
+</Callout>
 
-3. Practice Questions:
+## Roadmap
 
--   Given a binary tree, find its height.
--   Implement a binary search tree with operations: insertion, search, and deletion.
--   Implement a binary tree and perform in-order, pre-order, and post-order traversals.
--   Check if a given binary tree is a binary search tree.
--   Given a binary tree, print all nodes at a given depth.
+1. **[Introduction](/day6/introduction)** — terminology, all the binary tree types, how to represent a tree in code, BST operations.
+2. **[Basic Questions](/day6/basic_questions)** — fundamental tree operations: traversals, height, node count, max value.
+3. **[Practice Questions](/day6/practice_questions)** — four classic interview problems: Same Tree, Symmetric Tree, Balanced Binary Tree, Convert Sorted Array to BST.
+
+Up next: **Heaps** on [Day 7](/day7) — which are also binary trees, with one extra property that turns them into priority queues.
