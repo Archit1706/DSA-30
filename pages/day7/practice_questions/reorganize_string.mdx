@@ -1,0 +1,189 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Reorganize String <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s`, rearrange its characters so that **no two adjacent characters are the same**. Return any valid rearrangement, or `""` if it's impossible.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  s = "aab"
+    Output: "aba"
+
+> Case 2:
+    Input:  s = "aaab"
+    Output: ""        # impossible — too many 'a's
+
+> Case 3:
+    Input:  s = "aabbcc"
+    Output: "abcabc"  (or "abacbc", "bacabc", many valid answers)
+```
+
+#### Constraints
+
+- `1 <= s.length <= 500`
+- `s` consists of lowercase English letters only.
+
+#### Feasibility check
+
+Before doing any work: if any character's count exceeds `(n + 1) / 2`, it's impossible. Why? In a length-n string, the most-frequent character has to be placed in every other position — at most `ceil(n / 2)` slots. Any more and adjacency is forced.
+
+```text
+"aaab" → n=4, count(a)=3 > 2 → impossible
+"aabb" → n=4, max count=2 = 2 → possible
+```
+
+#### The greedy with a max-heap
+
+Walk through the string output position-by-position. At each step, **place the character with the highest remaining count** — except not the same character as the last one placed.
+
+Without the "not the same as last" guard, you'd happily place "aaa" at the front. With the guard, the second-most-frequent character has to take the slot when the most-frequent is on cooldown.
+
+A natural implementation:
+
+```text
+build max-heap of (count, char)
+prev_char, prev_count = sentinel
+
+while heap is not empty:
+    pop (count, char)   — most frequent right now
+    append char to result
+    if prev_count > 0:
+        push (prev_count, prev_char) back into the heap
+    prev_count = count - 1
+    prev_char = char
+
+return result  (or "" if length < n — meaning we got stuck)
+```
+
+The trick is the **one-step delay**: we use a "previous" slot that holds the character we *just* placed. It doesn't go back into the heap until *next* iteration — which guarantees we never pick it consecutively.
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import Counter
+    import heapq
+
+    def reorganize_string(s):
+        n = len(s)
+        counts = Counter(s)
+        if max(counts.values()) > (n + 1) // 2:
+            return ""
+
+        heap = [(-c, ch) for ch, c in counts.items()]    # max-heap via negation
+        heapq.heapify(heap)
+
+        result = []
+        prev_count, prev_char = 0, ""
+
+        while heap:
+            count, ch = heapq.heappop(heap)
+            result.append(ch)
+            if prev_count < 0:
+                heapq.heappush(heap, (prev_count, prev_char))
+            prev_count, prev_char = count + 1, ch        # count moves toward 0 (was negative)
+
+        return "".join(result)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <unordered_map>
+    #include <string>
+    using namespace std;
+
+    string reorganizeString(string s) {
+        int n = s.size();
+        unordered_map<char, int> counts;
+        for (char c : s) counts[c]++;
+
+        int maxCount = 0;
+        for (auto& [_, c] : counts) maxCount = max(maxCount, c);
+        if (maxCount > (n + 1) / 2) return "";
+
+        priority_queue<pair<int, char>> heap;  // max-heap by count
+        for (auto& [ch, c] : counts) heap.push({c, ch});
+
+        string result;
+        pair<int, char> prev = {0, '#'};
+
+        while (!heap.empty()) {
+            auto [count, ch] = heap.top(); heap.pop();
+            result += ch;
+            if (prev.first > 0) heap.push(prev);
+            prev = {count - 1, ch};
+        }
+
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public String reorganizeString(String s) {
+        int n = s.length();
+        Map<Character, Integer> counts = new HashMap<>();
+        for (char c : s.toCharArray()) counts.merge(c, 1, Integer::sum);
+
+        int maxCount = Collections.max(counts.values());
+        if (maxCount > (n + 1) / 2) return "";
+
+        PriorityQueue<int[]> heap = new PriorityQueue<>((a, b) -> b[0] - a[0]);
+        for (var e : counts.entrySet()) heap.offer(new int[]{e.getValue(), e.getKey()});
+
+        StringBuilder result = new StringBuilder();
+        int[] prev = {0, 0};
+
+        while (!heap.isEmpty()) {
+            int[] cur = heap.poll();
+            result.append((char) cur[1]);
+            if (prev[0] > 0) heap.offer(prev);
+            prev = new int[]{cur[0] - 1, cur[1]};
+        }
+
+        return result.toString();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why is the greedy correct?** The most-frequent-remaining character is the one most likely to cause a conflict later — it has the most "demand" for non-adjacent slots. Placing it as early as possible (subject to "not adjacent to the previous one") reduces its future risk. The feasibility check guarantees we'll never get cornered.
+</Callout>
+
+#### Alternative: position-fill trick
+
+A non-heap solution: sort characters by count, then **place the most-frequent in the even positions first** (0, 2, 4, ...) and wrap to odd positions (1, 3, 5, ...) when the even spots run out. This guarantees no two same characters are adjacent.
+
+```python copy
+def reorganize_string_alt(s):
+    n = len(s)
+    counts = Counter(s)
+    if max(counts.values()) > (n + 1) // 2: return ""
+    sorted_chars = sorted(counts.items(), key=lambda x: -x[1])
+    result = [''] * n
+    idx = 0
+    for ch, cnt in sorted_chars:
+        for _ in range(cnt):
+            result[idx] = ch
+            idx += 2
+            if idx >= n: idx = 1
+    return "".join(result)
+```
+
+Cleaner code, O(n + k log k) instead of O(n log k) per character — but the heap version generalizes to [Task Scheduler](/day7/practice_questions/task_scheduler), where positions can't be pre-counted.
+
+#### Analysis
+
+- **Time:** **O(n log k)** where `k` is the number of distinct characters (k ≤ 26 for lowercase English).
+- **Space:** **O(k)** for the heap and counts.

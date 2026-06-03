@@ -1,0 +1,184 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sort Characters by Frequency <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s`, return a new string where its characters are sorted in **decreasing order of frequency**. Characters with the same frequency may appear in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  s = "tree"
+    Output: "eert"     (or "eetr" — 'e' appears twice, others once)
+
+> Case 2:
+    Input:  s = "cccaaa"
+    Output: "aaaccc"   (or "cccaaa")
+
+> Case 3:
+    Input:  s = "Aabb"
+    Output: "bbAa"     (or "bbaA" — 'A' and 'a' are distinct characters)
+```
+
+#### Constraints
+
+- `1 <= s.length <= 5 · 10^5`
+- `s` consists of uppercase and lowercase English letters and digits.
+
+#### Approach 1: Counter + sort
+
+The straightforward solution:
+
+1. Count frequencies.
+2. Sort the (count, char) pairs by count descending.
+3. Emit each character `count` times.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import Counter
+
+    def frequency_sort(s):
+        counts = Counter(s)
+        # Most common returns pairs sorted by count desc
+        return "".join(ch * cnt for ch, cnt in counts.most_common())
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <string>
+    #include <unordered_map>
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    string frequencySort(string s) {
+        unordered_map<char, int> counts;
+        for (char c : s) counts[c]++;
+        vector<pair<int, char>> pairs(counts.size());
+        int i = 0;
+        for (auto& [ch, c] : counts) pairs[i++] = {c, ch};
+        sort(pairs.begin(), pairs.end(), greater<>());
+        string result;
+        for (auto& [c, ch] : pairs) result.append(c, ch);
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public String frequencySort(String s) {
+        Map<Character, Integer> counts = new HashMap<>();
+        for (char c : s.toCharArray()) counts.merge(c, 1, Integer::sum);
+        List<Map.Entry<Character, Integer>> entries = new ArrayList<>(counts.entrySet());
+        entries.sort((a, b) -> b.getValue() - a.getValue());
+        StringBuilder result = new StringBuilder();
+        for (var e : entries) {
+            for (int i = 0; i < e.getValue(); i++) result.append(e.getKey());
+        }
+        return result.toString();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n + k log k) where k is the number of distinct characters. **Space:** O(k).
+
+#### Approach 2: Max-heap
+
+Same idea, using a heap instead of sort. The heap version is **strictly worse** for this problem (no streaming, no top-K, no benefit from O(log k) per pop) — but it's a useful exercise in the heap pattern.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import Counter
+    import heapq
+
+    def frequency_sort(s):
+        counts = Counter(s)
+        heap = [(-cnt, ch) for ch, cnt in counts.items()]
+        heapq.heapify(heap)
+        result = []
+        while heap:
+            cnt, ch = heapq.heappop(heap)
+            result.append(ch * (-cnt))
+        return "".join(result)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    string frequencySort(string s) {
+        unordered_map<char, int> counts;
+        for (char c : s) counts[c]++;
+        priority_queue<pair<int, char>> heap;
+        for (auto& [ch, c] : counts) heap.push({c, ch});
+        string result;
+        while (!heap.empty()) {
+            auto [c, ch] = heap.top(); heap.pop();
+            result.append(c, ch);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String frequencySort(String s) {
+        Map<Character, Integer> counts = new HashMap<>();
+        for (char c : s.toCharArray()) counts.merge(c, 1, Integer::sum);
+        PriorityQueue<int[]> heap = new PriorityQueue<>((a, b) -> b[0] - a[0]);
+        for (var e : counts.entrySet()) heap.offer(new int[]{e.getValue(), e.getKey()});
+        StringBuilder result = new StringBuilder();
+        while (!heap.isEmpty()) {
+            int[] cur = heap.poll();
+            for (int i = 0; i < cur[0]; i++) result.append((char) cur[1]);
+        }
+        return result.toString();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Approach 3: Bucket sort — O(n)
+
+Frequencies are bounded by `n` (no character can appear more than `n` times). Use buckets indexed by count.
+
+```python copy
+def frequency_sort(s):
+    counts = Counter(s)
+    buckets = [[] for _ in range(len(s) + 1)]    # bucket[i] = chars with count i
+    for ch, cnt in counts.items():
+        buckets[cnt].append(ch)
+    result = []
+    for cnt in range(len(buckets) - 1, 0, -1):
+        for ch in buckets[cnt]:
+            result.append(ch * cnt)
+    return "".join(result)
+```
+
+**Time:** O(n). **Space:** O(n). Optimal — but only beats Counter+sort when k is comparable to n (i.e., lots of distinct characters with similar counts).
+
+#### Approach comparison
+
+| Approach            | Time             | Space   | When to use                         |
+| :------------------ | :--------------: | :-----: | :---------------------------------- |
+| Counter + sort      | O(n + k log k)   | O(k)    | Default — short, clear              |
+| Max-heap            | O(n + k log k)   | O(k)    | Practicing heap patterns            |
+| **Bucket sort**     | **O(n)**         | O(n)    | When you want optimal time          |
+
+For most interview answers, Counter + sort is the cleanest. Mention bucket sort as the O(n) optimization if asked to do better.
+
+<Callout type="info">
+    **The frequency-count + heap shape generalizes massively.** Top K Frequent ([day 7](/day7/practice_questions/top_k_frequent)), Reorganize String, Task Scheduler, K Most Common Words, Find K Frequent in a Stream — all start with the same `Counter(s)` line. Once you've seen the template, you'll recognize it at a glance.
+</Callout>
+
+#### Analysis (best approach)
+
+- **Time:** **O(n)** with bucket sort, **O(n + k log k)** with sort or heap.
+- **Space:** **O(n)** (bucket) or **O(k)** (sort / heap).

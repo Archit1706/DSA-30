@@ -1,0 +1,188 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Task Scheduler <DifficultyBadge level="medium" />
+
+#### Description
+
+You're given a list of CPU tasks represented by characters, and an integer `n` representing the **cooldown** — the minimum time between two tasks of the same type. Each task takes one unit of time. Between two tasks of the same kind, the CPU can either run a *different* task or idle.
+
+Return the **minimum total time** to finish all tasks.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  tasks = ["A","A","A","B","B","B"], n = 2
+    Output: 8
+    # One valid schedule: A B idle A B idle A B
+    # (after each A, must wait 2 ticks before the next A)
+
+> Case 2:
+    Input:  tasks = ["A","C","A","B","D","B"], n = 1
+    Output: 6
+    # A B A C D B  (or other reorderings — no idle slots needed)
+
+> Case 3:
+    Input:  tasks = ["A","A","A","B","B","B"], n = 0
+    Output: 6
+    # n = 0 → no cooldown, schedule any order
+```
+
+#### Constraints
+
+- `1 <= tasks.length <= 10^4`
+- `0 <= n <= 100`
+
+#### The greedy intuition
+
+At every clock tick, ask: **of the tasks I'm allowed to run (not on cooldown), which has the highest remaining count?** Run that one. If nothing is available, idle.
+
+The "highest remaining count" → max-heap query.
+The "not on cooldown" constraint → tasks come off cooldown after n more ticks → a queue of waiting tasks with their available time.
+
+This is the exact same shape as [Reorganize String](/day7/practice_questions/reorganize_string), just with a configurable cooldown instead of "1".
+
+#### Approach 1: Max-heap + cooldown queue (simulation)
+
+```text
+counts ← Counter(tasks)
+heap ← max-heap of counts
+cooldown ← queue of (count_remaining, ready_time)
+time ← 0
+
+while heap is non-empty or cooldown is non-empty:
+    time += 1
+    if heap is non-empty:
+        c ← pop heap                       # run one
+        if c > 1: cooldown.push((c - 1, time + n))
+    while cooldown is non-empty and cooldown.front().ready_time == time:
+        heap.push(cooldown.popleft().count_remaining)
+return time
+```
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import Counter, deque
+    import heapq
+
+    def least_interval(tasks, n):
+        counts = list(Counter(tasks).values())
+        heap = [-c for c in counts]           # max-heap via negation
+        heapq.heapify(heap)
+        cooldown = deque()                    # (count_remaining_negated, ready_time)
+        time = 0
+
+        while heap or cooldown:
+            time += 1
+            if heap:
+                c = heapq.heappop(heap) + 1   # use one (less negative)
+                if c < 0:
+                    cooldown.append((c, time + n))
+            while cooldown and cooldown[0][1] == time:
+                heapq.heappush(heap, cooldown.popleft()[0])
+        return time
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    #include <unordered_map>
+    using namespace std;
+
+    int leastInterval(vector<char>& tasks, int n) {
+        unordered_map<char, int> counts;
+        for (char c : tasks) counts[c]++;
+        priority_queue<int> heap;
+        for (auto& [_, c] : counts) heap.push(c);
+        queue<pair<int, int>> cooldown;
+        int time = 0;
+        while (!heap.empty() || !cooldown.empty()) {
+            time++;
+            if (!heap.empty()) {
+                int c = heap.top() - 1; heap.pop();
+                if (c > 0) cooldown.push({c, time + n});
+            }
+            while (!cooldown.empty() && cooldown.front().second == time) {
+                heap.push(cooldown.front().first); cooldown.pop();
+            }
+        }
+        return time;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public int leastInterval(char[] tasks, int n) {
+        Map<Character, Integer> counts = new HashMap<>();
+        for (char c : tasks) counts.merge(c, 1, Integer::sum);
+        PriorityQueue<Integer> heap = new PriorityQueue<>(Collections.reverseOrder());
+        heap.addAll(counts.values());
+        Queue<int[]> cooldown = new ArrayDeque<>();
+        int time = 0;
+        while (!heap.isEmpty() || !cooldown.isEmpty()) {
+            time++;
+            if (!heap.isEmpty()) {
+                int c = heap.poll() - 1;
+                if (c > 0) cooldown.offer(new int[]{c, time + n});
+            }
+            while (!cooldown.isEmpty() && cooldown.peek()[1] == time) {
+                heap.offer(cooldown.poll()[0]);
+            }
+        }
+        return time;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The cooldown queue is **always sorted by ready_time** because we insert with ready_time = time + n and we only insert in time order. So we never need a heap for the cooldown — a plain FIFO queue is enough.
+</Callout>
+
+#### Approach 2: The closed-form math trick
+
+An O(n) solution that doesn't even need a heap:
+
+Let `max_count` = the most frequent task's count, and `t` = the number of tasks tied for that count. The minimum schedule length is:
+
+```text
+answer = max(len(tasks), (max_count - 1) · (n + 1) + t)
+```
+
+**Intuition.** Place the most-frequent task at positions `0, n+1, 2(n+1), ...` — that's `max_count - 1` gaps of size `n + 1`. In each gap, fill with other tasks (or idle). The last "row" has `t` slots (one for each task tied at max_count). And the answer can never be less than `len(tasks)`, since that's the bare minimum work.
+
+```python copy
+def least_interval_math(tasks, n):
+    counts = Counter(tasks)
+    max_count = max(counts.values())
+    tied = sum(1 for v in counts.values() if v == max_count)
+    return max(len(tasks), (max_count - 1) * (n + 1) + tied)
+```
+
+This is the **interview-winning answer** — O(n) time, O(k) space, a single max-over-formula evaluation. The heap simulation is correct but unnecessary here.
+
+#### Why the math works
+
+Think of the schedule as a grid with `max_count` rows. The most-frequent task occupies one slot per row. Each row has `n + 1` slots (the slot itself + n cooldown slots). With `max_count - 1` complete rows + a partial last row of size `t`, the total slot count is `(max_count - 1) · (n + 1) + t`. If we have more tasks than fit in this grid, the extras can fill in the cooldown gaps and the answer is just `len(tasks)`.
+
+#### Analysis
+
+| Approach            | Time           | Space    |
+| :------------------ | :------------: | :------: |
+| Heap simulation     | O(N log k)     | O(k)     |
+| **Math formula**    | **O(N)**       | **O(k)** |
+
+where N = `tasks.length` and k = number of distinct task types (≤ 26).
+
+#### When to prefer which
+
+- **Math formula:** when you've recognized the pattern and trust your reasoning. Beats the heap on time *and* code size.
+- **Heap simulation:** when the problem extends to "tasks have different costs," "multiple machines," or "dynamic arrivals" — the formula breaks but the heap approach generalizes naturally.
+
+The math formula is the answer for *this* problem. The heap approach is the **template** for the family of cooldown / capacity / multi-machine variants that build on it.

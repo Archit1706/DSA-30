@@ -1,0 +1,132 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Kth Largest Element in a Stream <DifficultyBadge level="easy" />
+
+#### Description
+
+Design a class `KthLargest` that supports the online version of *Kth Largest in an Array*:
+
+- `KthLargest(int k, int[] nums)` — initialize with the integer `k` and an initial list `nums`.
+- `int add(int val)` — append `val` to the stream and return the **k-th largest** value seen so far.
+
+#### Examples
+
+```py
+> Case 1:
+    KthLargest k = new KthLargest(3, [4, 5, 8, 2])
+    k.add(3)   → 4    # values seen: [2,3,4,5,8]; 3rd largest = 4
+    k.add(5)   → 5    # values seen: [2,3,4,5,5,8]; 3rd largest = 5
+    k.add(10)  → 5    # ..., 8, 10; 3rd largest = 5
+    k.add(9)   → 8
+    k.add(4)   → 8
+```
+
+#### Constraints
+
+- `1 <= k <= 10^4`
+- `0 <= nums.length <= 10^4`
+- At most `10^4` calls to `add`.
+
+#### Why the offline solution doesn't fit
+
+The [array version](/day7/practice_questions/kth_largest) sorts or heapifies once. Here, the data **arrives in pieces** — we need an answer after every insert. Re-sorting from scratch on each call would be O(n log n) per insert, **O(n² log n)** total. Not great.
+
+#### The clean approach: a size-K min-heap maintained online
+
+Same insight as the offline problem: a **min-heap of size K** holds the K largest values seen so far. The root is the smallest of those K — that's the K-th largest. On every `add(val)`:
+
+- If the heap has fewer than K elements, push `val` unconditionally.
+- Otherwise, if `val > heap[0]`, replace the root with `val` (one push + one pop, or `heapreplace`).
+
+The answer is always `heap[0]`. Each `add` is **O(log K)** — independent of the total stream size.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    class KthLargest {
+        priority_queue<int, vector<int>, greater<int>> heap;
+        int k;
+    public:
+        KthLargest(int k, vector<int>& nums) : k(k) {
+            for (int x : nums) add(x);
+        }
+        int add(int val) {
+            if ((int)heap.size() < k) heap.push(val);
+            else if (val > heap.top()) {
+                heap.pop();
+                heap.push(val);
+            }
+            return heap.top();
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    class KthLargest:
+        def __init__(self, k, nums):
+            self.k = k
+            self.heap = []
+            for x in nums:
+                self.add(x)
+
+        def add(self, val):
+            if len(self.heap) < self.k:
+                heapq.heappush(self.heap, val)
+            elif val > self.heap[0]:
+                heapq.heapreplace(self.heap, val)
+            return self.heap[0]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.PriorityQueue;
+
+    class KthLargest {
+        private PriorityQueue<Integer> heap = new PriorityQueue<>();
+        private int k;
+
+        public KthLargest(int k, int[] nums) {
+            this.k = k;
+            for (int x : nums) add(x);
+        }
+
+        public int add(int val) {
+            if (heap.size() < k) heap.offer(val);
+            else if (val > heap.peek()) {
+                heap.poll();
+                heap.offer(val);
+            }
+            return heap.peek();
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **`heapreplace` is faster than `pop()` + `push()`.** It pops the old root and pushes the new value in **one sift-down** instead of two heap operations. Python and Java both expose this primitive (`heapreplace` in Python's `heapq`; combined `poll() + offer()` in Java's `PriorityQueue` — Java doesn't have a direct equivalent, so the manual two-step is what people use).
+</Callout>
+
+#### Why a min-heap (not max) for the K *largest*?
+
+Same inversion as the offline version. The min-heap holds the K winners (the K largest seen so far) and exposes the *smallest of the winners* — which is the K-th largest. Anything smaller than that root is clearly not in the top K; anything larger evicts the root.
+
+If you used a max-heap of all elements, `add` would be O(log n) (n grows unboundedly) and finding the K-th largest would require popping K-1 times then peeking — fast but destructive. The size-K min-heap is strictly better.
+
+#### Analysis
+
+- **Time:** **O(log K) per `add`**, regardless of stream size.
+- **Space:** **O(K)** — the heap holds exactly K elements at steady state.
+
+A nice side effect: memory is bounded. You can run this on a billion-element stream without exhausting RAM.

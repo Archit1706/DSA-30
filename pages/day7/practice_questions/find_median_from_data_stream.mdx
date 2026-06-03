@@ -1,0 +1,179 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find Median from Data Stream <DifficultyBadge level="hard" />
+
+#### Description
+
+The **median** of a sorted list is the middle value if the list has odd length, or the average of the two middle values if even. Design a data structure that supports:
+
+- `addNum(int num)` — add an integer from the stream.
+- `double findMedian()` — return the median of all numbers seen so far.
+
+Each `addNum` should be efficient (better than re-sorting), and `findMedian` should be O(1).
+
+#### Examples
+
+```py
+> Case 1:
+    add(1);  add(2);  findMedian()  → 1.5
+    add(3);          findMedian()  → 2.0
+    add(4);          findMedian()  → 2.5
+    add(5);          findMedian()  → 3.0
+```
+
+#### Constraints
+
+- `-10^5 <= num <= 10^5`
+- At most `5 · 10^4` calls to each method.
+- **Follow-up:** What if all numbers are between 0 and 100? What if 99% of them are?
+
+#### Why naive approaches fail
+
+| Approach                   | `addNum`        | `findMedian` |
+| :------------------------- | :-------------: | :----------: |
+| Unsorted list              | O(1)            | O(n)         |
+| Sorted list (insertion)    | O(n) — shift    | O(1)         |
+| Balanced BST                | O(log n)        | O(log n)     |
+| **Two heaps**              | **O(log n)**    | **O(1)**     |
+
+For high call counts, two heaps win on both axes.
+
+#### The two-heap pattern
+
+This is the canonical use of the [two-heap pattern](/day7/two_heaps). Two heaps split the values:
+
+- **Max-heap `lo`** — holds the smaller half. Top = largest of the smaller half.
+- **Min-heap `hi`** — holds the larger half. Top = smallest of the larger half.
+
+Two invariants:
+
+1. **Every value in `lo` ≤ every value in `hi`.** (Partition is correct.)
+2. **`lo.size()` is either equal to `hi.size()` or one greater.** (Convention: max-heap holds the extra.)
+
+When both hold, the median is:
+
+- `lo.top()` if `lo` has the extra element.
+- `(lo.top() + hi.top()) / 2.0` if sizes are equal.
+
+#### The dance
+
+Every insert is three lines:
+
+```text
+1. push num onto lo (max-heap)
+2. move lo.top() to hi (min-heap)        # enforces invariant 1
+3. if hi.size() > lo.size(): move hi.top() back to lo  # enforces invariant 2
+```
+
+Step 1 always pushes; step 2 always rebalances the partition; step 3 only fires if `hi` grew past `lo`. The three steps together guarantee both invariants no matter the input order.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    using namespace std;
+
+    class MedianFinder {
+        priority_queue<int> lo;                                  // max-heap
+        priority_queue<int, vector<int>, greater<int>> hi;       // min-heap
+    public:
+        void addNum(int num) {
+            lo.push(num);
+            hi.push(lo.top()); lo.pop();
+            if (hi.size() > lo.size()) {
+                lo.push(hi.top()); hi.pop();
+            }
+        }
+        double findMedian() {
+            if (lo.size() > hi.size()) return lo.top();
+            return (lo.top() + hi.top()) / 2.0;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    class MedianFinder:
+        def __init__(self):
+            self.lo = []                    # max-heap (negate values)
+            self.hi = []                    # min-heap
+
+        def addNum(self, num):
+            heapq.heappush(self.lo, -num)
+            heapq.heappush(self.hi, -heapq.heappop(self.lo))
+            if len(self.hi) > len(self.lo):
+                heapq.heappush(self.lo, -heapq.heappop(self.hi))
+
+        def findMedian(self):
+            if len(self.lo) > len(self.hi):
+                return -self.lo[0]
+            return (-self.lo[0] + self.hi[0]) / 2.0
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.PriorityQueue;
+    import java.util.Collections;
+
+    class MedianFinder {
+        private PriorityQueue<Integer> lo = new PriorityQueue<>(Collections.reverseOrder());
+        private PriorityQueue<Integer> hi = new PriorityQueue<>();
+
+        public void addNum(int num) {
+            lo.offer(num);
+            hi.offer(lo.poll());
+            if (hi.size() > lo.size()) {
+                lo.offer(hi.poll());
+            }
+        }
+
+        public double findMedian() {
+            if (lo.size() > hi.size()) return lo.peek();
+            return (lo.peek() + hi.peek()) / 2.0;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The order of the three steps matters.** Push to `lo` first, *then* migrate to `hi`. If you push directly to whichever heap looks emptier, you can break invariant 1 — a value smaller than `hi.top()` ending up in `hi`. Always push to one fixed heap and let the rebalance dance maintain the partition.
+</Callout>
+
+#### Trace on `[1, 2, 3, 4, 5]`
+
+```text
+add(1):  lo=[1],     hi=[]      → median = 1
+add(2):  lo=[1],     hi=[2]     → median = (1+2)/2 = 1.5
+add(3):  lo=[2,1],   hi=[3]     → median = 2
+add(4):  lo=[2,1],   hi=[3,4]   → median = (2+3)/2 = 2.5
+add(5):  lo=[3,1,2], hi=[4,5]   → median = 3
+```
+
+(Heap arrays aren't sorted; only the tops are positioned. The displayed order is one valid array representation.)
+
+#### Follow-up: bounded value range (0..100)
+
+If we know values are bounded by a small integer range, we can use a **bucket count array** of size 101. Maintain the running total count, then on `findMedian()` walk the cumulative count to find the median position.
+
+- `addNum`: O(1)
+- `findMedian`: O(range) = O(101) = O(1) in practice
+
+For values bounded by 100, this beats two heaps. For unbounded values, two heaps remain the best general-purpose solution.
+
+#### Follow-up: 99% of numbers in 0..100
+
+A hybrid: bucket count for the 99% within range, plus a balanced data structure (e.g., another heap or sorted list) for the 1% outliers. On `findMedian`, account for both. This is the kind of trick interviewers reward when they push you with the "what if" follow-ups.
+
+#### Analysis
+
+- **Time:** **O(log n) per addNum**, **O(1) per findMedian**.
+- **Space:** **O(n)** — both heaps together hold all numbers ever added.
+
+Find Median is the **flagship problem** for the two-heap pattern. Once you know the dance, it generalizes to sliding-window median (with lazy deletion), order-statistic queries, and any "track the middle of a moving range" problem.

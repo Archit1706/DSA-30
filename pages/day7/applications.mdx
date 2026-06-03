@@ -1,0 +1,168 @@
+import { Callout, Tabs } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Where Heaps Actually Earn Their Keep
+
+Heaps aren't just an interview prop. They're load-bearing infrastructure for some of the most-used algorithms in computer science. This page surveys the real systems where a heap is the right answer — knowing these gives you the **pattern recognition** to spot heaps in problems that don't say "heap" in their description.
+
+## 1. Dijkstra's algorithm — shortest paths with a priority queue
+
+Dijkstra's shortest-path algorithm needs to repeatedly ask: **"which unvisited node has the smallest tentative distance from the source?"** That's a textbook min-heap query.
+
+```text
+While there are unvisited nodes:
+    pop the node with smallest tentative distance      # min-heap pop
+    relax its outgoing edges                            # update neighbours
+    push updated neighbours back into the heap          # min-heap push
+```
+
+Without the heap: scan all unvisited nodes each iteration — O(V²) total.
+With the heap: O((V + E) log V) total — dramatically faster on sparse graphs.
+
+Every navigation app you've used computes routes with Dijkstra (or its A\* cousin) backed by a min-heap. We'll cover this in detail on [Day 21 — Shortest Paths](/day21).
+
+<Callout type="info">
+    **Lazy deletion trick.** Dijkstra's standard heap doesn't support "update the priority of an existing node." The fix: push a new entry with the updated distance, and when you pop, check whether the popped distance matches the *current* known distance. If not, skip — it's a stale duplicate. This trick is faster than implementing a decrease-key operation and is what every competitive-programming Dijkstra does.
+</Callout>
+
+## 2. A\* search — Dijkstra plus a heuristic
+
+A\* is Dijkstra with a smarter priority: instead of "smallest distance from source," it picks "smallest **estimated total distance** (distance + heuristic to goal)."
+
+- **Pacman / video-game AI** uses A\* with Manhattan distance as the heuristic.
+- **Google Maps / Waze** use A\* (with road-network-specific heuristics like ALT and contraction hierarchies).
+- **Robotics path planning** — RRT\*, D\* Lite, and friends all extend A\* with a heap underneath.
+
+Same heap, different priority function.
+
+## 3. Huffman coding — optimal prefix codes
+
+Huffman's algorithm builds the optimal **prefix code** (variable-length codes used in DEFLATE, gzip, JPEG, MP3, and dozens of compression formats):
+
+```text
+While the heap has more than one tree:
+    pop the two least-frequent trees       # two min-heap pops
+    combine them into a new internal node
+    push the combined tree back            # one min-heap push
+```
+
+Each iteration runs three heap operations — O(log n) per iteration, n iterations total — for **O(n log n)** end-to-end. The combined "tree" at the end *is* the Huffman tree; reading the path to each leaf gives the optimal code for that symbol.
+
+Without a heap, you'd scan for the two minimum frequencies every iteration — O(n²) instead.
+
+## 4. Top-K maintenance — the size-K heap trick
+
+The single most reusable interview pattern with heaps. **"I want the K best out of many."**
+
+```python copy
+import heapq
+
+def top_k(stream, k, key=lambda x: x):
+    heap = []                     # min-heap of size K
+    for item in stream:
+        if len(heap) < k:
+            heapq.heappush(heap, (key(item), item))
+        elif key(item) > heap[0][0]:
+            heapq.heapreplace(heap, (key(item), item))
+    return [item for _, item in heap]
+```
+
+| Problem                             | What "best" means          |
+| :---------------------------------- | :------------------------- |
+| Top K Frequent Elements             | Highest frequency          |
+| K Closest Points to Origin          | Smallest distance          |
+| Top K Largest Numbers in a Stream   | Largest value              |
+| Top K Most Similar Items            | Highest similarity score   |
+| Top K Trending Hashtags             | Highest count in window    |
+
+All of them are *the same code* with a different `key` function. This is why the heap practice problems all start to feel identical once you see the shape.
+
+## 5. Median maintenance — two heaps in one
+
+How do you maintain the **running median** of a stream where elements arrive one at a time, in O(log n) per insert?
+
+The trick: **two heaps**. A max-heap holds the smaller half, a min-heap holds the larger half. The median is either the top of one (if sizes differ by 1) or the average of both tops (if sizes are equal).
+
+We dedicate the whole [Two-Heap Pattern page](/day7/two_heaps) to this idea — it's important enough to deserve its own walkthrough.
+
+## 6. Event-driven simulation — process events in chronological order
+
+Discrete-event simulations (traffic networks, server load tests, queueing theory) keep a min-heap of `(time, event)` pairs:
+
+```text
+event_heap = min-heap of (timestamp, event_payload)
+
+while heap is non-empty:
+    time, event = heap.pop()
+    advance simulation clock to `time`
+    process event   # may schedule new events, pushed back into the heap
+```
+
+The heap orders events by when they occur, not when they were scheduled. This is exactly how **SimPy** (Python), **OMNeT++** (C++), and most game-engine event loops manage time.
+
+The standard Python `sched` module is built around this pattern — `sched.scheduler` is a thin wrapper over `heapq`.
+
+## 7. Task / job schedulers — process highest-priority job first
+
+OS schedulers, build systems, message queues — anywhere "highest-priority work" gets done first — almost always have a heap under the hood.
+
+- **Cron-like systems** use a min-heap keyed by next-fire timestamp.
+- **Apache Airflow** keeps a heap of (priority, scheduled_time, task_id) tuples per worker pool.
+- **Kubernetes pod scheduling** uses a priority queue to decide which pod gets the next available node.
+- **Redis Sorted Sets** (which back tons of rate-limit and ranking systems) are skip-list / hash-table hybrids that support exactly the heap API plus more.
+
+When you see "process by priority," reach for a heap.
+
+## 8. K-way merge — combining sorted streams
+
+You have K sorted streams and need a single merged sorted output. Min-heap of "current head of each stream" + repeated `pop the smallest, advance that stream` = total work `O(N log K)` where N is total elements.
+
+This powers:
+
+- **External merge sort** — the workhorse of database engines and big-data sorters. Split data into K chunks that fit in RAM, sort each, then K-way-merge them with a heap.
+- **Merging log files by timestamp** — every observability platform does this.
+- **Combining results from sharded databases** — query each shard, then merge with a heap.
+
+We worked this exact pattern in the [Merge K Sorted Lists](/day7/practice_questions/merge_k_sorted_lists) practice problem.
+
+## 9. Frequency-based scheduling — Reorganize String, Task Scheduler
+
+"Place items with frequency constraints so no two identical items are adjacent" or "schedule tasks with a cooldown" both reduce to: **repeatedly pick the most-frequent remaining option that isn't on cooldown**. That's a max-heap query plus a cooldown buffer.
+
+This pattern shows up in:
+
+- **Distributing load across resources** (most-loaded server gets a new task last).
+- **Concert / event scheduling** (don't book the same band twice in a row).
+- **Cache eviction** (LFU — Least-Frequently-Used — promotes most-frequent items).
+
+Both [Reorganize String](/day7/practice_questions/reorganize_string) and [Task Scheduler](/day7/practice_questions/task_scheduler) use this idea directly.
+
+## 10. Bandwidth / packet scheduling — weighted fair queueing
+
+Network routers and operating-system schedulers use **virtual-time priority queues** (heap variants) to implement fair bandwidth sharing:
+
+- Linux's CFS (Completely Fair Scheduler) tracks each process's "virtual runtime" and always runs the process with the smallest one — a min-heap query on every context switch.
+- TCP congestion control schemes like CoDel keep priority queues of packet drop times.
+- Web servers under load shed lowest-priority requests first.
+
+These are real heaps with millions of pushes and pops per second.
+
+## A pattern-recognition cheat sheet
+
+If a problem statement looks like any of these phrases, a heap is almost certainly the answer:
+
+| Phrase                                              | Pattern                       |
+| :-------------------------------------------------- | :---------------------------- |
+| "Find the K largest / smallest…"                    | Size-K heap                   |
+| "Process events in chronological order"             | Event-driven sim heap         |
+| "Maintain the running median"                       | Two-heap pattern              |
+| "Highest-priority task first"                       | Priority queue                |
+| "Merge K sorted… anything"                          | K-way merge with heap         |
+| "Shortest path on a weighted graph"                 | Dijkstra with min-heap        |
+| "Schedule with frequency / cooldown constraints"    | Frequency max-heap            |
+| "Optimal prefix code / compression tree"            | Huffman with min-heap         |
+| "Greedy choice of best-so-far at each step"         | Heap-based greedy             |
+
+The data structure is the same; only the priority function changes. Once you've internalized that, dozens of problems collapse into "build the right heap, then run the obvious greedy loop."
+
+Next up: the **two-heap pattern**, which deserves its own page.
