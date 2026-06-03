@@ -1,235 +1,252 @@
-import { Steps,Tabs } from "nextra/components";
-export const Tab = Tabs.Tab
-import React, { useState } from "react";
-import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { Steps, Tabs, Callout } from "nextra/components";
 import { ShowHideGif } from "../../components/ShowHideGif";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { RecursionTreeVisualizer, CallStackStepper } from "../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
 
-# Recursion
+# Introduction to Recursion
 
 ## Definition
 
--   The process in which a **function calls itself** directly or indirectly is called `recursion` and the corresponding function is called as `recursive function`.
+**Recursion** is when a function calls itself — directly or through a chain of other functions — to solve a problem by breaking it into a smaller version of the same problem.
 
 <ShowHideGif
     gifUrl={"https://i.giphy.com/media/3ov9jQX2Ow4bM5xxuM/giphy.webp"}
     pausedGifUrl={"/assets/recursion-gif.jpg"}
 />
 
+The skeleton looks like this:
+
 ```cpp copy
 void func() {
-    // Some code
-    func(); // Function call
-    // Some code
+    // Some work
+    func();   // call myself with a smaller version of the problem
+    // Some work
 }
 ```
 
-## Basic Rules of Recursion
+That's the entire idea. What makes it *work* (and not loop forever) is the **base case**.
 
-1. Function should call itself.
-2. Function should have a base condition.
-3. Function should change its state and move towards the base condition.
+## The three rules
 
-> Below is a simple C++ program to demonstrate working of recursion.
+Every correct recursive function obeys all three:
+
+1. **The function calls itself.** (Otherwise it isn't recursion.)
+2. **There is a base case** — at least one input where the function returns *without* recursing.
+3. **Each recursive call moves toward the base case.** The argument shrinks, the range narrows, the tree gets smaller. Otherwise we recurse forever.
+
+Miss any one of these and you get a **stack overflow** — the call stack grows until your program crashes.
 
 ```cpp copy
-void fun(int N) {
-
-    // Base condition/case
-    if (N == 0) {
-        return;
-    }
+// Counts down from N to 1, then stops.
+void count(int N) {
+    if (N == 0) return;        //  ← base case
     cout << N << " ";
-
-    // Recursive call
-    fun(N - 1);
+    count(N - 1);              //  ← progress toward base case
 }
 ```
 
-## Factorial using Recursion
+## Worked example: Factorial
 
-<Steps>
+Factorial of `N` is `N · (N-1) · (N-2) · … · 1`. The recursive definition is one line:
 
-### Understanding
+```text
+factorial(0) = 1
+factorial(N) = N * factorial(N - 1)
+```
 
-1. `Factorial(N) = N * (N - 1) * (N - 2) * ... * 2 * 1`
-2. Recursively, `Factorial(N) = N * Factorial(N - 1)`
-3. Base condition: `Factorial(0) = 1`
+The base case (`N == 0`) and the recursive case fall straight out of the math.
 
-### Code
-
-```cpp copy
-int factorial(int N) {
-    // Base condition
-    if (N == 0) {
-        return 1;
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int factorial(int N) {
+        if (N == 0) return 1;          // base case
+        return N * factorial(N - 1);   // recursive case
     }
-    // Recursive call
-    return N * factorial(N - 1);
-}
-```
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def factorial(N):
+        if N == 0:
+            return 1
+        return N * factorial(N - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int factorial(int N) {
+        if (N == 0) return 1;
+        return N * factorial(N - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
 
-### Deep Dive
+### The recursion tree
 
--   During Recursion a stack is created to store the fuction calls and the function calls are pushed or popped from the stack one by one as the function calls are made or returned respectively.
+`factorial(5)` produces a single chain of calls — one call per level. There's no branching because each call makes exactly one recursive call.
 
--   The stack is a LIFO (Last In First Out) data structure.
+<RecursionTreeVisualizer
+    title="factorial(5)"
+    root={5}
+    expand={(n) => (n === 0 ? null : [n - 1])}
+    computeResult={(n, childResults) => (n === 0 ? 1 : n * childResults[0])}
+    label={(n) => `f(${n})`}
+/>
 
-| ![Factorial using Recutsion - Stack](/assets/recursion_intro_stack.png) |
-| :---------------------------------------------------------------------: |
-|                   _Factorial using Recursion - Stack_                   |
+The green box is the base case. Each box shows what it eventually returned.
 
--   In the above image, the function calls are pushed into the stack and the function calls are popped from the stack one by one as the function calls are returned.
+### How the call stack does the bookkeeping
 
-</Steps>
+Every call to `factorial(N)` pushes a stack frame containing its local `N`. The frame waits — paused — until the recursive call returns. Then it multiplies and returns.
 
-## Stack Overflow in Recursion
+<CallStackStepper
+    title="Call stack for factorial(3)"
+    frames={[
+        { action: "push", label: "factorial(3)", description: "Enter factorial(3). 3 != 0, so recurse." },
+        { action: "push", label: "factorial(2)", description: "Enter factorial(2). 2 != 0, so recurse." },
+        { action: "push", label: "factorial(1)", description: "Enter factorial(1). 1 != 0, so recurse." },
+        { action: "push", label: "factorial(0)", description: "Enter factorial(0). Base case — return 1." },
+        { action: "pop", label: "factorial(0)", description: "factorial(0) returns 1.", returns: 1 },
+        { action: "pop", label: "factorial(1)", description: "factorial(1) = 1 * 1 = 1.", returns: 1 },
+        { action: "pop", label: "factorial(2)", description: "factorial(2) = 2 * 1 = 2.", returns: 2 },
+        { action: "pop", label: "factorial(3)", description: "factorial(3) = 3 * 2 = 6.", returns: 6 },
+    ]}
+/>
 
--   The stack used to store the function calls can store only a finite number of funtion callls (say `n`). If the number of function calls exceeds `n`, then the stack overflows and the program crashes.
+Notice the rhythm: **push down, hit the base, then pop back up multiplying along the way**. That's the call stack doing your work for you.
 
--   Cases when stack overflow occurs:
-    1. **No base condition** - The function calls are pushed into the stack infinitely and the stack overflows.
-    2. **Recursive call do not align towards the base condition** - The function never reaches the base condition and the stack overflows.
+## Stack overflow — the danger
+
+The call stack has a fixed maximum depth (a few thousand in most environments). Two things cause it to overflow:
+
+1. **No base case.** The function never stops calling itself.
+2. **Wrong direction.** The function recurses but the argument doesn't shrink — for example, `factorial(N + 1)` instead of `factorial(N - 1)`.
+
+<Callout type="warning">
+    Most languages cap recursion depth around 1,000–10,000. If you need deeper recursion, either raise the limit (Python's `sys.setrecursionlimit`), rewrite iteratively with an explicit stack, or rely on **tail-call optimization** (only some languages have it — not Python or Java).
+</Callout>
 
 ## Recursion vs Iteration
 
-| Parameter                          |                                                                               Iteration                                                                               |                                                                         Recursion                                                                         |
-| ---------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| Working Principle                  | We initialize the loop control variable and increment / decrement based on the the need. Before execution control variable is checked with the termination condition. |                          Function calls itself to solve the problem. Here we define a base case which is the termination point.                           |
-| Control Variable and Control Logic |                                         Value of the control variable continuously movees towards the termination condition.                                          |                                                        Function call moves towards the base case.                                                         |
-| Storage                            |                                      Control Variable holds the value and it will be incremented / decremented based on the need                                      |                Every function state is maintained in the stack memory and when the base case is met, the execution follows LOFO principle.                |
-| Infinite Loop                      |              When control variable do not move towards the terminating condition, the loop is executed infinte times. A lot of CPU cycles are consumed.               | If no base case defined or the function call not aligned to the base case then the function calls may overflow the stack memory and will crash the system |
+Both can solve the same problems — the difference is mostly *expressiveness* and *cost*.
 
-### Converting an Iterative Solution to Recursive Solution
+| Aspect              | Iteration                                            | Recursion                                                       |
+| :------------------ | :--------------------------------------------------- | :-------------------------------------------------------------- |
+| Control flow        | A loop with a control variable                       | A function that calls itself                                    |
+| Termination         | The loop condition becomes false                     | The recursive call hits the base case                           |
+| Memory              | Constant — a few variables                           | One stack frame per level — proportional to depth               |
+| Speed (in practice) | Usually faster (no call overhead)                    | Slower, but readable code wins for tree-shaped problems         |
+| Best for            | Linear sweeps, simple counting                       | Trees, divide & conquer, backtracking, self-similar structure   |
 
-<Steps>
+### The same idea, both ways
 
-#### Iteration
-
-<Tabs items={['C++', 'Python']} defaultIndex="0">
+<Tabs items={['Iteration', 'Recursion']} defaultIndex="0">
     <Tab>
+    Count down from `n` to `1` with a loop:
+
     ```cpp copy
-    void iteration(int n) {
-        while ( n >= 1) {
+    void countDown(int n) {
+        while (n >= 1) {
             cout << n << " ";
             n--;
         }
     }
     ```
-    </Tab>
 
-    <Tab>
     ```python copy
-    def iteration(n):
+    def count_down(n):
         while n >= 1:
             print(n, end=" ")
             n -= 1
     ```
     </Tab>
+    <Tab>
+    Same job, recursive:
 
+    ```cpp copy
+    void countDown(int n) {
+        if (n == 0) return;
+        cout << n << " ";
+        countDown(n - 1);
+    }
+    ```
+
+    ```python copy
+    def count_down(n):
+        if n == 0:
+            return
+        print(n, end=" ")
+        count_down(n - 1)
+    ```
+    </Tab>
 </Tabs>
 
-    - Logic: `n` is printed and decremented till it reaches `1`.
+Both work. For this problem iteration is clearly better — same complexity, less overhead. The recursive form really pays off for tree-shaped problems where the iterative version would need its own explicit stack.
 
-#### Recursion
+### Activity — try it both ways
+
+Write a function to **reverse a string**, once iteratively and once recursively.
+
+<ShowHideSolution>
+
+**Iterative — swap from both ends toward the middle:**
 
 <Tabs items={['C++', 'Python']} defaultIndex="0">
     <Tab>
     ```cpp copy
-    void recursion(int n) {
-        if (n == 0) {
-            return;
+    void reverseString(string& s) {
+        int n = s.length();
+        for (int i = 0; i < n / 2; i++) {
+            swap(s[i], s[n - i - 1]);
         }
-        cout << n << " ";
-        recursion(n - 1);
     }
     ```
     </Tab>
-
     <Tab>
     ```python copy
-    def recursion(n):
-        if n == 0:
-            return
-        print(n, end=" ")
-        recursion(n - 1)
+    def reverse_string(s):
+        chars = list(s)
+        n = len(chars)
+        for i in range(n // 2):
+            chars[i], chars[n - i - 1] = chars[n - i - 1], chars[i]
+        return ''.join(chars)
     ```
     </Tab>
-
 </Tabs>
 
-    - Logic: `n` is printed and the function is called with `n - 1` as the parameter.
+**Recursive — swap the ends, then recurse on the middle:**
 
-> **Activity**: Can you write iterative and recursive function for `reversing a string`?
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void reverseString(string& s, int i, int j) {
+        if (i >= j) return;
+        swap(s[i], s[j]);
+        reverseString(s, i + 1, j - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse_string(chars, i, j):
+        if i >= j:
+            return
+        chars[i], chars[j] = chars[j], chars[i]
+        reverse_string(chars, i + 1, j - 1)
+    ```
+    </Tab>
+</Tabs>
 
-<ShowHideSolution>
-
-    - Iteration
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        void reverseString(string str) {
-            int n = str.length();
-            for (int i = 0; i < n / 2; i++) {
-                swap(str[i], str[n - i - 1]);
-            }
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def reverse_string(str):
-            n = len(str)
-            for i in range(n // 2):
-                str[i], str[n - i - 1] = str[n - i - 1], str[i]
-        ```
-        </Tab>
-    </Tabs>
-
-    - Explanation
-
-    1. The string is reversed by swapping the first and last characters, second and second last characters and so on.
-    2. The loop runs till the middle of the string.
-
-
-    - Recursion
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        void reverseString(string str, int i, int n) {
-            if (i == n / 2)
-                return;
-            swap(str[i], str[n - i - 1]);
-            reverseString(str, i + 1, n);
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def reverse_string(str, i, n):
-            if i == n // 2:
-                return
-            str[i], str[n - i - 1] = str[n - i - 1], str[i]
-            reverse_string(str, i + 1, n)
-        ```
-        </Tab>
-    </Tabs>
-
-    - Explanation
-
-    1. The string is reversed by swapping the first and last characters, second and second last characters and so on.
-    2. The function is called recursively till the middle of the string.
+Both are O(n) time. The iterative version is O(1) space; the recursive is O(n) because of the call stack.
 
 </ShowHideSolution>
 
-</Steps>
-
 ## Types of Recursion
+
+There are four shapes of direct recursion worth recognizing — and one for cross-function calls.
 
 | ![Types of Recursion](/assets/types_recursion.png) |
 | :------------------------------------------------: |
@@ -237,78 +254,112 @@ int factorial(int N) {
 
 <Steps>
 
-### Direct Recursion
+### Tail Recursion
 
-#### Tail Recursion
-
--   When the recursive call is the `last statement` in the function, it is called **tail recursion**.
+The recursive call is the **last** thing the function does. Anything computed *before* it is already saved in the argument.
 
 ```cpp copy
-void tailRecursion() {
-    // some code
-    tailRecursion();
+void printDown(int n) {
+    if (n == 0) return;
+    cout << n << " ";
+    printDown(n - 1);   // ← last statement
 }
 ```
 
-#### Head Recursion
+Some languages (Scheme, Scala, some C++ compilers) optimize this into a plain loop, keeping memory at O(1). Python and Java **do not** — recursive depth still costs stack frames.
 
--   When the recursive call is the `first statement` in the function, it is called **head recursion**.
+### Head Recursion
+
+The recursive call happens **before** any other work in the function.
 
 ```cpp copy
-void headRecursion() {
-    headRecursion();
-    // some code
+void printUp(int n) {
+    if (n == 0) return;
+    printUp(n - 1);     // ← first statement
+    cout << n << " ";   // happens on the way back up
 }
 ```
 
-#### Nested Recursion
+Head recursion naturally **reverses** the natural order — work happens during the *unwinding* phase. Compare `printUp(3)` with `printDown(3)`:
 
--   When a recursive function calls itself as a `parameter` in the function call, it is called **nested recursion**.
+- `printDown(3)` prints `3 2 1`
+- `printUp(3)` prints `1 2 3`
+
+Same recursion, opposite output, just because of *where* the print sits.
+
+### Tree Recursion
+
+The function calls itself **more than once** per invocation.
 
 ```cpp copy
-void nestedRecursion() {
-    // some code
-    nestedRecursion(nestedRecursion(nestedRecursion()));
+int fib(int n) {
+    if (n <= 1) return n;
+    return fib(n - 1) + fib(n - 2);   // two recursive calls
 }
 ```
 
-#### Tree recursion
+This is what gives us the "tree" shape — each call branches into multiple children.
 
--   When a recursive function calls itself `more than one time`, it is called **tree recursion**.
+<RecursionTreeVisualizer
+    title="fib(5) — see how many calls explode out"
+    root={5}
+    expand={(n) => (n <= 1 ? null : [n - 1, n - 2])}
+    computeResult={(n) => {
+        const memo = [0, 1];
+        for (let i = 2; i <= n; i++) memo[i] = memo[i - 1] + memo[i - 2];
+        return memo[n];
+    }}
+    label={(n) => `fib(${n})`}
+/>
+
+Notice `fib(2)` and `fib(3)` show up multiple times. That's massive duplicated work — exponential time for what should be a linear problem. We'll fix this on the **Memoization** page.
+
+### Nested Recursion
+
+A recursive call is passed *itself* as an argument. Rare in practice, but the Ackermann function is a classic example.
 
 ```cpp copy
-void treeRecursion() {
-    // some code
-    treeRecursion();
-    // some code
-    treeRecursion();
+int ackermann(int m, int n) {
+    if (m == 0) return n + 1;
+    if (n == 0) return ackermann(m - 1, 1);
+    return ackermann(m - 1, ackermann(m, n - 1));  // nested!
 }
 ```
 
 ### Indirect Recursion
 
--   When a recursive function calls another function and that function calls the first function, it is called **indirect recursion**.
+Two (or more) functions call each other in a cycle.
 
 ```cpp copy
-void indirectRecursion1() {
-    // some code
-    indirectRecursion2();
+bool isEven(int n) {
+    if (n == 0) return true;
+    return isOdd(n - 1);   // even(n) calls odd(n-1)
 }
 
-void indirectRecursion2() {
-    // some code
-    indirectRecursion1();
+bool isOdd(int n) {
+    if (n == 0) return false;
+    return isEven(n - 1);  // odd(n) calls even(n-1)
 }
 ```
 
-> **Fun Fact**: If you are a fan of the movie `Inception`, you can relate the types of recursion with the movie.
+Each function still has its own base case — but the recursion lives across function boundaries.
 
 </Steps>
 
+<Callout type="info">
+    **Fun fact:** if you've seen the movie *Inception*, the dream-within-a-dream-within-a-dream structure is exactly tree recursion. Each level can spawn more levels, and when you wake up you "return" to the level above.
+</Callout>
+
+## What the runtime actually does
+
+When you call a function, the language runtime:
+
+1. Pushes a **stack frame** onto the call stack containing the function's local variables, arguments, and return address.
+2. Jumps to the function's first instruction.
+3. When the function `return`s, pops the frame and resumes the caller at the return address.
+
+Recursion is just this same mechanism applied to itself. The stack tracks every "in-progress" call. Each `return` collapses one level. The reason recursion is so natural for trees is that *the call stack already is a tree traversal in disguise*.
+
 ---
 
--   The stack is created in the memory and the memory is divided into two parts: Stack and Heap.
-
--   The stack is used to store the function calls and the heap is used to store the variables and the data where the stack is of fixed size and the heap is of dynamic size.
-
--   Using recursive algorithm, certain problems can be solved quite easily. Examples of such problems are Towers of Hanoi (TOH), Inorder/Preorder/Postorder Tree Traversals, DFS of Graph, etc.
+Got the mental model? Next: how to **design** a recursive solution from scratch — without ever tracing through the call stack by hand.

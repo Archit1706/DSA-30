@@ -1,386 +1,487 @@
-import { Tabs,Steps } from "nextra/components";
-export const Tab = Tabs.Tab
+import { Tabs, Steps, Callout } from "nextra/components";
 import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { RecursionTreeVisualizer } from "../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
 
-## Basic Questions
+# Basic Recursion Questions
+
+Eight warm-up problems. Every one of them is a straight application of the three-question recipe from the [Thinking Recursively](/day5/thinking_recursively) page: base case, recursive case, combine. The goal isn't to memorize them — it's to build muscle memory so the pattern feels natural.
+
+<Callout type="info">
+    Before reading each solution, try to answer the three questions yourself. "What's the base case? What's the recursive call? How do I combine?" If you can answer all three, you can write the code.
+</Callout>
 
 <Steps>
 
-### Sum of Natural Numbers
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        int sum(int n) {
-            if (n == 1) return n;
-            return n + sum(n - 1);
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def sum(n):
-            if n == 1:
-                return n
-            return n + sum(n - 1)
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `n == 1`
-        2. Recursive case: `n + sum(n - 1)`
-
-        #### Analysis
-
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
-
-    ### Decimal to Binary COnversion
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        int decimalToBinnary(int num) {
-            if (num == 0) return;
-            decimalToBinnary(num / 2);
-            cout << num % 2;
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def decimal_to_binary(num):
-            if num == 0:
-                return
-            decimal_to_binary(num // 2)
-            print(num % 2, end='')
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `n == 0`
-        2. Recursive case: `decimalToBinnary(num / 2)`
-        3. Print the remainder of `num / 2`
-
-        #### Analysis
-
-        - Time Complexity: `O(log n)`
-        - Space Complexity: `O(log n)`
-    </Tabs>
-
-    ### Modulo Operation
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        int mod(int num, int den) {
-            if (num < den) return num;
-            return mod(num - den, den);
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def mod(num, den):
-            if num < den:
-                return num
-            return mod(num - den, den)
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `num < den`
-        2. Recursive case: `mod(num - den, den)`
-        3. Return `num` when `num < den`
-
-        #### Analysis
-
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
-
-    ### Find String Length
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        int stringLength(string str) {
-            if (str[0] == '\0') return 0;
-            return 1 + stringLength(str.substr(1));
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def string_length(str):
-            if str[0] == '\0':
-                return 0
-            return 1 + string_length(str[1:])
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `str[0] == '\0'`
-        2. Recursive case: `stringLength(str.substr(1))`
-        3. Return `1` when `str[0] == '\0'`
-
-        #### Analysis
-
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
-
-    ### Reverse a String
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        void reverse(string str) {
-            if (str[0] == '\0') return;
-            reverse(str.substr(1));
-            cout << str[0];
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def reverse(str):
-            if str[0] == '\0':
-                return
-            reverse(str[1:])
-            print(str[0], end='')
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `str[0] == '\0'`
-        2. Recursive case: `reverse(str.substr(1))`
-        3. Print `str[0]` when `str[0] == '\0'`
-
-        #### Analysis
-
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
-
-
-    ### Check if string is Palindrome
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        bool isPalindrome(string str, int start, int end) {
-            if (start >= end) return true;
-            if (str[start] != str[end]) return false;
-            return isPalindrome(str, start + 1, end - 1);
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def is_palindrome(str, start, end):
-            if start >= end:
-                return True
-            if str[start] != str[end]:
-                return False
-            return is_palindrome(str, start + 1, end - 1)
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `start >= end`
-        2. Recursive case: `isPalindrome(str, start + 1, end - 1)`
-        3. Return `true` when `start >= end`
-        4. Return `false` when `str[start] != str[end]`
-
-        #### Analysis
-
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
-
-    ### Count Vowels in a String
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        int countVowels(string str, int start, int end) {
-            if (start >= end) return 0;
-            int count = countVowels(str, start + 1, end);
-            if (str[start] == 'a' || str[start] == 'e' || str[start] == 'i' || str[start] == 'o' || str[start] == 'u') {
-                count++;
-            }
-            return count;
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def count_vowels(str, start, end):
-            if start >= end:
-                return 0
-            count = count_vowels(str, start + 1, end)
-            if str[start] == 'a' or str[start] == 'e' or str[start] == 'i' or str[start] == 'o' or str[start] == 'u':
-                count += 1
-            return count
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `start >= end`
-        2. Recursive case: `countVowels(str, start + 1, end)`
-        3. Return `0` when `start >= end`
-        4. Return `count + 1` when `str[start]` is a vowel
-
-        #### Analysis
-
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
-
-    ### Sum of numbers in a Singly Linked List
-
-    #### Code
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        int sumNodes(Node* head) {
-            if (head == NULL) return 0;
-            return head->data + sumNodes(head->next);
-        }
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def sum_nodes(head):
-            if head == None:
-                return 0
-            return head.data + sum_nodes(head.next)
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1. Base case: `head == NULL`
-        2. Recursive case: `sumNodes(head->next)`
-        3. Return `0` when `head == NULL`
-        4. Return `head->data + sumNodes(head->next)` when `head != NULL`
-
-        #### Analysis
-
-        - Time Complexity: `O(n)`
-        - Space Complexity: `O(n)`
-    </Tabs>
+### 1. Sum of Natural Numbers (1 to n)
+
+**Base case:** `sum(1) = 1`. **Recursive case:** `sum(n) = n + sum(n-1)`. **Combine:** add.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int sum(int n) {
+        if (n == 1) return 1;
+        return n + sum(n - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sum_to(n):
+        if n == 1:
+            return 1
+        return n + sum_to(n - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int sum(int n) {
+        if (n == 1) return 1;
+        return n + sum(n - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n) — one call per level. **Space:** O(n) — call stack depth.
+
+### 2. Factorial
+
+**Base case:** `factorial(0) = 1`. **Recursive case:** `factorial(n) = n · factorial(n-1)`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    long long factorial(int n) {
+        if (n == 0) return 1;
+        return (long long)n * factorial(n - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def factorial(n):
+        if n == 0:
+            return 1
+        return n * factorial(n - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    long factorial(int n) {
+        if (n == 0) return 1;
+        return (long) n * factorial(n - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    Factorial grows fast. `21!` overflows a 64-bit integer. Use `long long` / `long` and watch the range — `n <= 20` is the safe limit.
+</Callout>
+
+**Time:** O(n). **Space:** O(n).
+
+### 3. Decimal to Binary
+
+Print the binary digits of `num` in the correct (most-significant-first) order. The trick is **head recursion** — recurse *first*, then print, so digits emerge during the unwinding phase.
+
+**Base case:** `num == 0` — nothing to print. **Recursive case:** recurse on `num / 2`, then print `num % 2`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void decimalToBinary(int num) {
+        if (num == 0) return;
+        decimalToBinary(num / 2);   // recurse first
+        cout << (num % 2);          // then print
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def decimal_to_binary(num):
+        if num == 0:
+            return
+        decimal_to_binary(num // 2)
+        print(num % 2, end='')
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void decimalToBinary(int num) {
+        if (num == 0) return;
+        decimalToBinary(num / 2);
+        System.out.print(num % 2);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Swap the order of the two statements and you'll print the binary digits **backward**. That asymmetry is the entire personality of head vs tail recursion.
+
+**Time:** O(log n) — we halve at each step. **Space:** O(log n).
+
+### 4. Modulo via subtraction
+
+Compute `num mod den` without using `%`. Just keep subtracting `den` until `num < den`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int mod(int num, int den) {
+        if (num < den) return num;
+        return mod(num - den, den);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def mod(num, den):
+        if num < den:
+            return num
+        return mod(num - den, den)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int mod(int num, int den) {
+        if (num < den) return num;
+        return mod(num - den, den);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(num / den) — proportional to how many subtractions we need. **Space:** O(num / den). Don't use this for big numbers — there's a much faster O(1) operator built in.
+
+### 5. String Length (without `strlen` / `len`)
+
+**Base case:** empty string → length 0. **Recursive case:** length of `s` = 1 + length of `s[1:]`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int stringLength(const string& s, int i = 0) {
+        if (i >= (int)s.size()) return 0;
+        return 1 + stringLength(s, i + 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def string_length(s, i=0):
+        if i >= len(s):
+            return 0
+        return 1 + string_length(s, i + 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int stringLength(String s, int i) {
+        if (i >= s.length()) return 0;
+        return 1 + stringLength(s, i + 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+We pass an index instead of slicing — slicing a string allocates a new copy at every call, making the function O(n²) in time. Index-passing keeps it at O(n).
+
+**Time:** O(n). **Space:** O(n).
+
+### 6. Reverse a String
+
+Print characters during the unwinding phase — head recursion again.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void reverse(const string& s, int i = 0) {
+        if (i >= (int)s.size()) return;
+        reverse(s, i + 1);
+        cout << s[i];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse(s, i=0):
+        if i >= len(s):
+            return
+        reverse(s, i + 1)
+        print(s[i], end='')
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void reverse(String s, int i) {
+        if (i >= s.length()) return;
+        reverse(s, i + 1);
+        System.out.print(s.charAt(i));
+    }
+    ```
+    </Tab>
+</Tabs>
+
+If you want the *result* as a new string instead of just printing it, build it during unwinding:
+
+```python copy
+def reversed_str(s, i=0):
+    if i >= len(s):
+        return ""
+    return reversed_str(s, i + 1) + s[i]
+```
+
+**Time:** O(n). **Space:** O(n).
+
+### 7. Check Palindrome
+
+Two pointers, but with recursion: compare the ends, recurse on the middle.
+
+**Base case:** pointers cross → it's a palindrome. **Mismatch:** not a palindrome. Otherwise recurse on the inner substring.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isPalindrome(const string& s, int l, int r) {
+        if (l >= r) return true;
+        if (s[l] != s[r]) return false;
+        return isPalindrome(s, l + 1, r - 1);
+    }
+
+    bool isPalindrome(const string& s) {
+        return isPalindrome(s, 0, s.size() - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_palindrome(s, l=0, r=None):
+        if r is None:
+            r = len(s) - 1
+        if l >= r:
+            return True
+        if s[l] != s[r]:
+            return False
+        return is_palindrome(s, l + 1, r - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean isPalindrome(String s, int l, int r) {
+        if (l >= r) return true;
+        if (s.charAt(l) != s.charAt(r)) return false;
+        return isPalindrome(s, l + 1, r - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n) — we check each character once. **Space:** O(n) for the stack.
+
+### 8. Count Vowels in a String
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isVowel(char c) {
+        c = tolower(c);
+        return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u';
+    }
+
+    int countVowels(const string& s, int i = 0) {
+        if (i >= (int)s.size()) return 0;
+        return (isVowel(s[i]) ? 1 : 0) + countVowels(s, i + 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def count_vowels(s, i=0):
+        if i >= len(s):
+            return 0
+        bump = 1 if s[i].lower() in 'aeiou' else 0
+        return bump + count_vowels(s, i + 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int countVowels(String s, int i) {
+        if (i >= s.length()) return 0;
+        char c = Character.toLowerCase(s.charAt(i));
+        int bump = "aeiou".indexOf(c) >= 0 ? 1 : 0;
+        return bump + countVowels(s, i + 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n). **Space:** O(n).
+
+### 9. Sum the Nodes of a Linked List
+
+The recursive case is the prettiest: `sum(head) = head.data + sum(head.next)`. The base case is the null pointer.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct Node { int data; Node* next; };
+
+    int sumNodes(Node* head) {
+        if (head == nullptr) return 0;
+        return head->data + sumNodes(head->next);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sum_nodes(head):
+        if head is None:
+            return 0
+        return head.data + sum_nodes(head.next)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int sumNodes(Node head) {
+        if (head == null) return 0;
+        return head.data + sumNodes(head.next);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n). **Space:** O(n).
 
 </Steps>
 
-> **Note**: Once you have understood the above examples, try to solve the following problems on your own. (`Using Recursion`)
+## Quick visual
 
-### Extra Problems
+`sum_to(5)` is a single-branch recursion — one call per level, base case at the bottom, results bubble up:
 
-1.  Print numbers from 1 to n
+<RecursionTreeVisualizer
+    title="sum_to(5)"
+    root={5}
+    expand={(n) => (n === 1 ? null : [n - 1])}
+    computeResult={(n) => (n * (n + 1)) / 2}
+    label={(n) => `sum(${n})`}
+/>
 
-<ShowHideSolution>
+## Extra practice (try before peeking)
 
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        void printNumbersAscending(int n) {
-            int i = 1;
-            if (i == n) return;
-            cout << i << " ";
-            return printNumbersAscending(i + 1);
-        }
-        ```
+A few one-liners to keep the muscles warm.
 
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def print_numbers_ascending(n):
-            i = 1
-            if i == n:
-                return
-            print(i, end=' ')
-            return print_numbers_ascending(i + 1)
-        ```
-        </Tab>
-    </Tabs>
-
-</ShowHideSolution>
-
-2. Print numbers from n to 1
+**Print numbers from 1 to n.**
 
 <ShowHideSolution>
 
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-        void printNumbersDescending(int n) {
-            if (n == 0) return;
-            cout << n << " ";
-            return printNumbersDescending(n - 1);
-        }
-        ```
+Head recursion — recurse first, then print, so output is ascending:
 
-        </Tab>
-
-        <Tab>
-        ```python copy
-        def print_numbers_descending(n):
-            if n == 0:
-                return
-            print(n, end=' ')
-            return print_numbers_descending(n - 1)
-        ```
-        </Tab>
-    </Tabs>
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void printAsc(int n) {
+        if (n == 0) return;
+        printAsc(n - 1);
+        cout << n << " ";
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def print_asc(n):
+        if n == 0:
+            return
+        print_asc(n - 1)
+        print(n, end=' ')
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void printAsc(int n) {
+        if (n == 0) return;
+        printAsc(n - 1);
+        System.out.print(n + " ");
+    }
+    ```
+    </Tab>
+</Tabs>
 
 </ShowHideSolution>
+
+**Print numbers from n down to 1.**
+
+<ShowHideSolution>
+
+Tail recursion — print first, then recurse:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void printDesc(int n) {
+        if (n == 0) return;
+        cout << n << " ";
+        printDesc(n - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def print_desc(n):
+        if n == 0:
+            return
+        print(n, end=' ')
+        print_desc(n - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void printDesc(int n) {
+        if (n == 0) return;
+        System.out.print(n + " ");
+        printDesc(n - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+</ShowHideSolution>
+
+**GCD via Euclid's algorithm — gcd(a, b) = gcd(b, a mod b), base case gcd(a, 0) = a.**
+
+<ShowHideSolution>
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int gcd(int a, int b) {
+        if (b == 0) return a;
+        return gcd(b, a % b);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def gcd(a, b):
+        if b == 0:
+            return a
+        return gcd(b, a % b)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int gcd(int a, int b) {
+        if (b == 0) return a;
+        return gcd(b, a % b);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Time complexity is `O(log min(a, b))` — every two iterations at least halve the smaller value. That's why Euclid's algorithm is one of the fastest things in computer science.
+
+</ShowHideSolution>
+
+Once these feel automatic, you're ready for the harder stuff — **Memoization** is next.

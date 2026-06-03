@@ -1,0 +1,190 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { RecursionTreeVisualizer } from "../../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+### Climbing Stairs <DifficultyBadge level="easy" />
+
+#### Description
+
+You are climbing a staircase with `n` steps. Each move, you can climb either **1 step** or **2 steps**. How many distinct ways are there to reach the top?
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  n = 2
+    Output: 2          # (1+1) or (2)
+
+> Case 2:
+    Input:  n = 3
+    Output: 3          # (1+1+1), (1+2), (2+1)
+
+> Case 3:
+    Input:  n = 4
+    Output: 5          # (1+1+1+1), (1+1+2), (1+2+1), (2+1+1), (2+2)
+```
+
+#### Constraints
+
+- `1 <= n <= 45`
+
+#### Intuition
+
+Apply the three-question recipe:
+
+1. **Base case:** at `n = 0` you've reached the top — exactly **1** way (the empty sequence of moves). At `n = 1`, also **1** way (a single 1-step).
+2. **Recursive case:** the last step is either a 1 or a 2. So `ways(n) = ways(n - 1) + ways(n - 2)`.
+3. **Combine:** add.
+
+That recurrence is **Fibonacci** in disguise — `ways(n) = fib(n + 1)`.
+
+<RecursionTreeVisualizer
+    title="Naive ways(5) — exponential blowup"
+    root={5}
+    expand={(n) => (n <= 1 ? null : [n - 1, n - 2])}
+    label={(n) => `w(${n})`}
+    computeResult={(n) => {
+        const a = [1, 1];
+        for (let i = 2; i <= n; i++) a[i] = a[i - 1] + a[i - 2];
+        return a[n];
+    }}
+/>
+
+Just like naive Fibonacci, this branches twice per call — **O(2^n)**. We'll fix it with memoization or a bottom-up loop.
+
+#### Approach 1: Naive recursion (don't actually submit this)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climbStairs(int n) {
+        if (n <= 1) return 1;
+        return climbStairs(n - 1) + climbStairs(n - 2);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def climb_stairs(n):
+        if n <= 1:
+            return 1
+        return climb_stairs(n - 1) + climb_stairs(n - 2)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int climbStairs(int n) {
+        if (n <= 1) return 1;
+        return climbStairs(n - 1) + climbStairs(n - 2);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Time `O(2^n)`, space `O(n)` for the call stack. `n = 45` would take ages — TLE on any judge.
+
+#### Approach 2: Memoized recursion (linear)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climb(int n, vector<int>& memo) {
+        if (n <= 1) return 1;
+        if (memo[n] != -1) return memo[n];
+        return memo[n] = climb(n - 1, memo) + climb(n - 2, memo);
+    }
+
+    int climbStairs(int n) {
+        vector<int> memo(n + 1, -1);
+        return climb(n, memo);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from functools import lru_cache
+
+    @lru_cache(maxsize=None)
+    def climb_stairs(n):
+        if n <= 1:
+            return 1
+        return climb_stairs(n - 1) + climb_stairs(n - 2)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int climb(int n, int[] memo) {
+        if (n <= 1) return 1;
+        if (memo[n] != 0) return memo[n];
+        return memo[n] = climb(n - 1, memo) + climb(n - 2, memo);
+    }
+
+    int climbStairs(int n) {
+        return climb(n, new int[n + 1]);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Time **O(n)**, space **O(n)**.
+
+#### Approach 3: Bottom-up with O(1) space
+
+We only need the last two values at any moment — no array needed.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climbStairs(int n) {
+        if (n <= 1) return 1;
+        int a = 1, b = 1;
+        for (int i = 2; i <= n; i++) {
+            int next = a + b;
+            a = b;
+            b = next;
+        }
+        return b;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def climb_stairs(n):
+        if n <= 1:
+            return 1
+        a, b = 1, 1
+        for _ in range(2, n + 1):
+            a, b = b, a + b
+        return b
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int climbStairs(int n) {
+        if (n <= 1) return 1;
+        int a = 1, b = 1;
+        for (int i = 2; i <= n; i++) {
+            int next = a + b;
+            a = b;
+            b = next;
+        }
+        return b;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Time **O(n)**, space **O(1)** — best of both worlds.
+
+<Callout type="info">
+    Climbing Stairs is the **Hello World of dynamic programming**. The exact same recurrence appears in: tile-laying problems, decode-ways, count-paths-in-a-grid, and Fibonacci itself. Recognize the shape and you have the answer.
+</Callout>
+
+#### Analysis
+
+| Approach        | Time     | Space    |
+| :-------------- | :------: | :------: |
+| Naive recursion | O(2^n)   | O(n)     |
+| Memoized        | O(n)     | O(n)     |
+| Bottom-up O(1)  | O(n)     | O(1)     |

@@ -1,0 +1,237 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Permutations <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array `nums` of **distinct** integers, return all possible **permutations**. You may return the answer in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [1, 2, 3]
+    Output: [[1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]]
+    # 6 permutations — 3! = 6
+
+> Case 2:
+    Input:  nums = [0, 1]
+    Output: [[0,1], [1,0]]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 6`
+- All elements of `nums` are unique.
+
+#### Intuition
+
+A permutation is an ordering of *all* elements. To build one:
+
+1. Pick an element from the unused ones.
+2. Recurse on the remaining unused elements.
+3. When everything is used, the current sequence is a complete permutation.
+
+The recursion tree branches by `n` at the root, `n-1` at the next level, then `n-2`, all the way down to 1 — giving us `n!` leaves, which is exactly the number of permutations.
+
+#### Decision tree for n = 3
+
+```text
+                              []
+            /                  |                  \
+         pick 1              pick 2              pick 3
+          [1]                 [2]                 [3]
+         /    \              /    \              /    \
+      pick 2  pick 3      pick 1  pick 3      pick 1  pick 2
+       [1,2]   [1,3]       [2,1]   [2,3]       [3,1]   [3,2]
+       |        |           |       |           |       |
+      pick 3  pick 2      pick 3  pick 1      pick 2  pick 1
+     [1,2,3] [1,3,2]    [2,1,3] [2,3,1]    [3,1,2] [3,2,1]
+```
+
+Six leaves → six permutations. Notice how the *forbidden* picks at each level are exactly the elements already used.
+
+#### Approach 1: Backtracking with a `used` array
+
+The standard pattern. We carry a `used[]` array that tracks which indices are already in the current permutation.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    using namespace std;
+
+    void backtrack(const vector<int>& nums, vector<bool>& used, vector<int>& current, vector<vector<int>>& result) {
+        if (current.size() == nums.size()) {
+            result.push_back(current);
+            return;
+        }
+        for (int i = 0; i < (int)nums.size(); i++) {
+            if (used[i]) continue;
+            used[i] = true;
+            current.push_back(nums[i]);
+            backtrack(nums, used, current, result);
+            current.pop_back();        // undo
+            used[i] = false;           // undo
+        }
+    }
+
+    vector<vector<int>> permute(vector<int>& nums) {
+        vector<vector<int>> result;
+        vector<int> current;
+        vector<bool> used(nums.size(), false);
+        backtrack(nums, used, current, result);
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def permute(nums):
+        result = []
+        used = [False] * len(nums)
+
+        def backtrack(current):
+            if len(current) == len(nums):
+                result.append(current[:])
+                return
+            for i in range(len(nums)):
+                if used[i]:
+                    continue
+                used[i] = True
+                current.append(nums[i])
+                backtrack(current)
+                current.pop()
+                used[i] = False
+
+        backtrack([])
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public List<List<Integer>> permute(int[] nums) {
+        List<List<Integer>> result = new ArrayList<>();
+        boolean[] used = new boolean[nums.length];
+        backtrack(nums, used, new ArrayList<>(), result);
+        return result;
+    }
+
+    private void backtrack(int[] nums, boolean[] used, List<Integer> current, List<List<Integer>> result) {
+        if (current.size() == nums.length) {
+            result.add(new ArrayList<>(current));
+            return;
+        }
+        for (int i = 0; i < nums.length; i++) {
+            if (used[i]) continue;
+            used[i] = true;
+            current.add(nums[i]);
+            backtrack(nums, used, current, result);
+            current.remove(current.size() - 1);
+            used[i] = false;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The "do the action → recurse → undo the action" sandwich is the **backtracking template**. You'll see it again in every backtracking problem: N-Queens, Sudoku, Word Search. Once you internalize it, those problems all become variations of the same shape.
+</Callout>
+
+#### Approach 2: In-place swap
+
+A clever variant that avoids the `used` array. At each level, we *swap* an unused element into the current position, recurse, then swap back. No extra space beyond the call stack.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def permute(nums):
+        result = []
+        nums = nums[:]    # work on a copy
+
+        def backtrack(start):
+            if start == len(nums):
+                result.append(nums[:])
+                return
+            for i in range(start, len(nums)):
+                nums[start], nums[i] = nums[i], nums[start]
+                backtrack(start + 1)
+                nums[start], nums[i] = nums[i], nums[start]   # swap back
+
+        backtrack(0)
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    void backtrack(vector<int>& nums, int start, vector<vector<int>>& result) {
+        if (start == (int)nums.size()) {
+            result.push_back(nums);
+            return;
+        }
+        for (int i = start; i < (int)nums.size(); i++) {
+            swap(nums[start], nums[i]);
+            backtrack(nums, start + 1, result);
+            swap(nums[start], nums[i]);
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    private void backtrack(int[] nums, int start, List<List<Integer>> result) {
+        if (start == nums.length) {
+            List<Integer> perm = new ArrayList<>();
+            for (int x : nums) perm.add(x);
+            result.add(perm);
+            return;
+        }
+        for (int i = start; i < nums.length; i++) {
+            int t = nums[start]; nums[start] = nums[i]; nums[i] = t;
+            backtrack(nums, start + 1, result);
+            t = nums[start]; nums[start] = nums[i]; nums[i] = t;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The swap-based version is a touch faster (no `used[]` reads / writes) but slightly more cryptic.
+
+#### Analysis
+
+- **Time:** **O(n · n!)** — there are `n!` permutations, and copying each to the output is O(n).
+- **Space:** **O(n)** for the call stack and the working permutation (output size is O(n · n!) and unavoidable).
+
+#### What about duplicates?
+
+If `nums` can contain duplicates (LeetCode's *Permutations II*), the trick is to **sort the array first**, then skip an index `i` if `nums[i] == nums[i-1]` *and* `i-1` is not currently used. That eliminates duplicate permutations at the source.
+
+```python copy
+def permute_unique(nums):
+    result = []
+    nums.sort()
+    used = [False] * len(nums)
+
+    def backtrack(current):
+        if len(current) == len(nums):
+            result.append(current[:]); return
+        for i in range(len(nums)):
+            if used[i]: continue
+            # skip duplicates: pick the leftmost copy first
+            if i > 0 and nums[i] == nums[i - 1] and not used[i - 1]:
+                continue
+            used[i] = True; current.append(nums[i])
+            backtrack(current)
+            current.pop(); used[i] = False
+
+    backtrack([])
+    return result
+```
+
+That extra two-line guard is the entire difference between the two problems. The backtracking template stays the same.

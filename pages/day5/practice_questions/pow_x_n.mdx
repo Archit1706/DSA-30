@@ -1,0 +1,154 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { RecursionTreeVisualizer } from "../../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+### Pow(x, n) <DifficultyBadge level="easy" />
+
+#### Description
+
+Implement `pow(x, n)`, which calculates `x` raised to the power `n` (`x^n`).
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  x = 2.0,    n = 10
+    Output: 1024.0
+
+> Case 2:
+    Input:  x = 2.1,    n = 3
+    Output: 9.261
+
+> Case 3:
+    Input:  x = 2.0,    n = -2
+    Output: 0.25       # 1 / (2^2) = 1/4
+```
+
+#### Constraints
+
+- `-100.0 < x < 100.0`
+- `-2^31 <= n <= 2^31 - 1`
+- The result is in the range `[-10^4, 10^4]`.
+
+#### Intuition — the naive approach
+
+Multiply `x` by itself `n` times. **Time: O(n)**.
+
+That's fine for small `n`. But the constraint allows `n` up to `2^31 - 1` (~2 billion). A 2-billion-iteration loop won't finish in time.
+
+#### Intuition — fast exponentiation
+
+The clever observation: `x^n = (x^(n/2))^2`. Each recursive call **halves** `n`. That gives us **O(log n)** instead of O(n).
+
+Two cases:
+
+- If `n` is even: `x^n = (x^(n/2))^2`.
+- If `n` is odd: `x^n = x · (x^(n/2))^2`. (Integer division drops the remainder, so we multiply one extra `x` back in.)
+
+And don't forget negatives: `x^(-n) = 1 / x^n`. Convert to positive once at the top.
+
+<RecursionTreeVisualizer
+    title="pow(x, 10) — only 4 levels deep!"
+    root={10}
+    expand={(n) => (n === 0 ? null : [Math.floor(n / 2)])}
+    label={(n) => `pow(x, ${n})`}
+/>
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    double helper(double x, long long n) {
+        if (n == 0) return 1.0;
+        double half = helper(x, n / 2);
+        if (n % 2 == 0) return half * half;
+        return half * half * x;
+    }
+
+    double myPow(double x, int n) {
+        long long N = n;                  // promote to avoid overflow on negation
+        if (N < 0) {
+            x = 1.0 / x;
+            N = -N;
+        }
+        return helper(x, N);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def my_pow(x: float, n: int) -> float:
+        def helper(x, n):
+            if n == 0:
+                return 1.0
+            half = helper(x, n // 2)
+            return half * half if n % 2 == 0 else half * half * x
+
+        if n < 0:
+            x = 1 / x
+            n = -n
+        return helper(x, n)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    double helper(double x, long n) {
+        if (n == 0) return 1.0;
+        double half = helper(x, n / 2);
+        if (n % 2 == 0) return half * half;
+        return half * half * x;
+    }
+
+    public double myPow(double x, int n) {
+        long N = n;
+        if (N < 0) {
+            x = 1 / x;
+            N = -N;
+        }
+        return helper(x, N);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The `INT_MIN` trap.** In C++ and Java, `-Integer.MIN_VALUE` overflows because `INT_MIN = -2^31` but `INT_MAX = 2^31 - 1`. We promote `n` to `long`/`long long` *before* negating. Python integers are unbounded so this doesn't matter.
+</Callout>
+
+#### Why this works — the math
+
+Look at the binary representation of `n`. For `n = 10 = 0b1010`:
+
+```text
+10 → 5  → 2 → 1 → 0
+     ^         ^
+   odd     odd
+```
+
+At each step we square the current result. When we hit an odd number, we multiply by `x` once more. This is equivalent to **exponentiation by squaring** — the same idea behind RSA, modular exponentiation, and matrix power.
+
+#### Iterative version (same idea, no recursion)
+
+If you want O(1) extra space:
+
+```python copy
+def my_pow(x: float, n: int) -> float:
+    if n < 0:
+        x, n = 1 / x, -n
+    result = 1.0
+    while n > 0:
+        if n % 2 == 1:
+            result *= x
+        x *= x
+        n //= 2
+    return result
+```
+
+This walks the bits of `n` from low to high — squaring `x` each step, multiplying into `result` whenever the current bit is set. Same O(log n) time, O(1) space.
+
+#### Analysis
+
+- **Time:** **O(log n)** — `n` halves at every step.
+- **Space:** **O(log n)** for the recursive version (call stack), **O(1)** iterative.

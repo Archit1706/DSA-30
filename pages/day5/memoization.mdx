@@ -1,0 +1,279 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { RecursionTreeVisualizer } from "../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Memoization
+
+Naive recursion has a dirty secret: it often **recomputes the same subproblem over and over**. Memoization is the fix — and it's the single most powerful trick in your recursion toolbox.
+
+## The naive Fibonacci disaster
+
+Here's the textbook recursive Fibonacci:
+
+```python copy
+def fib(n):
+    if n <= 1:
+        return n
+    return fib(n - 1) + fib(n - 2)
+```
+
+It's beautifully short. It's also catastrophically slow. Computing `fib(40)` takes seconds. `fib(50)` takes minutes. `fib(60)` would take hours.
+
+Why? Look at the call tree.
+
+<RecursionTreeVisualizer
+    title="fib(5) — 15 calls for one answer"
+    root={5}
+    expand={(n) => (n <= 1 ? null : [n - 1, n - 2])}
+    computeResult={(n) => {
+        const m = [0, 1];
+        for (let i = 2; i <= n; i++) m[i] = m[i - 1] + m[i - 2];
+        return m[n];
+    }}
+    label={(n) => `fib(${n})`}
+/>
+
+Count how many times `fib(2)` appears. Now imagine `fib(40)` — there are more than **300 million** redundant calls. We're solving the same tiny subproblems trillions of times.
+
+The recurrence `T(n) = T(n-1) + T(n-2) + O(1)` is itself the Fibonacci sequence — so the runtime grows like Fibonacci does: **O(φ^n) ≈ O(1.618^n)**, which is essentially **O(2^n)**. Exponential disaster for what should be a 60-cycle problem.
+
+## The fix in two lines
+
+The insight: `fib(2)` always returns 1, no matter how many times we ask. So **cache it**.
+
+```python copy
+def fib(n, memo=None):
+    if memo is None: memo = {}
+    if n <= 1:
+        return n
+    if n in memo:                     # already computed?
+        return memo[n]
+    memo[n] = fib(n - 1, memo) + fib(n - 2, memo)
+    return memo[n]
+```
+
+Two new lines. The runtime drops from **O(2^n)** to **O(n)**. `fib(60)` now takes microseconds instead of millennia.
+
+That's memoization: **cache the result of every subproblem the first time you compute it; reuse the cache on every later call.**
+
+## What the call tree looks like now
+
+With memoization, each unique subproblem is computed exactly once. The "tree" collapses to something closer to a linear chain — every call after the first hits the cache and returns immediately.
+
+```text
+fib(5)
+├── fib(4)
+│   ├── fib(3)
+│   │   ├── fib(2)
+│   │   │   ├── fib(1) → 1     (base)
+│   │   │   └── fib(0) → 0     (base)
+│   │   └── fib(1) → 1         (cache hit, if fib(1) seen before)
+│   └── fib(2)                 (CACHE HIT — return memo[2] instantly)
+└── fib(3)                     (CACHE HIT — return memo[3] instantly)
+```
+
+Total real computations: `n+1` (one for each unique input from 0 to n). Each takes O(1) work outside the recursive calls. Total: **O(n)**.
+
+## Memoized factorial and Fibonacci in all three languages
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    # Manual memo
+    def fib(n, memo={}):
+        if n <= 1:
+            return n
+        if n in memo:
+            return memo[n]
+        memo[n] = fib(n - 1, memo) + fib(n - 2, memo)
+        return memo[n]
+
+    # Or use the stdlib decorator — zero boilerplate.
+    from functools import lru_cache
+
+    @lru_cache(maxsize=None)
+    def fib_clean(n):
+        if n <= 1:
+            return n
+        return fib_clean(n - 1) + fib_clean(n - 2)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    using namespace std;
+
+    long long fib(int n, vector<long long>& memo) {
+        if (n <= 1) return n;
+        if (memo[n] != -1) return memo[n];
+        return memo[n] = fib(n - 1, memo) + fib(n - 2, memo);
+    }
+
+    long long fib(int n) {
+        vector<long long> memo(n + 1, -1);
+        return fib(n, memo);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.HashMap;
+    import java.util.Map;
+
+    Map<Integer, Long> memo = new HashMap<>();
+
+    long fib(int n) {
+        if (n <= 1) return n;
+        Long cached = memo.get(n);
+        if (cached != null) return cached;
+        long result = fib(n - 1) + fib(n - 2);
+        memo.put(n, result);
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    Python's `functools.lru_cache` is a one-line decorator that turns *any* pure recursive function into a memoized one. It's the cleanest way to memoize in any language. C++ and Java need a bit more boilerplate but the idea is identical.
+</Callout>
+
+## When memoization helps (and when it doesn't)
+
+Memoization is a free 100x speedup when your recursion has **overlapping subproblems** — the same call happens many times with the same arguments.
+
+It's **useless** (or wasteful) when subproblems don't overlap:
+
+| Algorithm                          | Overlapping subproblems? | Memoize? |
+| :--------------------------------- | :----------------------: | :------: |
+| Naive Fibonacci                    | Yes — every call repeats | ✅       |
+| Climbing stairs (Fib-shaped)       | Yes                      | ✅       |
+| Coin change (count ways)           | Yes                      | ✅       |
+| 0/1 knapsack                       | Yes                      | ✅       |
+| Edit distance                      | Yes                      | ✅       |
+| Factorial                          | **No** — `factorial(3)` only ever appears once | ❌ |
+| Merge sort                         | No — every subarray distinct | ❌  |
+| Binary search                      | No                       | ❌       |
+| Permutations / Subsets generation  | No                       | ❌       |
+
+The rule of thumb: **if you draw the recursion tree and see the same node label appearing in multiple places, memoize.**
+
+## Two flavors of dynamic programming
+
+Memoization is the **top-down** approach to dynamic programming:
+
+- **Top-down (memoized recursion):** start with the original problem, recurse down, cache as you go. The function is the same shape as the recursive definition — just with a cache layer.
+- **Bottom-up (tabulation):** start with the smallest subproblems, build up to the answer in a loop. No recursion, no stack.
+
+For Fibonacci, the bottom-up version looks like this:
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def fib(n):
+        if n <= 1:
+            return n
+        dp = [0] * (n + 1)
+        dp[1] = 1
+        for i in range(2, n + 1):
+            dp[i] = dp[i - 1] + dp[i - 2]
+        return dp[n]
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    long long fib(int n) {
+        if (n <= 1) return n;
+        vector<long long> dp(n + 1);
+        dp[1] = 1;
+        for (int i = 2; i <= n; i++) dp[i] = dp[i - 1] + dp[i - 2];
+        return dp[n];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    long fib(int n) {
+        if (n <= 1) return n;
+        long[] dp = new long[n + 1];
+        dp[1] = 1;
+        for (int i = 2; i <= n; i++) dp[i] = dp[i - 1] + dp[i - 2];
+        return dp[n];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Same O(n) time, same O(n) space. No recursion at all — and you can even drop the space to O(1) by keeping only the last two values.
+
+| Approach          | Pros                                              | Cons                                          |
+| :---------------- | :------------------------------------------------ | :-------------------------------------------- |
+| **Top-down memo** | Mirrors the recursive definition. Easy to write.  | Stack-frame overhead. Risk of overflow on deep recursion. |
+| **Bottom-up tab** | No recursion, no stack overflow risk.             | Need to know the right order to fill the table. Less natural for tree-shaped subproblems. |
+
+For interviews, either is fine — leading with memoized recursion is usually clearer, and you can mention bottom-up as a follow-up optimization.
+
+## Memoization checklist
+
+Before adding memoization, verify:
+
+- [ ] The function is **pure** — same inputs always produce the same output, no side effects beyond the cache.
+- [ ] The subproblem space is **bounded** — at most `O(n)`, `O(n²)`, etc. unique inputs, not infinite.
+- [ ] The arguments are **hashable** — for dictionary-based caches.
+- [ ] You actually see **overlap** in the call tree.
+
+If any of those fail, memoization won't help — or worse, it'll cache garbage.
+
+## A bigger example: counting paths in a grid
+
+How many distinct ways are there to walk from the top-left to the bottom-right of an `m × n` grid, moving only right or down?
+
+The recurrence: `paths(i, j) = paths(i - 1, j) + paths(i, j - 1)`. Base cases: `paths(0, j) = paths(i, 0) = 1`.
+
+Without memoization, the recursion tree branches twice per call — exponential. With memoization, every `(i, j)` is computed once — **O(m·n)**.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from functools import lru_cache
+
+    @lru_cache(maxsize=None)
+    def paths(i, j):
+        if i == 0 or j == 0:
+            return 1
+        return paths(i - 1, j) + paths(i, j - 1)
+
+    # paths(3, 3) → 20
+    # paths(10, 10) → 184756 — instant with memo, painfully slow without
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int paths(int i, int j, vector<vector<int>>& memo) {
+        if (i == 0 || j == 0) return 1;
+        if (memo[i][j] != -1) return memo[i][j];
+        return memo[i][j] = paths(i - 1, j, memo) + paths(i, j - 1, memo);
+    }
+
+    int paths(int m, int n) {
+        vector<vector<int>> memo(m + 1, vector<int>(n + 1, -1));
+        return paths(m, n, memo);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int paths(int i, int j, int[][] memo) {
+        if (i == 0 || j == 0) return 1;
+        if (memo[i][j] != -1) return memo[i][j];
+        return memo[i][j] = paths(i - 1, j, memo) + paths(i, j - 1, memo);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This is the doorway to **dynamic programming**, which we'll cover properly later in the course. The takeaway for today:
+
+> **If your recursion is slow because of repeated subproblems, the fix is almost always a cache.**
+
+Ready to apply this on real problems? Head to the **Practice Questions**.

@@ -1,0 +1,180 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Generate Parentheses <DifficultyBadge level="medium" />
+
+#### Description
+
+Given `n` pairs of parentheses, generate all combinations of **well-formed** parentheses.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  n = 1
+    Output: ["()"]
+
+> Case 2:
+    Input:  n = 2
+    Output: ["(())", "()()"]
+
+> Case 3:
+    Input:  n = 3
+    Output: ["((()))", "(()())", "(())()", "()(())", "()()()"]
+```
+
+#### Constraints
+
+- `1 <= n <= 8`
+
+#### Intuition — naive vs smart
+
+The naive approach: generate every possible string of `2n` parentheses, then filter for the valid ones. That's `2^(2n)` strings — way too many.
+
+The smart approach: **only generate strings that can still become valid**. We build the string one character at a time, and at each step decide whether to add `(` or `)`. We can keep two counters:
+
+- `open` — the number of `(` we've placed so far.
+- `close` — the number of `)` we've placed so far.
+
+Two rules let us **prune** branches that can't possibly be valid:
+
+1. We can add `(` only if `open < n` — otherwise we'd exceed `n` pairs.
+2. We can add `)` only if `close < open` — otherwise we'd close more than we've opened (immediately invalid).
+
+This is **backtracking** — try a choice, recurse, then untry. The key trick is the pruning, which collapses the search space from `2^(2n)` to roughly the [Catalan number](https://en.wikipedia.org/wiki/Catalan_number) `C_n`.
+
+#### Algorithm
+
+```text
+backtrack(current, open, close):
+    if length(current) == 2n:
+        record current
+        return
+    if open  < n:    backtrack(current + '(', open + 1, close)
+    if close < open: backtrack(current + ')', open, close + 1)
+```
+
+That's it. No filter at the end — the pruning guarantees every string we record is valid.
+
+#### Trace for n = 2
+
+```text
+backtrack("", 0, 0)
+├── add '('  → backtrack("(", 1, 0)
+│   ├── add '('  → backtrack("((", 2, 0)
+│   │   └── add ')'  → backtrack("(()", 2, 1)
+│   │       └── add ')'  → backtrack("(())", 2, 2)  → RECORD "(())"
+│   └── add ')'  → backtrack("()", 1, 1)
+│       └── add '('  → backtrack("()(", 2, 1)
+│           └── add ')'  → backtrack("()()", 2, 2)  → RECORD "()()"
+└── (no other choices — close < open is false at root)
+```
+
+Two results, zero wasted work.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    void backtrack(int n, int open, int close, string& current, vector<string>& result) {
+        if ((int)current.size() == 2 * n) {
+            result.push_back(current);
+            return;
+        }
+        if (open < n) {
+            current.push_back('(');
+            backtrack(n, open + 1, close, current, result);
+            current.pop_back();                  // undo
+        }
+        if (close < open) {
+            current.push_back(')');
+            backtrack(n, open, close + 1, current, result);
+            current.pop_back();                  // undo
+        }
+    }
+
+    vector<string> generateParenthesis(int n) {
+        vector<string> result;
+        string current;
+        backtrack(n, 0, 0, current, result);
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def generate_parenthesis(n):
+        result = []
+
+        def backtrack(current, open_count, close_count):
+            if len(current) == 2 * n:
+                result.append(current)
+                return
+            if open_count < n:
+                backtrack(current + '(', open_count + 1, close_count)
+            if close_count < open_count:
+                backtrack(current + ')', open_count, close_count + 1)
+
+        backtrack("", 0, 0)
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.ArrayList;
+    import java.util.List;
+
+    public List<String> generateParenthesis(int n) {
+        List<String> result = new ArrayList<>();
+        backtrack(n, 0, 0, new StringBuilder(), result);
+        return result;
+    }
+
+    private void backtrack(int n, int open, int close, StringBuilder current, List<String> result) {
+        if (current.length() == 2 * n) {
+            result.add(current.toString());
+            return;
+        }
+        if (open < n) {
+            current.append('(');
+            backtrack(n, open + 1, close, current, result);
+            current.deleteCharAt(current.length() - 1);   // undo
+        }
+        if (close < open) {
+            current.append(')');
+            backtrack(n, open, close + 1, current, result);
+            current.deleteCharAt(current.length() - 1);   // undo
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The backtracking template** (modify-recurse-undo) is the same in every language. In Python we use string immutability to "undo" for free — every recursive call gets a fresh string. In C++/Java we share a mutable buffer for speed, so we have to manually `pop_back` after each call. Pick whichever feels cleaner.
+</Callout>
+
+#### Why this is much faster than `2^(2n)`
+
+The number of valid sequences is the `n`-th **Catalan number** `C_n = (2n)! / ((n+1)! · n!)`. For small `n`:
+
+| n   | Catalan C_n | `2^(2n)` (naive) |
+| :-: | :---------: | :--------------: |
+| 1   | 1           | 4                |
+| 3   | 5           | 64               |
+| 5   | 42          | 1,024            |
+| 8   | 1,430       | 65,536           |
+| 12  | 208,012     | 16,777,216       |
+
+Pruning saves us *orders of magnitude* of work. This is the whole point of backtracking — explore only the paths that could possibly lead to a solution.
+
+#### Analysis
+
+- **Time:** **O(4^n / √n)** — proportional to the Catalan number `C_n`, the number of valid outputs.
+- **Space:** **O(n)** for the call stack and the current string (plus the output array, which we have to produce anyway).

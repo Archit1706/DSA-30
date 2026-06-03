@@ -1,0 +1,125 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Tower of Hanoi <DifficultyBadge level="easy" />
+
+#### Description
+
+You have three rods (`A`, `B`, `C`) and `n` disks of different sizes stacked on rod `A` in **decreasing size from bottom to top** (largest on the bottom). Move all `n` disks from rod `A` to rod `C`, following these rules:
+
+1. Only one disk can be moved at a time.
+2. Each move takes the **top** disk from one stack and places it on another stack (or on an empty rod).
+3. **No disk may be placed on top of a smaller disk.**
+
+Print every move in order.
+
+#### Examples
+
+```py
+> n = 2
+    Move disk 1 from A to B
+    Move disk 2 from A to C
+    Move disk 1 from B to C
+
+> n = 3
+    Move disk 1 from A to C
+    Move disk 2 from A to B
+    Move disk 1 from C to B
+    Move disk 3 from A to C
+    Move disk 1 from B to A
+    Move disk 2 from B to C
+    Move disk 1 from A to C
+```
+
+#### Intuition
+
+Forget about moving each disk individually — that way lies madness. The recursive insight is elegant and uses the **leap of faith** beautifully:
+
+> **To move `n` disks from `A` to `C` using `B` as a helper:**
+>
+> 1. **Move the top `n-1` disks** from `A` to `B`, using `C` as a helper. *(Trust the recursion.)*
+> 2. Move the bottom disk (the largest) from `A` to `C`. **One move.**
+> 3. **Move the `n-1` disks** that are now on `B` to `C`, using `A` as a helper. *(Trust the recursion.)*
+
+That's the entire algorithm. The base case is `n = 0` — zero disks to move, do nothing.
+
+We never write logic for moving disk 2 or disk 3 individually. The recursion handles every layer; we just describe the **one-step rule** for the smallest version of the problem, and the larger versions emerge automatically.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <iostream>
+    using namespace std;
+
+    void hanoi(int n, char from, char to, char via) {
+        if (n == 0) return;
+        hanoi(n - 1, from, via, to);                // 1. move n-1 from 'from' to 'via'
+        cout << "Move disk " << n
+             << " from " << from
+             << " to "   << to << "\n";             // 2. move the largest
+        hanoi(n - 1, via, to, from);                // 3. move n-1 from 'via' to 'to'
+    }
+
+    // hanoi(3, 'A', 'C', 'B');
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def hanoi(n, from_rod='A', to_rod='C', via_rod='B'):
+        if n == 0:
+            return
+        hanoi(n - 1, from_rod, via_rod, to_rod)
+        print(f"Move disk {n} from {from_rod} to {to_rod}")
+        hanoi(n - 1, via_rod, to_rod, from_rod)
+
+    # hanoi(3)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void hanoi(int n, char from, char to, char via) {
+        if (n == 0) return;
+        hanoi(n - 1, from, via, to);
+        System.out.println("Move disk " + n + " from " + from + " to " + to);
+        hanoi(n - 1, via, to, from);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this is a beautiful problem
+
+Three reasons:
+
+1. **The iterative version is brutal.** You'd need to track the state of three stacks and decide each move from scratch — easily 50+ lines. The recursive version is **6 lines**.
+2. **The pattern generalizes.** Any "move a stack from here to there with constraints" problem yields to the same trick: recursively move all-but-one, do the hard move, recursively move all-but-one back.
+3. **The leap of faith pays off massively.** You don't trace through the calls in your head — you trust them. The runtime trusts them too.
+
+<Callout type="info">
+    **The legend:** monks in a temple are reportedly moving 64 disks using these rules. When they finish, the world will end. At one move per second, the optimal solution takes `2^64 - 1` seconds ≈ **585 billion years**. The universe is 13.8 billion years old. We're fine.
+</Callout>
+
+#### Why `2^n - 1` moves?
+
+The recurrence: `T(n) = 2·T(n-1) + 1`, with `T(0) = 0`.
+
+Solve it:
+```text
+T(1) = 1
+T(2) = 2·1 + 1 = 3
+T(3) = 2·3 + 1 = 7
+T(4) = 2·7 + 1 = 15
+T(n) = 2^n - 1
+```
+
+It's also been *proven* that no algorithm can do better — `2^n - 1` is the **optimal** number of moves. Try it yourself for `n = 3` (`7` moves) or `n = 4` (`15` moves).
+
+#### Analysis
+
+- **Time:** **O(2^n)** — there are `2^n - 1` moves, and each is O(1) work outside the recursion.
+- **Space:** **O(n)** — the recursion depth is `n`, regardless of the total number of moves.
+
+Tower of Hanoi is the textbook example of a problem where exponential time is *optimal* — there's literally no faster algorithm. Most exponential problems can be sped up with memoization or smarter techniques; this one cannot.

@@ -1,0 +1,178 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { RecursionTreeVisualizer } from "../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Thinking Recursively
+
+Most people learn recursion the wrong way: by tracing calls through the stack until their head spins. There's a much better technique — and once you have it, recursive solutions become *easier* to write than iterative ones.
+
+The technique has a name: **the leap of faith**.
+
+## The leap of faith
+
+Here's the trick. When you're writing a recursive function:
+
+> **Assume the recursive call already works correctly for the smaller input. Then build the answer for the current input on top of that.**
+
+You don't trace through the recursion. You don't simulate the call stack in your head. You write *one level* of logic — "if I had the answer for the smaller problem, how would I extend it?" — and let the recursion do the rest.
+
+The leap of faith works because of **mathematical induction**: if the function is correct at the base case, and each recursive case is correctly built from a smaller-but-correct call, then by induction it's correct for all inputs.
+
+## The three-question recipe
+
+Every recursive solution falls out of answering three questions:
+
+1. **What is the base case?** What input is so small (or so simple) that the answer is obvious?
+2. **What is the recursive case?** How do I describe the answer for `n` in terms of the answer for something smaller — typically `n-1`, `n/2`, or a child of `n`?
+3. **How do I combine?** Once the recursive call gives me the smaller answer, what do I do with it to get my answer?
+
+Answer those three and the code writes itself.
+
+### Worked example: sum of an array
+
+**Question 1 — base case.** Sum of an empty array? `0`. Obvious.
+
+**Question 2 — recursive case.** How does `sum([a, b, c, d])` relate to a smaller sum? It equals `a + sum([b, c, d])`. So I'll recurse on the array without its first element.
+
+**Question 3 — combine.** Add the first element to the recursive result.
+
+That's the whole design:
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def sum_array(arr, i=0):
+        if i == len(arr):           # base case: empty subarray
+            return 0
+        return arr[i] + sum_array(arr, i + 1)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int sumArray(const vector<int>& arr, int i = 0) {
+        if (i == (int)arr.size()) return 0;
+        return arr[i] + sumArray(arr, i + 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int sumArray(int[] arr, int i) {
+        if (i == arr.length) return 0;
+        return arr[i] + sumArray(arr, i + 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Notice what we *didn't* do: simulate a single call in our head. We trusted that `sum_array(arr, i + 1)` gives us the right answer for the smaller subarray. The compiler / interpreter handles the actual unfolding.
+
+<Callout type="info">
+    The hardest part of recursion is *not writing the code*. It's *letting go of the urge to trace it*. The leap of faith is exactly that — trusting the smaller call without looking inside it.
+</Callout>
+
+## Designing a recursion from scratch — a longer example
+
+Let's design a function that **counts the leaves in a binary tree**.
+
+**Question 1 — base case.** What's the smallest possible tree? An empty tree (a null pointer) — it has `0` leaves.
+
+**Question 2 — recursive case.** A non-empty tree is a root with a left subtree and a right subtree. The leaves are either:
+- The root itself, if it has no children.
+- The leaves of the left subtree plus the leaves of the right subtree, otherwise.
+
+**Question 3 — combine.** Add `leftLeaves + rightLeaves`. If the root is itself a leaf (both children null), return 1.
+
+```python copy
+def count_leaves(node):
+    if node is None:
+        return 0
+    if node.left is None and node.right is None:
+        return 1
+    return count_leaves(node.left) + count_leaves(node.right)
+```
+
+That's a complete tree-recursion algorithm, designed in 90 seconds because we never tried to follow what the recursion *did* — we only described what each call should *return*.
+
+## The recurrence relation
+
+Every recursive algorithm has a hidden **recurrence relation** — a formula for its running time in terms of the running time of smaller calls. Recognizing the recurrence tells you the complexity instantly.
+
+Three of the most common shapes:
+
+| Recurrence                  | Pattern                              | Complexity         | Example                          |
+| :-------------------------- | :----------------------------------- | :----------------- | :------------------------------- |
+| `T(n) = T(n-1) + O(1)`      | One call, shrink by 1, constant work | **O(n)**           | factorial, sum to n              |
+| `T(n) = T(n/2) + O(1)`      | One call, halve, constant work       | **O(log n)**       | binary search                    |
+| `T(n) = 2 · T(n-1) + O(1)`  | Two calls, shrink by 1               | **O(2^n)**         | naive Fibonacci, Tower of Hanoi  |
+| `T(n) = 2 · T(n/2) + O(n)`  | Two calls, halve, linear merge       | **O(n log n)**     | merge sort, quicksort (average)  |
+| `T(n) = T(n/2) + O(n)`      | One call, halve, linear extra work   | **O(n)**           | quickselect (average)            |
+
+Once you see the recurrence, the complexity drops out — and you can usually do it without solving a single integral. We'll lean on this on Day 1's Big O page.
+
+### Recognizing the shape
+
+<RecursionTreeVisualizer
+    title="One call per level, shrink by 1 → O(n)"
+    root={5}
+    expand={(n) => (n === 0 ? null : [n - 1])}
+    label={(n) => String(n)}
+/>
+
+<RecursionTreeVisualizer
+    title="Two calls per level, shrink by 1 → O(2^n)"
+    root={4}
+    expand={(n) => (n === 0 ? null : [n - 1, n - 1])}
+    label={(n) => String(n)}
+/>
+
+<RecursionTreeVisualizer
+    title="One call per level, halve → O(log n)"
+    root={16}
+    expand={(n) => (n <= 1 ? null : [Math.floor(n / 2)])}
+    label={(n) => String(n)}
+/>
+
+The shape of the tree *is* the complexity. A pencil-thin path is logarithmic or linear; a fat triangle is exponential.
+
+## Space complexity is depth, not nodes
+
+A common mistake: thinking that recursion using `N` calls uses `O(N)` extra memory. Not quite. What costs memory is **how many frames are on the stack at the same time** — that's the *depth* of the recursion tree, not the total number of calls.
+
+| Algorithm        | Time     | Space (call stack)         |
+| :--------------- | :------- | :------------------------- |
+| `factorial(n)`   | O(n)     | O(n) — one frame per level |
+| Binary search    | O(log n) | O(log n)                   |
+| `fib(n)` (naive) | O(2^n)   | **O(n)** — max depth, not 2^n |
+| Merge sort       | O(n log n) | O(log n) for stack + O(n) for the merge buffer |
+
+`fib(n)` does `O(2^n)` work, but at any moment only `O(n)` frames are alive — the rightmost path from root to a leaf.
+
+<Callout type="warning">
+    On problems with depth above ~10,000 you'll hit stack overflow in most languages — even though the call tree might be much wider than deep. The fix is either tail-call style with an explicit accumulator, or converting to iteration with your own stack.
+</Callout>
+
+## Common pitfalls
+
+The five mistakes everyone makes at least once:
+
+1. **Missing base case.** The function recurses forever and the stack overflows. *Always write the base case first.*
+2. **Recursive call doesn't make progress.** `f(n) -> f(n)` or `f(n) -> f(n+1)` — the input doesn't shrink. Stack overflow again.
+3. **Wrong return path.** You compute the answer but forget to `return` it. The caller gets `None` / garbage.
+4. **Mutating shared state.** Recursive solutions that modify global variables or shared arrays often have hidden bugs. Prefer passing state through arguments.
+5. **Re-computing the same subproblem.** Naive Fibonacci is the textbook example. Fix with **memoization** — coming up on the next page.
+
+## A checklist for writing any recursive function
+
+Before you write the body, check off these in order:
+
+- [ ] What's the **simplest possible input**? That's your base case.
+- [ ] What does the function **return** for that base case?
+- [ ] For a general input, can I describe the answer in terms of a **smaller** input?
+- [ ] How do I **combine** the smaller answer into mine?
+- [ ] Does each recursive call **shrink the input** in a measurable way?
+- [ ] Have I **trusted** the recursive call without trying to trace it?
+
+Six checkboxes. If all six are ticked, your function works. If any are wrong, the function is wrong — but it's wrong in a *specific* way you can fix.
+
+Now you have the mindset. Time to flex it on real problems — head to **Basic Questions**.

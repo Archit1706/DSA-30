@@ -1,13 +1,59 @@
-# Day 5
+import { Callout } from "nextra/components";
+import { ShowHideGif } from "../../components/ShowHideGif";
 
-### Hello peeps! Welcome to Day 5 - Recursion
+# Day 5 — Recursion
 
-> What we learn today?
+Today is about a single, powerful idea: **a function that calls itself**. It sounds weird at first — won't it loop forever? — but recursion is one of the most elegant tools in your kit. Some problems are *vastly* easier to solve recursively than iteratively, and a few are nearly impossible any other way.
 
--   Understand the concept of recursion and its importance in solving complex problems.
+<ShowHideGif
+    gifUrl={"https://i.giphy.com/media/3ov9jQX2Ow4bM5xxuM/giphy.webp"}
+    pausedGifUrl={"/assets/recursion-gif.jpg"}
+/>
 
--   Study the working principle of recursive functions and how they call themselves.
--   Learn about the base case and recursive case in recursive functions.
--   Understand the process of recursion using the call stack.
--   Explore examples of recursion, such as factorial, Fibonacci sequence, and recursive tree traversal algorithms.
--   Analyze the time and space complexity of recursive algorithms.
+## The big idea in one sentence
+
+> **Solve a problem by solving a smaller version of the same problem, and combining the result.**
+
+That's it. The "smaller version" is what makes the recursion eventually *stop* — provided you also tell it when to stop, which we call the **base case**.
+
+If you can describe a problem as:
+
+- "Here's how to solve the trivial case…"
+- "…and here's how to reduce any bigger case to a smaller one of the same problem,"
+
+then you can write it recursively. Often, the recursive version is *shorter and clearer* than the iterative one.
+
+## Why you should care
+
+Recursion isn't just a party trick. It's the natural language for problems with **self-similar structure**:
+
+- **Trees and graphs** — a tree is a root plus subtrees. Subtrees are trees. DFS is recursion incarnate.
+- **Divide and conquer** — merge sort, quicksort, binary search — split, recurse, combine.
+- **Backtracking** — N-queens, sudoku, generating permutations and subsets. The whole family.
+- **Dynamic programming (top-down)** — recurse with memoization.
+- **Parsing** — expressions, JSON, programming languages.
+- **Math** — factorial, GCD, Fibonacci, Tower of Hanoi.
+
+Once you internalize the recursive mindset, problems that looked impossible become almost obvious.
+
+## Today's roadmap
+
+We'll go from "what's recursion" to "I can solve interview problems with it" in five steps:
+
+1. **[Introduction](/day5/introduction)** — definition, the base/recursive case, how the call stack remembers everything, types of recursion (head, tail, tree, indirect).
+2. **[Thinking Recursively](/day5/thinking_recursively)** — the leap of faith, the recurrence relation, how to *design* a recursive solution from scratch.
+3. **[Basic Questions](/day5/basic_questions)** — warm-up problems: sum to n, factorial, palindrome check, reverse a string, count vowels — pure pattern reps.
+4. **[Memoization](/day5/memoization)** — when recursion duplicates work, cache results to turn exponential into linear. The bridge to DP.
+5. **[Practice Questions](/day5/practice_questions)** — six classic interview problems: Climbing Stairs, Pow(x,n), Tower of Hanoi, Generate Parentheses, Subsets, Permutations.
+
+<Callout type="info">
+    Recursion has a reputation for being hard. It's not — it just *feels* hard the first time, because tracing through the call stack by hand is fiddly. Once you stop trying to trace it and start trusting the pattern, the headache goes away.
+</Callout>
+
+## Two warnings before we dive in
+
+**Don't trace it.** Beginners try to follow recursive calls in their head and get tangled. Instead, trust the "leap of faith": assume the recursive call works for the smaller case and just use the result. We'll teach this on the next page.
+
+**Watch the call stack.** Every recursive call uses real memory — a stack frame. Recurse too deep and you'll get a *stack overflow* (yes, the same name as the website). For most problems with depth `< 10^4` you're fine; for deeper recursion, you'll need iteration or tail-call tricks.
+
+Ready? Open the **Introduction** in the sidebar.
