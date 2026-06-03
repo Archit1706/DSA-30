@@ -1,0 +1,162 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Missing Number <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an array `nums` containing `n` distinct numbers in the range `[0, n]`, return the only number in the range that is missing from the array.
+
+You should solve it in **O(n) time** and **O(1) space**.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [3, 0, 1]            # n = 3, range [0, 3]
+    Output: 2
+
+> Case 2:
+    Input:  nums = [0, 1]               # n = 2, range [0, 2]
+    Output: 2
+
+> Case 3:
+    Input:  nums = [9, 6, 4, 2, 3, 5, 7, 0, 1]   # n = 9
+    Output: 8
+```
+
+#### Constraints
+
+- `n == nums.length`
+- `1 <= n <= 10^4`
+- `0 <= nums[i] <= n`, all distinct.
+
+#### Approach 1: The sum formula
+
+The full range `[0, n]` sums to `n(n+1)/2`. The array sums to `n(n+1)/2 - missing`. So:
+
+> **missing = n(n+1)/2 − sum(nums)**
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int missingNumber(vector<int>& nums) {
+        int n = nums.size();
+        long long expected = (long long)n * (n + 1) / 2;
+        long long actual   = 0;
+        for (int x : nums) actual += x;
+        return (int)(expected - actual);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def missing_number(nums):
+        n = len(nums)
+        return n * (n + 1) // 2 - sum(nums)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int missingNumber(int[] nums) {
+        int n = nums.length;
+        long expected = (long) n * (n + 1) / 2;
+        long actual = 0;
+        for (int x : nums) actual += x;
+        return (int)(expected - actual);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Beautifully simple. **One caveat:** the partial sum can overflow if `n` is large. C++ and Java need `long` (or `long long`) intermediate types; Python's integers are unbounded.
+
+#### Approach 2: XOR (no overflow risk)
+
+Use the same XOR-cancels-pairs trick from [Single Number](/day17/practice_questions/single_number).
+
+The range `[0, n]` is `n+1` numbers. We XOR all of them and all the values in `nums`. Every present number cancels itself out (`x ^ x = 0`), and only the missing one survives.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int missingNumber(vector<int>& nums) {
+        int result = nums.size();    // start with n (we'd never reach it in the loop below)
+        for (int i = 0; i < (int)nums.size(); i++) {
+            result ^= i ^ nums[i];
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def missing_number(nums):
+        result = len(nums)
+        for i, x in enumerate(nums):
+            result ^= i ^ x
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int missingNumber(int[] nums) {
+        int result = nums.length;
+        for (int i = 0; i < nums.length; i++) {
+            result ^= i ^ nums[i];
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why the XOR version works
+
+Trace `nums = [3, 0, 1]`:
+
+```text
+result = 3 (= n)
+
+i=0  result ^= 0 ^ 3   → 3 ^ 0 ^ 3 = 0
+i=1  result ^= 1 ^ 0   → 0 ^ 1 ^ 0 = 1
+i=2  result ^= 2 ^ 1   → 1 ^ 2 ^ 1 = 2
+
+Final: 2 ✓
+```
+
+Each pair `(i, nums[i])` covers two numbers in `[0, n]`. After the loop, every number in `[0, n]` has been XORed exactly once *except* the one missing from `nums` — and that's what survives.
+
+<Callout type="info">
+    The XOR version trades a tiny bit of cleverness for **zero overflow risk**. In C++/Java, if the constraints get pushed to `n = 10^9`, the sum version needs `long` and you have to remember the cast. The XOR version is safe at any width — bits don't overflow.
+</Callout>
+
+#### Approach 3: Cyclic sort (O(1) extra, but mutates input)
+
+Each value `x` in `[0, n]` has a "home" — index `x`. Walk through the array; if `nums[i] != i`, swap `nums[i]` into its home slot. After one pass, the missing number is the unique index where `nums[i] != i` (or `n` if all indices look right).
+
+This works in O(n) time, O(1) extra, but **mutates** the input. Use it only when that's allowed.
+
+```python copy
+def missing_number(nums):
+    i = 0
+    n = len(nums)
+    while i < n:
+        if nums[i] < n and nums[i] != i:
+            nums[nums[i]], nums[i] = nums[i], nums[nums[i]]
+        else:
+            i += 1
+    for i in range(n):
+        if nums[i] != i:
+            return i
+    return n
+```
+
+#### Analysis
+
+| Approach   | Time | Space | Notes                          |
+| :--------- | :--: | :---: | :----------------------------- |
+| Sum        | O(n) | O(1)  | Watch for overflow at scale.   |
+| **XOR**    | O(n) | O(1)  | Overflow-safe. Interview pick. |
+| Cyclic sort| O(n) | O(1)  | Mutates the input.             |

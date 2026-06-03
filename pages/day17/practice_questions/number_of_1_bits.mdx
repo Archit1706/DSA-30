@@ -1,0 +1,168 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { BitAlgorithmStepper } from "../../../components/BitVisualizer";
+export const Tab = Tabs.Tab;
+
+### Number of 1 Bits <DifficultyBadge level="easy" />
+
+#### Description
+
+Write a function that takes an unsigned integer and returns the number of `1` bits it has (also known as the **Hamming weight** or **population count**).
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  n = 11      # binary 1011
+    Output: 3
+
+> Case 2:
+    Input:  n = 128     # binary 10000000
+    Output: 1
+
+> Case 3:
+    Input:  n = 4294967293   # binary 11111111111111111111111111111101
+    Output: 31
+```
+
+#### Constraints
+
+- The input is a 32-bit unsigned integer.
+
+#### Approach 1: Check each bit (naive)
+
+Loop 32 times, ask "is this bit set?" each time.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int hammingWeight(uint32_t n) {
+        int count = 0;
+        for (int i = 0; i < 32; i++) {
+            if (n & (1u << i)) count++;
+        }
+        return count;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def hamming_weight(n):
+        count = 0
+        for i in range(32):
+            if n & (1 << i):
+                count += 1
+        return count
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int hammingWeight(int n) {
+        int count = 0;
+        for (int i = 0; i < 32; i++) {
+            if ((n & (1 << i)) != 0) count++;
+        }
+        return count;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time: O(32) = O(1)** for fixed-width ints. Always 32 iterations, regardless of input.
+
+#### Approach 2: Brian Kernighan's trick
+
+`x & (x - 1)` clears the **lowest set bit** of `x`. So if we keep doing it until `x == 0`, the number of iterations equals the number of set bits.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int hammingWeight(uint32_t n) {
+        int count = 0;
+        while (n != 0) {
+            n &= (n - 1);   // clear lowest set bit
+            count++;
+        }
+        return count;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def hamming_weight(n):
+        count = 0
+        while n != 0:
+            n &= n - 1
+            count += 1
+        return count
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int hammingWeight(int n) {
+        int count = 0;
+        while (n != 0) {
+            n &= (n - 1);
+            count++;
+        }
+        return count;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time: O(number of set bits)** — faster than the naive version whenever set bits are sparse. For `n = 128` (one set bit), this runs **once** instead of 32 times.
+
+<BitAlgorithmStepper
+    title="Kernighan on n = 11 = 0b00001011"
+    bits={8}
+    steps={[
+        { value: 11, highlight: [3, 1, 0], description: "n = 11, count = 0" },
+        { value: 10, highlight: [3, 1], description: "n &= n-1: cleared bit 0. count = 1" },
+        { value: 8,  highlight: [3], description: "n &= n-1: cleared bit 1. count = 2" },
+        { value: 0,  highlight: [], description: "n &= n-1: cleared bit 3. count = 3. Done." },
+    ]}
+/>
+
+#### Approach 3: Use the built-in (the real-world answer)
+
+In any modern language, just call the library function. It compiles to a single CPU instruction (`POPCNT` on x86 / ARM).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int hammingWeight(uint32_t n) {
+        return __builtin_popcount(n);
+        // or in C++20: return std::popcount(n);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def hamming_weight(n):
+        return n.bit_count()   # Python 3.10+
+        # or:   return bin(n).count('1')
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int hammingWeight(int n) {
+        return Integer.bitCount(n);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+In interviews, write Kernighan's version *first* (to demonstrate understanding), and mention the built-in as the answer you'd ship.
+
+<Callout type="info">
+    There's also a famous **SWAR** (SIMD Within A Register) trick that counts bits in 12 operations, no loop. It's the algorithm behind hardware popcount and underpins the older `__builtin_popcount` software fallback. Not interview-relevant, but a fun rabbit hole if you're curious.
+</Callout>
+
+#### Analysis
+
+| Approach           | Time                  | Space   |
+| :----------------- | :-------------------- | :------ |
+| Check each bit     | O(32) = O(1)          | O(1)    |
+| Kernighan's trick  | O(set bits) — faster on sparse inputs | O(1) |
+| Built-in popcount  | O(1) — one CPU instruction | O(1) |

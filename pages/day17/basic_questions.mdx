@@ -1,0 +1,151 @@
+import { Tabs, Steps, Callout } from "nextra/components";
+import { BitVisualizer, BitRow, BitOperation } from "../../components/BitVisualizer";
+export const Tab = Tabs.Tab;
+
+# Basic Bit Manipulation Questions
+
+Seven short problems that lock in the operators you just learned. None are tricky — they each apply exactly one identity from the toolbox. The goal is **fluency**, not difficulty.
+
+<Steps>
+
+### 1. Check if a number is even or odd
+
+A number is even iff its lowest bit is `0`. That's literally the binary definition of "even" — `2k` ends in `0`, `2k+1` ends in `1`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isEven(int x) { return (x & 1) == 0; }
+    bool isOdd(int x)  { return (x & 1) == 1; }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_even(x): return (x & 1) == 0
+    def is_odd(x):  return (x & 1) == 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean isEven(int x) { return (x & 1) == 0; }
+    boolean isOdd(int x)  { return (x & 1) == 1; }
+    ```
+    </Tab>
+</Tabs>
+
+Why bother over `x % 2 == 0`? They generate identical machine code on every modern compiler. The bit version reads more directly if you're already in "bit thinking" mode — and it never trips you up on negative numbers, where `%` has language-specific quirks.
+
+### 2. Multiply or divide by a power of 2
+
+```cpp copy
+int times8(int x)        { return x << 3; }   // x * 8
+int divideBy4(int x)     { return x >> 2; }   // x / 4 (for non-negative x)
+```
+
+<Callout type="warning">
+    For negative numbers, `x >> k` is **arithmetic shift** in most languages — it rounds *toward negative infinity*, which differs from C-style integer division (which truncates toward zero). `-5 / 2 == -2` but `-5 >> 1 == -3`. Use shifts on non-negative integers or know your language's rule.
+</Callout>
+
+### 3. Get the k-th bit
+
+```cpp copy
+int getBit(int x, int k) {
+    return (x >> k) & 1;
+}
+```
+
+Shift bit `k` to position `0`, mask everything else away.
+
+### 4. Set the k-th bit
+
+```cpp copy
+int setBit(int x, int k) {
+    return x | (1 << k);
+}
+```
+
+OR with a mask that has only bit `k` set.
+
+### 5. Clear the k-th bit
+
+```cpp copy
+int clearBit(int x, int k) {
+    return x & ~(1 << k);
+}
+```
+
+AND with a mask that has 0 at bit `k` and 1 everywhere else.
+
+### 6. Toggle the k-th bit
+
+```cpp copy
+int toggleBit(int x, int k) {
+    return x ^ (1 << k);
+}
+```
+
+XOR with `1` flips, XOR with `0` leaves alone.
+
+### 7. Swap two integers without a temp
+
+```cpp copy
+void swap(int& a, int& b) {
+    a ^= b;
+    b ^= a;
+    a ^= b;
+}
+```
+
+Three XORs. Cute, but never use this in real code — a normal `swap` (using a temp variable) is faster and doesn't break when `a` and `b` are the same memory location.
+
+</Steps>
+
+## Putting it together — a tiny "bit set" class
+
+Stack a few of these and you have a working bitset:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct BitSet32 {
+        int data = 0;
+
+        bool get(int k) const { return (data >> k) & 1; }
+        void set(int k)       { data |=  (1 << k); }
+        void clear(int k)     { data &= ~(1 << k); }
+        void toggle(int k)    { data ^=  (1 << k); }
+        int  count() const    { return __builtin_popcount(data); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class BitSet32:
+        def __init__(self):
+            self.data = 0
+
+        def get(self, k):    return (self.data >> k) & 1
+        def set(self, k):    self.data |=  (1 << k)
+        def clear(self, k):  self.data &= ~(1 << k)
+        def toggle(self, k): self.data ^=  (1 << k)
+        def count(self):     return self.data.bit_count()   # 3.10+
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class BitSet32 {
+        int data = 0;
+
+        boolean get(int k) { return ((data >> k) & 1) == 1; }
+        void set(int k)    { data |=  (1 << k); }
+        void clear(int k)  { data &= ~(1 << k); }
+        void toggle(int k) { data ^=  (1 << k); }
+        int  count()       { return Integer.bitCount(data); }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+A whole 32-element set of booleans, every operation in O(1), the entire structure fitting in **four bytes**. This is the kind of thing that makes bit manipulation worth learning — replacing a 32-byte boolean array with a 4-byte int isn't just an optimization, it's a *transformation* in how you think about data.
+
+Ready for real problems? Head to **Practice Questions**.

@@ -1,0 +1,232 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { BitVisualizer, BitRow, BitOperation, InteractiveBits } from "../../components/BitVisualizer";
+export const Tab = Tabs.Tab;
+
+# Introduction to Bit Manipulation
+
+## Binary, one more time
+
+Every integer in memory is a row of bits — 0s and 1s. An 8-bit unsigned integer can represent `0` to `255`. A 32-bit signed integer covers `-2,147,483,648` to `2,147,483,647`.
+
+Reading a binary number works the same way as decimal — each position is a power of 2 instead of a power of 10:
+
+```text
+binary:   0 0 0 0 1 1 0 0
+power:    7 6 5 4 3 2 1 0
+value:                  ↑     ↑    ↑    ↑
+                       128 . 8    4   . 1
+
+= 0·128 + 0·64 + 0·32 + 0·16 + 1·8 + 1·4 + 0·2 + 0·1
+= 12
+```
+
+<BitVisualizer title="The number 12 as 8 bits">
+    <BitRow value={12} bits={8} label="12" />
+</BitVisualizer>
+
+Bit indexing: **the rightmost bit is bit 0** (the "least significant bit", LSB). Bit 7 is the leftmost in an 8-bit number. Always count from the right.
+
+## The six bitwise operators
+
+Six operators do everything in bit manipulation. Once you know what each does to two bits, you know what it does to two whole integers — because each bit position is computed independently.
+
+### AND (`&`) — both bits must be 1
+
+```text
+1 & 1 = 1     0 & 1 = 0
+1 & 0 = 0     0 & 0 = 0
+```
+
+<BitOperation
+    title="12 & 10 = 8"
+    opSymbol="&"
+    bits={8}
+    ops={[
+        { value: 12, label: "12" },
+        { value: 10, label: "10" },
+        { value: 12 & 10, label: "12 & 10", isResult: true },
+    ]}
+/>
+
+Common uses:
+- **Check if a bit is set** — `(x & (1 << k))` is nonzero iff bit `k` of `x` is `1`.
+- **Clear bits** — `x & 0` zeros everything; `x & mask` keeps only bits set in `mask`.
+- **Mask a value to N bits** — `x & ((1 << N) - 1)` keeps only the lowest N bits.
+
+### OR (`|`) — at least one bit must be 1
+
+```text
+1 | 1 = 1     0 | 1 = 1
+1 | 0 = 1     0 | 0 = 0
+```
+
+<BitOperation
+    title="12 | 10 = 14"
+    opSymbol="|"
+    bits={8}
+    ops={[
+        { value: 12, label: "12" },
+        { value: 10, label: "10" },
+        { value: 12 | 10, label: "12 | 10", isResult: true },
+    ]}
+/>
+
+Common uses:
+- **Set a bit** — `x | (1 << k)` turns bit `k` on, regardless of its previous value.
+- **Combine flags** — `READ | WRITE | EXECUTE` packs three permissions into one number.
+
+### XOR (`^`) — exactly one bit must be 1
+
+```text
+1 ^ 1 = 0     0 ^ 1 = 1
+1 ^ 0 = 1     0 ^ 0 = 0
+```
+
+<BitOperation
+    title="12 ^ 10 = 6"
+    opSymbol="^"
+    bits={8}
+    ops={[
+        { value: 12, label: "12" },
+        { value: 10, label: "10" },
+        { value: 12 ^ 10, label: "12 ^ 10", isResult: true },
+    ]}
+/>
+
+XOR is the **secret weapon** of bit manipulation. Three magic identities:
+
+- `x ^ 0 = x`
+- `x ^ x = 0`
+- `a ^ b ^ a = b` (XOR cancels pairs)
+
+That third property is why XOR finds the unique element in an array of pairs in O(1) memory. We'll do that on the Practice page.
+
+### NOT (`~`) — flip every bit
+
+```text
+~1 = 0     ~0 = 1
+```
+
+<BitOperation
+    title="~12 (flip every bit) — in two's complement, this is -13"
+    opSymbol="~"
+    bits={8}
+    ops={[
+        { value: 12, label: "12" },
+        { value: ~12 & 0xff, label: "~12", isResult: true },
+    ]}
+/>
+
+In any signed integer system (which is what C, Java, JavaScript, and Python all use), `~x == -x - 1`. So `~5 == -6` and `~0 == -1`. This trips beginners up — but it's a direct consequence of how two's complement works (more on this below).
+
+### Left shift (`<<`) — multiply by powers of 2
+
+`x << k` shifts every bit of `x` left by `k` positions, filling the right with zeros. This is **equivalent to multiplying `x` by `2^k`**.
+
+```text
+3 << 2  =  12      (3 · 4)
+1 << 5  =  32      (1 · 32)
+```
+
+<BitOperation
+    title="3 << 2 = 12"
+    opSymbol="<<2"
+    bits={8}
+    ops={[
+        { value: 3, label: "3" },
+        { value: 3 << 2, label: "3 << 2", isResult: true },
+    ]}
+/>
+
+Common uses:
+- **Build a mask for bit k** — `(1 << k)` gives an integer with only bit `k` set.
+- **Fast multiplication by 2** — historically this was faster than `* 2`; modern compilers optimize either way, but `<< 1` still reads cleaner in low-level code.
+
+### Right shift (`>>`) — divide by powers of 2
+
+`x >> k` shifts every bit right by `k` positions. For non-negative numbers, this is **integer division by `2^k`** (always rounded down).
+
+```text
+12 >> 2  =  3      (12 / 4)
+20 >> 1  =  10     (20 / 2)
+```
+
+<BitOperation
+    title="12 >> 2 = 3"
+    opSymbol=">>2"
+    bits={8}
+    ops={[
+        { value: 12, label: "12" },
+        { value: 12 >> 2, label: "12 >> 2", isResult: true },
+    ]}
+/>
+
+<Callout type="warning">
+    For **negative** numbers, behavior depends on the language. Most languages do an **arithmetic shift** — bits shifted in from the left match the sign bit, so the number stays negative. JavaScript exposes both `>>` (arithmetic, signed) and `>>>` (logical, fills with zeros). C, C++, Java use `>>` for arithmetic; Java's `>>>` is unsigned. Python's `>>` is arithmetic and integers are unbounded.
+</Callout>
+
+## Cheat sheet
+
+| Operator | Name         | Example       | Use it for                              |
+| :------: | :----------- | :------------ | :-------------------------------------- |
+| `&`      | AND          | `12 & 10 = 8` | check / clear / mask bits               |
+| `\|`     | OR           | `12 \| 10 = 14`| set bits, combine flags                |
+| `^`      | XOR          | `12 ^ 10 = 6` | toggle bits, find unique, swap         |
+| `~`      | NOT          | `~12 = -13`   | invert all bits                         |
+| `<<`     | Left shift   | `3 << 2 = 12` | multiply by 2^k, build single-bit masks |
+| `>>`     | Right shift  | `12 >> 2 = 3` | divide by 2^k                           |
+
+## Play with it
+
+<InteractiveBits bits={8} />
+
+Click the operator buttons; change `a` and `b`. Watch how individual bit positions get computed — it's not magic, it's just a giant truth table applied 8 (or 32, or 64) times in parallel.
+
+## Two's complement — how negatives work
+
+If integers are just bits, how do we represent `-5`?
+
+The naive idea — reserve the top bit as a "sign bit" — has a problem: you end up with both `+0` and `-0`, and arithmetic becomes a mess. So computers don't do that. They use **two's complement** instead.
+
+The two's complement representation of `-x` (in `N` bits) is:
+
+> **Flip every bit of `x`, then add 1.**
+
+Equivalently: `-x == ~x + 1`.
+
+For 8 bits, `5` is `00000101`, so `-5` is:
+
+```text
+ 5 :  0000 0101
+~5 :  1111 1010    (flip all bits)
++1 :  1111 1011    (add 1)        ← this is -5
+```
+
+<BitVisualizer title="How -5 looks in 8-bit two's complement">
+    <BitRow value={5} bits={8} label="5" />
+    <BitRow value={-5 & 0xff} bits={8} label="-5" />
+</BitVisualizer>
+
+Why this scheme?
+
+1. **One zero.** `00000000` is `0`. There is no separate `-0`.
+2. **Addition just works.** `5 + (-5) == 0` falls out automatically — no special-casing.
+3. **The top bit *is* the sign.** Negative numbers have bit `N-1` set; positives don't. But the rest of the bits aren't a simple value — they're the two's complement encoding.
+
+Three consequences worth remembering:
+
+- `~x == -x - 1` for any signed integer.
+- `INT_MIN = -2^31` is `10000000…0` — flipping its bits gives `01111111…1`, and adding 1 wraps back to `INT_MIN`. **`-INT_MIN` overflows.** This is the source of countless off-by-one bugs.
+- An `unsigned int` interprets the same bits as a non-negative number. `(unsigned)-1 == UINT_MAX`.
+
+## Watching out for traps
+
+A few footguns to know:
+
+**Operator precedence.** In C/C++/Java/Python, comparison operators bind *tighter* than bitwise. `x & 1 == 0` parses as `x & (1 == 0)` → `x & false` → `0`. Wrong every time. Always parenthesize: `(x & 1) == 0`.
+
+**Shift overflow.** Shifting an `int` by 32 or more positions is **undefined behavior** in C and C++. In Java, the shift count is taken `mod 32` (or `mod 64` for `long`), so `1 << 32 == 1`. In JavaScript, shifts always work on 32-bit ints — so `1 << 32 == 1` too. Languages disagree; when in doubt, mask the count.
+
+**Signed shift on the left.** `1 << 31` in a 32-bit `int` sets the sign bit, producing a *negative* number. In Java this is fine; in C/C++ it's undefined behavior for signed types. Use `unsigned` types if you're packing bits into the high positions.
+
+Got the basics? Up next — the **Bit Tricks** you'll use over and over again in problems.

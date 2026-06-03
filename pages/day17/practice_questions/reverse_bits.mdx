@@ -1,0 +1,177 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { BitVisualizer, BitRow } from "../../../components/BitVisualizer";
+export const Tab = Tabs.Tab;
+
+### Reverse Bits <DifficultyBadge level="medium" />
+
+#### Description
+
+Reverse the bits of a given **32-bit unsigned integer**.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  n = 0b00000010100101000001111010011100   = 43261596
+    Output:     0b00111001011110000010100101000000   = 964176192
+
+> Case 2:
+    Input:  n = 0b11111111111111111111111111111101   = 4294967293
+    Output:     0b10111111111111111111111111111111   = 3221225471
+```
+
+#### Constraints
+
+- The input is a 32-bit unsigned integer.
+
+#### Approach 1: Walk each bit (one-liner per bit)
+
+For each of the 32 bits of `n`, grab it and place it at the **mirror position** in `result`. Bit `i` of `n` ends up at position `31 - i` of `result`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    uint32_t reverseBits(uint32_t n) {
+        uint32_t result = 0;
+        for (int i = 0; i < 32; i++) {
+            uint32_t bit = (n >> i) & 1;
+            result |= (bit << (31 - i));
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse_bits(n):
+        result = 0
+        for i in range(32):
+            bit = (n >> i) & 1
+            result |= bit << (31 - i)
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int reverseBits(int n) {
+        int result = 0;
+        for (int i = 0; i < 32; i++) {
+            int bit = (n >>> i) & 1;
+            result |= bit << (31 - i);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Java's `>>>` matters here.** Java's `>>` is the arithmetic (signed) shift, which would fill in sign bits if `n` is negative. The unsigned shift `>>>` is what we want for raw bit manipulation.
+</Callout>
+
+**Time: O(32) = O(1)**. **Space: O(1)**.
+
+#### Approach 2: Shift-out-shift-in (cleaner loop)
+
+A subtly different shape. Build `result` by shifting it left to make room for a new bit each time, and shifting `n` right to drop the bit we just consumed.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    uint32_t reverseBits(uint32_t n) {
+        uint32_t result = 0;
+        for (int i = 0; i < 32; i++) {
+            result = (result << 1) | (n & 1);
+            n >>= 1;
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse_bits(n):
+        result = 0
+        for _ in range(32):
+            result = (result << 1) | (n & 1)
+            n >>= 1
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int reverseBits(int n) {
+        int result = 0;
+        for (int i = 0; i < 32; i++) {
+            result = (result << 1) | (n & 1);
+            n >>>= 1;
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This version is symmetric and easier to remember: each iteration peels off the **lowest** bit of `n` and pushes it onto the **bottom** of `result` — which, after 32 iterations, has been pushed all the way to the **top** of the result. Perfect reversal.
+
+#### Approach 3: Divide-and-conquer (the speedrun)
+
+This is the trick used by libraries. Swap whole halves at once, then quarters, then eighths, then nibbles, then pairs, then bits. Six masked swaps total, **no loop**.
+
+```cpp copy
+uint32_t reverseBits(uint32_t n) {
+    n = (n >> 16) | (n << 16);
+    n = ((n & 0xff00ff00) >> 8)  | ((n & 0x00ff00ff) << 8);
+    n = ((n & 0xf0f0f0f0) >> 4)  | ((n & 0x0f0f0f0f) << 4);
+    n = ((n & 0xcccccccc) >> 2)  | ((n & 0x33333333) << 2);
+    n = ((n & 0xaaaaaaaa) >> 1)  | ((n & 0x55555555) << 1);
+    return n;
+}
+```
+
+How it works at the first line: `n` is 32 bits — the top 16 and the bottom 16. Swap them. Now within each 16-bit half, the bytes are in the wrong order — fix it with the second line. Repeat at 4 bits, 2 bits, 1 bit.
+
+This is the same idea as a parallel sort network. **Five constant-time operations** instead of 32 loop iterations — and the compiler may even SIMD-vectorize it.
+
+<Callout type="info">
+    The hex masks `0xaaaaaaaa` and `0x55555555` are old friends if you've done any low-level work. `0xa = 1010` and `0x5 = 0101` — so these are the alternating-bit masks for selecting even / odd positions. The same pair shows up in popcount tricks, Gray code, and dozens of other bit hacks.
+</Callout>
+
+#### Approach 4: Use the library
+
+In real code, just call it:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    // No standard library function for this in C++.
+    // GCC built-in: __builtin_bitreverse32(n)  (clang only)
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse_bits(n):
+        return int(format(n, '032b')[::-1], 2)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int reverseBits(int n) {
+        return Integer.reverse(n);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Python and Java make this trivial; C++ doesn't have a standard function, but the divide-and-conquer trick *is* what the compiler would emit anyway.
+
+#### Analysis
+
+| Approach           | Time          | Space  |
+| :----------------- | :------------ | :----- |
+| Bit-by-bit         | O(32) = O(1)  | O(1)   |
+| Shift-out-shift-in | O(32) = O(1)  | O(1)   |
+| Divide-and-conquer | **O(1)** real-world (5 instructions) | O(1) |
+
+All three are technically O(1) for fixed 32-bit input. The interesting comparison is the *constant factor* — 32 iterations vs 5 masked operations.

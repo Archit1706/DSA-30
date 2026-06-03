@@ -13,6 +13,7 @@ export default {
     "day10": "Day 10 - Graph Traversal (DFS and BFS)",
     "day11": "Day 11 - Sorting Algorithms - I",
     "day13": "Day 13 - Searching Algorithms",
+    "day17": "Day 17 - Bit Manipulation",
     "github_link": {
         "title": "DSA-30",
         "href": "https://github.com/Archit1706/DSA-30",

@@ -1,0 +1,134 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { BitVisualizer, BitRow } from "../../../components/BitVisualizer";
+export const Tab = Tabs.Tab;
+
+### Single Number <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a non-empty array of integers `nums`, **every element appears twice except for one**. Find that single one.
+
+Solve it in **O(n) time** and **O(1) extra space**.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [2, 2, 1]
+    Output: 1
+
+> Case 2:
+    Input:  nums = [4, 1, 2, 1, 2]
+    Output: 4
+
+> Case 3:
+    Input:  nums = [1]
+    Output: 1
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 3 * 10^4`
+- `-3 * 10^4 <= nums[i] <= 3 * 10^4`
+- Each integer appears **twice**, except for one integer which appears **once**.
+
+#### Why a hash set is the wrong answer
+
+The obvious solution — count each number with a hash map, return the one with count 1 — works in O(n) time, but it uses O(n) extra space. The problem explicitly asks for **O(1) space**, which rules out any auxiliary data structure that grows with the input.
+
+We need something cleverer.
+
+#### The XOR insight
+
+Recall the three magic XOR identities from the intro:
+
+- `x ^ 0 = x`
+- `x ^ x = 0`
+- XOR is **commutative and associative** — order doesn't matter.
+
+Put them together. If we XOR every element of `nums`, every pair `(x, x)` cancels to `0`, and we're left with the single `x ^ 0 = x`.
+
+```text
+nums = [4, 1, 2, 1, 2]
+
+4 ^ 1 ^ 2 ^ 1 ^ 2
+= 4 ^ (1 ^ 1) ^ (2 ^ 2)     # reorder freely
+= 4 ^ 0 ^ 0
+= 4
+```
+
+That's it. No hash map, no sort, no extra storage — just one running XOR.
+
+<BitVisualizer title="Each pair (1,1) and (2,2) cancels to 0; only 4 survives">
+    <BitRow value={4} bits={8} label="4" />
+    <BitRow value={1} bits={8} label="1" />
+    <BitRow value={2} bits={8} label="2" />
+    <BitRow value={1} bits={8} label="1" />
+    <BitRow value={2} bits={8} label="2" />
+    <BitRow value={4 ^ 1 ^ 2 ^ 1 ^ 2} bits={8} label="XOR all" accent="emerald" />
+</BitVisualizer>
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int singleNumber(vector<int>& nums) {
+        int result = 0;
+        for (int x : nums) result ^= x;
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def single_number(nums):
+        result = 0
+        for x in nums:
+            result ^= x
+        return result
+
+    # one-liner version
+    from functools import reduce
+    from operator import xor
+    def single_number_fp(nums):
+        return reduce(xor, nums)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int singleNumber(int[] nums) {
+        int result = 0;
+        for (int x : nums) result ^= x;
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Four lines. No fancy data structures. Works for any number of pairs in any order — XOR doesn't care.
+
+<Callout type="info">
+    **This is the canonical XOR problem.** If you see "every element appears twice except one," XOR is the answer, full stop. Variations on this — *Missing Number*, *Single Number II/III*, *Find Two Non-Duplicates* — all build on this exact pattern.
+</Callout>
+
+#### Analysis
+
+- **Time:** **O(n)** — one pass.
+- **Space:** **O(1)** — a single accumulator.
+
+#### Bonus: what if every element appears three times except one?
+
+XOR doesn't cancel triples — `x ^ x ^ x = x`, not `0`. The classic solution uses **two accumulators** (`ones` and `twos`) tracking bits seen once and bits seen twice mod 3:
+
+```python copy
+def single_number_ii(nums):
+    ones = twos = 0
+    for x in nums:
+        ones = (ones ^ x) & ~twos
+        twos = (twos ^ x) & ~ones
+    return ones
+```
+
+That's *Single Number II* on LeetCode — same XOR family, harder version of the same trick. The idea is identical: design a state machine that's invariant under triples but transforms once for the singleton.

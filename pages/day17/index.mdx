@@ -1,0 +1,45 @@
+import { Callout } from "nextra/components";
+
+# Day 17 — Bit Manipulation
+
+Today we drop below the abstractions and talk directly to the hardware. Bit manipulation is computer science at its most physical — you're toggling individual on/off switches in memory, and entire algorithms collapse from O(n) to O(1) when you know the right trick.
+
+## The big idea
+
+Every integer in your program is just a row of 0s and 1s in memory. The number `12` is `00001100`. The number `10` is `00001010`. Operations like `&`, `|`, `^`, `<<`, `>>` work directly on those bits — in parallel, all of them at once, in a single CPU instruction.
+
+That parallelism is the whole point. A `&` between two 32-bit integers does 32 simultaneous AND operations. No loop, no comparison, no overhead — one cycle.
+
+## Why you should care
+
+Bit manipulation isn't just for embedded engineers or competitive programmers. It shows up everywhere once you start looking:
+
+- **Sets** — represent a subset of 32 (or 64) items as a single integer. Add, remove, intersect, union: all O(1).
+- **Permissions and flags** — Unix file permissions, GraphQL field selectors, compression formats.
+- **Hashing** — hash functions are almost entirely shifts and XORs.
+- **Networking** — IP masks, subnet calculations, packet headers.
+- **Graphics** — color channels, alpha blending, pixel manipulation.
+- **Crypto** — RSA, AES, SHA-256 — all bit-level operations underneath.
+- **Compression** — gzip, LZ4, Huffman coding all rely on bit packing.
+- **State compression in DP** — bitmask DP turns "visited" arrays into single integers, often saving an order of magnitude in memory.
+
+In interviews, bit-manipulation problems are a favorite for testing whether you understand *what the computer is actually doing* — not just the API.
+
+## Today's roadmap
+
+1. **[Introduction](/day17/introduction)** — binary numbers, the six bitwise operators (AND, OR, XOR, NOT, left shift, right shift), two's complement, and how negative numbers work.
+2. **[Bit Tricks](/day17/tricks)** — the toolbox: get/set/clear/toggle a specific bit, count set bits (Brian Kernighan's trick), isolate the lowest set bit, check if a number is a power of 2, swap without a temp.
+3. **[Basic Questions](/day17/basic_questions)** — warm-up problems to internalize each operator.
+4. **[Practice Questions](/day17/practice_questions)** — six classic interview problems: Single Number, Number of 1 Bits, Counting Bits, Missing Number, Reverse Bits, Power of Two.
+
+<Callout type="info">
+    Bit manipulation has a reputation for being cryptic. It's not really — it's just *unfamiliar*. Once you've seen the same five or six tricks a few times, they become reflexes. The goal of today isn't to memorize a list; it's to internalize the patterns so you spot them in problems.
+</Callout>
+
+## Two things to remember before we dive in
+
+**Bits count from the right.** Bit `0` is the **least significant** bit (the rightmost in `00001100`). Bit `3` is `1` in `00001100`. Bit `7` is the leftmost in an 8-bit number. This convention is universal — get used to reading right-to-left.
+
+**Negative numbers use two's complement.** `-1` is *not* stored as `1` with a sign bit — it's stored as **all 1s** (`11111111` for an 8-bit integer). This is why `~0 == -1` in any language with signed ints. We'll cover this on the next page.
+
+Ready? Open **Introduction** in the sidebar.

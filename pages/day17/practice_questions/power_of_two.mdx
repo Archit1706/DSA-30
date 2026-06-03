@@ -1,0 +1,144 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { BitVisualizer, BitRow, BitOperation } from "../../../components/BitVisualizer";
+export const Tab = Tabs.Tab;
+
+### Power of Two <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an integer `n`, return `true` if it is a power of two (i.e. there exists an integer `x >= 0` such that `n == 2^x`).
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  n = 1     # 2^0
+    Output: true
+
+> Case 2:
+    Input:  n = 16    # 2^4
+    Output: true
+
+> Case 3:
+    Input:  n = 3
+    Output: false
+
+> Case 4:
+    Input:  n = 0
+    Output: false     # 2^x is never 0
+```
+
+#### Constraints
+
+- `-2^31 <= n <= 2^31 - 1`
+- Aim for **O(1)** time.
+
+#### The bit pattern of a power of 2
+
+A power of 2 has **exactly one bit set**:
+
+```text
+1   = 0000 0001
+2   = 0000 0010
+4   = 0000 0100
+8   = 0000 1000
+16  = 0001 0000
+```
+
+Anything that isn't a power of 2 either has zero set bits (just `0`) or two or more set bits.
+
+#### The one-line trick
+
+For any positive `n`, `n & (n - 1)` clears the lowest set bit. If `n` had exactly one set bit, the result is `0`. Otherwise, at least one bit remains.
+
+```text
+ n   = 0001 0000    (16)
+n-1  = 0000 1111    (15)
+n & (n-1) = 0       ← zero ⇒ 16 was a power of 2
+
+ n   = 0001 0010    (18 — not a power of 2)
+n-1  = 0001 0001    (17)
+n & (n-1) = 16      ← nonzero ⇒ 18 is not a power of 2
+```
+
+<BitOperation
+    title="16 & 15 = 0 ⇒ 16 is a power of 2"
+    bits={8}
+    opSymbol="&"
+    ops={[
+        { value: 16, label: "16" },
+        { value: 15, label: "15" },
+        { value: 16 & 15, label: "16 & 15", isResult: true },
+    ]}
+/>
+
+<BitOperation
+    title="18 & 17 ≠ 0 ⇒ 18 is NOT a power of 2"
+    bits={8}
+    opSymbol="&"
+    ops={[
+        { value: 18, label: "18" },
+        { value: 17, label: "17" },
+        { value: 18 & 17, label: "18 & 17", isResult: true },
+    ]}
+/>
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isPowerOfTwo(int n) {
+        return n > 0 && (n & (n - 1)) == 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_power_of_two(n):
+        return n > 0 and (n & (n - 1)) == 0
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isPowerOfTwo(int n) {
+        return n > 0 && (n & (n - 1)) == 0;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Why `n > 0`?** Without it, `n = 0` slips through: `0 & -1 == 0` looks like "yes, power of 2." Negatives also fail — `-8 & -9` happens to be `-16`, but the function should return `false` either way. The guard makes the function correct for all `int` inputs.
+</Callout>
+
+#### Alternative: isolate-and-compare
+
+`n & -n` isolates the lowest set bit (from the [Tricks page](/day17/tricks)). If `n` is a power of 2, *that* lowest set bit **is** the whole number — so `n & -n == n`.
+
+```cpp copy
+bool isPowerOfTwo(int n) {
+    return n > 0 && (n & -n) == n;
+}
+```
+
+Two reasonable variants of the same one-line check. Either is fine in interview.
+
+#### A note on the C++20 helper
+
+C++20 added `std::has_single_bit(n)` in `<bit>`, which does exactly this check. In production C++ code, that's what you'd use:
+
+```cpp copy
+#include <bit>
+bool isPowerOfTwo(unsigned int n) {
+    return std::has_single_bit(n);
+}
+```
+
+Java has `Integer.bitCount(n) == 1` and Python has `n.bit_count() == 1` as one-liner alternatives — both do the popcount and check for exactly one set bit, identical idea.
+
+#### Analysis
+
+- **Time:** **O(1)** — single comparison and bitwise AND.
+- **Space:** **O(1)**.

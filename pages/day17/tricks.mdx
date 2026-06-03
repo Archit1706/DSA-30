@@ -1,0 +1,279 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { BitVisualizer, BitRow, BitOperation, BitAlgorithmStepper } from "../../components/BitVisualizer";
+export const Tab = Tabs.Tab;
+
+# Bit Tricks
+
+This page is your toolbox. Memorize the **shape** of each trick — not the line of code, but the *intuition* behind why it works. Once you see them a few times, they become reflexes.
+
+## Tools for working with a specific bit
+
+The four "atomic" operations on a single bit at position `k`. Everything else builds on these.
+
+### 1. Get the value of bit k
+
+```cpp copy
+int bit = (x >> k) & 1;
+```
+
+Shift bit `k` down to position 0, then mask with `1` to keep only that bit. Returns `0` or `1`.
+
+<BitOperation
+    title="get bit 3 of 12: ((12 >> 3) & 1) = 1"
+    bits={8}
+    opSymbol="& 1"
+    ops={[
+        { value: 12, label: "12" },
+        { value: 12 >> 3, label: "12 >> 3" },
+        { value: (12 >> 3) & 1, label: "& 1", isResult: true },
+    ]}
+/>
+
+### 2. Set bit k (turn it on)
+
+```cpp copy
+x = x | (1 << k);
+```
+
+`(1 << k)` is an integer with **only** bit `k` set. OR-ing forces that bit to 1, leaves the rest alone.
+
+<BitOperation
+    title="set bit 1 of 12: 12 | (1 << 1) = 14"
+    bits={8}
+    opSymbol="|"
+    ops={[
+        { value: 12, label: "12" },
+        { value: 1 << 1, label: "1 << 1" },
+        { value: 12 | (1 << 1), label: "result", isResult: true },
+    ]}
+/>
+
+### 3. Clear bit k (turn it off)
+
+```cpp copy
+x = x & ~(1 << k);
+```
+
+`(1 << k)` is `00…0100…0`. `~` of that is `11…1011…1` — all 1s **except** bit `k`. AND-ing forces bit `k` to 0, leaves the rest alone.
+
+<BitOperation
+    title="clear bit 3 of 12: 12 & ~(1 << 3) = 4"
+    bits={8}
+    opSymbol="&"
+    ops={[
+        { value: 12, label: "12" },
+        { value: ~(1 << 3) & 0xff, label: "~(1<<3)" },
+        { value: 12 & ~(1 << 3) & 0xff, label: "result", isResult: true },
+    ]}
+/>
+
+### 4. Toggle bit k (flip it)
+
+```cpp copy
+x = x ^ (1 << k);
+```
+
+XOR with `1` flips, XOR with `0` leaves alone. So XOR with `(1 << k)` flips exactly bit `k`. Apply twice and you're back where you started.
+
+<BitOperation
+    title="toggle bit 2 of 12: 12 ^ (1 << 2) = 8"
+    bits={8}
+    opSymbol="^"
+    ops={[
+        { value: 12, label: "12" },
+        { value: 1 << 2, label: "1 << 2" },
+        { value: 12 ^ (1 << 2), label: "result", isResult: true },
+    ]}
+/>
+
+## The five classic tricks
+
+### Check if a number is a power of 2
+
+A power of 2 has **exactly one bit set**. Any such number `x` has the property that `x - 1` is all 1s in the lower bits and 0 where `x` had its set bit:
+
+```text
+ x = 0001 0000      (16)
+x-1 = 0000 1111     (15)
+x & (x-1) = 0       always 0 for powers of 2
+```
+
+```cpp copy
+bool isPowerOfTwo(int x) {
+    return x > 0 && (x & (x - 1)) == 0;
+}
+```
+
+The `x > 0` guard rejects 0 and negatives — `0 & -1 == 0` would otherwise look like a power of 2.
+
+<BitOperation
+    title="x & (x - 1) clears the lowest set bit — for a power of 2, that leaves zero"
+    bits={8}
+    opSymbol="&"
+    ops={[
+        { value: 16, label: "16" },
+        { value: 15, label: "15" },
+        { value: 16 & 15, label: "16 & 15", isResult: true },
+    ]}
+/>
+
+### Count the set bits (Brian Kernighan's algorithm)
+
+The naive way to count `1` bits is to look at all 32 positions. Kernighan's trick is much faster: **`x & (x-1)` clears the lowest set bit**. Loop until `x` becomes 0; each iteration counts one set bit.
+
+```cpp copy
+int popcount(unsigned int x) {
+    int count = 0;
+    while (x != 0) {
+        x = x & (x - 1);   // clear lowest set bit
+        count++;
+    }
+    return count;
+}
+```
+
+Only does work proportional to the **number of set bits**, not the total number of bits. For a number with 3 set bits, the loop runs 3 times — even if the integer is 64 bits wide.
+
+<BitAlgorithmStepper
+    title="Kernighan on 13 = 0b00001101"
+    bits={8}
+    steps={[
+        { value: 13, highlight: [3, 2, 0], description: "x = 13, count = 0" },
+        { value: 12, highlight: [3, 2], description: "x = x & (x-1) → cleared bit 0. count = 1" },
+        { value: 8,  highlight: [3], description: "x = x & (x-1) → cleared bit 2. count = 2" },
+        { value: 0,  highlight: [], description: "x = x & (x-1) → cleared bit 3. count = 3. Done." },
+    ]}
+/>
+
+Every modern CPU has a single-cycle instruction for this (`POPCNT` on x86, `popcount` on ARM). Languages expose it as `__builtin_popcount` (C/C++/GCC), `Integer.bitCount` (Java), `int.bit_count` (Python 3.10+).
+
+### Isolate the lowest set bit
+
+```cpp copy
+int lowest = x & -x;
+```
+
+In two's complement, `-x == ~x + 1`. Flipping every bit of `x` and adding 1 produces a number that matches `x` only at the lowest set bit position. AND them together and you get that one bit.
+
+```text
+ x  = 0001 1010   (= 26)
+-x  = 1110 0110
+x&-x= 0000 0010   ← just the lowest set bit (= 2)
+```
+
+This is the trick behind **Binary Indexed Trees** (Fenwick trees) — entire data structures built on this one-line identity.
+
+### Swap two integers without a temp variable
+
+```cpp copy
+a = a ^ b;
+b = a ^ b;     // now b == original a
+a = a ^ b;     // now a == original b
+```
+
+Three XORs and no extra storage. Works because `(a^b)^b == a` — XORing twice with the same value cancels out.
+
+<Callout type="warning">
+    It's a fun trick to know, but **don't use it in production**. Modern compilers turn an obvious `swap(a, b)` into a single `XCHG` instruction (or just two register moves), which is faster *and* doesn't break when `a` and `b` happen to be aliases of the same variable. Save the XOR swap for situations where you genuinely have no spare register.
+</Callout>
+
+### Detect opposite signs
+
+Two integers have opposite signs iff their XOR has the sign bit set — which makes the XOR negative.
+
+```cpp copy
+bool oppositeSigns(int a, int b) {
+    return (a ^ b) < 0;
+}
+```
+
+Faster than checking `(a < 0) != (b < 0)` because it avoids two comparisons and a branch.
+
+## Mask cookbook
+
+Specific bit patterns you'll build over and over:
+
+| Mask                        | What it is                          |
+| :-------------------------- | :---------------------------------- |
+| `1 << k`                    | A single 1 at position `k`          |
+| `(1 << k) - 1`              | The lowest `k` bits are 1, rest 0   |
+| `~((1 << k) - 1)`           | The lowest `k` bits are 0, rest 1   |
+| `~0`                        | All bits 1 (`-1` in two's complement)|
+| `1 << (BITS - 1)`           | Only the sign bit set               |
+| `x & -x`                    | Isolate lowest set bit              |
+| `x & (x - 1)`               | Clear lowest set bit                |
+| `x \| (x + 1)`              | Set lowest 0 bit                    |
+
+These are the building blocks. Any larger algorithm you'll see is just two or three of these chained together.
+
+## Bitmasks as sets
+
+If you have `N <= 32` items, a single 32-bit integer can represent any **subset** of them. Bit `i` is `1` iff item `i` is in the set.
+
+| Set operation       | Bit operation        |
+| :------------------ | :------------------- |
+| Empty set           | `0`                  |
+| Full set (all N)    | `(1 << N) - 1`       |
+| Add item `i`        | `s \| (1 << i)`      |
+| Remove item `i`     | `s & ~(1 << i)`      |
+| Toggle item `i`     | `s ^ (1 << i)`       |
+| Is item `i` in set? | `(s >> i) & 1`       |
+| Union               | `a \| b`             |
+| Intersection        | `a & b`              |
+| Difference (A − B)  | `a & ~b`             |
+| Size of set         | `popcount(s)`        |
+| Iterate over subsets of `s` | `for (sub = s; sub > 0; sub = (sub - 1) & s)` |
+
+This is the foundation of **bitmask DP** — a technique that turns problems like "Traveling Salesperson", "Assignment", and "Smallest Sufficient Team" from intractable into tractable for small `N`.
+
+<Callout type="info">
+    **Subset iteration** is the gem here. `(sub - 1) & s` walks through every non-empty subset of `s` in decreasing order. It's O(2^k) for a set with `k` elements — and combined with the outer "for each mask" loop, gives a **O(3^N)** total enumeration of all (subset, super-subset) pairs. That's much better than O(4^N) from the naive `O(2^N · 2^N)` approach.
+</Callout>
+
+## Built-in helpers worth knowing
+
+Modern languages give you single-call equivalents for the most useful tricks:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    // GCC builtins (also in clang)
+    __builtin_popcount(x)    // count set bits
+    __builtin_clz(x)         // count leading zeros (x must be nonzero)
+    __builtin_ctz(x)         // count trailing zeros
+    __builtin_parity(x)      // parity of set bits
+
+    // C++20 portable
+    #include <bit>
+    std::popcount(x);
+    std::countl_zero(x);
+    std::countr_zero(x);
+    std::has_single_bit(x);  // power-of-2 check
+    std::bit_width(x);       // ceil(log2(x+1))
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    x.bit_count()             # Python 3.10+
+    x.bit_length()            # number of bits needed to represent x
+    bin(x)                    # binary string, e.g. '0b1100'
+
+    # No need for hand-rolled tricks 99% of the time.
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    Integer.bitCount(x);              // popcount
+    Integer.numberOfLeadingZeros(x);  // CLZ
+    Integer.numberOfTrailingZeros(x); // CTZ
+    Integer.highestOneBit(x);         // isolate highest set bit
+    Integer.lowestOneBit(x);          // = x & -x
+    Integer.reverse(x);               // reverse bit order
+    Integer.toBinaryString(x);
+    ```
+    </Tab>
+</Tabs>
+
+Use the built-ins when you can — they're usually a single CPU instruction. The hand-rolled tricks matter when you're **inside** a tight loop or interview question that asks you to demonstrate understanding.
+
+You now have the toolbox. Let's apply it on warm-up problems next.

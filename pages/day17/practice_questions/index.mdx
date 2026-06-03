@@ -1,0 +1,36 @@
+import { Callout } from "nextra/components";
+
+# Bit Manipulation Practice Questions
+
+Six classic interview problems where bit manipulation isn't an optimization — it's *the* idea. Each one collapses to a few lines once you see the bit-level structure.
+
+<Callout type="info">
+    For every problem, ask first: "what's the **bit pattern** of the answer?" Once you can describe the answer in terms of which bits are set, the code writes itself in three or four lines.
+</Callout>
+
+## Easy
+
+| Problem                                                                                  | Pattern                | Status     |
+| :--------------------------------------------------------------------------------------- | :--------------------- | :--------- |
+| [Single Number](/day17/practice_questions/single_number)                                 | XOR cancels pairs      | Available  |
+| [Number of 1 Bits](/day17/practice_questions/number_of_1_bits)                           | Kernighan / popcount   | Available  |
+| [Power of Two](/day17/practice_questions/power_of_two)                                   | `x & (x-1) == 0`       | Available  |
+| [Missing Number](/day17/practice_questions/missing_number)                               | XOR with index         | Available  |
+
+## Medium
+
+| Problem                                                                                  | Pattern                | Status     |
+| :--------------------------------------------------------------------------------------- | :--------------------- | :--------- |
+| [Counting Bits](/day17/practice_questions/counting_bits)                                 | DP with low bit        | Available  |
+| [Reverse Bits](/day17/practice_questions/reverse_bits)                                   | Shift + place          | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                | Status        |
+| :------------------------------------- | :--------------------- | :------------ |
+| Single Number II                       | Bit-by-bit count mod 3 | Coming Soon   |
+| Single Number III                      | XOR + bit isolation    | Coming Soon   |
+| Sum of Two Integers                    | XOR + AND carry        | Coming Soon   |
+| Bitwise AND of Range                   | Common prefix          | Coming Soon   |
+| Maximum XOR of Two Numbers             | Trie of bits           | Coming Soon   |
+| Subsets via Bitmask                    | Enumerate 2^n          | Coming Soon   |
