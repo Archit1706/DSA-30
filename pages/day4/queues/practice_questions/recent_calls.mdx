@@ -1,0 +1,122 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Number of Recent Calls <DifficultyBadge level="easy" />
+
+#### Description
+
+You've got a counter that has been receiving requests one at a time. Implement the `RecentCounter` class:
+
+- `RecentCounter()` — initialize the counter with zero recent requests.
+- `ping(t)` — record a request at time `t` (in milliseconds). Return the number of requests made in the **inclusive range `[t - 3000, t]`**.
+
+Each `ping` is guaranteed to have a strictly larger `t` than the previous one.
+
+#### Examples
+
+```py
+counter = RecentCounter()
+counter.ping(1)     # -> 1     (requests in [-2999, 1] = [1])
+counter.ping(100)   # -> 2     (requests in [-2900, 100] = [1, 100])
+counter.ping(3001)  # -> 3     (requests in [1, 3001] = [1, 100, 3001])
+counter.ping(3002)  # -> 3     (requests in [2, 3002] = [100, 3001, 3002] — 1 is out)
+```
+
+#### Constraints
+
+- `1 <= t <= 10^9`
+- Each new `t` is strictly larger than the previous.
+- At most `10^4` calls to `ping`.
+
+#### Intuition
+
+We need to count the requests within the last 3000 ms. A queue is a perfect fit because:
+
+- New requests join at the **back** (newest is the freshest).
+- Old requests leave from the **front** (oldest is the first to expire).
+- A request is "expired" exactly when it's outside `[t - 3000, t]` — that is, when its timestamp is less than `t - 3000`.
+
+So the algorithm is just:
+
+1. Enqueue the new timestamp.
+2. While the front is **stale** (less than `t - 3000`), dequeue it.
+3. Return the queue's size.
+
+```text
+ping(1):    enqueue 1     → [1]                  size = 1
+ping(100):  enqueue 100   → [1, 100]             size = 2
+ping(3001): enqueue 3001  → [1, 100, 3001]
+            1   >= 3001 - 3000 = 1? yes, stay.
+            (nothing expires)                      size = 3
+ping(3002): enqueue 3002  → [1, 100, 3001, 3002]
+            1   >= 3002 - 3000 = 2? no, dequeue.   → [100, 3001, 3002]
+            100 >= 2? yes, stop.                   size = 3
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    using namespace std;
+
+    class RecentCounter {
+        queue<int> q;
+    public:
+        int ping(int t) {
+            q.push(t);
+            while (q.front() < t - 3000) q.pop();
+            return q.size();
+        }
+    };
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    class RecentCounter:
+        def __init__(self):
+            self.q = deque()
+
+        def ping(self, t: int) -> int:
+            self.q.append(t)
+            while self.q[0] < t - 3000:
+                self.q.popleft()
+            return len(self.q)
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Queue;
+    import java.util.ArrayDeque;
+
+    class RecentCounter {
+        private Queue<Integer> q = new ArrayDeque<>();
+
+        public int ping(int t) {
+            q.offer(t);
+            while (q.peek() < t - 3000) q.poll();
+            return q.size();
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this is amortized O(1)
+
+Each timestamp enters the queue once (on enqueue) and leaves at most once (on the first expiry that catches it). Across `n` total calls, total work is `O(n)` — averaging to `O(1)` per call.
+
+<Callout type="info">
+    This is the **sliding-window pattern** in its purest form: maintain a window of the most-recent items, dropping anything that falls outside the window. The same pattern reappears in rate limiters, sliding-window log algorithms, and time-series aggregations.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(1)` amortized per `ping`.
+- **Space:** `O(W)` where `W` is the number of timestamps within a 3-second window — bounded by the rate of incoming calls.

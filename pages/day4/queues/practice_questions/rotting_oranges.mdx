@@ -1,0 +1,233 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Rotting Oranges <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given an `m x n` grid where each cell can be one of:
+
+- `0` — empty cell
+- `1` — fresh orange
+- `2` — rotten orange
+
+Every minute, any fresh orange that is **4-directionally adjacent** to a rotten orange becomes rotten. Return the **minimum number of minutes** until no fresh orange remains. If it's impossible, return `-1`.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  grid = [[2,1,1],
+                    [1,1,0],
+                    [0,1,1]]
+    Output: 4
+
+> Case 2:
+    Input:  grid = [[2,1,1],
+                    [0,1,1],
+                    [1,0,1]]
+    Output: -1   # Bottom-left orange is never reached.
+
+> Case 3:
+    Input:  grid = [[0,2]]
+    Output: 0    # Already done — no fresh oranges.
+```
+
+#### Constraints
+
+- `1 <= m, n <= 10`
+- Each cell is `0`, `1`, or `2`.
+
+#### Intuition
+
+Rotting spreads **one cell at a time**, in **all four directions simultaneously**. That's the textbook description of a **multi-source breadth-first search**.
+
+The twist over normal BFS: instead of starting from one source and finding shortest distances, we start from **all rotten oranges at once** and find the time until every fresh one is reached.
+
+#### Algorithm
+
+1. Sweep the grid once. Push all rotten oranges into the queue as starting points (time `0`). Count the fresh oranges.
+2. Run BFS layer by layer. Each layer = "one minute passes." For every rotten orange popped, infect its 4 neighbors that are still fresh — mark them rotten, decrement the fresh count, enqueue them.
+3. After BFS ends:
+   - If `fresh == 0`, return the number of layers we processed (minus 1, since the seed layer is minute 0).
+   - Otherwise, some orange was unreachable → return `-1`.
+
+```text
+Initial state (minute 0):
+[2 1 1]
+[1 1 0]
+[0 1 1]
+queue = [(0,0)], fresh = 6
+
+After minute 1: (0,1) and (1,0) infected.
+[2 2 1]
+[2 1 0]
+[0 1 1]
+fresh = 4
+
+After minute 2: (0,2), (1,1) infected.
+[2 2 2]
+[2 2 0]
+[0 1 1]
+fresh = 2
+
+After minute 3: (2,1) infected.
+[2 2 2]
+[2 2 0]
+[0 2 1]
+fresh = 1
+
+After minute 4: (2,2) infected.
+[2 2 2]
+[2 2 0]
+[0 2 2]
+fresh = 0 → answer = 4
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <queue>
+    using namespace std;
+
+    int orangesRotting(vector<vector<int>>& grid) {
+        int m = grid.size(), n = grid[0].size();
+        queue<pair<int,int>> q;
+        int fresh = 0;
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 2) q.push({i, j});
+                else if (grid[i][j] == 1) fresh++;
+            }
+        }
+
+        if (fresh == 0) return 0;
+
+        int minutes = 0;
+        int dx[] = {-1, 1, 0, 0};
+        int dy[] = {0, 0, -1, 1};
+
+        while (!q.empty()) {
+            int size = q.size();
+            bool infected = false;
+            for (int s = 0; s < size; s++) {
+                auto [x, y] = q.front(); q.pop();
+                for (int d = 0; d < 4; d++) {
+                    int nx = x + dx[d], ny = y + dy[d];
+                    if (nx < 0 || nx >= m || ny < 0 || ny >= n) continue;
+                    if (grid[nx][ny] != 1) continue;
+                    grid[nx][ny] = 2;
+                    fresh--;
+                    q.push({nx, ny});
+                    infected = true;
+                }
+            }
+            if (infected) minutes++;
+        }
+
+        return fresh == 0 ? minutes : -1;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def oranges_rotting(grid):
+        m, n = len(grid), len(grid[0])
+        q = deque()
+        fresh = 0
+
+        for i in range(m):
+            for j in range(n):
+                if   grid[i][j] == 2: q.append((i, j))
+                elif grid[i][j] == 1: fresh += 1
+
+        if fresh == 0:
+            return 0
+
+        minutes = 0
+        dirs = [(-1,0), (1,0), (0,-1), (0,1)]
+
+        while q:
+            infected = False
+            for _ in range(len(q)):
+                x, y = q.popleft()
+                for dx, dy in dirs:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < m and 0 <= ny < n and grid[nx][ny] == 1:
+                        grid[nx][ny] = 2
+                        fresh -= 1
+                        q.append((nx, ny))
+                        infected = True
+            if infected:
+                minutes += 1
+
+        return minutes if fresh == 0 else -1
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.ArrayDeque;
+    import java.util.Deque;
+
+    public int orangesRotting(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        Deque<int[]> q = new ArrayDeque<>();
+        int fresh = 0;
+
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if      (grid[i][j] == 2) q.offer(new int[]{i, j});
+                else if (grid[i][j] == 1) fresh++;
+            }
+        }
+
+        if (fresh == 0) return 0;
+
+        int minutes = 0;
+        int[][] dirs = {{-1,0}, {1,0}, {0,-1}, {0,1}};
+
+        while (!q.isEmpty()) {
+            int size = q.size();
+            boolean infected = false;
+            for (int s = 0; s < size; s++) {
+                int[] cell = q.poll();
+                for (int[] d : dirs) {
+                    int nx = cell[0] + d[0], ny = cell[1] + d[1];
+                    if (nx < 0 || nx >= m || ny < 0 || ny >= n) continue;
+                    if (grid[nx][ny] != 1) continue;
+                    grid[nx][ny] = 2;
+                    fresh--;
+                    q.offer(new int[]{nx, ny});
+                    infected = true;
+                }
+            }
+            if (infected) minutes++;
+        }
+
+        return fresh == 0 ? minutes : -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### The "process a layer at a time" trick
+
+Notice the inner loop: `for s in range(len(q))`. We capture the queue size at the start of each minute, then only process that many. Everything pushed during this iteration is *next* minute's work. This is the standard BFS-with-levels pattern.
+
+<Callout type="info">
+    **Multi-source BFS** generalizes single-source BFS by seeding the queue with multiple starting points. The shortest-path-in-layers behavior still works — each cell records the **minimum** distance to *any* source. Same algorithm, broader applications: fire spreading, infection modeling, "nearest of any of these points" queries, walls-and-gates, the 01-matrix problem, and more.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(m·n)` — every cell is enqueued at most once.
+- **Space:** `O(m·n)` — queue size is bounded by the grid.

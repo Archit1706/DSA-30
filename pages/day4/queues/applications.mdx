@@ -1,0 +1,150 @@
+import { Tabs, Callout } from "nextra/components";
+import { QueueOperationStepper } from "../../../components/QueueVisualizer";
+export const Tab = Tabs.Tab;
+
+# Queue Applications
+
+If a stack is "go deep, then back up," a queue is "explore one layer at a time, then move outward." That single change in personality powers a huge slice of computer science.
+
+## 1. BFS — Breadth-First Search
+
+The big one. BFS on a graph or tree visits every node in **layers**: first all nodes at distance 1, then all at distance 2, and so on. The queue is what enforces the layering.
+
+```text
+Tree:
+        1
+       / \
+      2   3
+     / \   \
+    4   5   6
+
+BFS order:  1, 2, 3, 4, 5, 6   ← layer by layer
+DFS order:  1, 2, 4, 5, 3, 6   ← go deep first
+```
+
+The algorithm in seven lines:
+
+```python
+def bfs(graph, start):
+    visited = {start}
+    queue = deque([start])
+    while queue:
+        node = queue.popleft()
+        process(node)
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+```
+
+Every node enters and leaves the queue exactly once. Total work is `O(V + E)`. We'll cover BFS properly on **Day 10** — but file away the shape now.
+
+<Callout type="info">
+    **The trick:** BFS finds the **shortest path in an unweighted graph** for free. Because we explore in layers, the first time we reach a node is via the shortest possible route.
+</Callout>
+
+## 2. Level-order tree traversal
+
+A tree is just a graph with no cycles. BFS on a tree is *level-order traversal* — printing one row at a time, top to bottom.
+
+<QueueOperationStepper
+    title="Level-order on the tree above: enqueue 1, dequeue+expand → 2,3, dequeue+expand → 4,5, etc."
+    operations={[
+        { type: "enqueue", value: 1 },
+        { type: "dequeue" },
+        { type: "enqueue", value: 2 },
+        { type: "enqueue", value: 3 },
+        { type: "dequeue" },
+        { type: "enqueue", value: 4 },
+        { type: "enqueue", value: 5 },
+        { type: "dequeue" },
+        { type: "enqueue", value: 6 },
+        { type: "dequeue" },
+        { type: "dequeue" },
+        { type: "dequeue" },
+    ]}
+/>
+
+## 3. OS process scheduling
+
+The kernel keeps a **ready queue** of processes waiting for CPU time. Round-robin scheduling enqueues each process at the back; dequeues from the front; gives it a time slice; and re-enqueues it at the back if it's not done. Everyone gets a fair share.
+
+Variants:
+
+- **Round-robin** — plain queue.
+- **Multilevel feedback** — multiple queues with different priorities.
+- **Real-time scheduling** — priority queue keyed on deadlines.
+
+## 4. Web servers and message brokers
+
+Every web server you've ever used puts incoming requests into a queue. Workers pop requests off, handle them, and respond. If requests come in faster than they can be served, the queue grows — until eventually the server starts shedding load.
+
+The same pattern, industrialized:
+
+- **Kafka** — partitioned, replicated, durable queues for streaming events between services.
+- **RabbitMQ** — flexible routing on top of FIFO queues.
+- **AWS SQS** — managed queue as a service.
+- **Redis Lists** — quick-and-dirty queues for small systems.
+
+The queue is a *decoupling layer* — producers don't need to know how fast consumers are, and consumers don't need to know how bursty producers are. The queue absorbs the mismatch.
+
+## 5. Print spoolers and job queues
+
+Background jobs (sending emails, generating PDFs, processing uploads) get pushed onto a queue. Worker processes pull jobs off and execute them. The user gets a fast response while the slow work happens in the background.
+
+This is exactly how Sidekiq, Celery, RQ, and BullMQ work — Redis lists or sorted sets behind a thin "queue" API.
+
+## 6. Streaming and buffering
+
+When your audio player downloads a stream faster than it plays, it stuffs the extra into a **buffer** — a fixed-size circular queue. The player consumes from the front; the network fills the back. As long as the buffer doesn't empty, playback is smooth.
+
+Same pattern for video, network packets, terminal input, keyboard events. The circular queue from the previous page is the workhorse.
+
+## 7. Producer-Consumer (concurrency)
+
+A queue is the canonical way to hand work between threads safely:
+
+```text
+Producers ──enqueue──▶ [ Queue ] ──dequeue──▶ Consumers
+```
+
+- Producers don't block consumers, and vice versa.
+- The queue handles synchronization (in real implementations, with locks or lock-free atomics).
+- Backpressure is built in: if the queue is bounded, producers block when it's full.
+
+Python's `queue.Queue`, Java's `BlockingQueue`, Go's channels — all variations on this idea.
+
+## 8. Caching with LRU eviction
+
+A **Least Recently Used** cache evicts the item that was used the longest time ago. A deque tracks usage order: every time you access a key, move it to the back; when you need to evict, drop the front.
+
+In practice this is done with a doubly-linked list + a hash map for O(1) on both directions — but the *order semantics* are exactly a deque's.
+
+## 9. Sliding-window problems
+
+A whole family of algorithms maintains a "window" of the most recent `k` elements. A deque holds the window; you push new items on the back and pop expired items from the front.
+
+The classic: **Sliding Window Maximum** — find the max in every window of size `k` in O(n) total. The deque holds candidate indices in decreasing order of value; popping from both ends keeps the invariant.
+
+## 10. Iterative algorithm conversion
+
+Anywhere you'd use recursion for "do this thing to each item, then each child," you can rewrite as an explicit queue. This is how you avoid stack overflows on deeply nested structures, and it's the only sane way to write certain parallel algorithms.
+
+## The pattern that ties them all together
+
+If a problem involves:
+
+- **Fair ordering** — first-come-first-served, oldest goes first
+- **Exploring outward in layers** (BFS, level order)
+- **Buffering** between a fast producer and a slow consumer
+- **Sliding window** over a stream
+- **Scheduling** time-sliced or priority-driven work
+- **Decoupling** two parts of a system
+
+…reach for a queue. Add **priority** when "next most important" matters more than "next oldest." Add **both ends** (deque) when you need stack-and-queue flexibility.
+
+<Callout type="info">
+    **Stack vs Queue, in one sentence:** stacks do depth-first work; queues do breadth-first work. The right one is usually obvious once you ask "which thing do I want to come out next?"
+</Callout>
+
+Now let's lock it in with practice problems.

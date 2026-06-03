@@ -1,0 +1,194 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { InteractiveCircularQueue } from "../../../../components/QueueVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design Circular Queue <DifficultyBadge level="easy" />
+
+#### Description
+
+Design your implementation of a circular queue. Implement the `MyCircularQueue` class:
+
+- `MyCircularQueue(k)` — initialize the queue with capacity `k`.
+- `enQueue(value)` — insert an element. Returns `true` on success, `false` if full.
+- `deQueue()` — delete the element from the front. Returns `true` on success, `false` if empty.
+- `Front()` — return the front element, or `-1` if empty.
+- `Rear()` — return the last element, or `-1` if empty.
+- `isEmpty()` / `isFull()` — booleans.
+
+All operations must be **O(1)**.
+
+#### Examples
+
+```py
+q = MyCircularQueue(3)
+q.enQueue(1)    # True
+q.enQueue(2)    # True
+q.enQueue(3)    # True
+q.enQueue(4)    # False  (full)
+q.Rear()        # 3
+q.isFull()      # True
+q.deQueue()     # True
+q.enQueue(4)    # True   (slot freed by deQueue)
+q.Rear()        # 4
+```
+
+#### Constraints
+
+- `1 <= k <= 1000`
+- All operations are O(1).
+
+#### Intuition
+
+This is the [Circular Queue from Basic Operations](/day4/queues/basic_operations), boxed as a class. The whole trick lives in two formulas:
+
+```text
+enqueue: rear  = (rear  + 1) mod capacity
+dequeue: front = (front + 1) mod capacity
+```
+
+The classic gotcha is deciding *empty* vs *full* when both look like `front == rear`. Two standard fixes:
+
+1. **Keep an explicit `count`** — cleanest. We use this.
+2. **Leave one slot perpetually empty** — saves one int, costs one slot, easy to get wrong.
+
+#### Play with it
+
+<InteractiveCircularQueue capacity={5} />
+
+Fill it up, dequeue from the front, then enqueue again — watch `rear` wrap to slot 0.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class MyCircularQueue {
+        int* data;
+        int capacity, front, rear, count;
+    public:
+        MyCircularQueue(int k) : capacity(k), front(0), rear(0), count(0) {
+            data = new int[k];
+        }
+        ~MyCircularQueue() { delete[] data; }
+
+        bool enQueue(int value) {
+            if (count == capacity) return false;
+            data[rear] = value;
+            rear = (rear + 1) % capacity;
+            count++;
+            return true;
+        }
+
+        bool deQueue() {
+            if (count == 0) return false;
+            front = (front + 1) % capacity;
+            count--;
+            return true;
+        }
+
+        int Front() {
+            return count == 0 ? -1 : data[front];
+        }
+
+        int Rear() {
+            return count == 0 ? -1 : data[(rear - 1 + capacity) % capacity];
+        }
+
+        bool isEmpty() { return count == 0; }
+        bool isFull()  { return count == capacity; }
+    };
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    class MyCircularQueue:
+        def __init__(self, k: int):
+            self.capacity = k
+            self.data = [0] * k
+            self.front = 0
+            self.rear = 0
+            self.count = 0
+
+        def enQueue(self, value: int) -> bool:
+            if self.count == self.capacity:
+                return False
+            self.data[self.rear] = value
+            self.rear = (self.rear + 1) % self.capacity
+            self.count += 1
+            return True
+
+        def deQueue(self) -> bool:
+            if self.count == 0:
+                return False
+            self.front = (self.front + 1) % self.capacity
+            self.count -= 1
+            return True
+
+        def Front(self) -> int:
+            return -1 if self.count == 0 else self.data[self.front]
+
+        def Rear(self) -> int:
+            if self.count == 0: return -1
+            return self.data[(self.rear - 1) % self.capacity]
+
+        def isEmpty(self) -> bool: return self.count == 0
+        def isFull(self)  -> bool: return self.count == self.capacity
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    class MyCircularQueue {
+        private int[] data;
+        private int capacity, front = 0, rear = 0, count = 0;
+
+        public MyCircularQueue(int k) {
+            capacity = k;
+            data = new int[k];
+        }
+
+        public boolean enQueue(int value) {
+            if (count == capacity) return false;
+            data[rear] = value;
+            rear = (rear + 1) % capacity;
+            count++;
+            return true;
+        }
+
+        public boolean deQueue() {
+            if (count == 0) return false;
+            front = (front + 1) % capacity;
+            count--;
+            return true;
+        }
+
+        public int Front() { return count == 0 ? -1 : data[front]; }
+
+        public int Rear() {
+            if (count == 0) return -1;
+            return data[(rear - 1 + capacity) % capacity];
+        }
+
+        public boolean isEmpty() { return count == 0; }
+        public boolean isFull()  { return count == capacity; }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- `front` always points to the **current front element**.
+- `rear` points to the **next empty slot**, not to the last element. (That's why `Rear()` reads from `(rear - 1) % capacity`.)
+- `count` is the source of truth for emptiness and fullness — no aliasing problems.
+
+<Callout type="warning">
+    Watch the `Rear()` indexing. A common bug is reading `data[rear]` directly — but `rear` points to the *next write location*, which is empty. Subtract one and wrap.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(1)` for every operation.
+- **Space:** `O(k)` — one array of capacity `k`.

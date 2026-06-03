@@ -1,0 +1,36 @@
+import { Callout } from "nextra/components";
+
+# Queue Practice Questions
+
+A curated set of queue problems. These cover the patterns you'll see in interviews and real systems: queue design, sliding windows, BFS in disguise, and stack-from-queue tricks.
+
+<Callout type="info">
+    Notice how often the answer is "use a deque." That's not a coincidence — a deque is the most flexible queue variant, and most "queue" problems really want either O(1) on both ends or a monotonic deque.
+</Callout>
+
+## Easy
+
+| Problem                                                                                                | Pattern                  | Status     |
+| :----------------------------------------------------------------------------------------------------- | :----------------------- | :--------- |
+| [Implement Stack using Queues](/day4/queues/practice_questions/stack_using_queues)                     | Two-queue / one-queue    | Available  |
+| [Design Circular Queue](/day4/queues/practice_questions/design_circular_queue)                         | Modular array            | Available  |
+| [Number of Recent Calls](/day4/queues/practice_questions/recent_calls)                                 | Sliding window           | Available  |
+
+## Medium
+
+| Problem                                                                                                | Pattern                  | Status     |
+| :----------------------------------------------------------------------------------------------------- | :----------------------- | :--------- |
+| [Sliding Window Maximum](/day4/queues/practice_questions/sliding_window_maximum)                       | Monotonic deque          | Available  |
+| [First Non-Repeating Character in a Stream](/day4/queues/practice_questions/first_non_repeating)       | Queue + frequency map    | Available  |
+| [Rotting Oranges](/day4/queues/practice_questions/rotting_oranges)                                     | Multi-source BFS         | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern              | Status        |
+| :------------------------------------- | :------------------- | :------------ |
+| Walls and Gates                        | Multi-source BFS     | Coming Soon   |
+| Open the Lock                          | BFS over states      | Coming Soon   |
+| Perfect Squares                        | BFS                  | Coming Soon   |
+| Task Scheduler                         | Priority queue       | Coming Soon   |
+| Reveal Cards in Increasing Order       | Deque simulation     | Coming Soon   |
+| Snakes and Ladders                     | BFS                  | Coming Soon   |

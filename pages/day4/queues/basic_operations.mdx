@@ -1,212 +1,601 @@
-import { Tabs,Steps } from "nextra/components";
-export const Tab = Tabs.Tab
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QueueOperationStepper, InteractiveCircularQueue } from "../../../components/QueueVisualizer";
+export const Tab = Tabs.Tab;
 
-### Basic Operations on a Queue
+# Basic Operations on a Queue
+
+There are three reasonable ways to build a queue. We'll do all three — they're each instructive — and end with what you'd actually use in production.
+
+The API is the same for all of them: `enqueue`, `dequeue`, `peek`, `isEmpty`.
+
+<Callout type="info">
+    In real code, reach for your language's built-in: Python's `collections.deque`, Java's `ArrayDeque` (used as a queue), C++'s `std::queue`. They're already O(1) on both ends. But knowing how they work makes you a better engineer.
+</Callout>
+
+## Part 1 — Linear array (the naive way)
+
+Two indices: `front` (where to dequeue) and `rear` (where to enqueue lands).
 
 <Steps>
 
-### Queue using Arrays
+### Enqueue (insert at the rear)
 
-    <Steps>
-        #### Insert an Element
+```text copy
+ALGORITHM enqueue(val)
+    if rear == MAX - 1
+        report Overflow; return
+    if front == -1 and rear == -1
+        front = rear = 0
+    else
+        rear = rear + 1
+    queue[rear] = val
+```
 
-        - ALGORITHM
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <iostream>
+    using namespace std;
 
-        ```py copy
-        Step 1: if rear = max - 1
-                Write Overflow
-                Go to step 4
-                [END OF if]
-        Step 2: if front = -1 and rear = -1
-                        SET front = rear = 0
-                else
-                        SET rear = rear + 1
-                [END OF if]
-        Step 3: SET queue[rear] = val
-        Step 4: EXIT
-        ```
+    class LinearQueue {
+        static const int MAX = 100;
+        int data[MAX];
+        int front, rear;
+    public:
+        LinearQueue() : front(-1), rear(-1) {}
 
-        - CODE
+        bool isEmpty() const { return front == -1; }
+        bool isFull()  const { return rear == MAX - 1; }
 
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
+        void enqueue(int val) {
+            if (isFull()) { cout << "Overflow\n"; return; }
+            if (isEmpty()) front = 0;
+            data[++rear] = val;
+        }
+    };
+    ```
+    </Tab>
 
-            ```
-            </Tab>
+    <Tab>
+    ```python copy
+    class LinearQueue:
+        def __init__(self, max_size=100):
+            self.max_size = max_size
+            self.data = [None] * max_size
+            self.front = -1
+            self.rear = -1
 
-            <Tab>
-            ```py copy
+        def is_empty(self):
+            return self.front == -1
 
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
+        def is_full(self):
+            return self.rear == self.max_size - 1
 
-    <Steps>
-        #### Delete an Element
+        def enqueue(self, val):
+            if self.is_full():
+                print("Overflow"); return
+            if self.is_empty():
+                self.front = 0
+            self.rear += 1
+            self.data[self.rear] = val
+    ```
+    </Tab>
 
-        - ALGORITHM
+    <Tab>
+    ```java copy
+    public class LinearQueue {
+        private static final int MAX = 100;
+        private int[] data = new int[MAX];
+        private int front = -1, rear = -1;
 
-        ```py copy
-        Step 1: if front = -1 or front > rear
-                    Write Underflow
-                else
-                    SET val = Queue[front]
-                    SET front = front + 1
-                [END OF if]
-        Step 2: EXIT
-        ```
+        public boolean isEmpty() { return front == -1; }
+        public boolean isFull()  { return rear == MAX - 1; }
 
-        - CODE
+        public void enqueue(int val) {
+            if (isFull()) { System.out.println("Overflow"); return; }
+            if (isEmpty()) front = 0;
+            data[++rear] = val;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
 
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
+### Dequeue (remove from the front)
 
-            ```
-            </Tab>
+```text copy
+ALGORITHM dequeue()
+    if front == -1 or front > rear
+        report Underflow; return
+    val = queue[front]
+    if front == rear
+        front = rear = -1     // queue is now empty
+    else
+        front = front + 1
+    return val
+```
 
-            <Tab>
-            ```py copy
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int dequeue() {
+        if (isEmpty()) { cout << "Underflow\n"; return -1; }
+        int val = data[front];
+        if (front == rear) front = rear = -1;
+        else               front++;
+        return val;
+    }
+    ```
+    </Tab>
 
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
+    <Tab>
+    ```python copy
+    def dequeue(self):
+        if self.is_empty():
+            return None
+        val = self.data[self.front]
+        if self.front == self.rear:
+            self.front = self.rear = -1
+        else:
+            self.front += 1
+        return val
+    ```
+    </Tab>
 
-    <Steps>
-        #### Peek Operation
+    <Tab>
+    ```java copy
+    public int dequeue() {
+        if (isEmpty()) return -1;
+        int val = data[front];
+        if (front == rear) front = rear = -1;
+        else               front++;
+        return val;
+    }
+    ```
+    </Tab>
+</Tabs>
 
-        - ALGORITHM
+### Peek (look at the front)
 
-        ```py copy
-        Step 1: if front = -1 or front > rear
-                        Write Underflow
-                else
-                        return Queue[front]
-                [END OF if]
-        Step 2: EXIT
-        ```
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int peek() const {
+        if (isEmpty()) return -1;
+        return data[front];
+    }
+    ```
+    </Tab>
 
-        - CODE
+    <Tab>
+    ```python copy
+    def peek(self):
+        return None if self.is_empty() else self.data[self.front]
+    ```
+    </Tab>
 
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
-
-            ```
-            </Tab>
-
-            <Tab>
-            ```py copy
-
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
-
-### Queue using Linked List
-
-    <Steps>
-        #### Insert an Element
-
-        - ALGORITHM
-
-        ```cpp copy
-        Step 1: Allocate memory for the new node and name it newNode
-        Step 2: SET newNode->data = val
-        Step 3: if front = NULL
-                        SET front = rear = newNode
-                        SET front->next = rear->next = NULL
-                else
-                        SET rear->next = newNode
-                        SET rear = newNode
-                        SET rear->next = NULL
-                [END OF if]
-        Step 4: EXIT
-        ```
-
-        - CODE
-
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
-
-            ```
-            </Tab>
-
-            <Tab>
-            ```py copy
-
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
-
-    <Steps>
-        #### Delete an Element
-
-        - ALGORITHM
-
-        ```py copy
-        Step 1: if front = NULL
-                    Write Underflow
-                    Go to step 5
-                [END OF if]
-        Step 2: set ptr = front;
-        Step 3: set ptr = ptr->next
-        Step 4: free ptr
-        Step 5: EXIT
-        ```
-
-        - CODE
-
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
-
-            ```
-            </Tab>
-
-            <Tab>
-            ```py copy
-
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
-
-
-    <Steps>
-        #### Peek Operation
-
-        - ALGORITHM
-
-        ```py copy
-        Step 1: if front = NULL
-                        Write Underflow
-                else
-                        return front->data
-                [END OF if]
-        Step 2: EXIT
-        ```
-
-        - CODE
-
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
-
-            ```
-            </Tab>
-
-            <Tab>
-            ```py copy
-
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
+    <Tab>
+    ```java copy
+    public int peek() {
+        return isEmpty() ? -1 : data[front];
+    }
+    ```
+    </Tab>
+</Tabs>
 
 </Steps>
+
+<Callout type="warning">
+    **The big problem with the linear version:** once `front` advances past slot 0, those slots are wasted forever (unless we shift, which is O(n) per dequeue). After enough enqueue/dequeue cycles, you'll get **Overflow** even when the queue has only one element. That's why we have the circular version below.
+</Callout>
+
+## Part 2 — Circular array (the proper way)
+
+Same idea, but `front` and `rear` wrap around using modular arithmetic. Capacity stays usable forever.
+
+The state we need: a fixed-size array, `front`, `rear`, and an explicit `count` (cleaner than the "is `front == rear` empty or full?" trick).
+
+<Steps>
+
+### Enqueue (wraps around)
+
+```text copy
+ALGORITHM enqueue(val)
+    if count == capacity
+        report Overflow; return
+    queue[rear] = val
+    rear = (rear + 1) mod capacity
+    count = count + 1
+```
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class CircularQueue {
+        int* data;
+        int capacity, front, rear, count;
+    public:
+        CircularQueue(int cap) : capacity(cap), front(0), rear(0), count(0) {
+            data = new int[cap];
+        }
+        ~CircularQueue() { delete[] data; }
+
+        bool isEmpty() const { return count == 0; }
+        bool isFull()  const { return count == capacity; }
+
+        void enqueue(int val) {
+            if (isFull()) { cout << "Overflow\n"; return; }
+            data[rear] = val;
+            rear = (rear + 1) % capacity;
+            count++;
+        }
+    };
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    class CircularQueue:
+        def __init__(self, capacity):
+            self.capacity = capacity
+            self.data = [None] * capacity
+            self.front = 0
+            self.rear = 0
+            self.count = 0
+
+        def is_empty(self): return self.count == 0
+        def is_full(self):  return self.count == self.capacity
+
+        def enqueue(self, val):
+            if self.is_full():
+                print("Overflow"); return
+            self.data[self.rear] = val
+            self.rear = (self.rear + 1) % self.capacity
+            self.count += 1
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    public class CircularQueue {
+        private int[] data;
+        private int capacity, front = 0, rear = 0, count = 0;
+
+        public CircularQueue(int capacity) {
+            this.capacity = capacity;
+            this.data = new int[capacity];
+        }
+
+        public boolean isEmpty() { return count == 0; }
+        public boolean isFull()  { return count == capacity; }
+
+        public void enqueue(int val) {
+            if (isFull()) { System.out.println("Overflow"); return; }
+            data[rear] = val;
+            rear = (rear + 1) % capacity;
+            count++;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Dequeue (also wraps)
+
+```text copy
+ALGORITHM dequeue()
+    if count == 0
+        report Underflow; return
+    val = queue[front]
+    front = (front + 1) mod capacity
+    count = count - 1
+    return val
+```
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int dequeue() {
+        if (isEmpty()) { cout << "Underflow\n"; return -1; }
+        int val = data[front];
+        front = (front + 1) % capacity;
+        count--;
+        return val;
+    }
+
+    int peek() const {
+        return isEmpty() ? -1 : data[front];
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def dequeue(self):
+        if self.is_empty():
+            return None
+        val = self.data[self.front]
+        self.front = (self.front + 1) % self.capacity
+        self.count -= 1
+        return val
+
+    def peek(self):
+        return None if self.is_empty() else self.data[self.front]
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    public int dequeue() {
+        if (isEmpty()) return -1;
+        int val = data[front];
+        front = (front + 1) % capacity;
+        count--;
+        return val;
+    }
+
+    public int peek() {
+        return isEmpty() ? -1 : data[front];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+</Steps>
+
+### See it wrap
+
+Push past the end of the ring and watch `rear` jump back to slot 0:
+
+<InteractiveCircularQueue capacity={6} />
+
+Enqueue a few, dequeue from the front a couple of times, then enqueue some more. Notice that `rear` wraps around to fill the slots `front` left behind — that's the win.
+
+## Part 3 — Linked list (no fixed capacity)
+
+Two pointers: `head` (front, where we dequeue) and `tail` (rear, where we enqueue). Both operations are O(1), no resizing.
+
+<Steps>
+
+### Enqueue (append at the tail)
+
+```text copy
+ALGORITHM enqueue(val)
+    node = new Node(val)
+    if tail == NULL
+        head = tail = node
+    else
+        tail.next = node
+        tail = node
+```
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct Node {
+        int data;
+        Node* next;
+        Node(int v) : data(v), next(nullptr) {}
+    };
+
+    class LinkedQueue {
+        Node *head, *tail;
+    public:
+        LinkedQueue() : head(nullptr), tail(nullptr) {}
+
+        bool isEmpty() const { return head == nullptr; }
+
+        void enqueue(int val) {
+            Node* n = new Node(val);
+            if (!tail) head = tail = n;
+            else { tail->next = n; tail = n; }
+        }
+    };
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    class Node:
+        def __init__(self, val):
+            self.data = val
+            self.next = None
+
+    class LinkedQueue:
+        def __init__(self):
+            self.head = None
+            self.tail = None
+
+        def is_empty(self):
+            return self.head is None
+
+        def enqueue(self, val):
+            node = Node(val)
+            if self.tail is None:
+                self.head = self.tail = node
+            else:
+                self.tail.next = node
+                self.tail = node
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    public class LinkedQueue {
+        private static class Node {
+            int data;
+            Node next;
+            Node(int v) { data = v; }
+        }
+
+        private Node head, tail;
+
+        public boolean isEmpty() { return head == null; }
+
+        public void enqueue(int val) {
+            Node n = new Node(val);
+            if (tail == null) head = tail = n;
+            else { tail.next = n; tail = n; }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Dequeue (remove from the head)
+
+```text copy
+ALGORITHM dequeue()
+    if head == NULL
+        report Underflow; return
+    val = head.data
+    head = head.next
+    if head == NULL
+        tail = NULL          // queue is now empty
+    return val
+```
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int dequeue() {
+        if (isEmpty()) { cout << "Underflow\n"; return -1; }
+        Node* temp = head;
+        int val = head->data;
+        head = head->next;
+        if (!head) tail = nullptr;
+        delete temp;
+        return val;
+    }
+
+    int peek() const {
+        return isEmpty() ? -1 : head->data;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def dequeue(self):
+        if self.is_empty():
+            return None
+        val = self.head.data
+        self.head = self.head.next
+        if self.head is None:
+            self.tail = None
+        return val
+
+    def peek(self):
+        return None if self.is_empty() else self.head.data
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    public int dequeue() {
+        if (isEmpty()) return -1;
+        int val = head.data;
+        head = head.next;
+        if (head == null) tail = null;
+        return val;
+    }
+
+    public int peek() {
+        return isEmpty() ? -1 : head.data;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+</Steps>
+
+### Walk through it
+
+<QueueOperationStepper
+    title="Trace on a linked-list-backed queue"
+    operations={[
+        { type: "enqueue", value: 5 },
+        { type: "enqueue", value: 9 },
+        { type: "enqueue", value: 2 },
+        { type: "peek" },
+        { type: "dequeue" },
+        { type: "enqueue", value: 7 },
+        { type: "dequeue" },
+        { type: "dequeue" },
+        { type: "dequeue" },
+    ]}
+/>
+
+## Part 4 — Just use the built-in
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    using namespace std;
+
+    queue<int> q;
+    q.push(10);     // enqueue
+    q.push(20);
+    q.push(30);
+
+    cout << q.front() << "\n";  // 10
+    q.pop();                     // dequeue (removes 10, returns nothing)
+    cout << q.front() << "\n";  // 20
+    cout << q.size() << "\n";   // 2
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    # Use collections.deque — O(1) on both ends.
+    from collections import deque
+
+    q = deque()
+    q.append(10)        # enqueue at the right
+    q.append(20)
+    q.append(30)
+
+    print(q[0])         # peek front -> 10
+    print(q.popleft())  # dequeue -> 10
+    print(len(q))       # 2
+
+    # Do NOT use a plain list as a queue:
+    # list.pop(0) is O(n) because it shifts every element.
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Queue;
+    import java.util.ArrayDeque;
+
+    Queue<Integer> q = new ArrayDeque<>();
+    q.offer(10);    // enqueue
+    q.offer(20);
+    q.offer(30);
+
+    System.out.println(q.peek()); // 10
+    System.out.println(q.poll()); // 10  (dequeue)
+    System.out.println(q.size()); // 2
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Python gotcha:** never use a `list` as a queue. `list.pop(0)` shifts every remaining element down — that's O(n) per dequeue. Always use `collections.deque`.
+</Callout>
+
+## Summary
+
+|                  | Linear array        | Circular array              | Linked list                |
+| :--------------- | :------------------ | :-------------------------- | :------------------------- |
+| **Enqueue**      | O(1)                | O(1)                        | O(1)                       |
+| **Dequeue**      | O(1)                | O(1)                        | O(1)                       |
+| **Capacity**     | Fixed, wasteful     | Fixed, fully reusable       | Unbounded                  |
+| **Memory**       | Contiguous          | Contiguous                  | Scattered + pointer cost   |
+| **Best when**    | Almost never        | Fixed-size, bounded buffer  | Unknown / variable size    |
+
+Linear is mostly a teaching tool — the circular version fixes its main flaw. In real code, the choice is between **circular array** (fixed, cache-friendly) and **linked list** (unbounded). Most standard libraries pick the array path with dynamic resizing.
+
+Next: queue variants — circular, deque, and priority queues.

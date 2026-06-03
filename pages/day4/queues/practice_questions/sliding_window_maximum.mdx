@@ -1,0 +1,159 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sliding Window Maximum <DifficultyBadge level="medium" />
+
+#### Description
+
+You're given an array `nums` and an integer `k`. There's a sliding window of size `k` moving from the left of the array to the right. You see only the `k` numbers in the window. Each time the window moves by one, return the **maximum** in the current window.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3
+    Output: [3, 3, 5, 5, 6, 7]
+
+    Window position           Max
+    [1  3 -1] -3  5  3  6  7   3
+     1 [3 -1 -3] 5  3  6  7    3
+     1  3 [-1 -3  5] 3  6  7   5
+     1  3 -1 [-3  5  3] 6  7   5
+     1  3 -1 -3 [5  3  6] 7    6
+     1  3 -1 -3  5 [3  6  7]   7
+
+> Case 2:
+    Input:  nums = [1], k = 1
+    Output: [1]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- `1 <= k <= nums.length`
+- Solve in **O(n)** — the obvious O(n·k) will TLE.
+
+#### Intuition
+
+The brute force: for each window, scan all `k` elements for the max. That's O(n·k).
+
+The trick is a **monotonic deque** — a deque of indices where the corresponding values are kept in **decreasing order** from front to back. We maintain two invariants:
+
+1. **Indices in the deque are always within the current window.** Pop expired indices from the front.
+2. **Values at those indices are strictly decreasing.** Before adding a new index, pop indices from the back whose values are `<= nums[i]` (they can never be the max again — there's a fresher, larger element).
+
+After these maintenance steps, the **front of the deque is the index of the window's maximum**.
+
+```text
+nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3
+
+i=0  push 0           deque=[0]    nums at deque indices: [1]
+i=1  3 > nums[0]=1 → pop 0; push 1
+                       deque=[1]    nums: [3]
+i=2  -1 < 3 → push 2  deque=[1,2]  nums: [3, -1]            window [1,3,-1], max = nums[1] = 3 ✓
+i=3  -3 < -1 → push 3 deque=[1,2,3] nums: [3, -1, -3]       window [3,-1,-3], max = 3 ✓
+i=4  5 > -3,-1,3 → pop all; push 4
+                       deque=[4]    nums: [5]               window [-1,-3,5], max = 5 ✓
+i=5  3 < 5 → push 5   deque=[4,5]                           window [-3,5,3], max = 5 ✓
+i=6  6 > 3 → pop 5; 6 > 5? yes → pop 4; push 6
+                       deque=[6]                            window [5,3,6], max = 6 ✓
+i=7  7 > 6 → pop 6; push 7
+                       deque=[7]                            window [3,6,7], max = 7 ✓
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <deque>
+    using namespace std;
+
+    vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+        vector<int> result;
+        deque<int> dq;  // indices, values strictly decreasing
+
+        for (int i = 0; i < (int)nums.size(); i++) {
+            // 1. Drop indices that fell out of the window
+            while (!dq.empty() && dq.front() <= i - k) dq.pop_front();
+
+            // 2. Maintain monotonic decreasing order
+            while (!dq.empty() && nums[dq.back()] <= nums[i]) dq.pop_back();
+
+            dq.push_back(i);
+
+            // 3. Once the first window is filled, record the max
+            if (i >= k - 1) result.push_back(nums[dq.front()]);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def max_sliding_window(nums, k):
+        dq = deque()      # indices, nums[dq] strictly decreasing
+        result = []
+
+        for i, x in enumerate(nums):
+            # 1. Drop indices outside the window
+            if dq and dq[0] <= i - k:
+                dq.popleft()
+
+            # 2. Drop indices whose values can never be max again
+            while dq and nums[dq[-1]] <= x:
+                dq.pop()
+
+            dq.append(i)
+
+            if i >= k - 1:
+                result.append(nums[dq[0]])
+
+        return result
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    public int[] maxSlidingWindow(int[] nums, int k) {
+        int n = nums.length;
+        int[] result = new int[n - k + 1];
+        Deque<Integer> dq = new ArrayDeque<>();  // indices
+
+        for (int i = 0; i < n; i++) {
+            // 1. Drop expired indices
+            if (!dq.isEmpty() && dq.peekFirst() <= i - k) dq.pollFirst();
+
+            // 2. Maintain decreasing order
+            while (!dq.isEmpty() && nums[dq.peekLast()] <= nums[i]) dq.pollLast();
+
+            dq.offerLast(i);
+
+            if (i >= k - 1) result[i - k + 1] = nums[dq.peekFirst()];
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this is O(n)
+
+It looks like nested loops, but every index is pushed to the deque **once** and popped at most **once**. Across the whole array, total push+pop operations are at most `2n`. The output array has `n - k + 1` entries written once each. Everything is O(n).
+
+<Callout type="info">
+    **The pattern:** a **monotonic deque** is the right tool whenever you want "max (or min) in a sliding window" or "next greater / smaller within a range." It generalizes monotonic stacks to the case where elements also need to **expire** out the back.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)` — each index pushed and popped at most once.
+- **Space:** `O(k)` — deque size is bounded by the window size.

@@ -1,0 +1,165 @@
+import { Callout } from "nextra/components";
+import { QueueVisualizer, InteractiveQueue, QueueOperationStepper } from "../../../components/QueueVisualizer";
+import { QuizBox } from "../../../components/QuizBox";
+import { ComplexityTable } from "../../../components/ComplexityTable";
+
+# Introduction to Queues
+
+A **queue** is a list with one rule: you add at one end, and you remove from the other. The thing that's been waiting longest gets served first.
+
+If a stack is a pile of plates, a queue is a line at the coffee shop.
+
+## The coffee-shop analogy
+
+Imagine the line at your favourite cafe:
+
+- New customers join at the **back** of the line. (We call this **enqueue** or **push**.)
+- The barista serves whoever's at the **front** of the line. (**Dequeue** or **pop**.)
+- The person who arrived first gets served first. The person who arrived last waits the longest.
+
+That's **FIFO** — **First In, First Out**. Fair. Predictable. Boring in the best way.
+
+<QueueVisualizer initialQueue={[10, 20, 30, 40]} />
+
+`10` is at the front — it's the next one out. `40` just arrived at the rear.
+
+## The four operations
+
+| Operation     | What it does                                                       | Time   |
+| :------------ | :----------------------------------------------------------------- | :----: |
+| `enqueue(x)`  | Add `x` to the rear                                                | O(1)   |
+| `dequeue()`   | Remove and return the front element                                | O(1)   |
+| `peek()` / `front()` | Look at the front without removing                          | O(1)   |
+| `isEmpty()`   | Returns `true` if the queue has no elements                        | O(1)   |
+
+Same tiny API as a stack — but two ends instead of one. We track both with pointers (`front` and `rear`), and we never let anyone touch the middle.
+
+<Callout type="info">
+    Some libraries call them `push`/`pop`. Others use `offer`/`poll` (Java) or `enqueue`/`dequeue`. The names differ; the behavior is identical.
+</Callout>
+
+## Play with it
+
+Enqueue some numbers, dequeue from the front, peek at the next victim:
+
+<InteractiveQueue />
+
+Notice: you can't reach the rear element without dequeuing everything ahead of it. The restriction *is* the point.
+
+## Watch a queue in action
+
+<QueueOperationStepper
+    title="Trace: enqueue 1, enqueue 2, enqueue 3, dequeue, enqueue 4, dequeue, dequeue"
+    operations={[
+        { type: "enqueue", value: 1 },
+        { type: "enqueue", value: 2 },
+        { type: "enqueue", value: 3 },
+        { type: "dequeue" },
+        { type: "enqueue", value: 4 },
+        { type: "dequeue" },
+        { type: "dequeue" },
+    ]}
+/>
+
+Items come out in the order they went in: `1`, then `2`, then `3`. Pure FIFO. Compare this with a stack on the same operations — completely different output order.
+
+## Stack vs Queue (the one-line difference)
+
+|              | Add at | Remove at | Order | Mental model           |
+| :----------- | :----: | :-------: | :---: | :--------------------- |
+| **Stack**    | top    | top       | LIFO  | Pile of plates         |
+| **Queue**    | rear   | front     | FIFO  | Line at a coffee shop  |
+
+That's it. Both are "lists with a restriction" — the restriction is the whole personality.
+
+## Two errors to remember
+
+- **Overflow** — `enqueue` to a full fixed-size queue.
+- **Underflow** — `dequeue` (or `peek`) from an empty queue. Always guard against this.
+
+## Three ways to build a queue
+
+Stacks have two implementations. Queues have three, because of one annoying problem with the naive approach:
+
+### 1. Linear array (the naive way)
+
+Track two indices: `front` and `rear`. Enqueue at `rear`, dequeue at `front`. Simple — but there's a trap.
+
+```text
+After 5 enqueues + 3 dequeues:
+[_, _, _, x, x]    ← rear=5, front=3
+              ^ rear has hit the end of the array
+
+The first 3 slots are wasted space we can't reuse!
+```
+
+The array fills up from the right and never reclaims slots on the left. Unless we shift everything every time (O(n) per dequeue — yuck), we run out of room even though the queue isn't actually full.
+
+### 2. Circular array (the fix)
+
+Use modular arithmetic to wrap around. When `rear` hits the end, it loops back to slot 0 — as long as those slots have been dequeued. This is the standard "real" array-backed queue.
+
+```text
+enqueue: rear = (rear + 1) % capacity
+dequeue: front = (front + 1) % capacity
+```
+
+We'll build this on the next page.
+
+### 3. Linked list
+
+Keep two pointers — `head` (front) and `tail` (rear). Enqueue means appending to `tail`; dequeue means moving `head`. Both are O(1), no resizing.
+
+## Where queues are everywhere
+
+- **Print spooler** — jobs print in the order they were submitted.
+- **OS process scheduling** — round-robin scheduling uses a ready queue.
+- **Web server request handling** — incoming requests wait in a queue.
+- **Message brokers** — Kafka, RabbitMQ, SQS. Industrial-strength FIFO.
+- **BFS in graphs and trees** — the "explore one layer at a time" algorithm *is* a queue.
+- **Producer-consumer pipelines** — one thread enqueues, another dequeues.
+- **Streaming buffers** — video, audio, network packets.
+- **Keyboard input** — your keystrokes wait in a queue until the app reads them.
+
+<ComplexityTable
+    operations={[
+        { name: "Enqueue", time: "O(1)", space: "O(1)", notes: "Amortized for dynamic-array queues" },
+        { name: "Dequeue", time: "O(1)", space: "O(1)", notes: "Circular array or linked list" },
+        { name: "Peek / Front", time: "O(1)", space: "O(1)", notes: "Read-only" },
+        { name: "Search (find x)", time: "O(n)", space: "O(1)", notes: "Have to dequeue everything" },
+    ]}
+/>
+
+## Variants you'll meet
+
+Queues come in flavors. The ones worth knowing:
+
+- **Linear queue** — the simplest, wastes slots as elements are dequeued.
+- **Circular queue** — reuses slots via modular indexing. The default for fixed-size queues.
+- **Deque** (double-ended queue) — add or remove from either end in O(1). The Swiss Army knife.
+- **Priority queue** — dequeues the **most important** element, not the oldest. Usually a heap under the hood (we'll meet it on Day 7).
+
+Full details are on the [Variants page](/day4/queues/variants).
+
+## Quick check
+
+<QuizBox
+    question="You enqueue 'A', 'B', 'C' onto an empty queue, then dequeue twice. What's at the front now?"
+    options={["A", "B", "C", "Queue is empty"]}
+    correctIndex={2}
+    explanation="After enqueueing A, B, C: the queue is [A, B, C] with A at the front. First dequeue returns A. Second dequeue returns B. The queue is now [C], so C is at the front."
+/>
+
+<QuizBox
+    question="Why do we prefer a circular array over a plain linear array for a fixed-size queue?"
+    options={[
+        "It's faster on modern CPUs",
+        "It supports more operations",
+        "It reuses the empty slots left behind by dequeues — so a queue of capacity N can hold N elements no matter how many enqueue/dequeue cycles have happened",
+        "Linear arrays don't support O(1) dequeue"
+    ]}
+    correctIndex={2}
+    explanation="In a plain linear array, once `front` advances past slot 0, those slots are wasted until you shift everything (O(n)). A circular array uses modular arithmetic — when `rear` hits the end of the array, it wraps to slot 0, reusing the space that was freed by dequeues. Same memory, no shifting."
+/>
+
+Ready to build one for real? Head to **Basic Operations** in the sidebar.

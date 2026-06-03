@@ -1,0 +1,151 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### First Non-Repeating Character in a Stream <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a stream of characters, find the **first non-repeating character** at every point. If at some moment there is no non-repeating character, return `#` (or any sentinel) for that position.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  s = "aabc"
+    Output: "a#bb"
+
+    After 'a':    'a' is the only char → first non-repeating = 'a'
+    After 'aa':   'a' now repeats      → no non-repeating    = '#'
+    After 'aab':  'a' repeats, 'b' once → first non-repeating = 'b'
+    After 'aabc': 'a' repeats, 'b' once (came earlier), 'c' once → 'b'
+
+> Case 2:
+    Input:  s = "aabbcc"
+    Output: "a##b##"
+```
+
+#### Constraints
+
+- Each query (per character) should be **amortized O(1)**.
+- Stream can be arbitrarily long.
+
+#### Intuition
+
+We need two things, each updated quickly as new characters arrive:
+
+1. **A frequency count** of every character seen so far — so we know which ones repeat.
+2. **An ordered list of "candidates"** — characters that *might* still be the first non-repeating one. As soon as a character's count goes above 1, it's no longer a candidate.
+
+A **queue** is perfect for the candidate list: characters join at the back in the order they arrive, and we always check the front.
+
+After each new character:
+
+1. Enqueue it.
+2. Increment its frequency.
+3. **Clean up the front:** while the front of the queue has frequency `> 1`, dequeue it.
+4. The front of the queue (or `#` if empty) is the current answer.
+
+```text
+stream = "aabc"
+
+'a': freq={a:1}        queue=[a]           front 'a' freq 1 → answer 'a'
+'a': freq={a:2}        queue=[a,a]         front 'a' freq 2 → dequeue. front 'a' again, freq 2 → dequeue.
+                                            queue=[]        → answer '#'
+'b': freq={a:2,b:1}    queue=[b]           front 'b' freq 1 → answer 'b'
+'c': freq={a:2,b:1,c:1} queue=[b,c]         front 'b' freq 1 → answer 'b'
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <string>
+    using namespace std;
+
+    string firstNonRepeating(const string& s) {
+        int freq[26] = {0};
+        queue<char> q;
+        string result;
+
+        for (char c : s) {
+            freq[c - 'a']++;
+            q.push(c);
+
+            while (!q.empty() && freq[q.front() - 'a'] > 1) {
+                q.pop();
+            }
+
+            result += q.empty() ? '#' : q.front();
+        }
+        return result;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    from collections import deque, defaultdict
+
+    def first_non_repeating(s: str) -> str:
+        freq = defaultdict(int)
+        q = deque()
+        result = []
+
+        for c in s:
+            freq[c] += 1
+            q.append(c)
+
+            while q and freq[q[0]] > 1:
+                q.popleft()
+
+            result.append(q[0] if q else '#')
+
+        return ''.join(result)
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    public String firstNonRepeating(String s) {
+        int[] freq = new int[26];
+        Deque<Character> q = new ArrayDeque<>();
+        StringBuilder result = new StringBuilder();
+
+        for (char c : s.toCharArray()) {
+            freq[c - 'a']++;
+            q.offer(c);
+
+            while (!q.isEmpty() && freq[q.peek() - 'a'] > 1) {
+                q.poll();
+            }
+
+            result.append(q.isEmpty() ? '#' : q.peek());
+        }
+        return result.toString();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this is amortized O(1)
+
+Each character is enqueued **once** and dequeued **at most once** across the entire stream. Total queue work across `n` chars is `O(n)` — that's `O(1)` per character on average.
+
+<Callout type="info">
+    Two things to notice. First: the frequency array is just for *checking* — the queue is what gives us *order*. Second: characters never re-enter the queue once dequeued, even if we encounter them again. They're permanently "repeating" from then on.
+</Callout>
+
+#### Common variation
+
+A close cousin: "first unique character in a string" (one-shot, not streaming). For that, two passes over the string with a frequency map is simpler than a queue. The queue earns its keep when you have to answer the question *after every character* in a stream.
+
+#### Analysis
+
+- **Time:** `O(n)` total, `O(1)` amortized per character.
+- **Space:** `O(σ)` where `σ` is the alphabet size (26 here). The queue is also bounded by `n` in the worst case, but in practice it shrinks aggressively.

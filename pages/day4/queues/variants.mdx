@@ -1,0 +1,248 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { InteractiveCircularQueue } from "../../../components/QueueVisualizer";
+export const Tab = Tabs.Tab;
+
+# Queue Variants
+
+The plain FIFO queue is the starting point. Real codebases use a handful of variants that bend the rules in useful ways. The four worth knowing:
+
+1. **Linear queue** — the naive baseline (and its flaw).
+2. **Circular queue** — fixes the flaw with modular arithmetic.
+3. **Deque** — both ends are fair game.
+4. **Priority queue** — order by importance, not arrival time.
+
+## 1. Linear queue — and why nobody uses it
+
+The straightforward version: two indices, enqueue at `rear`, dequeue at `front`. We covered this in [Basic Operations](/day4/queues/basic_operations).
+
+The problem: once `front` moves forward, the slots behind it are dead weight. After a few cycles, your queue reports "Overflow" while half the array is empty.
+
+```text
+capacity 5, after enqueue×5 + dequeue×3:
+
+[_, _, _, x, x]    front=3, rear=5
+              ^ rear at the end
+
+We can't enqueue another element — even though slots 0, 1, 2 are free.
+```
+
+Fixes:
+
+- **Shift everything left on every dequeue** — correct, but O(n) per dequeue. Brutal.
+- **Use a circular array** — keep the same memory, just wrap.
+
+The second one is what everyone actually does.
+
+## 2. Circular queue
+
+The fix is one operator: `%`. When `rear` reaches the end of the array, it loops back to slot 0 — and since `front` has already moved past those slots, they're free to reuse.
+
+```text
+enqueue:  rear  = (rear  + 1) % capacity
+dequeue:  front = (front + 1) % capacity
+```
+
+That's the whole idea. Two pointers chasing each other around a ring.
+
+<InteractiveCircularQueue capacity={6} />
+
+Enqueue past the end and watch `rear` wrap to slot 0 — as long as `front` has moved on, those slots are yours again.
+
+### "Empty vs full" — the classic bug
+
+In a circular buffer, both *empty* and *full* can look like `front == rear`. There are two standard fixes:
+
+| Trick                              | Cost                                                | Verdict |
+| :--------------------------------- | :-------------------------------------------------- | :------ |
+| Keep an explicit `count` variable  | One extra int                                       | Simple, recommended. |
+| Leave one slot permanently unused  | "Full" = `(rear + 1) % cap == front`. Saves a field but loses a slot. | Memory-tight cases only. |
+
+We used the `count` approach in the previous page. It's a tiny price for never having to think about the bug.
+
+<Callout type="info">
+    Circular buffers show up far outside DSA class — they're the standard structure for audio buffers, network packet rings, kernel ring buffers (`dmesg`), and lock-free producer-consumer queues. The pattern is everywhere.
+</Callout>
+
+## 3. Deque (Double-Ended Queue)
+
+A **deque** ("deck") relaxes the queue rule: you can add or remove from **either end** in O(1).
+
+| Operation        | What it does                          |
+| :--------------- | :------------------------------------ |
+| `pushFront(x)`   | Add `x` to the front                  |
+| `pushBack(x)`    | Add `x` to the back                   |
+| `popFront()`     | Remove and return the front           |
+| `popBack()`      | Remove and return the back            |
+| `peekFront()`    | Look at the front                     |
+| `peekBack()`     | Look at the back                      |
+
+A deque is a strict generalization — it can act as a stack *or* a queue. That's why most modern standard libraries skip a dedicated queue type and just give you a deque (Python's `collections.deque`, Java's `ArrayDeque`, C++'s `std::deque`).
+
+### Usage
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <deque>
+    using namespace std;
+
+    deque<int> dq;
+    dq.push_back(10);    // 10
+    dq.push_back(20);    // 10, 20
+    dq.push_front(5);    //  5, 10, 20
+    dq.pop_back();       //  5, 10
+    dq.pop_front();      // 10
+
+    cout << dq.front() << "\n";  // 10
+    cout << dq.back()  << "\n";  // 10
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    dq = deque()
+    dq.append(10)         # right     -> [10]
+    dq.append(20)         #           -> [10, 20]
+    dq.appendleft(5)      # left      -> [5, 10, 20]
+    dq.pop()              # right     -> [5, 10]
+    dq.popleft()          # left      -> [10]
+    print(dq[0], dq[-1])  # 10 10
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    Deque<Integer> dq = new ArrayDeque<>();
+    dq.offerLast(10);     // [10]
+    dq.offerLast(20);     // [10, 20]
+    dq.offerFirst(5);     // [5, 10, 20]
+    dq.pollLast();        // [5, 10]
+    dq.pollFirst();       // [10]
+    ```
+    </Tab>
+</Tabs>
+
+### When deques really shine
+
+- **Sliding-window problems** — `Sliding Window Maximum` keeps a deque of indices in monotonic order, popping from both ends.
+- **Undo + redo** with bounded history — push new actions on the back, drop old ones from the front when the buffer fills.
+- **Work-stealing schedulers** — each thread takes work from one end of its deque; thieves take from the other.
+
+<Callout type="warning">
+    A deque is more powerful than a queue or stack, but that flexibility costs nothing. Defaulting to `ArrayDeque` / `collections.deque` is almost always the right call in interview code.
+</Callout>
+
+## 4. Priority Queue
+
+A **priority queue** doesn't care about insertion order. It hands you the **highest-priority** element next — regardless of when it arrived.
+
+```text
+enqueue(task with priority 3)
+enqueue(task with priority 1)   ← higher priority (lower number)
+enqueue(task with priority 5)
+
+dequeue → task with priority 1  ← jumps the queue
+dequeue → task with priority 3
+dequeue → task with priority 5
+```
+
+(Whether "higher priority" means lower or higher numbers is just convention. Min-heaps are most common in DSA problems.)
+
+### The implementation: a heap
+
+You *could* build a priority queue with a sorted list — but enqueue would be O(n). You *could* use an unsorted list — but dequeue would be O(n).
+
+The standard answer is a **binary heap**, which gives:
+
+| Operation     | Time         |
+| :------------ | :----------: |
+| Enqueue (push) | O(log n)    |
+| Dequeue (pop)  | O(log n)    |
+| Peek top       | O(1)        |
+| Build from n elements | O(n) |
+
+We'll build heaps from scratch on **Day 7**. For now, here's the practical usage:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    using namespace std;
+
+    // Max-heap by default
+    priority_queue<int> maxPQ;
+    maxPQ.push(3); maxPQ.push(1); maxPQ.push(5);
+    cout << maxPQ.top();  // 5  (largest)
+
+    // Min-heap: pass greater<int>
+    priority_queue<int, vector<int>, greater<int>> minPQ;
+    minPQ.push(3); minPQ.push(1); minPQ.push(5);
+    cout << minPQ.top();  // 1  (smallest)
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    import heapq
+
+    # heapq is a min-heap.
+    pq = []
+    heapq.heappush(pq, 3)
+    heapq.heappush(pq, 1)
+    heapq.heappush(pq, 5)
+
+    print(heapq.heappop(pq))  # 1
+    print(heapq.heappop(pq))  # 3
+
+    # Max-heap trick: negate the values.
+    maxpq = []
+    for v in [3, 1, 5]:
+        heapq.heappush(maxpq, -v)
+    print(-heapq.heappop(maxpq))  # 5
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.PriorityQueue;
+    import java.util.Collections;
+
+    // Min-heap by default
+    PriorityQueue<Integer> minPQ = new PriorityQueue<>();
+    minPQ.offer(3); minPQ.offer(1); minPQ.offer(5);
+    System.out.println(minPQ.poll()); // 1
+
+    // Max-heap
+    PriorityQueue<Integer> maxPQ = new PriorityQueue<>(Collections.reverseOrder());
+    maxPQ.offer(3); maxPQ.offer(1); maxPQ.offer(5);
+    System.out.println(maxPQ.poll()); // 5
+    ```
+    </Tab>
+</Tabs>
+
+### Where priority queues live
+
+- **Dijkstra's shortest path** — always expand the closest unvisited node next.
+- **A\* search** — same idea, with a heuristic.
+- **Huffman coding** — repeatedly merge the two smallest frequencies.
+- **Job scheduling** — run the most urgent task next.
+- **Top-K problems** — "find the K largest elements" → keep a min-heap of size K.
+- **Event simulation** — process events in chronological order across millions of events.
+
+## Variant cheat sheet
+
+| Variant         | Enqueue | Dequeue | Order        | Use it when…                                       |
+| :-------------- | :-----: | :-----: | :----------- | :------------------------------------------------- |
+| **Linear**      | O(1)    | O(1)\*  | FIFO         | Almost never — see Circular.                       |
+| **Circular**    | O(1)    | O(1)    | FIFO         | Fixed-size buffer, lots of enqueue/dequeue churn.  |
+| **Deque**       | O(1)    | O(1)    | Both ends    | You want stack+queue, or sliding-window tricks.    |
+| **Priority**    | O(log n)| O(log n)| By priority  | "Next most important" beats "next oldest".         |
+
+\* O(1) in time per operation, but burns array slots until you wrap to circular.
+
+You now have the queue family in your head. Next up: where they're actually useful.
