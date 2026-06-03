@@ -1,0 +1,234 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Kth Largest Element in an Array <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums` and an integer `k`, return the **kth largest** element. Note that it's the kth largest in **sorted order**, not the kth distinct.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [3, 2, 1, 5, 6, 4],   k = 2
+    Output: 5
+
+> Case 2:
+    Input:  nums = [3, 2, 3, 1, 2, 4, 5, 5, 6],   k = 4
+    Output: 4
+```
+
+#### Constraints
+
+- `1 <= k <= nums.length <= 10^5`
+- Aim for better than O(n log n) if you can.
+
+#### Three approaches in order of cleverness
+
+This is the rare interview problem with **three legitimate solutions**, each better than the last. Being able to articulate the trade-offs is the point.
+
+#### Approach 1: Sort and index
+
+The dumbest correct answer. Sort, then return `nums[n - k]`.
+
+```python copy
+def find_kth_largest(nums, k):
+    nums.sort()
+    return nums[-k]
+```
+
+**Time: O(n log n)**, **Space: O(1)** (or O(log n) for sort's stack). Always works. Always slow.
+
+#### Approach 2: Min-heap of size k
+
+Maintain a min-heap with the k largest elements seen so far. For each new element:
+
+- If the heap has fewer than `k` elements, push.
+- Otherwise, if the new element is larger than the heap's minimum, pop the min and push the new element.
+
+After processing every element, the heap holds the k largest, and the smallest of those (the heap root) is **the kth largest** in the whole array.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    import heapq
+
+    def find_kth_largest(nums, k):
+        heap = []
+        for x in nums:
+            heapq.heappush(heap, x)
+            if len(heap) > k:
+                heapq.heappop(heap)
+        return heap[0]
+
+    # Or, the one-liner using nlargest:
+    def find_kth_largest_short(nums, k):
+        return heapq.nlargest(k, nums)[-1]
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    using namespace std;
+
+    int findKthLargest(vector<int>& nums, int k) {
+        priority_queue<int, vector<int>, greater<int>> minHeap;
+        for (int x : nums) {
+            minHeap.push(x);
+            if ((int)minHeap.size() > k) minHeap.pop();
+        }
+        return minHeap.top();
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.PriorityQueue;
+
+    public int findKthLargest(int[] nums, int k) {
+        PriorityQueue<Integer> minHeap = new PriorityQueue<>();
+        for (int x : nums) {
+            minHeap.offer(x);
+            if (minHeap.size() > k) minHeap.poll();
+        }
+        return minHeap.peek();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time: O(n log k)** — much better than O(n log n) when k is small. **Space: O(k)**.
+
+This is the answer most interviewers expect — clean, generalizes beautifully ("top K anything").
+
+#### Approach 3: Quickselect (the interview gold standard)
+
+Partitioning ideas from quicksort, but only recurse into the side that contains rank `n - k`. This brings the expected runtime down to **O(n)**.
+
+```text
+Pick a pivot, partition into [< pivot] [pivot] [> pivot].
+If pivot's final position equals our target rank → return it.
+If our target rank is in the left side → recurse there only.
+If in the right side → recurse there only.
+```
+
+Each call cuts the problem in half (on average), so:
+
+```text
+T(n) = T(n/2) + O(n)   →   T(n) = O(n)
+```
+
+(Versus quicksort's `T(n) = 2·T(n/2) + O(n) = O(n log n)`, because quicksort has to recurse on **both** sides.)
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    import random
+
+    def find_kth_largest(nums, k):
+        target = len(nums) - k     # index in sorted order
+
+        def partition(lo, hi):
+            pivot = nums[hi]
+            i = lo - 1
+            for j in range(lo, hi):
+                if nums[j] <= pivot:
+                    i += 1
+                    nums[i], nums[j] = nums[j], nums[i]
+            nums[i + 1], nums[hi] = nums[hi], nums[i + 1]
+            return i + 1
+
+        def quickselect(lo, hi):
+            if lo == hi:
+                return nums[lo]
+            # Randomize to avoid O(n^2) on adversarial input
+            r = random.randint(lo, hi)
+            nums[r], nums[hi] = nums[hi], nums[r]
+            p = partition(lo, hi)
+            if p == target:    return nums[p]
+            if p < target:     return quickselect(p + 1, hi)
+            return quickselect(lo, p - 1)
+
+        return quickselect(0, len(nums) - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int partition(vector<int>& a, int lo, int hi) {
+        int pivot = a[hi];
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (a[j] <= pivot) swap(a[++i], a[j]);
+        }
+        swap(a[i + 1], a[hi]);
+        return i + 1;
+    }
+
+    int quickselect(vector<int>& a, int lo, int hi, int target) {
+        if (lo == hi) return a[lo];
+        int r = lo + rand() % (hi - lo + 1);
+        swap(a[r], a[hi]);
+        int p = partition(a, lo, hi);
+        if (p == target) return a[p];
+        if (p < target)  return quickselect(a, p + 1, hi, target);
+        return quickselect(a, lo, p - 1, target);
+    }
+
+    int findKthLargest(vector<int>& nums, int k) {
+        return quickselect(nums, 0, nums.size() - 1, nums.size() - k);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.Random;
+
+    private final Random rng = new Random();
+
+    public int findKthLargest(int[] nums, int k) {
+        return quickselect(nums, 0, nums.length - 1, nums.length - k);
+    }
+
+    private int quickselect(int[] a, int lo, int hi, int target) {
+        if (lo == hi) return a[lo];
+        int r = lo + rng.nextInt(hi - lo + 1);
+        int t = a[r]; a[r] = a[hi]; a[hi] = t;
+        int p = partition(a, lo, hi);
+        if (p == target) return a[p];
+        if (p < target)  return quickselect(a, p + 1, hi, target);
+        return quickselect(a, lo, p - 1, target);
+    }
+
+    private int partition(int[] a, int lo, int hi) {
+        int pivot = a[hi];
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (a[j] <= pivot) {
+                i++;
+                int t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+        }
+        int t = a[i + 1]; a[i + 1] = a[hi]; a[hi] = t;
+        return i + 1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Always randomize the pivot.** Without randomization, an adversarial input (already sorted, all duplicates) sends quickselect to **O(n²)**. The one-line random swap fixes it.
+</Callout>
+
+#### Analysis comparison
+
+| Approach          | Time (avg)      | Time (worst)    | Space    | When to use                          |
+| :---------------- | :-------------: | :-------------: | :------: | :----------------------------------- |
+| Sort + index      | O(n log n)      | O(n log n)      | O(1)     | If clarity beats speed.              |
+| **Min-heap (k)**  | O(n log k)      | O(n log k)      | O(k)     | Standard interview answer. Streams.  |
+| **Quickselect**   | **O(n)**        | O(n²) without random pivot | O(log n) avg | Gold standard. Mention this. |
+
+#### Which one in an interview?
+
+Walk all three. Start with sorting (the obvious one), then offer the heap solution (better when `k << n`), then mention quickselect as the optimal **O(n)** answer. Demonstrating you know the *progression* of solutions matters more than just landing on quickselect immediately.

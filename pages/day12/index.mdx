@@ -2,15 +2,40 @@ import { Callout } from "nextra/components";
 
 # Day 12 — Sorting Algorithms II
 
+Yesterday on [Day 11](/day11) we covered the four "classic" comparison sorts — bubble, selection, insertion, merge. Today we go faster, more in-place, and *non-comparison*.
+
+By the end of today you'll know **every important sorting algorithm**, when to use which, and why the answer to "which sort is fastest?" depends entirely on what you're sorting.
+
+## What you'll learn
+
+1. **[Quick Sort](/day12/quick_sort)** — the practical champion of comparison sorts. O(n log n) average, in-place, lightning fast in cache — but with a sneaky O(n²) worst case.
+2. **[Heap Sort](/day12/heap_sort)** — O(n log n) **guaranteed**, in-place, O(1) extra memory. The "no surprises" sort, perfect when worst-case matters.
+3. **[Linear-Time Sorts](/day12/linear_sorts)** — Counting Sort, Radix Sort, and Bucket Sort. They break the O(n log n) ceiling — but only when you know something about the values.
+4. **[Choosing a Sort](/day12/choosing_a_sort)** — the decision tree. Given a real problem, which sort do you reach for?
+5. **[Practice Questions](/day12/practice_questions)** — Kth Largest, Top K Frequent, and Sort by Frequency. Real interview problems where picking the right sort is half the battle.
+
+## Why the comparison-sort ceiling exists
+
+A short reminder from [Day 11's introduction](/day11/introduction): no algorithm that learns about elements *only by comparing pairs* can sort faster than **Ω(n log n)** in the worst case. There are `n!` possible orderings of `n` elements, and each comparison gives one bit of information — so you need at least `log₂(n!) ≈ n log n` comparisons to identify the correct order.
+
+This is a theorem. Quick, merge, and heap sort all hit it. None can do better.
+
+But the moment you stop comparing — and instead **use the values themselves as indices into an array** — the floor drops. Counting sort runs in **O(n + k)** time, where `k` is the value range. For small `k`, that's effectively **O(n)** — beating the comparison ceiling by *cheating its rules*.
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The "cheat" comes with a tax: counting / radix / bucket sort work only on a restricted set of inputs (integers, fixed-width strings, bounded ranges). When those constraints hold, they're unbeatable. When they don't, you fall back to comparison sorts.
 </Callout>
 
-## What you'll learn here
+## Where today's sorts fit in real code
 
-- **QuickSort** with both Lomuto and Hoare partition schemes
-- **HeapSort** — sorting using a binary heap in O(n log n) with O(1) extra space
-- **Counting Sort, Radix Sort, Bucket Sort** — when O(n) sorting is actually possible
-- How to pick the right sort for the right input
+| Sort         | Used by                                                       |
+| :----------- | :------------------------------------------------------------ |
+| Quick Sort   | C++ `std::sort` (with introsort fallback), Java `Arrays.sort` for primitives, Rust `Vec::sort_unstable` |
+| Heap Sort    | Linux kernel sorts, real-time systems, `nlargest`/`nsmallest` in Python |
+| Counting Sort| Sub-routine inside Radix Sort; sorting bounded categorical data |
+| Radix Sort   | Sorting fixed-width integers at scale; some database indices  |
+| Bucket Sort  | Sorting uniformly-distributed floats; preprocessing for nearest-neighbor lookups |
 
-In the meantime, [Day 11 — Sorting Algorithms I](/day11) introduces the comparison-based sorts (bubble, selection, insertion, merge) that this chapter builds on.
+Quick sort is the single most-used sort in practice, but every other algorithm here has a niche where *it's* the right answer. Today is about learning those niches.
+
+Open **Quick Sort** to start.

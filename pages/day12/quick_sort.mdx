@@ -1,0 +1,199 @@
+import { Tabs, Callout } from "nextra/components";
+import { SortingStepper, quickSortFrames } from "../../components/SortingVisualizer";
+export const Tab = Tabs.Tab;
+
+# Quick Sort
+
+The most-used comparison sort in the world. Quick Sort is **divide-and-conquer with a twist**: instead of splitting cleanly in half (the way merge sort does), it picks a **pivot** and partitions the array so all smaller elements are on the left and all larger ones are on the right. Then it recurses on both sides.
+
+## The idea in three sentences
+
+1. Pick a pivot element.
+2. **Partition** the array so everything `<= pivot` is on the left and everything `>` is on the right; the pivot lands in its final position.
+3. Recursively quicksort both sides of the pivot.
+
+That's it. The whole algorithm is "partition, recurse." Once the pivot is in its correct sorted position, *it never moves again*.
+
+## Watch it run
+
+<SortingStepper
+    title="quick_sort([5, 1, 4, 2, 8, 3]) — Lomuto partition"
+    initialArray={[5, 1, 4, 2, 8, 3]}
+    algorithm={quickSortFrames}
+/>
+
+Each pass picks a purple pivot, scans the slice, and ends with that pivot in its permanent green slot.
+
+## Two famous partition schemes
+
+The partition step is the soul of quicksort. There are two classic ways to do it, and they trade clarity for cleverness.
+
+### Lomuto partition (simpler, the one most schools teach)
+
+Pick the **last** element as pivot. Walk a single pointer `i` that tracks "boundary between `<= pivot` and `>` pivot" zones. For each element `a[j]`:
+
+- If `a[j] <= pivot`, advance the boundary by swapping `a[j]` into the left zone.
+- Otherwise, leave it alone.
+
+At the end, swap the pivot into its rightful position.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int partition(vector<int>& a, int lo, int hi) {
+        int pivot = a[hi];
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (a[j] <= pivot) {
+                i++;
+                swap(a[i], a[j]);
+            }
+        }
+        swap(a[i + 1], a[hi]);
+        return i + 1;
+    }
+
+    void quickSort(vector<int>& a, int lo, int hi) {
+        if (lo >= hi) return;
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p - 1);
+        quickSort(a, p + 1, hi);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def quick_sort(a, lo=0, hi=None):
+        if hi is None:
+            hi = len(a) - 1
+        if lo >= hi:
+            return
+        p = _partition(a, lo, hi)
+        quick_sort(a, lo, p - 1)
+        quick_sort(a, p + 1, hi)
+
+    def _partition(a, lo, hi):
+        pivot = a[hi]
+        i = lo - 1
+        for j in range(lo, hi):
+            if a[j] <= pivot:
+                i += 1
+                a[i], a[j] = a[j], a[i]
+        a[i + 1], a[hi] = a[hi], a[i + 1]
+        return i + 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void quickSort(int[] a, int lo, int hi) {
+        if (lo >= hi) return;
+        int p = partition(a, lo, hi);
+        quickSort(a, lo, p - 1);
+        quickSort(a, p + 1, hi);
+    }
+
+    int partition(int[] a, int lo, int hi) {
+        int pivot = a[hi];
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (a[j] <= pivot) {
+                i++;
+                int t = a[i]; a[i] = a[j]; a[j] = t;
+            }
+        }
+        int t = a[i + 1]; a[i + 1] = a[hi]; a[hi] = t;
+        return i + 1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Hoare partition (faster in practice)
+
+Hoare's original scheme uses **two pointers walking toward each other**, swapping out-of-place elements along the way. It does roughly **three times fewer swaps** than Lomuto on average — that constant factor is why most production code uses Hoare-style partitioning.
+
+```python copy
+def hoare_partition(a, lo, hi):
+    pivot = a[(lo + hi) // 2]
+    i, j = lo - 1, hi + 1
+    while True:
+        i += 1
+        while a[i] < pivot: i += 1
+        j -= 1
+        while a[j] > pivot: j -= 1
+        if i >= j:
+            return j
+        a[i], a[j] = a[j], a[i]
+```
+
+The Hoare partition returns an index `j` such that **everything left of and at `j` is `<= pivot`** and everything right is `>= pivot`. The recursion shape is slightly different — `quickSort(a, lo, p)` and `quickSort(a, p+1, hi)` — but everything else is the same.
+
+<Callout type="info">
+    Don't memorize both. Lomuto is easier to remember and right for interviews; Hoare is what you'd write for performance in production. When asked "which would you use?", the honest answer is "I'd call the standard library, but I can explain both partitions."
+</Callout>
+
+## The O(n²) worst case (and how to avoid it)
+
+Quicksort's beauty is also its danger. If you **always pick the smallest** (or largest) remaining element as the pivot, every partition produces a `0`-element side and an `(n-1)`-element side. The recursion looks like a degenerate stick:
+
+```text
+n elements → partition → 0 left, n-1 right
+n-1 → 0 left, n-2 right
+n-2 → 0 left, n-3 right
+...
+```
+
+That's `n + (n-1) + (n-2) + ... = O(n²)` total work. And here's the catch: with the **naive "pick the last element" Lomuto strategy** above, this happens on **already-sorted input** — the most common real-world case.
+
+Three standard pivot fixes:
+
+1. **Random pivot.** Pick a uniformly random index in `[lo, hi]`. Expected runtime O(n log n) regardless of input.
+2. **Median-of-three.** Look at `a[lo]`, `a[mid]`, `a[hi]`, pick the median. Fast in practice; breaks the sorted-input trap.
+3. **Introsort.** Use random/median pivots, but track the recursion depth — if it exceeds `2·log₂(n)` (a sign of bad pivots), switch to **heap sort** for a hard O(n log n) guarantee. This is exactly what C++'s `std::sort` does.
+
+### Random pivot in two lines
+
+```cpp copy
+int randomPivot(int lo, int hi) {
+    return lo + rand() % (hi - lo + 1);
+}
+
+int partition(vector<int>& a, int lo, int hi) {
+    int r = randomPivot(lo, hi);
+    swap(a[r], a[hi]);   // move random pivot to the end, then run Lomuto as usual
+    return /* … original Lomuto code … */;
+}
+```
+
+One swap upfront, problem solved. Random pivots take quicksort from "O(n²) worst case" to "O(n²) only if you're cosmically unlucky."
+
+## Properties
+
+- **Time:** **O(n log n) average**, **O(n²) worst case** (with bad pivots). Best case also O(n log n).
+- **Space:** **O(log n)** for the recursion stack (with good pivots). O(n) worst-case stack if you're truly unlucky.
+- **Stable:** **No.** Swaps during partitioning can leap equal elements over each other.
+- **Adaptive:** No — runtime depends on pivot choice, not input order. Already-sorted input is *bad*, not good, unless you randomize pivots.
+
+## Why quicksort wins in practice
+
+On paper, merge sort matches quicksort: both are O(n log n) average. But on real hardware, quicksort consistently wins by a factor of 2–3× because:
+
+1. **In-place.** No O(n) merge buffer means no allocation, no cache pressure from a parallel array.
+2. **Cache-friendly.** Each partition reads contiguous memory, sequentially. CPU prefetchers love this.
+3. **Tiny constant factor.** The inner loop is just a comparison and a swap — both ~1 cycle on modern CPUs.
+
+Merge sort wins when stability or worst-case guarantees matter. Otherwise, quicksort wins.
+
+## 3-way partitioning (the Dutch flag generalization)
+
+When the input has **lots of duplicates**, standard quicksort wastes time recursing on regions of equal values. **3-way quicksort** partitions into three regions: `<`, `==`, and `>` the pivot. The middle region is already sorted (it's all equal to the pivot) and doesn't need recursing on.
+
+You already saw the structure in [Sort Colors](/day11/practice_questions/sort_colors) — Dutch National Flag is the 3-way partition. Combined with quicksort, it makes the worst case for duplicates-heavy input go from O(n²) to O(n).
+
+## Quickselect — finding the Kth element in O(n)
+
+A killer side-effect of partitioning: if you only need to find the **Kth smallest element** (not sort the whole array), you only need to recurse on **one side** of each partition — the side that contains index K.
+
+That changes the recurrence from `T(n) = 2T(n/2) + O(n)` (which solves to O(n log n)) to `T(n) = T(n/2) + O(n)` (which solves to **O(n)**).
+
+We'll do quickselect in the practice section as [Kth Largest Element](/day12/practice_questions/kth_largest_element).

@@ -1,0 +1,151 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sort Colors <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an array `nums` containing only the integers `0`, `1`, and `2`, **sort them in-place** so that they appear in the order `0, 0, …, 1, 1, …, 2, 2, …`.
+
+You must solve this **without using the library's `sort` function**, and ideally in a **single pass** with **O(1) extra space**.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [2, 0, 2, 1, 1, 0]
+    Output:        [0, 0, 1, 1, 2, 2]
+
+> Case 2:
+    Input:  nums = [2, 0, 1]
+    Output:        [0, 1, 2]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 300`
+- `nums[i]` is `0`, `1`, or `2`.
+
+#### Approach 1: Counting sort (two passes)
+
+Count how many `0`s, `1`s, `2`s, then overwrite the array. Two passes, O(n) time, O(1) space. Correct and easy — but uses two passes.
+
+```python copy
+def sort_colors(nums):
+    cnt = [0, 0, 0]
+    for x in nums:
+        cnt[x] += 1
+    i = 0
+    for v in range(3):
+        for _ in range(cnt[v]):
+            nums[i] = v; i += 1
+```
+
+This is **counting sort**, which we cover in detail on [Day 12](/day12). It works perfectly when the value range is tiny.
+
+#### Approach 2: Dutch National Flag (one pass)
+
+The famous one-pass algorithm, invented by Edsger Dijkstra. Maintain three pointers:
+
+- `low` — the boundary of the `0`s region. Everything strictly below `low` is `0`.
+- `high` — the boundary of the `2`s region. Everything strictly above `high` is `2`.
+- `mid` — the cursor scanning forward.
+
+For each element at `mid`:
+
+- If it's `0`, swap with `low`; advance both `low` and `mid`.
+- If it's `2`, swap with `high`; decrement `high` (but **don't** advance `mid` — the swapped-in element hasn't been examined).
+- If it's `1`, advance `mid`.
+
+Stop when `mid` passes `high`.
+
+```text
+nums = [2, 0, 2, 1, 1, 0]
+        ↑              ↑
+       low            high
+       mid
+
+mid=0, val=2 → swap nums[0], nums[5]; high--
+nums = [0, 0, 2, 1, 1, 2]    low=0, mid=0, high=4
+
+mid=0, val=0 → swap nums[0], nums[0]; low++, mid++
+nums = [0, 0, 2, 1, 1, 2]    low=1, mid=1, high=4
+
+mid=1, val=0 → swap; low++, mid++
+nums = [0, 0, 2, 1, 1, 2]    low=2, mid=2, high=4
+
+mid=2, val=2 → swap nums[2], nums[4]; high--
+nums = [0, 0, 1, 1, 2, 2]    low=2, mid=2, high=3
+
+mid=2, val=1 → mid++
+mid=3, val=1 → mid++
+mid=4 > high=3 → stop.
+
+Result: [0, 0, 1, 1, 2, 2] ✓
+```
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void sortColors(vector<int>& nums) {
+        int low = 0, mid = 0, high = nums.size() - 1;
+        while (mid <= high) {
+            if (nums[mid] == 0) {
+                swap(nums[low++], nums[mid++]);
+            } else if (nums[mid] == 2) {
+                swap(nums[mid], nums[high--]);   // don't advance mid
+            } else {
+                mid++;
+            }
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sort_colors(nums):
+        low, mid, high = 0, 0, len(nums) - 1
+        while mid <= high:
+            if nums[mid] == 0:
+                nums[low], nums[mid] = nums[mid], nums[low]
+                low += 1; mid += 1
+            elif nums[mid] == 2:
+                nums[mid], nums[high] = nums[high], nums[mid]
+                high -= 1               # don't advance mid
+            else:
+                mid += 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void sortColors(int[] nums) {
+        int low = 0, mid = 0, high = nums.length - 1;
+        while (mid <= high) {
+            if (nums[mid] == 0) {
+                int t = nums[low]; nums[low++] = nums[mid]; nums[mid++] = t;
+            } else if (nums[mid] == 2) {
+                int t = nums[mid]; nums[mid] = nums[high]; nums[high--] = t;
+            } else {
+                mid++;
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The most common bug:** advancing `mid` after the `nums[mid] == 2` case. Don't! You haven't seen the value that just got swapped in from the `high` end — it could be a `0` that needs to go to the front. Only the `0` case advances both `low` and `mid` (because you swapped in a value from the *already-checked* low region).
+</Callout>
+
+#### Analysis
+
+| Approach              | Time | Space | Passes |
+| :-------------------- | :--: | :---: | :----: |
+| Counting (two-pass)   | O(n) | O(1)  | 2      |
+| **Dutch National Flag** | **O(n)** | **O(1)** | **1** |
+
+#### Why this is a sorting interview classic
+
+The Dutch National Flag algorithm generalizes the **partition** step of quicksort to **three regions** instead of two. It's the bridge between simple sorts and the 3-way quicksort you'll see on Day 12.

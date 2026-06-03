@@ -1,0 +1,104 @@
+import { Callout } from "nextra/components";
+import { ComplexityTable } from "../../components/ComplexityTable";
+
+# Choosing a Sort
+
+You now know nine sorting algorithms across Days 11 and 12. Here's the cheat sheet you actually need: **given a real problem, which one do you reach for?**
+
+## The decision tree
+
+Start at the top, follow the first branch that matches.
+
+```text
+1. Is the input small (say, n < 50)?
+   ├── YES → INSERTION SORT.  Constant factors crush everything else here.
+   └── NO  → continue
+
+2. Are the keys integers in a small range [0, k] where k ≈ n?
+   ├── YES → COUNTING SORT.  Linear time, easy code.
+   └── NO  → continue
+
+3. Are the keys fixed-width integers (or fixed-length strings)?
+   ├── YES → RADIX SORT.  Linear time, more setup than counting.
+   └── NO  → continue
+
+4. Are the keys uniformly distributed floats in a known range?
+   ├── YES → BUCKET SORT.  Linear-time average.
+   └── NO  → continue (now we're in comparison-sort land)
+
+5. Do you need a guaranteed O(n log n) worst case?
+   ├── YES + stability needed → MERGE SORT.
+   ├── YES + memory tight    → HEAP SORT.
+   └── NO → QUICK SORT.  Fastest in practice on random / mixed data.
+
+6. Special case: just need the Kth smallest, not the whole sort?
+   └──> QUICKSELECT.  O(n) average, no full sort needed.
+
+7. Last resort: just call the standard library.
+   Python: list.sort() or sorted()
+   C++:    std::sort(...) or std::stable_sort(...)
+   Java:   Arrays.sort(...) or Collections.sort(...)
+   These are highly tuned hybrids — beat your hand-written sort 99% of the time.
+```
+
+## The full scoreboard
+
+<ComplexityTable
+    operations={[
+        { name: "Bubble Sort",     time: "O(n^2)",     space: "O(1)",      notes: "Stable, adaptive. Teaching only." },
+        { name: "Selection Sort",  time: "O(n^2)",     space: "O(1)",      notes: "Unstable. Fewest swaps (O(n))." },
+        { name: "Insertion Sort",  time: "O(n^2)",     space: "O(1)",      notes: "Stable, adaptive. O(n) on sorted input." },
+        { name: "Merge Sort",      time: "O(n log n)", space: "O(n)",      notes: "Stable, predictable. Best for external / parallel sorts." },
+        { name: "Quick Sort",      time: "O(n log n)", space: "O(log n)",  notes: "Unstable. Fastest in practice. O(n^2) worst case." },
+        { name: "Heap Sort",       time: "O(n log n)", space: "O(1)",      notes: "Unstable. Worst-case O(n log n). Tight memory." },
+        { name: "Counting Sort",   time: "O(n + k)",   space: "O(n + k)",  notes: "Stable. Small-range integers." },
+        { name: "Radix Sort",      time: "O(n)",       space: "O(n + k)",  notes: "Stable. Fixed-width integers / strings." },
+    ]}
+/>
+
+## Common gotchas when picking
+
+A few decisions look obvious but trip people up.
+
+### "I'll use counting sort, the range is small."
+
+Check the actual range. "Small" means O(n). If you have 100 elements in `[0, 10^9]`, counting sort allocates a billion-element array — way worse than just calling quicksort.
+
+### "I'll use quicksort, it's the fastest."
+
+It is — on **random** input. On **adversarial** input (already sorted, all duplicates, sawtooth patterns), naive quicksort degrades to O(n²). Always use a randomized pivot or introsort fallback in production code.
+
+### "I need stability, so I'll write merge sort."
+
+Almost always: just call your language's stable sort. Python's `list.sort` is stable. Java's `Collections.sort` is stable. C++'s `std::stable_sort` is stable. The library version is faster and battle-tested.
+
+### "Insertion sort is O(n²), it must be slow."
+
+For `n < 50`, **insertion sort is the fastest sort in the world**. Every production hybrid sort (Timsort, introsort, PDQ) uses insertion sort as a base case for small slices. The big-O notation lies at small `n`.
+
+## Real-world: what production sorts actually do
+
+Every modern standard library is a **hybrid**:
+
+| Library                  | Strategy                                                            |
+| :----------------------- | :------------------------------------------------------------------ |
+| Python `list.sort`       | **Timsort** — merge sort + insertion sort, exploits sorted runs    |
+| Java `Arrays.sort` (int) | **Dual-pivot quicksort** — two pivots, faster partitioning         |
+| Java `Arrays.sort` (Object) | **Timsort** — stability required                                  |
+| C++ `std::sort`          | **Introsort** — quicksort + heap sort fallback + insertion sort base |
+| C++ `std::stable_sort`   | **Adaptive merge sort**                                            |
+| Rust `sort` / `sort_unstable` | **Timsort variant** / **Pattern-defeating quicksort (PDQ)**    |
+
+The lesson: nobody picks one algorithm. They build hybrids tuned for **typical input** with **safe fallbacks** for adversarial cases.
+
+## A shorter heuristic
+
+If you only remember one thing:
+
+<Callout type="info">
+    **In 95% of cases, call the standard library.** Reach for a hand-coded sort only when (a) the input has structure you can exploit (small range → counting, nearly sorted → insertion), (b) you need worst-case guarantees (real-time → heap), or (c) the interviewer specifically asks you to implement one.
+</Callout>
+
+If you're given a specific algorithm to implement, the decision tree at the top of this page tells you when it's the right tool — and when something else would be better. That's the real interview signal: not "can you write quicksort," but "do you know **why** to use quicksort."
+
+Ready to try sorting in real problems? Open **Practice Questions**.

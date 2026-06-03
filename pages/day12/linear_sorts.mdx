@@ -1,0 +1,361 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Linear-Time Sorts
+
+The comparison-sort lower bound says **no algorithm that compares pairs of elements can sort in less than O(n log n) time.** It's a theorem, not an engineering challenge — you can't out-clever it.
+
+But you *can* cheat. If you stop comparing and instead **use the values themselves as indices**, you escape the lower bound entirely. These are the **non-comparison sorts**: Counting, Radix, and Bucket Sort. When their assumptions hold, they run in **O(n)** — flat-out faster than any comparison sort.
+
+The catch is always the same: they only work on certain kinds of input.
+
+## 1. Counting Sort
+
+**Use it when:** keys are integers in a small range `[0, k]`.
+
+The idea is dead simple: for each possible value `v` in the range, count how many times it appears, then write that many copies of `v` to the output in order.
+
+### The algorithm
+
+<Steps>
+
+### Count
+
+Walk through the input. `count[v]` += 1 for each value `v`.
+
+### Prefix-sum the counts
+
+Convert `count[v]` to "number of elements `<= v`." Now `count[v] - 1` tells you the rightmost position where `v` belongs.
+
+### Place in reverse
+
+Walk the input **right to left** (this preserves stability). For each element `x`, decrement `count[x]` and write `x` to `output[count[x]]`.
+
+</Steps>
+
+```text
+Input:  [2, 5, 3, 0, 2, 3, 0, 3]    k = 5
+
+Step 1 — Count:
+        count[0] = 2
+        count[1] = 0
+        count[2] = 2
+        count[3] = 3
+        count[4] = 0
+        count[5] = 1
+
+Step 2 — Prefix sum:
+        count[0] = 2
+        count[1] = 2
+        count[2] = 4
+        count[3] = 7
+        count[4] = 7
+        count[5] = 8
+
+Step 3 — Place from the right (stability preserved):
+        x = 3 → count[3] = 6, output[6] = 3
+        x = 0 → count[0] = 1, output[1] = 0
+        x = 3 → count[3] = 5, output[5] = 3
+        ... and so on.
+
+Output: [0, 0, 2, 2, 3, 3, 3, 5]
+```
+
+### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> countingSort(const vector<int>& a, int k) {
+        vector<int> count(k + 1, 0);
+        for (int x : a) count[x]++;
+        for (int i = 1; i <= k; i++) count[i] += count[i - 1];
+
+        vector<int> output(a.size());
+        for (int i = a.size() - 1; i >= 0; i--) {
+            output[--count[a[i]]] = a[i];
+        }
+        return output;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def counting_sort(a, k):
+        count = [0] * (k + 1)
+        for x in a:
+            count[x] += 1
+        for i in range(1, k + 1):
+            count[i] += count[i - 1]
+
+        out = [0] * len(a)
+        for i in range(len(a) - 1, -1, -1):
+            count[a[i]] -= 1
+            out[count[a[i]]] = a[i]
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] countingSort(int[] a, int k) {
+        int[] count = new int[k + 1];
+        for (int x : a) count[x]++;
+        for (int i = 1; i <= k; i++) count[i] += count[i - 1];
+
+        int[] out = new int[a.length];
+        for (int i = a.length - 1; i >= 0; i--) {
+            out[--count[a[i]]] = a[i];
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Properties
+
+- **Time:** **O(n + k)**. Linear in the input *and* the value range.
+- **Space:** **O(n + k)**.
+- **Stable:** Yes — guaranteed by the right-to-left placement.
+- **Comparison-free:** Yes.
+
+### When it shines (and when it doesn't)
+
+Perfect for: counts, frequencies, ages, grades, anything with a small bounded range. [Sort Colors](/day11/practice_questions/sort_colors) is basically counting sort with `k = 3`.
+
+Terrible for: arbitrary 32-bit integers (`k = 4 billion`). Or floating-point numbers. Or strings. The `count` array would be huge or undefined.
+
+<Callout type="warning">
+    Counting sort is **only linear if `k = O(n)`**. If `k >> n` (say, n = 100 integers in `[0, 10^9]`), counting sort is O(10^9) — much worse than merge sort. The "linear-time" claim is true *only when the range is small*.
+</Callout>
+
+## 2. Radix Sort
+
+**Use it when:** keys are integers (or fixed-length strings), and you don't want the `k = O(n)` constraint of counting sort.
+
+Radix sort splits each key into its **digits** (base 10, or base 256 for bytes, or base 2 for bits) and sorts **one digit at a time**, from least significant to most significant. Each pass is a stable sort (typically counting sort) by that one digit.
+
+### The algorithm
+
+<Steps>
+
+### Pick a base
+
+Often base 10 for textbook examples, base 256 for byte-by-byte sorting, or base 2 for bits.
+
+### Sort by least-significant digit (LSD)
+
+Use a stable sort (counting sort works great — the range is just `0..base-1`).
+
+### Repeat for each more significant digit
+
+After `d` passes (where `d` = number of digits in the largest key), the array is fully sorted.
+
+</Steps>
+
+```text
+Input: [170, 45, 75, 90, 802, 24, 2, 66]
+
+After sorting by ones digit:   [170, 90, 802, 2, 24, 45, 75, 66]
+After sorting by tens digit:   [802, 2, 24, 45, 66, 170, 75, 90]
+After sorting by hundreds:     [2, 24, 45, 66, 75, 90, 170, 802]
+```
+
+Why does this work? Because each pass is **stable**, the partial ordering from previous passes is preserved within elements that have the same digit on the current pass.
+
+### Code (LSD radix sort, base 10)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void countingSortByDigit(vector<int>& a, int exp) {
+        vector<int> output(a.size());
+        int count[10] = {0};
+        for (int x : a) count[(x / exp) % 10]++;
+        for (int i = 1; i < 10; i++) count[i] += count[i - 1];
+        for (int i = a.size() - 1; i >= 0; i--) {
+            int d = (a[i] / exp) % 10;
+            output[--count[d]] = a[i];
+        }
+        a = output;
+    }
+
+    void radixSort(vector<int>& a) {
+        int maxVal = *max_element(a.begin(), a.end());
+        for (int exp = 1; maxVal / exp > 0; exp *= 10) {
+            countingSortByDigit(a, exp);
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def radix_sort(a):
+        if not a:
+            return a
+        max_val = max(a)
+        exp = 1
+        while max_val // exp > 0:
+            a = _counting_by_digit(a, exp)
+            exp *= 10
+        return a
+
+    def _counting_by_digit(a, exp):
+        count = [0] * 10
+        for x in a:
+            count[(x // exp) % 10] += 1
+        for i in range(1, 10):
+            count[i] += count[i - 1]
+        out = [0] * len(a)
+        for i in range(len(a) - 1, -1, -1):
+            d = (a[i] // exp) % 10
+            count[d] -= 1
+            out[count[d]] = a[i]
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void radixSort(int[] a) {
+        int max = 0;
+        for (int x : a) if (x > max) max = x;
+        for (int exp = 1; max / exp > 0; exp *= 10) {
+            a = countByDigit(a, exp);
+        }
+    }
+
+    int[] countByDigit(int[] a, int exp) {
+        int[] count = new int[10];
+        for (int x : a) count[(x / exp) % 10]++;
+        for (int i = 1; i < 10; i++) count[i] += count[i - 1];
+        int[] out = new int[a.length];
+        for (int i = a.length - 1; i >= 0; i--) {
+            int d = (a[i] / exp) % 10;
+            out[--count[d]] = a[i];
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Properties
+
+- **Time:** **O(n · d)** where `d` is the number of digits. For 32-bit integers in base 256, `d = 4` — effectively **O(n)**.
+- **Space:** **O(n + b)** where `b` is the base.
+- **Stable:** Yes, as long as the inner sort is stable.
+- **Comparison-free:** Yes.
+
+### When to actually use it
+
+For **bulk sorting of fixed-width integers**, radix sort is unbeatable. It's used in:
+
+- Database index building
+- Genome sequence sorting (4-symbol alphabet → tiny base)
+- Some flash-memory storage controllers
+- Network packet processing (sorting by IP address)
+
+For small arrays or general data, the constant factors of radix sort (multiple passes, byte extraction overhead) make it slower than quicksort.
+
+## 3. Bucket Sort
+
+**Use it when:** keys are roughly **uniformly distributed** over a known range (typically floats in `[0, 1)`).
+
+The idea: divide the range into `n` equal-sized buckets, drop each element into the bucket where it belongs, sort each bucket individually (usually with insertion sort), then concatenate.
+
+```text
+Input: [0.78, 0.17, 0.39, 0.26, 0.72, 0.94, 0.21, 0.12]   n = 8
+
+Bucket index for x = floor(n * x):
+  0.17 → bucket 1
+  0.78 → bucket 6
+  0.39 → bucket 3
+  ...
+
+Buckets:  [_, [0.17, 0.12], [0.21, 0.26], [0.39], _, _, [0.78, 0.72], [_, ...], [0.94]]
+                ↓ sort each bucket
+Concat:    [0.12, 0.17, 0.21, 0.26, 0.39, 0.72, 0.78, 0.94]
+```
+
+### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def bucket_sort(a):
+        n = len(a)
+        if n == 0:
+            return a
+        buckets = [[] for _ in range(n)]
+        for x in a:
+            idx = min(int(n * x), n - 1)     # x in [0, 1)
+            buckets[idx].append(x)
+        for b in buckets:
+            b.sort()                          # insertion sort would also work
+        out = []
+        for b in buckets:
+            out.extend(b)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    vector<double> bucketSort(vector<double>& a) {
+        int n = a.size();
+        vector<vector<double>> buckets(n);
+        for (double x : a) {
+            int idx = min((int)(n * x), n - 1);
+            buckets[idx].push_back(x);
+        }
+        vector<double> out;
+        for (auto& b : buckets) {
+            sort(b.begin(), b.end());
+            out.insert(out.end(), b.begin(), b.end());
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Double> bucketSort(double[] a) {
+        int n = a.length;
+        List<List<Double>> buckets = new ArrayList<>();
+        for (int i = 0; i < n; i++) buckets.add(new ArrayList<>());
+        for (double x : a) {
+            int idx = Math.min((int)(n * x), n - 1);
+            buckets.get(idx).add(x);
+        }
+        List<Double> out = new ArrayList<>();
+        for (List<Double> b : buckets) {
+            Collections.sort(b);
+            out.addAll(b);
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Properties
+
+- **Time:** **O(n) average** if the input is uniformly distributed. **O(n²) worst case** if all elements land in one bucket.
+- **Space:** **O(n)**.
+- **Stable:** Stable if the per-bucket sort is stable.
+- **Comparison-free:** Within each bucket, yes — the buckets themselves use position as the order.
+
+### When to use it
+
+Uniformly distributed floating-point data — sensor readings, normalized scores, probabilities. Also useful as a preprocessing step for **nearest-neighbor lookups** when you can pre-bin your data.
+
+## Summary table
+
+| Sort        | Time         | Space      | Stable | Works on…                            |
+| :---------- | :----------: | :--------: | :----: | :----------------------------------- |
+| **Counting** | O(n + k)    | O(n + k)   | ✓      | Small-range integers                 |
+| **Radix**    | O(n · d)    | O(n + b)   | ✓      | Fixed-width integers / strings       |
+| **Bucket**   | O(n) avg    | O(n)       | ✓      | Uniformly distributed values         |
+
+All three break the O(n log n) ceiling — but only when their input assumptions are satisfied. When they apply, they're unbeatable. When they don't, fall back to quicksort or merge sort.
+
+Now you've seen all the sorts. The next page tells you **how to pick the right one** for a real problem.

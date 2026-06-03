@@ -1,0 +1,163 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sort Characters By Frequency <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s`, return a string with all the same characters **sorted in decreasing order of frequency**. If two characters have the same frequency, they can appear in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  s = "tree"
+    Output: "eert"      # e (×2) comes first, then t and r (×1 each)
+    # "eetr" is also valid.
+
+> Case 2:
+    Input:  s = "cccaaa"
+    Output: "aaaccc"    # or "cccaaa" — both have a (×3) and c (×3)
+
+> Case 3:
+    Input:  s = "Aabb"
+    Output: "bbAa"      # b (×2) first, then A and a
+    # Case matters: 'A' and 'a' are different characters.
+```
+
+#### Constraints
+
+- `1 <= s.length <= 5 * 10^5`
+- `s` contains letters, digits, and whitespace.
+
+#### Step 1 (every approach): count
+
+A hash map (or 128-entry array for ASCII) gives us each character's frequency in O(n).
+
+```python copy
+from collections import Counter
+freq = Counter(s)
+```
+
+The question is what to do with `freq` to build the output sorted by frequency.
+
+#### Approach 1: Sort the items
+
+```python copy
+def frequency_sort(s):
+    freq = Counter(s)
+    items = sorted(freq.items(), key=lambda kv: -kv[1])
+    return ''.join(ch * cnt for ch, cnt in items)
+```
+
+**Time: O(n + d log d)** where `d` is the number of distinct characters. Clear and concise — fine for an interview, just say "O(d log d) on the sort step."
+
+#### Approach 2: Bucket sort by frequency
+
+Same trick as [Top K Frequent](/day12/practice_questions/top_k_frequent). Each frequency is between `1` and `n`, so we can bucket characters by their count and walk the buckets from high to low.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import Counter
+
+    def frequency_sort(s):
+        freq = Counter(s)
+        n = len(s)
+        # buckets[f] = list of characters that appear f times
+        buckets = [[] for _ in range(n + 1)]
+        for ch, f in freq.items():
+            buckets[f].append(ch)
+
+        out = []
+        for f in range(n, 0, -1):
+            for ch in buckets[f]:
+                out.append(ch * f)
+        return ''.join(out)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    string frequencySort(string s) {
+        unordered_map<char, int> freq;
+        for (char c : s) freq[c]++;
+
+        int n = s.size();
+        vector<vector<char>> buckets(n + 1);
+        for (auto& [c, f] : freq) buckets[f].push_back(c);
+
+        string out;
+        out.reserve(n);
+        for (int f = n; f > 0; f--) {
+            for (char c : buckets[f]) out.append(f, c);
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public String frequencySort(String s) {
+        Map<Character, Integer> freq = new HashMap<>();
+        for (char c : s.toCharArray()) freq.merge(c, 1, Integer::sum);
+
+        int n = s.length();
+        List<List<Character>> buckets = new ArrayList<>();
+        for (int i = 0; i <= n; i++) buckets.add(new ArrayList<>());
+        for (var e : freq.entrySet()) buckets.get(e.getValue()).add(e.getKey());
+
+        StringBuilder out = new StringBuilder(n);
+        for (int f = n; f > 0; f--) {
+            for (char c : buckets.get(f)) {
+                for (int i = 0; i < f; i++) out.append(c);
+            }
+        }
+        return out.toString();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time: O(n)**. **Space: O(n)** for the buckets and output.
+
+#### Approach 3: Max-heap
+
+A priority queue keyed by negative frequency (or with a reversed comparator). Pop the most frequent character first.
+
+```python copy
+import heapq
+from collections import Counter
+
+def frequency_sort(s):
+    freq = Counter(s)
+    # Push (-count, char) so the most frequent comes out first.
+    heap = [(-cnt, ch) for ch, cnt in freq.items()]
+    heapq.heapify(heap)
+    out = []
+    while heap:
+        cnt, ch = heapq.heappop(heap)
+        out.append(ch * -cnt)
+    return ''.join(out)
+```
+
+**Time: O(n + d log d)**. Functionally identical to Approach 1 — just a different way to express "sort by frequency."
+
+#### Analysis comparison
+
+| Approach           | Time            | Space    | When to use                        |
+| :----------------- | :-------------: | :------: | :--------------------------------- |
+| Sort items         | O(n + d log d)  | O(d)     | Default choice, hard to mess up.   |
+| Max-heap           | O(n + d log d)  | O(d)     | Same complexity, prettier code.    |
+| **Bucket sort**    | **O(n)**        | O(n)     | When you spot bounded frequencies. |
+
+<Callout type="info">
+    These two problems — *Top K Frequent* and *Sort by Frequency* — solve the same shape of problem with the same trick. Once you've seen one, the other is automatic. Recognizing that "bounded counts → bucket sort" is one of the highest-leverage patterns in sorting interviews.
+</Callout>

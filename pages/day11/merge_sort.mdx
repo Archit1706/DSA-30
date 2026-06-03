@@ -1,0 +1,162 @@
+import { Tabs, Callout } from "nextra/components";
+import { SortingStepper, mergeSortFrames } from "../../components/SortingVisualizer";
+export const Tab = Tabs.Tab;
+
+# Merge Sort
+
+The first sort that breaks the O(n²) barrier. Merge sort is **divide and conquer** in its purest form: split the array in half, sort each half recursively, then merge the two sorted halves.
+
+It's the algorithm that proved sorting could be done in O(n log n). It's also the algorithm Python uses for sorting objects (as part of Timsort), and the go-to for sorting data that doesn't fit in memory.
+
+## The idea in three sentences
+
+1. **Divide.** Split the array in half.
+2. **Conquer.** Recursively sort each half.
+3. **Combine.** Merge the two sorted halves into one sorted whole.
+
+The base case: an array of length 1 is already sorted.
+
+## Why merging is fast
+
+The cleverness of merge sort lives in the **merge** step. Given two already-sorted arrays of total length `n`, you can merge them in O(n) time:
+
+```text
+Left  = [1, 4, 7]
+Right = [2, 3, 8]
+
+Two pointers, one on each array. Always take the smaller of the two heads.
+
+  1 < 2 → take 1.  out = [1]
+  4 > 2 → take 2.  out = [1, 2]
+  4 > 3 → take 3.  out = [1, 2, 3]
+  4 < 8 → take 4.  out = [1, 2, 3, 4]
+  7 < 8 → take 7.  out = [1, 2, 3, 4, 7]
+  Right has 8 left → append. out = [1, 2, 3, 4, 7, 8]
+```
+
+That's the whole trick — comparing only the heads, never the middles, gives linear-time merging.
+
+## Watch it run
+
+<SortingStepper
+    title="merge_sort([5, 1, 4, 2, 8, 3])"
+    initialArray={[5, 1, 4, 2, 8, 3]}
+    algorithm={mergeSortFrames}
+/>
+
+Notice the bottom-up pattern: tiny windows get merged into bigger sorted windows, until the whole array is one big sorted window.
+
+## The code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void merge(vector<int>& a, int lo, int mid, int hi) {
+        vector<int> left(a.begin() + lo, a.begin() + mid + 1);
+        vector<int> right(a.begin() + mid + 1, a.begin() + hi + 1);
+
+        int i = 0, j = 0, k = lo;
+        while (i < (int)left.size() && j < (int)right.size()) {
+            if (left[i] <= right[j]) a[k++] = left[i++];
+            else                     a[k++] = right[j++];
+        }
+        while (i < (int)left.size())  a[k++] = left[i++];
+        while (j < (int)right.size()) a[k++] = right[j++];
+    }
+
+    void mergeSort(vector<int>& a, int lo, int hi) {
+        if (lo >= hi) return;
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(a, lo, mid);
+        mergeSort(a, mid + 1, hi);
+        merge(a, lo, mid, hi);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def merge_sort(a, lo=0, hi=None):
+        if hi is None:
+            hi = len(a) - 1
+        if lo >= hi:
+            return
+        mid = (lo + hi) // 2
+        merge_sort(a, lo, mid)
+        merge_sort(a, mid + 1, hi)
+        _merge(a, lo, mid, hi)
+
+    def _merge(a, lo, mid, hi):
+        left  = a[lo:mid + 1]
+        right = a[mid + 1:hi + 1]
+        i = j = 0
+        k = lo
+        while i < len(left) and j < len(right):
+            if left[i] <= right[j]:
+                a[k] = left[i]; i += 1
+            else:
+                a[k] = right[j]; j += 1
+            k += 1
+        while i < len(left):  a[k] = left[i];  i += 1; k += 1
+        while j < len(right): a[k] = right[j]; j += 1; k += 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void mergeSort(int[] a, int lo, int hi) {
+        if (lo >= hi) return;
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(a, lo, mid);
+        mergeSort(a, mid + 1, hi);
+        merge(a, lo, mid, hi);
+    }
+
+    void merge(int[] a, int lo, int mid, int hi) {
+        int[] left  = java.util.Arrays.copyOfRange(a, lo, mid + 1);
+        int[] right = java.util.Arrays.copyOfRange(a, mid + 1, hi + 1);
+        int i = 0, j = 0, k = lo;
+        while (i < left.length && j < right.length) {
+            a[k++] = (left[i] <= right[j]) ? left[i++] : right[j++];
+        }
+        while (i < left.length)  a[k++] = left[i++];
+        while (j < right.length) a[k++] = right[j++];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    Note `int mid = lo + (hi - lo) / 2` rather than `(lo + hi) / 2`. The first form avoids integer overflow when `lo + hi` exceeds `INT_MAX` — a real bug that lived in Java's binary search for nine years before someone noticed.
+</Callout>
+
+## Why O(n log n)?
+
+The recursion tree has **log n levels** (you halve the array each split). At every level, the **total merge work across all sub-arrays is O(n)** — each element is touched once per level. So total cost is **O(n) × O(log n) = O(n log n)**.
+
+This is the famous recurrence `T(n) = 2·T(n/2) + O(n)`, which Master Theorem (or just induction) solves to `Θ(n log n)`.
+
+## Properties
+
+- **Time:** **O(n log n)** in all cases — best, average, worst. No surprises.
+- **Space:** **O(n)** — we need a buffer of size `n` for the merge step (the `left` and `right` arrays). This is its main downside.
+- **Stable:** Yes — using `<=` in the merge keeps equal elements in their original order.
+- **Adaptive:** No, by default — runs the same regardless of input.
+
+## When to actually use merge sort
+
+The space cost (O(n) extra memory) is real, so quicksort and heapsort often beat it in benchmarks. But merge sort has three killer features:
+
+1. **Stability.** When you need it, you need it. Java's `Collections.sort` and Python's `list.sort` use merge sort variants for this reason.
+2. **Predictable worst case.** Always O(n log n) — no pathological inputs. Real-time systems and security-sensitive code that must bound worst-case running time prefer merge sort to quicksort.
+3. **External sorting.** When data doesn't fit in memory, merge sort works **on disk**. Sort chunks in RAM, then merge them in passes. Most "sort 100 GB of data on a 2 GB machine" pipelines use external merge sort.
+4. **Easy parallelization.** The two recursive halves are independent — perfect for multi-core. `parallel_sort` in C++ and `array.sort` with multi-threaded workers in some runtimes are merge-sort-based.
+
+## Wrapping up Day 11
+
+| Sort       | Time (avg)  | Space     | Stable | Adaptive | Notes                              |
+| :--------- | :---------: | :-------: | :----: | :------: | :--------------------------------- |
+| Bubble     | O(n²)       | O(1)      | ✓      | with flag | Teaching tool, rarely useful.     |
+| Selection  | O(n²)       | O(1)      | ✗      | ✗        | Minimum swaps; niche.              |
+| Insertion  | O(n²) / O(n) | O(1)     | ✓      | ✓        | Best small-array sort.             |
+| **Merge**  | **O(n log n)** | O(n)  | ✓      | ✗        | Stable, predictable, parallelizable. |
+
+Tomorrow on [Day 12](/day12) we'll cover Quick Sort (the practical champion of comparison sorts), Heap Sort (O(1) space and O(n log n) worst case), and the linear-time non-comparison sorts.

@@ -1,0 +1,97 @@
+import { Callout, Tabs } from "nextra/components";
+import { ComplexityTable } from "../../components/ComplexityTable";
+
+# Introduction to Sorting
+
+Sorting means rearranging a collection so that the elements appear in a defined order — usually ascending numerical or lexicographic. It looks like one problem, but there are *dozens* of algorithms for it, each making different trade-offs around speed, memory, stability, and what the input looks like.
+
+Before we start writing sorts, we need three pieces of vocabulary that will come up over and over.
+
+## 1. Stability
+
+A sort is **stable** if equal elements keep their *original relative order*.
+
+```text
+Before:   [("Alice", 90), ("Bob", 85), ("Carol", 90), ("Dave", 85)]
+              ↑                            ↑
+            Alice came first              Bob came first
+
+Stable sort by score (ascending):
+          [("Bob", 85), ("Dave", 85), ("Alice", 90), ("Carol", 90)]
+              ↑           ↑              ↑           ↑
+            Bob still before Dave    Alice still before Carol  ✓
+
+Unstable sort might give:
+          [("Dave", 85), ("Bob", 85), ("Carol", 90), ("Alice", 90)]
+            ☓ Dave moved ahead of Bob, Carol ahead of Alice
+```
+
+Stability matters when you **sort by multiple keys**. Sort by last name, then sort by department — if the second sort is stable, people in the same department stay in last-name order. If it's unstable, you have to combine the keys somehow.
+
+The take-away:
+
+- Merge sort, insertion sort, bubble sort: **stable**
+- Selection sort, quicksort, heapsort: **unstable** (by default)
+
+## 2. In-place vs out-of-place
+
+An **in-place** sort rearranges the array using only **O(1)** extra memory (beyond a few variables). An **out-of-place** sort needs O(n) extra space.
+
+| Sort           | In-place?                                  |
+| :------------- | :----------------------------------------- |
+| Bubble, Selection, Insertion | Yes — O(1)                   |
+| Heap Sort      | Yes — O(1)                                 |
+| Quick Sort     | Almost — O(log n) for the recursion stack  |
+| Merge Sort     | **No** — O(n) for the merge buffer         |
+
+When memory is tight (embedded systems, sorting on disk), in-place wins. When stability or worst-case guarantees matter, you pay the O(n) memory and use merge sort.
+
+## 3. Comparison vs distribution sorts
+
+A **comparison sort** decides the final order by comparing pairs of elements with `<`. Bubble, selection, insertion, merge, quick, heap — all comparison sorts.
+
+A **distribution sort** uses the *values themselves* (or parts of them) as array indices. Counting sort, radix sort, and bucket sort are distribution sorts. They don't compare elements at all — they place each element directly where it belongs.
+
+This distinction matters because of a famous lower bound:
+
+<Callout type="info">
+    **No comparison sort can run faster than Ω(n log n) in the worst case.** This is a theorem, not an engineering limit — there's a proof that compares the number of possible orderings (n!) against the information a single comparison can produce. The result: log₂(n!) ≈ n log n comparisons are necessary, no matter how clever your algorithm.
+</Callout>
+
+Distribution sorts can be O(n + k) — faster than n log n — but only because they cheat. They don't compare; they assume something about the values (small range, integers, bounded length). When that assumption holds, they're unbeatable. When it doesn't, you fall back to comparison sorts.
+
+## The complexity scoreboard
+
+Here's the full table for the algorithms we'll cover across Days 11 and 12. The numbers ignore constants, which actually matter a lot in practice — `n log n` quicksort beats `n log n` merge sort on most real inputs because of cache behavior and lower memory overhead.
+
+<ComplexityTable
+    operations={[
+        { name: "Bubble Sort",     time: "O(n^2)", space: "O(1)", notes: "Stable. Best case O(n) if optimized for early-exit." },
+        { name: "Selection Sort",  time: "O(n^2)", space: "O(1)", notes: "Unstable. Fewest swaps of any sort: O(n)." },
+        { name: "Insertion Sort",  time: "O(n^2)", space: "O(1)", notes: "Stable. O(n) best case on nearly-sorted input." },
+        { name: "Merge Sort",      time: "O(n log n)", space: "O(n)", notes: "Stable. Best worst-case guarantee. External-sort-friendly." },
+        { name: "Quick Sort",      time: "O(n log n)", space: "O(log n)", notes: "Unstable. O(n^2) worst case but fast average. Day 12." },
+        { name: "Heap Sort",       time: "O(n log n)", space: "O(1)", notes: "Unstable. In-place. Worst-case O(n log n). Day 12." },
+        { name: "Counting Sort",   time: "O(n + k)", space: "O(k)", notes: "Linear. Requires bounded integer keys. Day 12." },
+        { name: "Radix Sort",      time: "O(n * d)", space: "O(n + k)", notes: "Linear. Integers / fixed-length strings. Day 12." },
+    ]}
+/>
+
+`k` is the size of the value range; `d` is the number of digits per key.
+
+## "What sort does Python / Java / C++ actually use?"
+
+In production, nobody picks a single algorithm — every modern standard library uses a **hybrid** sort tuned for real workloads:
+
+- **Python** — Timsort. A mix of insertion sort on small runs and merge sort on the larger picture. Exploits already-sorted runs in the input.
+- **Java** — Dual-pivot Quicksort for primitives; Timsort for objects.
+- **C++** — Introsort: quicksort that switches to heapsort if the recursion gets too deep, plus insertion sort on small slices.
+- **Rust** — Pattern-defeating quicksort (PDQ): a hardened quicksort with adaptive pivoting.
+
+The pattern is clear: a fast average-case sort (quick or merge) for the bulk of the work, insertion sort for tiny slices, and a fallback to guard against pathological inputs.
+
+<Callout type="warning">
+    **Never write your own sort in production** unless you have a very specific reason (sorting structs by a custom comparator while preserving order, sorting on-disk data, embedded constraints). The library version has been tested on billions of inputs across decades. Yours has not.
+</Callout>
+
+The next four pages walk through how the four comparison sorts of Day 11 actually work — code, visualization, and analysis for each.

@@ -1,0 +1,190 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Count Inversions <DifficultyBadge level="hard" />
+
+#### Description
+
+Given an integer array `nums`, count the number of **inversions** — pairs of indices `(i, j)` with `i < j` and `nums[i] > nums[j]`.
+
+An inversion measures how "out of order" the array is. A sorted array has `0` inversions. A reverse-sorted array of length `n` has `n(n-1)/2` inversions (the maximum).
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [2, 4, 1, 3, 5]
+    Output: 3
+    # Inversions: (2,1), (4,1), (4,3).
+
+> Case 2:
+    Input:  nums = [5, 4, 3, 2, 1]
+    Output: 10
+    # Every pair is inverted: C(5,2) = 10.
+
+> Case 3:
+    Input:  nums = [1, 2, 3, 4, 5]
+    Output: 0
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- The brute force O(n²) approach will TLE on larger inputs.
+
+#### Brute force (for context only)
+
+The obvious solution: check every pair. O(n²). Works for small inputs, but TLE-bound for the actual constraints.
+
+```python copy
+def count_inversions_brute(nums):
+    n = len(nums)
+    count = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            if nums[i] > nums[j]:
+                count += 1
+    return count
+```
+
+We need to do better — and the trick is to **piggyback on merge sort**.
+
+#### The insight
+
+During the merge step of merge sort, we have two sorted halves `left` and `right`. We're picking the smaller of the two heads and adding it to the output.
+
+> **Whenever we take an element from `right` while `left` still has elements remaining, every leftover element in `left` is an inversion with that element.**
+
+Why? `left` is sorted ascending and so is `right`. If `right[j] < left[i]`, then `right[j]` is **also** less than `left[i+1], left[i+2], ..., left[end]` — because they're all `>= left[i]`. That's `len(left) - i` inversions, found in O(1).
+
+```text
+left  = [3, 6, 8]
+right = [2, 7]
+
+Step 1: 3 vs 2 → take 2. left has 3 elements remaining. inversions += 3.
+        (Pairs (3,2), (6,2), (8,2) are all inversions.)
+Step 2: 3 vs 7 → take 3.
+Step 3: 6 vs 7 → take 6.
+Step 4: 8 vs 7 → take 7. left has 1 element remaining. inversions += 1.
+        (Pair (8,7).)
+Step 5: left has 8 alone → take 8.
+
+Total inversions: 4.
+```
+
+Each merge step still takes O(n) time, so the whole algorithm stays at **O(n log n)** — the same as merge sort.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    long long mergeAndCount(vector<int>& a, int lo, int mid, int hi) {
+        vector<int> left(a.begin() + lo, a.begin() + mid + 1);
+        vector<int> right(a.begin() + mid + 1, a.begin() + hi + 1);
+
+        long long inv = 0;
+        int i = 0, j = 0, k = lo;
+        while (i < (int)left.size() && j < (int)right.size()) {
+            if (left[i] <= right[j]) {
+                a[k++] = left[i++];
+            } else {
+                a[k++] = right[j++];
+                inv += left.size() - i;      // the key line
+            }
+        }
+        while (i < (int)left.size())  a[k++] = left[i++];
+        while (j < (int)right.size()) a[k++] = right[j++];
+        return inv;
+    }
+
+    long long countInversions(vector<int>& a, int lo, int hi) {
+        if (lo >= hi) return 0;
+        int mid = lo + (hi - lo) / 2;
+        long long inv = 0;
+        inv += countInversions(a, lo, mid);
+        inv += countInversions(a, mid + 1, hi);
+        inv += mergeAndCount(a, lo, mid, hi);
+        return inv;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def count_inversions(nums):
+        def merge_count(a, lo, hi):
+            if lo >= hi:
+                return 0
+            mid = (lo + hi) // 2
+            inv = merge_count(a, lo, mid)
+            inv += merge_count(a, mid + 1, hi)
+
+            left  = a[lo:mid + 1]
+            right = a[mid + 1:hi + 1]
+            i = j = 0
+            k = lo
+            while i < len(left) and j < len(right):
+                if left[i] <= right[j]:
+                    a[k] = left[i]; i += 1
+                else:
+                    a[k] = right[j]; j += 1
+                    inv += len(left) - i           # the key line
+                k += 1
+            while i < len(left):  a[k] = left[i];  i += 1; k += 1
+            while j < len(right): a[k] = right[j]; j += 1; k += 1
+            return inv
+
+        return merge_count(nums[:], 0, len(nums) - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    long mergeAndCount(int[] a, int lo, int mid, int hi) {
+        int[] left  = java.util.Arrays.copyOfRange(a, lo, mid + 1);
+        int[] right = java.util.Arrays.copyOfRange(a, mid + 1, hi + 1);
+
+        long inv = 0;
+        int i = 0, j = 0, k = lo;
+        while (i < left.length && j < right.length) {
+            if (left[i] <= right[j]) {
+                a[k++] = left[i++];
+            } else {
+                a[k++] = right[j++];
+                inv += left.length - i;            // the key line
+            }
+        }
+        while (i < left.length)  a[k++] = left[i++];
+        while (j < right.length) a[k++] = right[j++];
+        return inv;
+    }
+
+    long countInversions(int[] a, int lo, int hi) {
+        if (lo >= hi) return 0;
+        int mid = lo + (hi - lo) / 2;
+        return countInversions(a, lo, mid)
+             + countInversions(a, mid + 1, hi)
+             + mergeAndCount(a, lo, mid, hi);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    Use a 64-bit type for the count. In the worst case (reverse-sorted array), an `n = 10^5` input produces `n(n-1)/2 ≈ 5 × 10^9` inversions — way past the 32-bit int limit.
+</Callout>
+
+#### Why this is a classic
+
+Counting inversions is the textbook example of an algorithm that **piggybacks extra work onto an existing O(n log n) sort**. Same idea reappears in:
+
+- **Count Smaller Numbers After Self** — for each element, how many smaller appear later? Inversions, but per-index.
+- **Reverse Pairs** — same template, with a stricter "twice greater" condition.
+- **Maximum Subarray Sum after One Operation** — merge-sort-driven counting in a tweaked partition.
+
+Once you see the trick once, you'll spot it in a whole family of "count something during a merge" problems.
+
+#### Analysis
+
+- **Time:** **O(n log n)** — same as merge sort.
+- **Space:** **O(n)** — for the merge buffer.

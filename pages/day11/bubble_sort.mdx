@@ -1,0 +1,113 @@
+import { Tabs, Callout } from "nextra/components";
+import { SortingStepper, bubbleSortFrames } from "../../components/SortingVisualizer";
+export const Tab = Tabs.Tab;
+
+# Bubble Sort
+
+The simplest sort. You repeatedly walk through the array, comparing each pair of adjacent elements and swapping them if they're out of order. After one full pass, the largest element has "bubbled" up to the end. After two passes, the two largest are in place. After `n - 1` passes, everything is sorted.
+
+## The idea in three sentences
+
+1. Walk the array from left to right, comparing each adjacent pair.
+2. If a pair is out of order, swap them.
+3. Repeat until a full pass makes no swaps.
+
+That's it.
+
+## Watch it run
+
+<SortingStepper
+    title="bubble_sort([5, 1, 4, 2, 8, 3])"
+    initialArray={[5, 1, 4, 2, 8, 3]}
+    algorithm={bubbleSortFrames}
+/>
+
+Notice how after each outer pass, one more element settles into its final position at the right. The "sorted" green tail grows by one per iteration.
+
+## The code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bubbleSort(vector<int>& a) {
+        int n = a.size();
+        for (int i = 0; i < n - 1; i++) {
+            bool swapped = false;
+            for (int j = 0; j < n - i - 1; j++) {
+                if (a[j] > a[j + 1]) {
+                    swap(a[j], a[j + 1]);
+                    swapped = true;
+                }
+            }
+            if (!swapped) break;     // already sorted — early exit
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def bubble_sort(a):
+        n = len(a)
+        for i in range(n - 1):
+            swapped = False
+            for j in range(n - i - 1):
+                if a[j] > a[j + 1]:
+                    a[j], a[j + 1] = a[j + 1], a[j]
+                    swapped = True
+            if not swapped:
+                break       # already sorted — early exit
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bubbleSort(int[] a) {
+        int n = a.length;
+        for (int i = 0; i < n - 1; i++) {
+            boolean swapped = false;
+            for (int j = 0; j < n - i - 1; j++) {
+                if (a[j] > a[j + 1]) {
+                    int t = a[j]; a[j] = a[j + 1]; a[j + 1] = t;
+                    swapped = true;
+                }
+            }
+            if (!swapped) break;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Why two loops?
+
+The outer loop says **how many passes** we've done. The inner loop says **how far** the current pass needs to go. After pass `i`, the last `i` elements are in their final place — so the next pass can stop `i` early. That's the `n - i - 1` upper bound.
+
+## The early-exit trick
+
+The `swapped` flag is what makes bubble sort *not totally useless*: if the array becomes sorted before `n - 1` passes (which happens whenever the input is nearly sorted), we detect "zero swaps this pass" and bail out early. That turns the best case from O(n²) into **O(n)**.
+
+<Callout type="info">
+    A bubble sort that *doesn't* check for early exit always runs n² comparisons, even on already-sorted input. Always include the `swapped` flag — it's a one-line change for a huge best-case win.
+</Callout>
+
+## Properties
+
+- **Time:** O(n²) average and worst case. O(n) best case (already sorted, with early exit).
+- **Space:** O(1) — fully in-place.
+- **Stable:** Yes. We only swap on strict `>`, never on `==`, so equal elements never pass each other.
+- **Adaptive:** Yes, with the early-exit optimization.
+
+## Why bubble sort is rarely the right answer
+
+Even compared to other O(n²) sorts, bubble is the slowest in practice:
+
+| Sort        | Avg comparisons | Avg swaps |
+| :---------- | :-------------: | :-------: |
+| Bubble      | ~n²/2           | ~n²/4     |
+| Selection   | ~n²/2           | ~n        |
+| Insertion   | ~n²/4           | ~n²/4     |
+
+Both insertion and selection do strictly less work on average. Bubble's only redeeming quality is **simplicity** — it's the easiest sort to explain. For any real-world use, prefer insertion sort (for small arrays) or merge / quick sort (for large ones).
+
+The one place bubble sort *does* show up legitimately is in **detecting sortedness**: a single pass with no swaps proves the array is already sorted, and bubble's structure makes that proof trivial.
+
+Next up: **Selection Sort** — same O(n²), but the fewest swaps of any algorithm.

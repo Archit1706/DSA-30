@@ -1,0 +1,139 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Merge Sorted Array <DifficultyBadge level="easy" />
+
+#### Description
+
+Given two **sorted** integer arrays `nums1` and `nums2`, merge `nums2` into `nums1` as **one sorted array**.
+
+`nums1` has size `m + n`, where the first `m` elements are the values to be merged and the last `n` slots are `0`-padded — they're empty space reserved for the merge. `nums2` has `n` valid elements.
+
+Do this **in-place**, modifying `nums1` directly.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums1 = [1, 2, 3, 0, 0, 0]   m = 3
+            nums2 = [2, 5, 6]            n = 3
+    Output: nums1 = [1, 2, 2, 3, 5, 6]
+
+> Case 2:
+    Input:  nums1 = [1]   m = 1
+            nums2 = []    n = 0
+    Output: nums1 = [1]
+
+> Case 3:
+    Input:  nums1 = [0]   m = 0
+            nums2 = [1]   n = 1
+    Output: nums1 = [1]
+```
+
+#### Constraints
+
+- `nums1.length == m + n`
+- `nums2.length == n`
+- Both arrays are sorted in non-decreasing order.
+
+#### The naive trap
+
+The obvious approach is to merge from the **front** — two pointers walking forward, picking the smaller value each step. But that means we'd have to either:
+
+- **Use a separate output array** (O(m + n) extra space — feels like cheating in-place), or
+- **Shift `nums1` elements right** to make room when `nums2`'s value is smaller (O((m+n)²) total).
+
+Both are unsatisfying.
+
+#### The trick: merge from the back
+
+The right insight: `nums1` has **empty space at the end**. So merge backwards — place the **largest** remaining value at the end of `nums1`, decrementing inward.
+
+This avoids overwriting `nums1`'s valid entries, because the cursor we're writing to (`k`) always stays ahead of the read cursor (`i` for `nums1`).
+
+```text
+nums1 = [1, 2, 3, _, _, _]    m = 3
+nums2 = [2, 5, 6]              n = 3
+
+i = 2 (last valid in nums1)
+j = 2 (last in nums2)
+k = 5 (last slot in nums1)
+
+Step 1: nums1[2]=3 vs nums2[2]=6 → 6 wins. nums1[5]=6. j--, k--.
+nums1 = [1, 2, 3, _, _, 6]    i=2, j=1, k=4
+
+Step 2: nums1[2]=3 vs nums2[1]=5 → 5 wins. nums1[4]=5. j--, k--.
+nums1 = [1, 2, 3, _, 5, 6]    i=2, j=0, k=3
+
+Step 3: nums1[2]=3 vs nums2[0]=2 → 3 wins. nums1[3]=3. i--, k--.
+nums1 = [1, 2, 3, 3, 5, 6]    i=1, j=0, k=2
+
+Step 4: nums1[1]=2 vs nums2[0]=2 → tie. Either works; we'll take from nums2.
+        nums1[2]=2. j--, k--.
+nums1 = [1, 2, 2, 3, 5, 6]    i=1, j=-1, k=1
+
+j < 0. Done. Anything still in nums1[0..i] is already in place.
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void merge(vector<int>& nums1, int m, vector<int>& nums2, int n) {
+        int i = m - 1, j = n - 1, k = m + n - 1;
+        while (i >= 0 && j >= 0) {
+            if (nums1[i] > nums2[j]) nums1[k--] = nums1[i--];
+            else                     nums1[k--] = nums2[j--];
+        }
+        while (j >= 0) nums1[k--] = nums2[j--];     // leftover from nums2
+        // nums1 leftovers are already in place — no need to copy.
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def merge(nums1, m, nums2, n):
+        i, j, k = m - 1, n - 1, m + n - 1
+        while i >= 0 and j >= 0:
+            if nums1[i] > nums2[j]:
+                nums1[k] = nums1[i]; i -= 1
+            else:
+                nums1[k] = nums2[j]; j -= 1
+            k -= 1
+        while j >= 0:
+            nums1[k] = nums2[j]; j -= 1; k -= 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void merge(int[] nums1, int m, int[] nums2, int n) {
+        int i = m - 1, j = n - 1, k = m + n - 1;
+        while (i >= 0 && j >= 0) {
+            nums1[k--] = (nums1[i] > nums2[j]) ? nums1[i--] : nums2[j--];
+        }
+        while (j >= 0) nums1[k--] = nums2[j--];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    Notice we don't need the symmetric `while (i >= 0)` loop at the end. If `nums2` empties first, the remaining `nums1[0..i]` entries are already in their final positions — no copying required.
+</Callout>
+
+#### Why this matters
+
+This is the merge step of [Merge Sort](/day11/merge_sort), specialized for the case where the destination array has *exactly enough* empty space at the end. The "merge from the back" trick lets you do it in-place — a real win in practice.
+
+This same trick appears in:
+
+- Merging k sorted streams in external-memory algorithms.
+- In-place merging of two sorted segments of one array.
+- Sliding-window aggregation with bounded buffer.
+
+#### Analysis
+
+- **Time:** **O(m + n)** — each element examined exactly once.
+- **Space:** **O(1)** — fully in-place.

@@ -1,0 +1,111 @@
+import { Tabs, Callout } from "nextra/components";
+import { SortingStepper, insertionSortFrames } from "../../components/SortingVisualizer";
+export const Tab = Tabs.Tab;
+
+# Insertion Sort
+
+This is how you sort a hand of playing cards. Pick up cards one at a time and insert each into its correct spot among the cards you've already arranged. The "sorted prefix" grows by one with every card you draw.
+
+It's the same O(n²) family as bubble and selection — but in practice, insertion sort is *much* faster. So much faster that every standard library in the world keeps it around for small inputs.
+
+## The idea in three sentences
+
+1. Maintain a **sorted prefix** of the array. Index 0 is trivially a sorted prefix of length 1.
+2. Take the next element (the "key") and shift the sorted prefix's elements right one at a time until the key's position is found.
+3. Drop the key into place.
+
+## Watch it run
+
+<SortingStepper
+    title="insertion_sort([5, 1, 4, 2, 8, 3])"
+    initialArray={[5, 1, 4, 2, 8, 3]}
+    algorithm={insertionSortFrames}
+/>
+
+Notice how the green sorted prefix grows by one each iteration. Each element migrates leftward only as far as it has to — that's why insertion sort gets so cheap on nearly-sorted inputs.
+
+## The code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void insertionSort(vector<int>& a) {
+        int n = a.size();
+        for (int i = 1; i < n; i++) {
+            int key = a[i];
+            int j = i - 1;
+            while (j >= 0 && a[j] > key) {
+                a[j + 1] = a[j];
+                j--;
+            }
+            a[j + 1] = key;
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def insertion_sort(a):
+        for i in range(1, len(a)):
+            key = a[i]
+            j = i - 1
+            while j >= 0 and a[j] > key:
+                a[j + 1] = a[j]
+                j -= 1
+            a[j + 1] = key
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void insertionSort(int[] a) {
+        for (int i = 1; i < a.length; i++) {
+            int key = a[i];
+            int j = i - 1;
+            while (j >= 0 && a[j] > key) {
+                a[j + 1] = a[j];
+                j--;
+            }
+            a[j + 1] = key;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Note how the inner loop **shifts** rather than swaps. Each shift is one assignment, whereas a swap is three. That tiny constant-factor difference adds up across n² iterations.
+
+## Why it shines on nearly-sorted data
+
+If the input is already sorted, the inner `while` loop never executes — every key is already in its correct place. The whole algorithm runs in **O(n)**: one pass, no shifts.
+
+More generally, if every element is at most `k` positions away from its sorted position, insertion sort runs in **O(n·k)**. For `k = 1` that's linear time. This adaptive behavior is rare among sorts — it's what makes insertion sort indispensable for nearly-sorted inputs.
+
+<Callout type="info">
+    **Real-world example:** sorting newly arriving data into an already-sorted list. Each new arrival shifts at most a few positions. Insertion sort handles this in O(n) per insertion; most other sorts would re-sort from scratch in O(n log n).
+</Callout>
+
+## Properties
+
+- **Time:** O(n²) average and worst case. **O(n) best case** (already sorted).
+- **Space:** O(1) — in-place.
+- **Stable:** Yes. The `a[j] > key` comparison is strict, so equal elements never overtake each other.
+- **Adaptive:** Yes — runtime scales with how out-of-order the input is.
+
+## The "production sort" subroutine
+
+Look inside any modern sort:
+
+- **Timsort (Python, Java for objects):** Insertion sort on runs of up to 32–64 elements.
+- **Introsort (C++ std::sort):** Insertion sort on slices smaller than ~16 elements.
+- **PDQ sort (Rust):** Insertion sort once partitions get small enough.
+
+They all rely on this fact: **for small `n` (say, `n < 32`), insertion sort beats quicksort and merge sort in real wall-clock time** despite being asymptotically slower. The reason is constant factors — insertion sort has *no recursion overhead, no extra memory, and excellent cache locality*. The big-O notation hides constants, but at small `n`, constants are everything.
+
+## When you should reach for it
+
+- Arrays with fewer than ~50 elements.
+- Arrays you know are nearly sorted.
+- As the base case of a divide-and-conquer sort (cut the recursion when slices get small).
+- Online sorting — inserting new elements into an already-sorted collection.
+
+Next up: **Merge Sort** — the first sort that beats the O(n²) ceiling.

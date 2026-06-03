@@ -1,0 +1,210 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Top K Frequent Elements <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums` and an integer `k`, return the **k most frequent** elements. You may return them in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [1, 1, 1, 2, 2, 3],   k = 2
+    Output: [1, 2]
+    # 1 appears 3 times, 2 appears 2 times — the top 2 most frequent.
+
+> Case 2:
+    Input:  nums = [1],   k = 1
+    Output: [1]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- `k` is in the valid range `[1, number of distinct elements]`
+- Aim for **better than O(n log n)** time.
+
+#### Step 1 (every approach): count frequencies
+
+Use a hash map. This is O(n) and gives us a frequency dictionary `freq` mapping each value to its count.
+
+```python copy
+from collections import Counter
+freq = Counter(nums)
+```
+
+Now we need the **top-k by value of `freq`**. Three reasonable strategies, in order of cleverness.
+
+#### Approach 1: Sort the items by frequency
+
+```python copy
+def top_k_frequent(nums, k):
+    freq = Counter(nums)
+    return [v for v, _ in sorted(freq.items(), key=lambda kv: -kv[1])[:k]]
+```
+
+**Time: O(d log d)** where `d` is the number of distinct values. Simple, correct, and slow.
+
+#### Approach 2: Min-heap of size k
+
+Same trick as [Kth Largest](/day12/practice_questions/kth_largest_element). Push items onto a min-heap keyed by frequency; pop when the heap grows past `k`. After processing every distinct value, the heap holds the top-k.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    import heapq
+    from collections import Counter
+
+    def top_k_frequent(nums, k):
+        freq = Counter(nums)
+        # nlargest does exactly this under the hood.
+        return heapq.nlargest(k, freq.keys(), key=freq.get)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        unordered_map<int, int> freq;
+        for (int x : nums) freq[x]++;
+
+        // Min-heap of (count, value) pairs.
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> minHeap;
+        for (auto& [val, cnt] : freq) {
+            minHeap.push({cnt, val});
+            if ((int)minHeap.size() > k) minHeap.pop();
+        }
+
+        vector<int> out;
+        while (!minHeap.empty()) {
+            out.push_back(minHeap.top().second);
+            minHeap.pop();
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public int[] topKFrequent(int[] nums, int k) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        for (int x : nums) freq.merge(x, 1, Integer::sum);
+
+        PriorityQueue<int[]> minHeap = new PriorityQueue<>((a, b) -> a[1] - b[1]);
+        for (var e : freq.entrySet()) {
+            minHeap.offer(new int[]{e.getKey(), e.getValue()});
+            if (minHeap.size() > k) minHeap.poll();
+        }
+
+        int[] out = new int[k];
+        for (int i = 0; i < k; i++) out[i] = minHeap.poll()[0];
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time: O(n + d log k)**. **Space: O(d + k)**.
+
+Standard interview answer. Clean, generalizes to streaming inputs (you can't fit them all in memory but you can keep a size-k heap).
+
+#### Approach 3: Bucket sort (the O(n) trick)
+
+Here's the killer observation: **the frequency of any value is between `1` and `n`**. So if we make an array `buckets[]` of size `n + 1` where `buckets[f]` holds the list of values that appeared `f` times, we can:
+
+1. Count frequencies → O(n).
+2. Fill the buckets → O(d).
+3. Walk `buckets` from index `n` down to `0`, collecting values until we have `k` → O(n).
+
+Total: **O(n)**. No heap, no sort.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import Counter
+
+    def top_k_frequent(nums, k):
+        freq = Counter(nums)
+        # buckets[f] = list of values with frequency f
+        buckets = [[] for _ in range(len(nums) + 1)]
+        for v, f in freq.items():
+            buckets[f].append(v)
+
+        out = []
+        for f in range(len(buckets) - 1, 0, -1):
+            for v in buckets[f]:
+                out.append(v)
+                if len(out) == k:
+                    return out
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        unordered_map<int, int> freq;
+        for (int x : nums) freq[x]++;
+
+        int n = nums.size();
+        vector<vector<int>> buckets(n + 1);
+        for (auto& [v, f] : freq) buckets[f].push_back(v);
+
+        vector<int> out;
+        for (int f = n; f >= 0 && (int)out.size() < k; f--) {
+            for (int v : buckets[f]) {
+                out.push_back(v);
+                if ((int)out.size() == k) return out;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] topKFrequent(int[] nums, int k) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        for (int x : nums) freq.merge(x, 1, Integer::sum);
+
+        List<List<Integer>> buckets = new ArrayList<>();
+        for (int i = 0; i <= nums.length; i++) buckets.add(new ArrayList<>());
+        for (var e : freq.entrySet()) buckets.get(e.getValue()).add(e.getKey());
+
+        int[] out = new int[k];
+        int idx = 0;
+        for (int f = buckets.size() - 1; f >= 0 && idx < k; f--) {
+            for (int v : buckets.get(f)) {
+                if (idx == k) break;
+                out[idx++] = v;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This is essentially **counting sort** of values **by their frequency**. The "small range of integers" assumption that makes counting sort work is hiding in plain sight: frequencies are bounded by `n`.
+
+<Callout type="info">
+    The bucket-sort solution is the rare "you should have used counting sort here" moment. Once you notice the frequencies are bounded, the O(n) solution falls out.
+</Callout>
+
+#### Analysis comparison
+
+| Approach          | Time            | Space    | When to use                          |
+| :---------------- | :-------------: | :------: | :----------------------------------- |
+| Sort frequencies  | O(d log d)      | O(d)     | When you don't know any better.      |
+| **Min-heap**      | O(n + d log k)  | O(d)     | Streaming inputs, general workhorse. |
+| **Bucket sort**   | **O(n)**        | O(n)     | When you spot the bounded-frequency trick. |
+
+In an interview, walk through all three — and *mention* the bucket-sort O(n) trick even if you implement the heap version. Demonstrating that you see the optimal solution is half the win.

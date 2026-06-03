@@ -1,16 +1,34 @@
-# Day 11
+import { Callout } from "nextra/components";
 
-### Hello peeps! Welcome to Day 11
+# Day 11 — Sorting Algorithms I
 
-> What we learn today?
+Sorting is the unglamorous workhorse of computer science. Almost every interesting algorithm starts with "first, sort the input." Search becomes O(log n) only after sorting. Two-pointer techniques rely on sorted data. Merge intervals, find duplicates, group anagrams — all begin with a sort.
 
--   Sorting Algorithms 1
--   Bubble Sort
--   Selection Sort
--   Insertion Sort
--   Merge Sort
--   Quick Sort
+Today we learn **four comparison-based sorts**, in order from "humans naturally invented this" to "this is what your standard library actually uses."
 
-### Sorting Algorithms
+## What you'll learn
 
-Sorting is the process of arranging elements in a specific order. The most common orders are numerical order and lexicographical order. Sorting is commonly used as the introductory problem in various computer science classes.
+1. **[Introduction](/day11/introduction)** — the science of sorting: stable vs unstable, in-place vs out-of-place, comparison vs distribution sorts, and the Ω(n log n) lower bound that explains why no comparison sort can beat it.
+2. **[Bubble Sort](/day11/bubble_sort)** — the simplest sort. O(n²). Almost never the right choice — but a perfect starting point.
+3. **[Selection Sort](/day11/selection_sort)** — find the smallest, swap it to the front, repeat. Still O(n²), but does the fewest swaps of any algorithm.
+4. **[Insertion Sort](/day11/insertion_sort)** — how you sort playing cards. O(n²) worst case, but O(n) on nearly-sorted data — which is why it's hiding inside every fast sort in production.
+5. **[Merge Sort](/day11/merge_sort)** — the first sort that breaks the O(n²) ceiling. Divide and conquer in its purest form, O(n log n) guaranteed.
+6. **[Practice Questions](/day11/practice_questions)** — apply what you've learned.
+
+Tomorrow ([Day 12](/day12)) we'll cover the rest: Quick Sort, Heap Sort, and the linear-time non-comparison sorts.
+
+## Why bother learning O(n²) sorts?
+
+You'll never write production code that uses bubble sort. So why study it?
+
+Three reasons:
+
+1. **Pedagogy.** The simple sorts teach you the *vocabulary* of sorting: comparisons, swaps, in-place rearrangement, stability. Once you've internalized those on bubble sort, the harder algorithms are easier to read.
+2. **Insertion sort actually ships.** When the input is small (say, fewer than 16 elements) or nearly sorted, insertion sort beats quicksort and merge sort. That's why Java's `Arrays.sort`, C++'s introsort, and Python's Timsort all *contain* insertion sort as a subroutine.
+3. **Interviews ask.** "Walk me through bubble sort," "What's the difference between selection and insertion?" — these still come up, especially at entry level.
+
+<Callout type="info">
+    Today is the "simple comparison sort" half. Tomorrow's [Day 12](/day12) covers the advanced comparison sorts (Quick, Heap) and the non-comparison sorts (Counting, Radix, Bucket) that can break the O(n log n) lower bound by cheating — using the values as indices.
+</Callout>
+
+Ready? Open **Introduction** to get the vocabulary down, then we'll start with bubble sort.

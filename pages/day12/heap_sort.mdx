@@ -1,0 +1,184 @@
+import { Tabs, Callout } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Heap Sort
+
+Heap Sort gives you everything you wish quicksort had: **O(n log n) worst case** *and* **O(1) extra space**, all in one algorithm.
+
+The catch? Worse constant factors than quicksort, no cache locality, and unstable. It's the "no surprises" sort — perfect when worst-case guarantees matter, less common in everyday code.
+
+## The big idea
+
+A **heap** is a binary tree (stored as an array) where every parent is `>=` its children (a max-heap). The maximum element is always at the root.
+
+Heap Sort exploits this in two phases:
+
+1. **Build a max-heap** from the input array in O(n).
+2. **Repeatedly swap the root with the last element**, shrink the heap by one, and **sift down** to restore the heap property. After `n - 1` iterations, the array is sorted in ascending order.
+
+We'll spend Day 7 in detail on heaps. For now, here's the minimum you need to follow Heap Sort.
+
+## Heap as array (the trick)
+
+A binary heap is stored as a flat array using these index relations:
+
+```text
+parent(i) = (i - 1) / 2
+left(i)   = 2 * i + 1
+right(i)  = 2 * i + 2
+```
+
+No pointers, no nodes — just arithmetic. This is what makes heap sort in-place: the "tree" lives entirely in the same array we're sorting.
+
+```text
+Heap [16, 14, 10, 8, 7, 9, 3, 2, 4, 1] as a tree:
+
+              16
+           /      \
+         14       10
+        /  \     /  \
+       8    7   9    3
+      / \  /
+     2  4 1
+```
+
+The max is at index 0. Children of index 0 are at indices 1 and 2. Children of index 1 are at 3 and 4. And so on.
+
+## The "sift down" subroutine
+
+To restore the heap property at index `i` after the root is replaced:
+
+1. Find the larger of `a[i]`'s two children.
+2. If that child is larger than `a[i]`, swap them.
+3. Recursively repeat at the child's position.
+
+This takes O(log n) per call — the height of the heap.
+
+## The full algorithm
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void siftDown(vector<int>& a, int n, int i) {
+        while (true) {
+            int largest = i;
+            int l = 2 * i + 1;
+            int r = 2 * i + 2;
+            if (l < n && a[l] > a[largest]) largest = l;
+            if (r < n && a[r] > a[largest]) largest = r;
+            if (largest == i) return;
+            swap(a[i], a[largest]);
+            i = largest;
+        }
+    }
+
+    void heapSort(vector<int>& a) {
+        int n = a.size();
+
+        // Phase 1: build max-heap. Start at the last non-leaf and sift down.
+        for (int i = n / 2 - 1; i >= 0; i--) {
+            siftDown(a, n, i);
+        }
+
+        // Phase 2: repeatedly extract max.
+        for (int i = n - 1; i > 0; i--) {
+            swap(a[0], a[i]);     // move current max to the end
+            siftDown(a, i, 0);    // heap is now the prefix of length i
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def heap_sort(a):
+        n = len(a)
+
+        def sift_down(i, heap_size):
+            while True:
+                l = 2 * i + 1
+                r = 2 * i + 2
+                largest = i
+                if l < heap_size and a[l] > a[largest]: largest = l
+                if r < heap_size and a[r] > a[largest]: largest = r
+                if largest == i:
+                    return
+                a[i], a[largest] = a[largest], a[i]
+                i = largest
+
+        # Build max-heap.
+        for i in range(n // 2 - 1, -1, -1):
+            sift_down(i, n)
+
+        # Extract max repeatedly.
+        for i in range(n - 1, 0, -1):
+            a[0], a[i] = a[i], a[0]
+            sift_down(0, i)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void heapSort(int[] a) {
+        int n = a.length;
+        for (int i = n / 2 - 1; i >= 0; i--) siftDown(a, n, i);
+        for (int i = n - 1; i > 0; i--) {
+            int t = a[0]; a[0] = a[i]; a[i] = t;
+            siftDown(a, i, 0);
+        }
+    }
+
+    void siftDown(int[] a, int n, int i) {
+        while (true) {
+            int largest = i;
+            int l = 2 * i + 1, r = 2 * i + 2;
+            if (l < n && a[l] > a[largest]) largest = l;
+            if (r < n && a[r] > a[largest]) largest = r;
+            if (largest == i) return;
+            int t = a[i]; a[i] = a[largest]; a[largest] = t;
+            i = largest;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## The sneaky build-heap O(n)
+
+You'd think building a heap is O(n log n) — n calls to `siftDown`, each O(log n). But it's actually **O(n)**.
+
+The reason: most nodes are near the leaves, and sifting down from a leaf is O(1). Only the root pays the full O(log n). The total work is bounded by:
+
+```text
+∑ (n / 2^(h+1)) · h    ≤    2n
+```
+
+This is one of the most surprising "tight bound" results in basic algorithms — and a common interview question.
+
+The full algorithm is **O(n) build + O(n log n) extractions = O(n log n)**.
+
+## Properties
+
+- **Time:** **O(n log n)** — best, average, *and* worst case. No bad pivots, no surprises.
+- **Space:** **O(1)** — fully in-place. The "tree" is just the input array.
+- **Stable:** **No.** Swaps during heapify can reorder equal elements.
+- **Adaptive:** No.
+
+## When to actually use heap sort
+
+In raw speed, quicksort beats heap sort by ~2× because of cache behavior — heap operations jump around the array in a way that defeats CPU prefetching. But heap sort wins in three specific scenarios:
+
+1. **Worst-case guarantees matter.** Real-time systems, security-sensitive code (you don't want an adversary picking inputs that trigger quicksort's O(n²)), embedded systems with tight deadlines.
+2. **Tight memory.** Heap sort is O(1) extra space. Merge sort is O(n). On a microcontroller with 8 KB of RAM, that gap is everything.
+3. **The fallback for hybrid sorts.** Introsort uses heap sort as the fallback when quicksort recursion gets too deep. You don't have to write this — but knowing why is useful.
+
+## The bigger picture
+
+Heap sort isn't usually the right answer for "sort this array." But the **heap data structure** itself — independent of sorting — is one of the most important structures in computer science. We use it for:
+
+- **Priority queues** (the canonical use)
+- **Dijkstra's algorithm** (Day 21)
+- **A\* search**
+- **Top-K problems** (covered in [Top K Frequent Elements](/day12/practice_questions/top_k_frequent))
+- **Median maintenance** (two heaps trick)
+- **Event scheduling**, **Huffman coding**, and more
+
+We'll go deeper on heaps in [Day 7](/day7). For now, you have the rough idea — and one of the cleanest O(n log n) sorts in your toolbox.
