@@ -1,0 +1,202 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Validate Binary Search Tree <DifficultyBadge level="medium" />
+
+#### Description
+
+Given the root of a binary tree, determine if it is a **valid binary search tree (BST)**. A valid BST satisfies the following recursively:
+
+- The left subtree of a node contains only nodes with keys **strictly less than** the node's value.
+- The right subtree of a node contains only nodes with keys **strictly greater than** the node's value.
+- Both subtrees are themselves valid BSTs.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:        2
+                 / \
+                1   3
+    Output: true
+
+> Case 2:
+    Input:        5
+                 / \
+                1   4
+                   / \
+                  3   6
+    Output: false       # 3 is in 5's right subtree, but 3 < 5
+```
+
+#### Constraints
+
+- `1 <= number of nodes <= 10^4`
+- `-2^31 <= node.val <= 2^31 - 1`
+
+#### The classic bug — and why it's wrong
+
+The naïve attempt: at every node, check `node.left.val < node.val < node.right.val` and recurse. **This is wrong.** It only checks the immediate children, not the whole subtree.
+
+Counter-example:
+
+```text
+        5
+       / \
+      1   6
+         / \
+        3   7   ← '3' is in 5's right subtree but 3 < 5
+                  Local check passes (6 < 7), global property fails.
+```
+
+We need to enforce that **every node** in the right subtree is greater than the parent — not just the immediate child.
+
+#### Approach 1: Bounds (the canonical solution)
+
+As we recurse, pass down a **valid range** `[lo, hi]` that the current node's value must fall within. The root accepts any value, so start with `(-∞, +∞)`. When we go left, the upper bound tightens to the parent's value; when we go right, the lower bound tightens.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <climits>
+
+    bool valid(TreeNode* node, long lo, long hi) {
+        if (node == nullptr) return true;
+        if (node->val <= lo || node->val >= hi) return false;
+        return valid(node->left,  lo, node->val)
+            && valid(node->right, node->val, hi);
+    }
+
+    bool isValidBST(TreeNode* root) {
+        return valid(root, LONG_MIN, LONG_MAX);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_valid_bst(root, lo=float('-inf'), hi=float('inf')):
+        if root is None:
+            return True
+        if not (lo < root.val < hi):
+            return False
+        return (is_valid_bst(root.left,  lo, root.val)
+            and is_valid_bst(root.right, root.val, hi))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isValidBST(TreeNode root) {
+        return valid(root, Long.MIN_VALUE, Long.MAX_VALUE);
+    }
+    private boolean valid(TreeNode node, long lo, long hi) {
+        if (node == null) return true;
+        if (node.val <= lo || node.val >= hi) return false;
+        return valid(node.left,  lo, node.val)
+            && valid(node.right, node.val, hi);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The `long` types in C++/Java are not paranoid.** The input value can be `Integer.MIN_VALUE` or `Integer.MAX_VALUE`. If we initialize bounds with `Integer.MIN_VALUE` / `Integer.MAX_VALUE`, the check `node.val > lo` rejects a legitimate root of value `Integer.MIN_VALUE`. Use `Long` (or `Optional<Integer>`) to safely represent "no bound yet."
+</Callout>
+
+#### Approach 2: Inorder traversal
+
+Recall from the [Traversals page](/day6/traversals): **the inorder traversal of a BST produces values in sorted order**. So we just walk the tree inorder and check that each value is strictly greater than the previous one.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def is_valid_bst(root):
+        prev = [float('-inf')]                   # boxed; closure can mutate
+
+        def inorder(node):
+            if node is None: return True
+            if not inorder(node.left): return False
+            if node.val <= prev[0]: return False
+            prev[0] = node.val
+            return inorder(node.right)
+
+        return inorder(root)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    class Solution {
+        long prev = LONG_MIN;
+        bool inorder(TreeNode* node) {
+            if (node == nullptr) return true;
+            if (!inorder(node->left)) return false;
+            if (node->val <= prev) return false;
+            prev = node->val;
+            return inorder(node->right);
+        }
+    public:
+        bool isValidBST(TreeNode* root) {
+            prev = LONG_MIN;
+            return inorder(root);
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    private long prev = Long.MIN_VALUE;
+
+    public boolean isValidBST(TreeNode root) {
+        prev = Long.MIN_VALUE;
+        return inorder(root);
+    }
+    private boolean inorder(TreeNode node) {
+        if (node == null) return true;
+        if (!inorder(node.left)) return false;
+        if (node.val <= prev) return false;
+        prev = node.val;
+        return inorder(node.right);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why early-return on inorder failure?** As soon as we find a non-increasing pair, the answer is `false` — there's no point continuing. Returning early from inside an inorder walk is the standard idiom for "check a global property of the traversal."
+</Callout>
+
+#### Iterative inorder (no recursion)
+
+For deep trees that might blow the call stack:
+
+```python copy
+def is_valid_bst(root):
+    stack = []
+    cur = root
+    prev = float('-inf')
+    while cur or stack:
+        while cur:
+            stack.append(cur); cur = cur.left
+        cur = stack.pop()
+        if cur.val <= prev: return False
+        prev = cur.val
+        cur = cur.right
+    return True
+```
+
+This is the iterative inorder template (see [the Traversals page](/day6/traversals#iterative-with-an-explicit-stack)) with a `prev` value carried alongside.
+
+#### Comparison
+
+| Approach              | Time   | Space   | Notes                            |
+| :-------------------- | :----: | :-----: | :------------------------------- |
+| **Bounds recursion**  | O(n)   | O(h)    | Cleanest; no global state.       |
+| **Inorder recursion** | O(n)   | O(h)    | Uses BST-specific insight.       |
+| Iterative inorder     | O(n)   | O(h)    | Best when recursion is risky.    |
+
+All three are O(n) and idiomatic. Pick the one that reads best in your head.
+
+#### Analysis
+
+- **Time:** **O(n)** — every node visited once.
+- **Space:** **O(h)** for recursion stack or iterative stack.

@@ -1,0 +1,95 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Maximum Depth of Binary Tree <DifficultyBadge level="easy" />
+
+#### Description
+
+Given the root of a binary tree, return its **maximum depth** — the number of nodes along the longest path from the root down to the farthest leaf.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:        3
+                 / \
+                9  20
+                  /  \
+                 15   7
+    Output: 3
+
+> Case 2:
+    Input:  [1, null, 2]
+    Output: 2
+
+> Case 3:
+    Input:  []
+    Output: 0
+```
+
+#### The recursive answer (4 lines)
+
+Three-question recipe:
+
+1. **Base case:** an empty tree has depth `0`.
+2. **Recursive case:** depth of a non-empty tree = `1 + max(depth(left), depth(right))`.
+3. **Combine:** add 1, take the max.
+
+That's it. This is the prototype postorder problem — you need both children's results before you can compute your own.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxDepth(TreeNode* root) {
+        if (root == nullptr) return 0;
+        return 1 + max(maxDepth(root->left), maxDepth(root->right));
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_depth(root):
+        if root is None:
+            return 0
+        return 1 + max(max_depth(root.left), max_depth(root.right))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxDepth(TreeNode root) {
+        if (root == null) return 0;
+        return 1 + Math.max(maxDepth(root.left), maxDepth(root.right));
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **This problem is the recursion template** in its purest form. If you're ever stuck on a harder tree problem, mentally come back to this one — you almost certainly have the same shape, just with different work at each node.
+</Callout>
+
+#### Iterative variant — BFS with the snapshot trick
+
+If you want the depth without recursion, use level-order BFS and count layers:
+
+```python copy
+from collections import deque
+
+def max_depth(root):
+    if root is None: return 0
+    queue = deque([root])
+    depth = 0
+    while queue:
+        depth += 1
+        for _ in range(len(queue)):              # snapshot — process one layer
+            node = queue.popleft()
+            if node.left:  queue.append(node.left)
+            if node.right: queue.append(node.right)
+    return depth
+```
+
+#### Analysis
+
+- **Time:** **O(n)** — every node visited once.
+- **Space:** **O(h)** for recursion (where h = tree height). O(n) for the BFS queue in the worst case.

@@ -1,0 +1,194 @@
+import { Callout } from "nextra/components";
+import { TreeVisualizer } from "../../components/TreeVisualizer";
+
+# The Family of Tree Types
+
+"Tree" is more like a family than a single shape. Different problems need different members of the family. This page walks the lineup — what each type is, what property defines it, and where it shows up.
+
+## By shape
+
+These types are defined entirely by the **arrangement** of nodes — no value-based rules. They show up in textbook complexity analyses and as preconditions for certain algorithms.
+
+### Full binary tree
+
+Every node has **either 0 or 2 children** — never just 1. Sometimes called a *proper* or *strict* binary tree.
+
+<TreeVisualizer
+    tree={[1, 2, 3, 4, 5]}
+    title="Full binary tree — every internal node has exactly 2 children"
+/>
+
+Useful theorem: a full binary tree with `n` internal nodes has exactly `n + 1` leaves.
+
+### Complete binary tree
+
+Every level is **fully filled except possibly the last**, and the last level is filled **from the left**. No gaps anywhere except the rightmost spots of the bottom level.
+
+<TreeVisualizer
+    tree={[1, 2, 3, 4, 5, 6]}
+    title="Complete binary tree — last level filled from the left"
+/>
+
+This is the shape that lets us store a heap in a flat array — every index `0..n-1` is occupied with no holes. **Heaps and binary heaps are always complete.**
+
+### Perfect binary tree
+
+Every level is **completely full**. A perfect tree of height `h` has exactly `2^(h+1) - 1` nodes.
+
+<TreeVisualizer
+    tree={[1, 2, 3, 4, 5, 6, 7]}
+    title="Perfect binary tree — every level completely full"
+/>
+
+Perfect ⊂ Complete ⊂ Full — every perfect tree is complete and full, but not vice versa.
+
+### Balanced binary tree
+
+For every node, the heights of its left and right subtrees **differ by at most 1**. This bounds the height of the tree at `O(log n)`, which is what makes operations on it fast.
+
+<Callout type="info">
+    "Balanced" usually means **height-balanced** — but it has variants. **Weight-balanced** trees compare subtree sizes; **rank-balanced** trees use a different metric. For interviews, "balanced" almost always means height-balanced.
+</Callout>
+
+### Degenerate (skewed) tree
+
+A tree where every node has only one child. Essentially a linked list disguised as a tree.
+
+```text
+1
+ \
+  2
+   \
+    3
+     \
+      4
+```
+
+This is the **worst case** for unbalanced BSTs — every operation degrades to O(n). It's why self-balancing trees (AVL, Red-Black) exist.
+
+## By value rule
+
+These types are defined by **what values can go where** — they enforce an invariant on the data.
+
+### Binary Search Tree (BST)
+
+A BST is a binary tree where for **every node**:
+
+- All values in the **left subtree** are **less** than the node's value.
+- All values in the **right subtree** are **greater** than the node's value.
+- Both subtrees are themselves BSTs.
+
+<TreeVisualizer
+    tree={[8, 3, 10, 1, 6, null, 14]}
+    title="A binary search tree — every left subtree is less, right is greater"
+/>
+
+That invariant gives you **O(log n)** lookups (in a balanced BST). Walk down from the root, always knowing whether to go left or right — like binary search on an array.
+
+We cover BST operations (insert, search, delete) on the [BST Operations page](/day6/bst_operations).
+
+### Heap
+
+A heap is a **complete binary tree** that also satisfies the **heap property**:
+
+- **Min-heap** — every parent ≤ both its children. Smallest at the root.
+- **Max-heap** — every parent ≥ both its children. Largest at the root.
+
+There's no left/right ordering among siblings — just parent/child ordering. That weaker invariant is what makes heaps `O(log n)` for push/pop while supporting `O(1)` peek.
+
+We cover heaps in depth on [Day 7](/day7).
+
+## Self-balancing search trees
+
+A BST works in theory — but it can degenerate into a chain (O(n) operations) if you insert sorted data. **Self-balancing trees** restructure on every insert/delete to keep the height at `O(log n)` automatically.
+
+### AVL tree
+
+The original self-balancing BST. Every node tracks a **balance factor** (height of left subtree − height of right subtree). If it ever exceeds ±1, the tree performs **rotations** to rebalance.
+
+- **Pros:** strict O(log n) height, fast lookups.
+- **Cons:** slightly more rotations than Red-Black, so writes are a touch slower.
+
+Used in C++'s `std::map` and `std::set` (in some implementations), and Microsoft's WindowsNT memory manager.
+
+### Red-Black tree
+
+Each node is either **red** or **black**, with rules that loosely balance the tree. Looser than AVL — height can be up to `2 log(n+1)` — but rebalances do *less* work per insert.
+
+- **Pros:** great write performance, predictable behavior.
+- **Cons:** code is famously gnarly to implement from scratch.
+
+Used in Java's `TreeMap` / `TreeSet`, the Linux kernel scheduler, and most C++ standard library `std::map` implementations.
+
+<Callout type="warning">
+    **You will not implement AVL or Red-Black from scratch in an interview.** Knowing they exist, when to use them (when you need O(log n) ordered operations), and which language ships them (Java `TreeMap`, C++ `std::set`, Python's `sortedcontainers`) is enough for 99% of jobs.
+</Callout>
+
+## Trees that aren't binary
+
+### N-ary / general tree
+
+A node can have any number of children. File systems are the obvious example. The recursive shape is the same, you just loop over a children-list instead of recursing into `left` and `right`.
+
+### Trie (prefix tree)
+
+A specialized n-ary tree for **strings**. Each node represents a character; paths from the root spell prefixes; leaves (or marked internal nodes) represent complete words.
+
+```text
+root
+├── a → p → p → l → e  (apple)
+├── a → p → p          (app — marked terminal)
+└── b → a → t          (bat)
+```
+
+Killer use cases: autocomplete, spell-check, IP routing tables, dictionary lookups.
+
+We'll cover tries in detail on **Day 18**.
+
+### Segment tree
+
+A specialized binary tree for **range queries** — "sum of elements in `[l, r]`", "minimum in `[l, r]`", etc. Each internal node stores the aggregate of a range; queries and updates are both O(log n).
+
+Used heavily in competitive programming. We'll cover them on **Day 19**.
+
+### B-tree / B+ tree
+
+A generalization where each node holds **multiple keys and pointers** to many children (often hundreds). Designed for storage where reading a "page" of data is expensive (disk, SSD).
+
+**Every relational database on Earth** uses B-trees (or B+ trees) for its primary indexes. PostgreSQL, MySQL, SQLite — all of them. Knowing they exist is the difference between "I write SQL" and "I understand SQL."
+
+### Expression / parse tree
+
+Used by compilers, calculators, and SQL planners. Leaves are operands; internal nodes are operators.
+
+```text
+       *
+      / \
+     +   5     ← represents (2 + 3) * 5
+    / \
+   2   3
+```
+
+In-order traversal gives infix; post-order gives reverse Polish notation. **The reason traversal orders have names is because each one matches an evaluation strategy.**
+
+## A summary cheat sheet
+
+| Type                    | Defining property                                                       | Where you meet it           |
+| :---------------------- | :---------------------------------------------------------------------- | :-------------------------- |
+| **Full**                | Every node has 0 or 2 children                                          | Theoretical analysis        |
+| **Complete**            | All levels full except possibly the last (filled left-to-right)         | Heaps                       |
+| **Perfect**             | All levels completely full                                              | Theoretical analysis        |
+| **Balanced**            | Subtree heights differ by ≤ 1                                           | Self-balancing trees        |
+| **Degenerate / skewed** | Each internal node has 1 child                                          | Worst case for plain BST    |
+| **BST**                 | Left subtree < node < right subtree                                     | Ordered set / map           |
+| **AVL**                 | Self-balancing BST, strict O(log n) height                              | Some `std::map` impls       |
+| **Red-Black**           | Self-balancing BST, looser balance, faster writes                       | Java `TreeMap`, Linux kernel |
+| **Heap**                | Complete tree + parent ≤/≥ children                                     | Priority queue              |
+| **Trie**                | Each node = character; paths spell words                                | Autocomplete, dictionaries  |
+| **Segment tree**        | Internal node = aggregate of a range                                    | Range queries               |
+| **B-tree / B+ tree**    | Multi-key node, designed for paged storage                              | Database indexes            |
+| **Expression tree**     | Leaves = operands; internal = operators                                 | Compilers, calculators      |
+
+You don't need to memorize the implementation of each — just recognize the names, what property they enforce, and what they're for. When a problem says "design a system for autocomplete," your brain should immediately say "trie." When it says "find the K largest, supporting insertions," it should say "min-heap of size K."
+
+Next: how to **walk** these trees in code.

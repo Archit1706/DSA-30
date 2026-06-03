@@ -1,0 +1,115 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Path Sum <DifficultyBadge level="easy" />
+
+#### Description
+
+Given the root of a binary tree and an integer `targetSum`, return `true` if there exists a **root-to-leaf path** whose values sum to `targetSum`. A leaf is a node with no children.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:        5                      targetSum = 22
+                 / \
+                4   8
+               /   / \
+              11  13  4
+             /  \      \
+            7    2      1
+    Output: true        # 5 → 4 → 11 → 2 sums to 22
+
+> Case 2:
+    Input:  [1, 2, 3], targetSum = 5
+    Output: false       # 1 → 2 = 3; 1 → 3 = 4. No path sums to 5.
+
+> Case 3:
+    Input:  [], targetSum = 0
+    Output: false       # there are no root-to-leaf paths in an empty tree
+```
+
+#### The recursive answer
+
+This is a **top-down** recursion — we carry the remaining target down to the leaves. (Postorder problems push results *up* from leaves; this one *passes information down*.)
+
+Three-question recipe:
+
+1. **Base case:** empty tree → no path → `false`.
+2. **Leaf case:** at a leaf, check if its value equals the remaining target.
+3. **Recursive case:** subtract this node's value from the target, recurse into either child.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool hasPathSum(TreeNode* root, int targetSum) {
+        if (root == nullptr) return false;
+        // Leaf? Check if this node finishes the target.
+        if (root->left == nullptr && root->right == nullptr) {
+            return root->val == targetSum;
+        }
+        int remaining = targetSum - root->val;
+        return hasPathSum(root->left, remaining)
+            || hasPathSum(root->right, remaining);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def has_path_sum(root, target):
+        if root is None:
+            return False
+        if root.left is None and root.right is None:
+            return root.val == target
+        return (has_path_sum(root.left,  target - root.val)
+             or has_path_sum(root.right, target - root.val))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean hasPathSum(TreeNode root, int targetSum) {
+        if (root == null) return false;
+        if (root.left == null && root.right == null) {
+            return root.val == targetSum;
+        }
+        int remaining = targetSum - root.val;
+        return hasPathSum(root.left,  remaining)
+            || hasPathSum(root.right, remaining);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Don't confuse "node has no left child" with "node is a leaf."** A node missing only its left child but having a right child is *not* a leaf — the path continues right. The check `root.left is None and root.right is None` is the exact leaf test.
+</Callout>
+
+#### A common bug: returning at single-null children
+
+A tempting but wrong simplification:
+
+```python
+def has_path_sum(root, target):
+    if root is None:
+        return target == 0   # WRONG
+    ...
+```
+
+This treats "fell off the tree past a leaf" the same as "reached a leaf with the target met." It's wrong because a node with **one** child shouldn't be treated as a leaf — but `if root is None: return target == 0` would let a single-child node count as success when only one side adds up. **Test leafness explicitly.**
+
+#### Variants worth knowing
+
+Same template, slight tweaks:
+
+| Problem                             | Tweak                                                      |
+| :---------------------------------- | :--------------------------------------------------------- |
+| **Path Sum II** — return *all* paths | Carry a `path` list down, append when a leaf matches.    |
+| **Path Sum III** — paths anywhere    | Two-level recursion + prefix-sum trick — much harder.     |
+| **Sum Root-to-Leaf Numbers**        | Carry the digit-built-so-far down; sum at each leaf.       |
+| **Binary Tree Paths**               | Same shape, but collect every path regardless of sum.      |
+
+#### Analysis
+
+- **Time:** **O(n)** — visit every node at most once.
+- **Space:** **O(h)** for the recursion stack.

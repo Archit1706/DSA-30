@@ -1,0 +1,423 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { TreeVisualizer } from "../../components/TreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# BST Operations
+
+A **Binary Search Tree** keeps its values in an order that mirrors binary search on an array. For every node:
+
+- All values in the left subtree are **less than** the node.
+- All values in the right subtree are **greater than** the node.
+- Both subtrees are themselves BSTs.
+
+That invariant turns three operations — **search, insert, delete** — into O(log n) on a balanced tree.
+
+<TreeVisualizer
+    tree={[8, 3, 10, 1, 6, null, 14, null, null, 4, 7]}
+    title="A BST. Inorder gives: 1, 3, 4, 6, 7, 8, 10, 14 — sorted."
+/>
+
+## Search
+
+Walk down from the root. At each node, the BST property tells you whether the target is to the left or the right. Constant work per level → O(height) total.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    TreeNode* search(TreeNode* root, int target) {
+        while (root != nullptr) {
+            if (root->val == target) return root;
+            root = (target < root->val) ? root->left : root->right;
+        }
+        return nullptr;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def search(root, target):
+        while root:
+            if root.val == target:
+                return root
+            root = root.left if target < root.val else root.right
+        return None
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public TreeNode search(TreeNode root, int target) {
+        while (root != null) {
+            if (root.val == target) return root;
+            root = target < root.val ? root.left : root.right;
+        }
+        return null;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The iterative version uses **O(1)** extra space. A recursive version is just as correct but adds O(h) call-stack frames.
+
+## Insert
+
+Same downward walk. When you hit a `null` spot — that's where the new value belongs.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    TreeNode* insert(TreeNode* root, int val) {
+        if (root == nullptr) return new TreeNode(val);
+        if (val < root->val) root->left  = insert(root->left,  val);
+        else if (val > root->val) root->right = insert(root->right, val);
+        // ignore duplicates (or handle however the problem says)
+        return root;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def insert(root, val):
+        if root is None:
+            return TreeNode(val)
+        if val < root.val:
+            root.left  = insert(root.left,  val)
+        elif val > root.val:
+            root.right = insert(root.right, val)
+        return root
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public TreeNode insert(TreeNode root, int val) {
+        if (root == null) return new TreeNode(val);
+        if (val < root.val) root.left  = insert(root.left,  val);
+        else if (val > root.val) root.right = insert(root.right, val);
+        return root;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The "**reassign-and-return**" pattern is the cleanest recursive style: the function returns the new (possibly mutated) subtree root. The caller wires it back into the parent. We'll use this same pattern for delete, where it really shines.
+
+<Callout type="warning">
+    Insertion order matters for the *shape* of the tree. Inserting `1, 2, 3, 4, 5` into an empty BST produces a degenerate right-leaning chain — O(n) operations forever. **Self-balancing trees** (AVL, Red-Black) prevent this; plain BSTs do not.
+</Callout>
+
+## Delete — the tricky one
+
+Deletion has **three cases**, and the third is what makes interviewers love this problem.
+
+<Steps>
+
+### Case 1: the node has no children
+
+Just remove it. Set the parent's pointer to `null`.
+
+```text
+      8                    8
+     / \                  / \
+    3   10    delete(7)  3   10
+       /  \      →           \
+      7    14                 14
+```
+
+### Case 2: the node has exactly one child
+
+Replace the node with its child.
+
+```text
+      8                    8
+     / \                  / \
+    3   10    delete(3)  4   10
+     \                       \
+      4                       14
+       \
+        ...                 (4 takes 3's place)
+```
+
+### Case 3: the node has two children
+
+This is the famous one. We can't just "drop" the node — it has *two* subtrees to preserve.
+
+The trick: **find the in-order successor** (the smallest value in the right subtree) — that's the smallest value that's still larger than the deleted value, so it preserves the BST order. Copy its value into the node being deleted, then recursively delete the successor from the right subtree (which falls into case 1 or 2).
+
+```text
+      8                    9       ← 9 was the successor of 8
+     / \                  / \
+    3   10    delete(8)  3   10
+       /  \      →            \
+      9    14                  14
+```
+
+</Steps>
+
+### The complete delete code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def delete(root, key):
+        if root is None:
+            return None
+
+        if key < root.val:
+            root.left = delete(root.left, key)
+        elif key > root.val:
+            root.right = delete(root.right, key)
+        else:
+            # FOUND the node to delete
+            # Case 1 & 2: 0 or 1 child
+            if root.left is None:  return root.right
+            if root.right is None: return root.left
+            # Case 3: 2 children — find in-order successor (min of right subtree)
+            succ = root.right
+            while succ.left is not None:
+                succ = succ.left
+            root.val = succ.val                       # copy value in
+            root.right = delete(root.right, succ.val) # remove the successor
+
+        return root
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    TreeNode* deleteNode(TreeNode* root, int key) {
+        if (root == nullptr) return nullptr;
+
+        if (key < root->val) root->left  = deleteNode(root->left,  key);
+        else if (key > root->val) root->right = deleteNode(root->right, key);
+        else {
+            // FOUND
+            if (root->left == nullptr) { TreeNode* r = root->right; delete root; return r; }
+            if (root->right == nullptr) { TreeNode* r = root->left;  delete root; return r; }
+            // two children: find inorder successor
+            TreeNode* succ = root->right;
+            while (succ->left) succ = succ->left;
+            root->val = succ->val;
+            root->right = deleteNode(root->right, succ->val);
+        }
+        return root;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public TreeNode deleteNode(TreeNode root, int key) {
+        if (root == null) return null;
+
+        if (key < root.val) root.left  = deleteNode(root.left,  key);
+        else if (key > root.val) root.right = deleteNode(root.right, key);
+        else {
+            if (root.left  == null) return root.right;
+            if (root.right == null) return root.left;
+            TreeNode succ = root.right;
+            while (succ.left != null) succ = succ.left;
+            root.val = succ.val;
+            root.right = deleteNode(root.right, succ.val);
+        }
+        return root;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why the in-order successor specifically?** Because it's the smallest value strictly greater than the deleted node. Replacing the node with this value preserves the property that **everything in the left subtree is less than the node, and everything in the right subtree is greater**. The in-order *predecessor* (largest value in the left subtree) would also work — pick either, but pick consistently.
+</Callout>
+
+## Inorder successor & predecessor
+
+Useful primitives in their own right:
+
+- **Successor** of node `x` = the next-larger value in the BST.
+- **Predecessor** of node `x` = the next-smaller value.
+
+If `x` has a right subtree, the successor is the **leftmost** node of that subtree. Otherwise, walk up to the lowest ancestor where `x` is in the **left** subtree.
+
+```python copy
+def successor(root, x):
+    if x.right:
+        n = x.right
+        while n.left: n = n.left
+        return n
+    # No right subtree — walk up until we go up a "left" link
+    cur, ancestor = root, None
+    while cur != x:
+        if x.val < cur.val:
+            ancestor = cur
+            cur = cur.left
+        else:
+            cur = cur.right
+    return ancestor
+```
+
+This is how some C++ iterators on `std::set` and `std::map` implement `++`.
+
+## A complete BST class
+
+Putting it all together:
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    class BST:
+        def __init__(self):
+            self.root = None
+
+        def insert(self, val):
+            self.root = self._insert(self.root, val)
+
+        def _insert(self, node, val):
+            if node is None: return TreeNode(val)
+            if val < node.val: node.left  = self._insert(node.left,  val)
+            elif val > node.val: node.right = self._insert(node.right, val)
+            return node
+
+        def search(self, val):
+            n = self.root
+            while n:
+                if n.val == val: return n
+                n = n.left if val < n.val else n.right
+            return None
+
+        def delete(self, val):
+            self.root = self._delete(self.root, val)
+
+        def _delete(self, node, val):
+            if node is None: return None
+            if val < node.val: node.left  = self._delete(node.left,  val)
+            elif val > node.val: node.right = self._delete(node.right, val)
+            else:
+                if node.left  is None: return node.right
+                if node.right is None: return node.left
+                succ = node.right
+                while succ.left: succ = succ.left
+                node.val = succ.val
+                node.right = self._delete(node.right, succ.val)
+            return node
+
+        def inorder(self):
+            out = []
+            def walk(n):
+                if n is None: return
+                walk(n.left); out.append(n.val); walk(n.right)
+            walk(self.root)
+            return out
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    class BST {
+        TreeNode* root = nullptr;
+
+        TreeNode* insert(TreeNode* n, int v) {
+            if (!n) return new TreeNode(v);
+            if (v < n->val) n->left  = insert(n->left,  v);
+            else if (v > n->val) n->right = insert(n->right, v);
+            return n;
+        }
+        TreeNode* erase(TreeNode* n, int v) {
+            if (!n) return nullptr;
+            if (v < n->val) n->left  = erase(n->left,  v);
+            else if (v > n->val) n->right = erase(n->right, v);
+            else {
+                if (!n->left)  { TreeNode* r = n->right; delete n; return r; }
+                if (!n->right) { TreeNode* r = n->left;  delete n; return r; }
+                TreeNode* s = n->right;
+                while (s->left) s = s->left;
+                n->val = s->val;
+                n->right = erase(n->right, s->val);
+            }
+            return n;
+        }
+    public:
+        void insert(int v) { root = insert(root, v); }
+        void erase (int v) { root = erase (root, v); }
+        TreeNode* search(int v) const {
+            TreeNode* n = root;
+            while (n) {
+                if (n->val == v) return n;
+                n = (v < n->val) ? n->left : n->right;
+            }
+            return nullptr;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class BST {
+        private TreeNode root;
+
+        public void insert(int v) { root = insert(root, v); }
+        private TreeNode insert(TreeNode n, int v) {
+            if (n == null) return new TreeNode(v);
+            if (v < n.val) n.left  = insert(n.left,  v);
+            else if (v > n.val) n.right = insert(n.right, v);
+            return n;
+        }
+
+        public TreeNode search(int v) {
+            TreeNode n = root;
+            while (n != null) {
+                if (n.val == v) return n;
+                n = v < n.val ? n.left : n.right;
+            }
+            return null;
+        }
+
+        public void delete(int v) { root = delete(root, v); }
+        private TreeNode delete(TreeNode n, int v) {
+            if (n == null) return null;
+            if (v < n.val) n.left  = delete(n.left,  v);
+            else if (v > n.val) n.right = delete(n.right, v);
+            else {
+                if (n.left  == null) return n.right;
+                if (n.right == null) return n.left;
+                TreeNode s = n.right;
+                while (s.left != null) s = s.left;
+                n.val = s.val;
+                n.right = delete(n.right, s.val);
+            }
+            return n;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Complexity, in one table
+
+| Operation | Average (balanced) | Worst (skewed) |
+| :-------- | :----------------: | :------------: |
+| Search    | O(log n)           | O(n)           |
+| Insert    | O(log n)           | O(n)           |
+| Delete    | O(log n)           | O(n)           |
+| Min / Max | O(log n)           | O(n)           |
+| Inorder traversal | O(n)       | O(n)           |
+| Build BST from n sorted values | O(n log n) worst | — |
+
+The worst case is when the tree degenerates to a linked list. Self-balancing variants (AVL, Red-Black) prevent this — every operation becomes O(log n) guaranteed.
+
+## When to actually use a BST
+
+Almost never write one from scratch in production. Reach for:
+
+- **Python:** `sortedcontainers.SortedList` (B-tree-like in practice).
+- **C++:** `std::set` / `std::map` / `std::multiset` (Red-Black tree).
+- **Java:** `TreeSet` / `TreeMap` (Red-Black tree).
+
+Implementing a BST from scratch is the *interview* exercise. The *real* exercise — picking when to use the stdlib's ordered map vs hash map — is what you'll do every day:
+
+| You need…                              | Hash map      | Ordered map (BST-backed) |
+| :------------------------------------- | :-----------: | :----------------------: |
+| O(1) lookups, no ordering              | ✅            | ❌                       |
+| Iteration in sorted order              | ❌            | ✅                       |
+| Range queries ("everything in [a, b]") | ❌            | ✅                       |
+| Find next-larger / next-smaller        | ❌            | ✅                       |
+| Predictable worst-case                 | ⚠️ (hash attacks) | ✅                  |
+
+Use a hash map by default. Reach for an ordered map (which is BST under the hood) when you need *order*.
+
+Now you have the foundation for every tree problem. Time to go practice.

@@ -1,0 +1,147 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Diameter of Binary Tree <DifficultyBadge level="easy" />
+
+#### Description
+
+Given the root of a binary tree, return the length of its **diameter** — the longest path between **any two nodes**. The path may or may not pass through the root. Length is measured in **number of edges**.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:        1
+                 / \
+                2   3
+               / \
+              4   5
+    Output: 3      # path: 4 → 2 → 5 (3 edges)  OR  5 → 2 → 1 → 3 (3 edges)
+
+> Case 2:
+    Input:  [1, 2]
+    Output: 1      # path: 1 → 2 (1 edge)
+```
+
+#### Constraints
+
+- `1 <= number of nodes <= 10^4`
+- `-100 <= node.val <= 100`
+
+#### The fused-traversal trick
+
+A natural-but-quadratic approach: for every node, compute the height of its left and right subtrees, sum them, and track the global max. That's O(n²) — computing height at every node is O(n).
+
+The **O(n) trick**: combine "compute the height" and "track the best diameter" into a **single postorder traversal**. As the recursion unwinds from each node, it knows both its left and right subtree heights — exactly when the diameter *through* that node can be computed.
+
+This is the same fused-traversal pattern as [Balanced Binary Tree](/day6/practice_questions/balanced_binary_tree): use a postorder pass that returns one value (height) while updating an external accumulator (best diameter).
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        int best = 0;
+        int height(TreeNode* node) {
+            if (node == nullptr) return 0;
+            int l = height(node->left);
+            int r = height(node->right);
+            best = max(best, l + r);          // diameter THROUGH this node
+            return 1 + max(l, r);             // height of THIS subtree
+        }
+    public:
+        int diameterOfBinaryTree(TreeNode* root) {
+            best = 0;
+            height(root);
+            return best;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def diameter_of_binary_tree(root):
+        best = [0]                            # boxed so the closure can mutate
+
+        def height(node):
+            if node is None:
+                return 0
+            l = height(node.left)
+            r = height(node.right)
+            best[0] = max(best[0], l + r)     # diameter through this node
+            return 1 + max(l, r)              # height returned to caller
+
+        height(root)
+        return best[0]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    private int best = 0;
+
+    public int diameterOfBinaryTree(TreeNode root) {
+        best = 0;
+        height(root);
+        return best;
+    }
+
+    private int height(TreeNode node) {
+        if (node == null) return 0;
+        int l = height(node.left);
+        int r = height(node.right);
+        best = Math.max(best, l + r);
+        return 1 + Math.max(l, r);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why update `best` *inside* the height function?** Because that's the moment we know both subtree heights. The diameter passing through `node` is exactly `leftHeight + rightHeight` (in edges). We compute it once per node — O(n) total work — and the answer is the maximum across all those single-node computations.
+</Callout>
+
+#### The Python `[0]` trick
+
+Python's recursion can't easily mutate an outer-scope `int`. We use a one-element list (`best = [0]`) as a mutable container — the closure can index into it and update `best[0]`. Java and C++ use class fields for the same purpose.
+
+In Python 3, you can also use `nonlocal`:
+
+```python copy
+def diameter_of_binary_tree(root):
+    best = 0
+    def height(node):
+        nonlocal best
+        if node is None: return 0
+        l = height(node.left)
+        r = height(node.right)
+        best = max(best, l + r)
+        return 1 + max(l, r)
+    height(root)
+    return best
+```
+
+Both work; `nonlocal` reads slightly cleaner if your codebase uses it.
+
+#### Edges vs nodes — read the problem carefully
+
+The diameter is measured **in edges**, not in nodes. A 3-edge path passes through 4 nodes.
+
+Some problems (rare) define diameter as nodes — count carefully. The formula then becomes `1 + l + r` and the height-return shape changes accordingly.
+
+#### The bigger pattern
+
+This is the **"postorder + accumulator"** template, and it solves a whole family:
+
+- **Diameter** — combine left and right heights.
+- **Binary Tree Maximum Path Sum** — combine left and right max-gains, taking only positive contributions.
+- **Longest Univalue Path** — combine left and right path lengths that match the parent's value.
+- **Subtree with Max Average** — return (sum, count) from each subtree, update best at each node.
+
+Whenever the answer is "global max of something computed at each node, that depends on both children," reach for this template.
+
+#### Analysis
+
+- **Time:** **O(n)** — single postorder pass.
+- **Space:** **O(h)** for the recursion stack.

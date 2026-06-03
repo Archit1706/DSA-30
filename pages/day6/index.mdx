@@ -8,20 +8,23 @@ We'll focus on the workhorse of the family: the **binary tree** (every node has 
 
 ## What you'll learn today
 
-- The vocabulary of trees — root, leaf, depth, height, ancestor, descendant
-- Common **binary tree types**: full, complete, perfect, balanced, BST, AVL, heap
-- How a **BST** keeps elements sorted automatically and gives you O(log n) search
-- The three **traversal orders** every interview asks about: inorder, preorder, postorder
-- Four classic problems to lock in the recursion-on-trees pattern
+- The **vocabulary** of trees — root, leaf, depth, height, ancestor, descendant — and the difference between *depth* and *height* (a real interview gotcha)
+- The **family of tree types**: full, complete, perfect, balanced, BST, AVL, Red-Black, heap, trie, segment tree, B-tree — what each is for and why
+- The **four traversals** every interview asks about: inorder, preorder, postorder, level-order — recursive *and* iterative versions
+- **BST operations**: search, insert, and the surprisingly tricky delete-with-two-children case
+- **Ten practice problems** covering every major tree pattern — recursion templates, fused traversals, BFS layers, divide-and-conquer
 
 <Callout type="info">
-    Trees are where recursion really shines. Almost every tree operation has a clean recursive solution: "do something with this node, then recursively do it for the left and right subtrees." Day 5 prepared you for this.
+    Trees are where recursion really shines. Almost every tree operation has a clean recursive solution: **"do something with this node, then recursively do it for the left and right subtrees."** [Day 5](/day5) prepared you for this — today you cash in.
 </Callout>
 
 ## Roadmap
 
-1. **[Introduction](/day6/introduction)** — terminology, all the binary tree types, how to represent a tree in code, BST operations.
-2. **[Basic Questions](/day6/basic_questions)** — fundamental tree operations: traversals, height, node count, max value.
-3. **[Practice Questions](/day6/practice_questions)** — four classic interview problems: Same Tree, Symmetric Tree, Balanced Binary Tree, Convert Sorted Array to BST.
+1. **[Introduction](/day6/introduction)** — the tree vocabulary, why we care about hierarchical data, and the first interactive visualizations.
+2. **[Tree Types](/day6/tree_types)** — the whole family: full, complete, perfect, balanced, BST, AVL, Red-Black, heap, trie, segment tree, B-tree. What each shape unlocks.
+3. **[Traversals](/day6/traversals)** — inorder, preorder, postorder, level-order. Recursive and iterative versions for each, plus the application table that tells you which to reach for.
+4. **[BST Operations](/day6/bst_operations)** — search, insert, and the three cases of delete (no children, one child, two children — the last one needs the in-order successor trick).
+5. **[Basic Questions](/day6/basic_questions)** — warm-up problems: traversals, height, count, max value.
+6. **[Practice Questions](/day6/practice_questions)** — ten classic interview problems covering every tree pattern you'll see.
 
 Up next: **Heaps** on [Day 7](/day7) — which are also binary trees, with one extra property that turns them into priority queues.

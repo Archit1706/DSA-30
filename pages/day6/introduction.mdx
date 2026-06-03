@@ -1,403 +1,211 @@
-import { Steps,Tabs } from "nextra/components";
-export const Tab = Tabs.Tab
-import React, { useState } from "react";
-import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { Steps, Tabs, Callout } from "nextra/components";
+import { TreeVisualizer } from "../../components/TreeVisualizer";
+import { QuizBox } from "../../components/QuizBox";
 import { ShowHideGif } from "../../components/ShowHideGif";
+export const Tab = Tabs.Tab;
 
-# Binary Trees and Binary Search Trees
+# Introduction to Binary Trees
+
+A **tree** is a hierarchical data structure built from **nodes** connected by **edges**, with one special node at the top called the **root**. Every other node has exactly one parent. There are no cycles — you can't follow edges and end up back where you started.
+
+That single rule (one parent per non-root node, no cycles) is what separates a tree from the more general [graph](/day9) we'll meet on Day 9.
 
 <ShowHideGif
     gifUrl={"/assets/tree_example.jpg"}
     pausedGifUrl={"/assets/tree_example.jpg"}
 />
 
-I am a Potter Head ⚡. And every time I see a tree, I remember the big Black Family Tree 🌲 on the walls of the Order of the Pheonix 🐦‍🔥. But today, we are not going to talk about that tree. We are going to talk about the trees in the world of Computer Science 🖥️. Trees are a hierarchical data structure that consists of nodes connected by edges. They are used to represent data 📈 in a hierarchical manner. Trees are used in various applications like file systems 🗃️, syntax trees, Huffman coding trees, and more. In this lesson, we will learn about the basic types of trees and their properties. We will also discuss binary trees and binary search trees in detail.
+## Binary trees
 
-## Definition
+A **binary tree** is the most common tree in interviews: **every node has at most two children**, conventionally called **left** and **right**.
+
+<TreeVisualizer
+    tree={[1, 2, 3, 4, 5, 6, 7]}
+    title="A perfectly-shaped binary tree"
+/>
+
+The empty tree is a valid tree (zero nodes). A tree with one node is a valid tree (just the root). From there, every node can have 0, 1, or 2 children — that's it.
+
+## The vocabulary you'll see everywhere
+
+Every tree problem uses these terms. Memorize them now and you'll stop tripping over the language.
 
 <Steps>
 
-### **Introduction to Trees**
+### Root, leaf, internal node
 
-A tree is a hierarchical data structure consisting of nodes connected by edges. The main properties of trees are:
+- **Root** — the topmost node. It has no parent.
+- **Leaf** — a node with no children. The "tips" of the tree.
+- **Internal node** — any non-leaf node (the root counts if it has children).
 
--   **Root Node**: The topmost node.
--   **Child**: A node directly connected to another node moving away from the root.
--   **Parent**: A node directly connected to another node moving toward the root.
--   **Sub-trees**: A tree whose root is a child of another tree's node.
--   **Leaf**: A node with no children.
--   **Depth**: The number of edges from the root to the node.
--   **Height**: The number of edges in the longest path from the node to a leaf.
--   **Path**: A sequence of nodes connected by edges.
--   **Ancestor**: A node lying on the path between the root and the node.
--   **Descendant**: A node lying on a path between the node and a leaf.
--   **Siblings**: Nodes with the same parent.s
--   **Level Number**: The level number of a node is the depth of the node + 1.
--   **Degree**: Degree of a node is equal to the number of children that a node has. The degree of a leaf node is zero.
-    -   **In-degree**: The number of edges coming into a node.
-    -   **Out-degree**: The number of edges going out of a node.
+In the tree above, `1` is the root; `4`, `5`, `6`, `7` are leaves; `2` and `3` are internal nodes.
 
-In a tree:
+### Parent, child, sibling, ancestor, descendant
 
--   There's only one path between any two nodes.
--   The structure is acyclic (no loops) and connected.
+- **Parent / child** — direct relationship along one edge.
+- **Siblings** — two nodes that share the same parent.
+- **Ancestor** — any node on the path between a node and the root (including itself if you allow it).
+- **Descendant** — any node "below" a given node (the node itself plus everything in its subtree).
 
-### **Basic Types of Trees**
+In the tree above, `4` and `5` are siblings, both children of `2`. `1`, `2` are ancestors of `4`. `2`, `4`, `5` are descendants of `2`.
 
-1. **Full Binary Tree**: Every node has either 0 or 2 children.
+### Depth, level, and height — the most-confused pair
 
-```plaintext
-    1
-   / \
-  2   3
- / \
-4   5
-```
+- **Depth** of a node = number of edges from the **root to that node**. The root has depth `0`.
+- **Level** of a node = depth + 1. (Some texts use level = depth; check before answering.)
+- **Height** of a node = number of edges in the **longest path from that node down to any leaf**. A leaf has height `0`.
+- **Height of the tree** = height of the root.
 
-2. **Complete Binary Tree**: All levels are fully filled except possibly the last level.
-
-```plaintext
-   1
-  / \
- 2   3
-/ \  /
-4  5 6
-```
-
-3. **Perfect Binary Tree**: All internal nodes have 2 children and all leaves are at the same level.
-
-```plaintext
-    1
-   / \
-  2   3
- / \ / \
-4  5 6  7
-```
-
-4. **Balanced Binary Tree**: Ensures the height of the tree is minimized.
-
-```plaintext
-    1
-   / \
-  2   3
- / \ / \
-4  5 6  7
-```
-
-5. **Binary Tree**: Each node has at most two children (left and right).
-
-```plaintext
-      1
+```text
+        1   ← depth 0, height 2
+       / \
+      2   3 ← depth 1, height 1
      / \
-    2   3
-   / \ / \
-  4  5 6  7
- /\
-8  9
+    4   5  ← depth 2, height 0 (leaves)
 ```
 
-6. **Binary Search Tree (BST)**: A binary tree where each node's left subtree contains only nodes with values less than the node's value, and the right subtree contains only nodes with values greater than the node's value.
+The classic interview slip-up: "what's the height of an empty tree?" Different sources answer `-1`, `0`, or "undefined." Stick to a convention up front (we'll use `0`) and be explicit in your code.
 
-```plaintext
-    4
-   / \
-  2   6
- / \ / \
-1  3 5  7
-```
+### Subtree
 
-7. **AVL Tree**: A self-balancing binary search tree where the heights of the two child subtrees of any node differ by no more than one.
+A **subtree** rooted at node `X` is X plus all of X's descendants. Every node is the root of its own subtree. This is why recursion works so beautifully — a subtree is just a smaller tree.
 
-```plaintext
-    4
-   / \
-  2   6
- / \ / \
-1  3 5  7
-```
+### Degree
 
-8. **Heap**: A special tree-based structure that satisfies the heap property. In a max heap, every parent node has a value greater than or equal to the values of its children.
+The **degree** of a node = the number of its children (`0`, `1`, or `2` in a binary tree). A binary tree's *defining* property is that every node has degree ≤ 2.
 
-```plaintext
-    10
-   /  \
-  9    8
- / \  / \
-7  6 5  4
-```
+</Steps>
 
-9. **Forests**: A collection of disjoint trees.
+## How we store a binary tree in code
 
-```plaintext
-    1       4
-   / \     / \
-  2   3   5   6
-```
+Two common representations:
 
-10. **Huffman Tree**: A full binary tree used for data compression.
+### 1. Linked nodes (the natural choice)
 
-```plaintext
-    100
-   /   \
-  50    50        => Huffman Tree for "1001001"
- / \   /  \
-20 30 10  40
-```
+Each node is an object with a value and pointers (or references) to its left and right children.
 
-11. **Expression Tree**: A binary tree used to represent expressions.
-
-```plaintext
-    +
-   / \
-  *   5     => Expression Tree for "2 * 3 + 5"
- / \
-2   3
-```
-
-12. **Tournament Tree**: A binary tree used to represent a tournament.
-
-```plaintext
-    A
-   / \
-  A   C
- / \ / \
-A  B C  D
-```
-
-13. **Trie (Prefix Tree)**: A tree used to store a dynamic set of strings.
-
-```plaintext
-    root
-   / | \
-  a  b  c
- /|  |  |
-n d  e  o
-```
-
-### **Basic Tree Representaion**
-
-Trees can be represented using nodes and references using linked structures.
-
-<Tabs items={['C++', 'Python']} defaultIndex="0">
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
     <Tab>
     ```cpp copy
     struct TreeNode {
-        int value;
+        int val;
         TreeNode* left;
         TreeNode* right;
+        TreeNode(int v) : val(v), left(nullptr), right(nullptr) {}
     };
 
-    TreeNode* root = new TreeNode();
-    root->value = 1;
-    root->left = new TreeNode();
-    root->left->value = 2;
-    root->right = new TreeNode();
-    root->right->value = 3;
-    root->left->left = new TreeNode();
-    root->left->left->value = 4;
-    root->left->right = new TreeNode();
-    root->left->right->value = 5;
+    // Build the tree from the picture above:
+    //     1
+    //    / \
+    //   2   3
+    //  / \
+    // 4   5
+    TreeNode* build() {
+        TreeNode* root = new TreeNode(1);
+        root->left = new TreeNode(2);
+        root->right = new TreeNode(3);
+        root->left->left = new TreeNode(4);
+        root->left->right = new TreeNode(5);
+        return root;
+    }
     ```
-
     </Tab>
-
-    <Tab>
-    ```python
-    class TreeNode:
-        def __init__(self, value):
-            self.value = value
-            self.left = None
-            self.right = None
-
-    root = TreeNode(1)
-    root.left = TreeNode(2)
-    root.right = TreeNode(3)
-    root.left.left = TreeNode(4)
-    root.left.right = TreeNode(5)
-    ```
-
-    </Tab>
-
-</Tabs>
-
-{/* This is how the tree will look */}
-
-```plaintext
-    1
-   / \
-  2   3
- / \
-4   5
-```
-
-Trees can also be represented using arrays or lists. In sequential representation, the children of the node at index `i` are at indices `2*i + 1` and `2*i + 2`. The parent of a node at index `i` is at index `(i-1)/2`.The maximum number of nodes at height `h` is `2^h`. The maximum size of the array TREE is `2^(h+1) - 1`.
-
-### **Binary Search Tree (BST) Operations**
-
-BSTs allow efficient searching, insertion, and deletion due to their sorted structure.
-
--   **Search**: Starting from the root, move left or right based on the value.
--   **Insertion**: Place the new node in a position that maintains the BST properties.
--   **Deletion**: Remove a node and adjust the tree to maintain BST properties.
-
-Here's how to implement insertion and search in a BST:
-
-<Tabs items={['C++', 'Python']} defaultIndex="0">
-
-    <Tab>
-    ```cpp copy
-
-    struct BSTNode {
-        int value;
-        BSTNode* left;
-        BSTNode* right;
-    };
-
-    class BinarySearchTree {
-    private:
-        BSTNode* root;
-        void insert_recursive(BSTNode* node, int value) {
-            if (value < node->value) {
-                if (node->left == nullptr) {
-                    node->left = new BSTNode();
-                    node->left->value = value;
-                } else {
-                    insert_recursive(node->left, value);
-                }
-            } else {
-                if (node->right == nullptr) {
-                    node->right = new BSTNode();
-                    node->right->value = value;
-                } else {
-                    insert_recursive(node->right, value);
-                }
-            }
-        }
-
-        BSTNode* search_recursive(BSTNode* node, int value) {
-            if (node == nullptr || node->value == value) {
-                return node;
-            }
-            if (value < node->value) {
-                return search_recursive(node->left, value);
-            } else {
-                return search_recursive(node->right, value);
-            }
-        }
-
-    public:
-
-        BinarySearchTree() {
-            root = nullptr;
-        }
-
-        void insert(int value) {
-            if (root == nullptr) {
-                root = new BSTNode();
-                root->value = value;
-            } else {
-                insert_recursive(root, value);
-            }
-        }
-
-        BSTNode* search(int value) {
-            return search_recursive(root, value);
-        }
-
-    };
-
-    ```
-
-    </Tab>
-
     <Tab>
     ```python copy
-    class BSTNode:
-        def __init__(self, value):
-            self.value = value
-            self.left = None
-            self.right = None
+    class TreeNode:
+        def __init__(self, val=0, left=None, right=None):
+            self.val = val
+            self.left = left
+            self.right = right
 
-    class BinarySearchTree:
-        def __init__(self):
-            self.root = None
-
-        def insert(self, value):
-            if self.root is None:
-                self.root = BSTNode(value)
-            else:
-                self._insert_recursive(self.root, value)
-
-        def _insert_recursive(self, node, value):
-            if value < node.value:
-                if node.left is None:
-                    node.left = BSTNode(value)
-                else:
-                    self._insert_recursive(node.left, value)
-            else:
-                if node.right is None:
-                    node.right = BSTNode(value)
-                else:
-                    self._insert_recursive(node.right, value)
-
-        def search(self, value):
-            return self._search_recursive(self.root, value)
-
-        def _search_recursive(self, node, value):
-            if node is None or node.value == value:
-                return node
-            if value < node.value:
-                return self._search_recursive(node.left, value)
-            else:
-                return self._search_recursive(node.right, value)
-
-    # Example usage
-    bst = BinarySearchTree()
-    bst.insert(10)
-    bst.insert(5)
-    bst.insert(15)
-
-    print(bst.search(10))  # Output: <BSTNode object at some address> if found
-    print(bst.search(7))   # Output: None if not found
+    # Build the tree from the picture above
+    root = TreeNode(1,
+              TreeNode(2,
+                  TreeNode(4),
+                  TreeNode(5)),
+              TreeNode(3))
     ```
-
     </Tab>
+    <Tab>
+    ```java copy
+    class TreeNode {
+        int val;
+        TreeNode left, right;
+        TreeNode(int v) { val = v; }
+    }
 
+    TreeNode root = new TreeNode(1);
+    root.left = new TreeNode(2);
+    root.right = new TreeNode(3);
+    root.left.left = new TreeNode(4);
+    root.left.right = new TreeNode(5);
+    ```
+    </Tab>
 </Tabs>
 
-### **Practice Problem: Lowest Common Ancestor (LCA) of a Binary Tree**
+This is what every LeetCode binary-tree problem hands you.
 
-**Problem**: Given a binary tree and two nodes, find their lowest common ancestor (LCA).
+### 2. Array (the heap trick)
 
-**Solution**:
+For a **complete binary tree** (no gaps, filled level-by-level), you can store it in a flat array using index arithmetic:
 
-```python
-def find_lca(root, n1, n2):
-    if root is None:
-        return None
+| Relationship  | Formula           |
+| :------------ | :---------------- |
+| Root          | index 0           |
+| Parent of i   | `(i - 1) / 2`     |
+| Left child of i | `2 * i + 1`     |
+| Right child of i | `2 * i + 2`    |
 
-    if root.value == n1 or root.value == n2:
-        return root
+```text
+tree = [1, 2, 3, 4, 5, 6, 7]
 
-    left_lca = find_lca(root.left, n1, n2)
-    right_lca = find_lca(root.right, n1, n2)
+index 0  1  2  3  4  5  6
+value 1  2  3  4  5  6  7
 
-    if left_lca and right_lca:
-        return root
-
-    return left_lca if left_lca else right_lca
+                1            ← index 0
+              /   \
+            2       3        ← indices 1, 2
+           / \     / \
+          4   5   6   7      ← indices 3-6
 ```
 
-### **Complexity Analysis**
+This trick is the foundation of **heaps** ([Day 7](/day7)). It only works cleanly for complete trees — sparse trees waste a lot of array slots if you try it.
 
-1. **Tree Traversals**: O(N) where N is the number of nodes.
-2. **BST Insert/Search**: Average case O(log N), Worst case O(N) (unbalanced tree).
-3. **Lowest Common Ancestor (LCA)**: O(N) for an unbalanced tree.
+## Why trees show up everywhere
 
-### Next Steps
+A handful of places you've already touched a tree without naming it:
 
-1. **Advanced Tree Types**: AVL Trees, Heaps, and B-Trees.
-2. **Detailed Traversals**: In-order, Pre-order, Post-order, Level-order.
-3. **Applications**: Syntax Trees, Huffman Coding Tree, File Systems.
+- **File systems** — folders contain folders contain files. A literal tree.
+- **HTML / DOM** — every web page is a tree. `<html>` is the root.
+- **JSON / XML** — nested data is a tree.
+- **Expression evaluation** — `(2 + 3) * 4` is an expression tree where leaves are values and internal nodes are operators.
+- **The call stack** — recursive function calls *form* a call tree.
+- **Decision trees** — every "yes/no/maybe" flowchart is a tree.
+- **Databases** — B-trees back almost every relational database index.
+- **Compilers** — abstract syntax trees, parse trees, control-flow graphs.
+- **Game AI** — minimax, alpha-beta, Monte Carlo Tree Search — all operate on game trees.
 
-</Steps>
+If you can manipulate a tree comfortably, you can read half of computer science.
+
+## Quick check
+
+<QuizBox
+    question="A binary tree has 7 leaves. What's the minimum number of internal nodes it could have?"
+    options={["3", "6", "7", "It depends"]}
+    correctIndex={1}
+    explanation="In a strict / full binary tree (every internal node has 2 children), the number of internal nodes is leaves - 1. With 7 leaves, that's 6. You can't have fewer internal nodes than that — but you could have more in a non-full tree (e.g., a degenerate left-leaning chain)."
+/>
+
+<QuizBox
+    question="In the linked-node representation, what does `root->left->right->val` give you?"
+    options={[
+        "The right child of the root's left child",
+        "The leftmost descendant of the root",
+        "The root's grandchild on the path: root → left → right",
+        "Both 1 and 3 — same thing"
+    ]}
+    correctIndex={3}
+    explanation="`root->left` gives the root's left child. `->right` gives that child's right child. So you're navigating two edges: down-left, then down-right. That node is both the right child of root's left child AND the grandchild on the left-right path."
+/>
+
+Ready to meet the whole family of tree types? Head to **Tree Types**.

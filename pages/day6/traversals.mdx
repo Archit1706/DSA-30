@@ -1,0 +1,361 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { TreeVisualizer, TraversalStepper } from "../../components/TreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Tree Traversals
+
+A **traversal** is the order in which you visit every node of a tree. There are four orderings worth knowing — three depth-first (DFS) and one breadth-first (BFS). Each one is a one-line change from the others, and **each one is the right answer for a different family of problems**.
+
+## The traversal stepper
+
+Step through each traversal on the same tree. Notice how the *order* of visits changes — the work at each node is identical.
+
+<TraversalStepper
+    tree={[1, 2, 3, 4, 5, 6, 7]}
+    title="Compare the four traversals on the same tree"
+/>
+
+## Why traversal *order* matters
+
+Each ordering "asks" for a specific moment relative to the children:
+
+- **Preorder** — visit root **first**. Use when you need the parent's info to process the children.
+- **Inorder** — visit root **between** left and right. On a BST this gives values in sorted order.
+- **Postorder** — visit root **last**. Use when you need both children's results to compute the parent's.
+- **Level-order** — visit by **depth**. Use when distance from the root matters.
+
+That's the whole story. The right traversal is the one whose order matches what you need to know *when*.
+
+## 1. Preorder (Root → Left → Right)
+
+<Steps>
+
+### Recursive
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def preorder(root):
+        if root is None:
+            return
+        print(root.val)        # visit root FIRST
+        preorder(root.left)
+        preorder(root.right)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    void preorder(TreeNode* root) {
+        if (root == nullptr) return;
+        cout << root->val << " ";
+        preorder(root->left);
+        preorder(root->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void preorder(TreeNode root) {
+        if (root == null) return;
+        System.out.print(root.val + " ");
+        preorder(root.left);
+        preorder(root.right);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Iterative (with an explicit stack)
+
+The recursive version uses the call stack implicitly. To convert it to iterative we use an explicit stack — pushing **right before left** so that left gets popped (and processed) first.
+
+```python copy
+def preorder_iter(root):
+    if root is None: return
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        print(node.val)
+        # push right first, then left — so left pops first (LIFO)
+        if node.right: stack.append(node.right)
+        if node.left:  stack.append(node.left)
+```
+
+### When to use
+
+- **Cloning / copying a tree** — create the new node first, then recurse to attach children.
+- **Serializing** to a string — record the root, then left subtree, then right.
+- **Computing root-to-leaf paths** — accumulate as you go down.
+- **Polish notation** (prefix) — `* + 2 3 5` for `(2+3)*5`.
+
+</Steps>
+
+## 2. Inorder (Left → Root → Right)
+
+<Steps>
+
+### Recursive
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def inorder(root):
+        if root is None: return
+        inorder(root.left)
+        print(root.val)        # visit root BETWEEN
+        inorder(root.right)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    void inorder(TreeNode* root) {
+        if (root == nullptr) return;
+        inorder(root->left);
+        cout << root->val << " ";
+        inorder(root->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void inorder(TreeNode root) {
+        if (root == null) return;
+        inorder(root.left);
+        System.out.print(root.val + " ");
+        inorder(root.right);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Iterative (with an explicit stack)
+
+The classic two-step pattern: walk down-left as far as possible, popping and visiting along the way back up.
+
+```python copy
+def inorder_iter(root):
+    stack = []
+    cur = root
+    while cur or stack:
+        # 1. Walk to the leftmost descendant
+        while cur:
+            stack.append(cur)
+            cur = cur.left
+        # 2. Pop & visit
+        node = stack.pop()
+        print(node.val)
+        # 3. Now process its right subtree
+        cur = node.right
+```
+
+### When to use
+
+- **BST inorder = sorted output.** This is the single most useful property of inorder traversal on a BST. Many BST validation and ordering problems just walk inorder and check that the values are increasing.
+- **Convert BST to sorted array** — literally just inorder it.
+- **K-th smallest in a BST** — inorder traversal, stop at the K-th visit.
+- **Inorder predecessor / successor** — finding the "next bigger" or "previous smaller" element.
+
+<Callout type="info">
+    **The reason inorder is named inorder:** on a BST, it visits the nodes in the order their values would appear *in* a sorted list. The names of all four traversals come from where the root appears in the visit order, but inorder is special — it's the one with a real-world payoff on BSTs.
+</Callout>
+
+</Steps>
+
+## 3. Postorder (Left → Right → Root)
+
+<Steps>
+
+### Recursive
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def postorder(root):
+        if root is None: return
+        postorder(root.left)
+        postorder(root.right)
+        print(root.val)        # visit root LAST
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    void postorder(TreeNode* root) {
+        if (root == nullptr) return;
+        postorder(root->left);
+        postorder(root->right);
+        cout << root->val << " ";
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void postorder(TreeNode root) {
+        if (root == null) return;
+        postorder(root.left);
+        postorder(root.right);
+        System.out.print(root.val + " ");
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Iterative (the slick trick)
+
+Postorder iterative is famously fiddly. The cleanest trick: do **preorder with right-before-left** instead of left-before-right (giving root, right, left), then **reverse the result**. That's exactly postorder (left, right, root).
+
+```python copy
+def postorder_iter(root):
+    if root is None: return []
+    stack = [root]
+    out = []
+    while stack:
+        node = stack.pop()
+        out.append(node.val)
+        if node.left:  stack.append(node.left)   # left first now
+        if node.right: stack.append(node.right)
+    return out[::-1]    # reverse to get postorder
+```
+
+### When to use
+
+- **Tree deletion** — free children before the parent. (In C++ destructors do this for you.)
+- **Computing aggregate values that depend on subtrees** — height, sum, count, diameter — the parent needs both children's results first.
+- **Expression evaluation** — postorder visit of an expression tree evaluates correctly (RPN).
+- **Postorder traversal of a syntax tree** = bottom-up evaluation = compilation order.
+
+This is the traversal you use **most often** for "compute X about a tree" problems.
+
+</Steps>
+
+## 4. Level-Order (Breadth-First)
+
+The odd one out — uses a **queue**, not the call stack. Visits the tree **layer by layer**.
+
+<Steps>
+
+### Iterative (the natural way)
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def level_order(root):
+        if root is None: return []
+        result = []
+        queue = deque([root])
+        while queue:
+            level_size = len(queue)        # snapshot — process exactly one layer
+            level = []
+            for _ in range(level_size):
+                node = queue.popleft()
+                level.append(node.val)
+                if node.left:  queue.append(node.left)
+                if node.right: queue.append(node.right)
+            result.append(level)
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    vector<vector<int>> levelOrder(TreeNode* root) {
+        vector<vector<int>> result;
+        if (!root) return result;
+        queue<TreeNode*> q;
+        q.push(root);
+        while (!q.empty()) {
+            int size = q.size();
+            vector<int> level;
+            for (int i = 0; i < size; i++) {
+                TreeNode* node = q.front(); q.pop();
+                level.push_back(node->val);
+                if (node->left)  q.push(node->left);
+                if (node->right) q.push(node->right);
+            }
+            result.push_back(level);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<List<Integer>> levelOrder(TreeNode root) {
+        List<List<Integer>> result = new ArrayList<>();
+        if (root == null) return result;
+        Queue<TreeNode> q = new LinkedList<>();
+        q.offer(root);
+        while (!q.isEmpty()) {
+            int size = q.size();
+            List<Integer> level = new ArrayList<>();
+            for (int i = 0; i < size; i++) {
+                TreeNode node = q.poll();
+                level.add(node.val);
+                if (node.left  != null) q.offer(node.left);
+                if (node.right != null) q.offer(node.right);
+            }
+            result.add(level);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### The "snapshot" trick
+
+The line `level_size = len(queue)` is the entire reason this works. We **snapshot the queue size at the top of each iteration** — that's the count of nodes in the current layer. We then process exactly that many nodes. After the inner loop, the queue holds **only the next layer**, and we repeat.
+
+### When to use
+
+- **Level-by-level output** — "return values grouped by depth."
+- **Shortest path / minimum depth** — BFS finds the first leaf at the minimum depth.
+- **Right side view / leftmost view** — capture the last (or first) node of each level.
+- **Connecting same-level nodes** — populating "next" pointers, level averages, etc.
+- **Width of binary tree** — count nodes per level.
+
+<Callout type="info">
+    **Level-order = BFS** — the same algorithm we'll meet on graphs in [Day 10](/day10/bfs). A tree is just a special graph with no cycles, so the visited-set isn't needed.
+</Callout>
+
+</Steps>
+
+## The cheat sheet: which traversal when
+
+| If the question is about…                            | Use…             |
+| :---------------------------------------------------- | :--------------- |
+| **Sorted values in a BST**                            | Inorder          |
+| **K-th smallest / largest in a BST**                  | Inorder          |
+| **Copying / serializing a tree**                      | Preorder         |
+| **Root-to-leaf paths / path sums**                    | Preorder         |
+| **Computing a value that needs both children's results** (height, diameter, sum, count) | Postorder |
+| **Tree deletion** (free children before parent)       | Postorder        |
+| **Evaluating an expression tree**                     | Postorder        |
+| **Level-by-level / grouped by depth**                 | Level-order      |
+| **Minimum / shortest depth to any leaf**              | Level-order      |
+| **Side / top / bottom views**                         | Level-order      |
+
+This table is worth taping to your monitor. Most tree problems land on one row of it.
+
+## Complexity
+
+All four traversals are **O(n)** time and **O(h)** auxiliary space, where `h` is the tree's height:
+
+- **Recursive DFS** — call stack proportional to height. For a balanced tree, `h = O(log n)`; for a skewed tree, `h = O(n)`.
+- **Iterative DFS** — same, just on an explicit stack.
+- **Level-order (BFS)** — queue holds at most one level, which is **O(n)** in the worst case (a perfect binary tree has up to `n/2` nodes at the bottom level).
+
+## A common bug: when you're handed a `None`
+
+Every recursive traversal starts with:
+
+```python
+if root is None:
+    return
+```
+
+If you forget this, the first call to `root.left` on an empty subtree crashes. **Always write the base case first**, before the recursive calls.
+
+You're now armed with all four traversals. Next: how to actually *modify* a BST — search, insert, delete.

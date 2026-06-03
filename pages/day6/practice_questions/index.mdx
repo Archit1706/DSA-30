@@ -2,29 +2,42 @@ import { Callout } from "nextra/components";
 
 # Tree Practice Questions
 
-Four classic tree problems. Each one is a small variation on the **three-question recipe** from [Day 5 — Thinking Recursively](/day5/thinking_recursively): base case for null, recursive call on each child, combine.
+Ten classic tree problems. Each one is a small variation on the **three-question recipe** from [Day 5 — Thinking Recursively](/day5/thinking_recursively): base case for null, recursive call on each child, combine.
 
 <Callout type="info">
-    Notice how *short* the solutions are — most of these are 3–5 lines. That's the magic of recursion on trees: you describe one level, and the call stack handles the entire structure.
+    Notice how *short* the solutions are — most are 3–8 lines. That's the magic of recursion on trees: you describe one level, and the call stack handles the entire structure.
 </Callout>
 
 ## Easy
 
-| Problem                                                                                                | Pattern                | Status     |
-| :----------------------------------------------------------------------------------------------------- | :--------------------- | :--------- |
-| [Same Tree](/day6/practice_questions/same_tree)                                                        | Pair-wise recursion    | Available  |
-| [Symmetric Tree](/day6/practice_questions/symmetric_tree)                                              | Mirror recursion       | Available  |
-| [Balanced Binary Tree](/day6/practice_questions/balanced_binary_tree)                                  | Postorder + height     | Available  |
-| [Convert Sorted Array to BST](/day6/practice_questions/convert_sorted_array_to_binary_tree)            | Divide & conquer       | Available  |
+| Problem                                                                                          | Pattern                              | Status     |
+| :----------------------------------------------------------------------------------------------- | :----------------------------------- | :--------- |
+| [Same Tree](/day6/practice_questions/same_tree)                                                  | Pair-wise recursion                  | Available  |
+| [Symmetric Tree](/day6/practice_questions/symmetric_tree)                                        | Mirror recursion                     | Available  |
+| [Maximum Depth of Binary Tree](/day6/practice_questions/maximum_depth)                           | Postorder                            | Available  |
+| [Invert Binary Tree](/day6/practice_questions/invert_binary_tree)                                | Recursion + swap                     | Available  |
+| [Path Sum](/day6/practice_questions/path_sum)                                                    | Top-down recursion                   | Available  |
+| [Balanced Binary Tree](/day6/practice_questions/balanced_binary_tree)                            | Postorder + height (fused traversal) | Available  |
+| [Diameter of Binary Tree](/day6/practice_questions/diameter_of_binary_tree)                      | Postorder + accumulator              | Available  |
+
+## Medium
+
+| Problem                                                                                          | Pattern                              | Status     |
+| :----------------------------------------------------------------------------------------------- | :----------------------------------- | :--------- |
+| [Binary Tree Level Order Traversal](/day6/practice_questions/level_order_traversal)              | BFS with the snapshot trick          | Available  |
+| [Validate Binary Search Tree](/day6/practice_questions/validate_bst)                             | Inorder / bounds                     | Available  |
+| [Convert Sorted Array to BST](/day6/practice_questions/convert_sorted_array_to_binary_tree)      | Divide & conquer                     | Available  |
 
 ## More Practice (Coming Soon)
 
-| Problem                                | Pattern                    | Status        |
-| :------------------------------------- | :------------------------- | :------------ |
-| Maximum Depth of Binary Tree           | Postorder                  | Coming Soon   |
-| Invert Binary Tree                     | Recursion                  | Coming Soon   |
-| Path Sum                               | Top-down recursion         | Coming Soon   |
-| Validate Binary Search Tree            | Inorder / bounds           | Coming Soon   |
-| Lowest Common Ancestor of a BST        | Tree walk                  | Coming Soon   |
-| Binary Tree Level Order Traversal      | BFS with queue             | Coming Soon   |
-| Diameter of Binary Tree                | Postorder + accumulator    | Coming Soon   |
+| Problem                                | Pattern                            | Status        |
+| :------------------------------------- | :--------------------------------- | :------------ |
+| Lowest Common Ancestor of a BST        | Tree walk with comparisons         | Coming Soon   |
+| Lowest Common Ancestor of Binary Tree  | Postorder + flag bubbling          | Coming Soon   |
+| Construct Binary Tree from Preorder + Inorder | Divide-and-conquer + index map | Coming Soon |
+| Binary Tree Right Side View            | BFS, last of each level            | Coming Soon   |
+| Binary Tree Maximum Path Sum           | Postorder + accumulator            | Coming Soon   |
+| Kth Smallest Element in a BST          | Inorder, stop at K                  | Coming Soon   |
+| Binary Tree Zigzag Level Order         | BFS + alternating reverse           | Coming Soon   |
+| Serialize and Deserialize Binary Tree  | Preorder with null markers          | Coming Soon   |
+| Recover BST (two swapped nodes)        | Inorder + tracking violations       | Coming Soon   |
