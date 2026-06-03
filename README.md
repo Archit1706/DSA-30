@@ -1,84 +1,95 @@
-# DSA30 - Data Structures and Algorithms Learning Platform
+# DSA-30 — Data Structures and Algorithms in 30 Days
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Stars](https://img.shields.io/github/stars/Archit1706/DSA-30)](https://github.com/Archit1706/DSA-30/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/Archit1706/DSA-30)](https://github.com/Archit1706/DSA-30/network/members)
 
-Welcome to "DSA-30," your go-to platform for mastering Data Structures and Algorithms in a fun and structured way. "DSA-30" offers a 30-day self-paced learning program, providing you with a clear roadmap to becoming a DSA expert.
+**Live site:** [dsa30.vercel.app](https://dsa30.vercel.app/)
+
+DSA-30 is a 30-day, click-along crash course in Data Structures and Algorithms. Every concept page mixes prose with **live, interactive visualizations** — you push values into a heap, animate a recursion tree, step through DFS on a graph, watch a quicksort partition in real time. Every practice problem ships solutions in **C++, Python, and Java**.
+
+The goal: make DSA feel less like a textbook chore and more like something you actually want to come back to tomorrow.
 
 ![Screenshot](https://github.com/Archit1706/DSA-30/assets/75872913/822eed53-d97d-422b-a1d5-88e19bca2cdc)
 
 ## Features
 
--   📆 **30-Day Learning Program**: We've organized the entire DSA curriculum into a 30-day journey, making your learning process systematic and manageable.
+- **30-day structured curriculum** — one topic per day, designed to fit a single sit-down.
+- **Interactive components on every page** — visualizers for arrays, stacks, queues, linked lists, heaps, hash tables, trees, graphs, sorting, bits, and more, plus step-throughs for recursion, traversal, and algorithm runs.
+- **Multi-language solutions** — every practice problem includes **C++, Python, and Java** in side-by-side tabs.
+- **Difficulty badges** on every practice problem (Easy / Medium / Hard).
+- **Pattern-first writing** — solutions emphasize the *template* (hash-map + complement, fused traversal, sliding window) over rote memorization, with cross-references to the same shape in other problems.
+- **No signup, no paywall** — open the page, read it, close the tab. Bookmark a problem, skip a day.
 
--   🚀 **Interactive and Engaging**: Say goodbye to boring textbooks. "DSA-30" adds a fun twist with fun facts and funny GIFs in every chapter, keeping you engaged throughout your learning journey.
+## Curriculum (current state)
 
--   📖 **Comprehensive Content**: We've consolidated DSA materials from various sources, including LeetCode, GeeksforGeeks, and Striver's cheat sheet, into one convenient platform.
+| Day | Topic | Status |
+| --- | --- | --- |
+| 1 | Introduction to DSA & Big O | ✅ Available |
+| 2 | Arrays & Strings | ✅ Available |
+| 3 | Linked Lists (all four variants) | ✅ Available |
+| 4 | Stacks & Queues | ✅ Available |
+| 5 | Recursion (+ memoization) | ✅ Available |
+| 6 | Binary Trees & BSTs | ✅ Available |
+| 7 | Heaps & Priority Queues | ✅ Available |
+| 8 | Hash Tables & Hash Functions | ✅ Available |
+| 9 | Graphs (Basics) | ✅ Available |
+| 10 | Graph Traversal (DFS & BFS) | ✅ Available |
+| 11 | Sorting Algorithms I | ✅ Available |
+| 12 | Sorting Algorithms II | ✅ Available |
+| 13 | Searching Algorithms | 🚧 In progress |
+| 17 | Bit Manipulation | ✅ Available |
+| 14, 15, 16, 18–30 | DP, Greedy, Backtracking, Tries, Segment Trees, Union-Find, Shortest Paths, MST, Topological Sort, Sliding Window, Two Pointers, Divide & Conquer, Strings Advanced, System Design 101, Mock Interview, Victory Lap | 📋 Placeholders with topic preview |
 
--   💡 **Multiple Approaches**: For every problem, we provide solutions in both C++ and Python, so you can learn and code in your preferred language.
+## Tech Stack
 
--   🔥 **Difficulty Levels**: Problems are categorized by difficulty levels, allowing you to start with the basics and progress to advanced challenges.
-
--   ✅ **Homework Challenges**: Test your knowledge with homework challenges, complete with solutions for self-assessment.
-
-## Table of Contents
-
--   [Getting Started](#getting-started)
--   [Installation](#installation)
--   [Usage](#usage)
--   [Contributing](#contributing)
--   [License](#license)
+- **Next.js 14** (Pages Router) + **Nextra 3** docs theme
+- **React 18** + **Tailwind CSS 3**
+- All content authored in **MDX** with custom React components for interactivity
+- Static export — deployable to any static host (currently on Vercel)
 
 ## Getting Started
 
-Ready to embark on your DSA learning journey with "dsa30"? Follow these simple steps:
+Clone, install, and run the dev server:
 
-1. Clone the repository:
+```shell
+git clone https://github.com/Archit1706/DSA-30.git
+cd DSA-30
+npm install
+npm run dev
+```
 
-    ```shell
-    git clone https://github.com/Archit1706/DSA-30.git
-    ```
+Then open `http://localhost:3000`.
 
-2. Install the necessary dependencies:
+To produce a production build:
 
-    ```shell
-    cd dsa30
-    npm install
-    ```
+```shell
+npm run build
+```
 
-3. Start the development server:
-
-    ```shell
-    npm run dev
-    ```
-
-4. Access the website in your browser at `http://localhost:3000`.
+There are no tests, linters, or formatters configured — `npm run build` is the verification step after content changes.
 
 ## Installation
 
-If you prefer to run "DSA-30" locally or on your own server, follow the installation steps in the [Installation Guide](docs/installation.md).
+For a more detailed setup (custom domains, deployment notes, troubleshooting), see the [Installation Guide](docs/installation.md).
 
 ## Usage
 
-For detailed instructions on how to use "DSA-30" and make the most out of your learning experience, check out our [User Guide](docs/user-guide.md).
+For tips on navigating the curriculum and getting the most out of each chapter, see the [User Guide](docs/user-guide.md).
 
 ## Contributing
 
-We welcome contributions from the community! Whether it's fixing a bug, adding new features, or improving documentation, your help is highly appreciated. Please read our [Contribution Guidelines](CONTRIBUTING.md) to get started.
+Contributions are welcome — fixing typos, adding practice problems, building visualizers, completing the Coming-Soon chapters. See the [Contribution Guidelines](CONTRIBUTING.md) for the process.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the MIT License — see [LICENSE.md](LICENSE.md) for details.
 
 ## Acknowledgments
 
--   Special thanks to the creators of LeetCode, GeeksforGeeks, and Striver's cheat sheet for their valuable DSA resources.
-
--   Icons used in this README are provided by [FontAwesome](https://fontawesome.com/).
+- Curriculum draws on standard references including LeetCode, GeeksforGeeks, and Striver's cheat sheet.
+- Icons via [FontAwesome](https://fontawesome.com/).
 
 ---
 
-Start your journey to becoming a DSA expert with "DSA-30" today! We're excited to have you on board.
-
-**Happy Learning!** 🚀
+Start your journey to becoming a DSA expert with DSA-30 today. **Happy Learning!** 🚀
