@@ -1,0 +1,16 @@
+import { Callout } from "nextra/components";
+
+# Day 23 — Topological Sort
+
+<Callout type="info">
+    This chapter is being written. Check back soon!
+</Callout>
+
+## What you'll learn here
+
+- What it means for a graph to be a **DAG** (Directed Acyclic Graph)
+- **Kahn's algorithm** — repeatedly take a node with indegree 0, BFS-style
+- **DFS post-order** — recursive variant that's a one-liner once DFS is set up
+- Real-world applications: **build systems (make, npm), task scheduling, course prerequisites, spreadsheet recalculation**
+
+If there's any ordering at all on your dependencies, topological sort is the algorithm that finds it — and refuses to lie when one doesn't exist (cycle detection).
