@@ -1,0 +1,41 @@
+import { Callout } from "nextra/components";
+
+# DFS & BFS Practice Questions
+
+Five interview classics. Each one is "DFS or BFS plus a small twist." Recognizing which algorithm to use is half the work.
+
+<Callout type="info">
+    For each problem, before peeking at the solution, ask:
+    - **Shortest / minimum steps?** → BFS.
+    - **Count / detect / enumerate?** → DFS.
+    - **Spread from multiple starts simultaneously?** → multi-source BFS.
+
+    Most of these problems have nicknames in the interview circuit. Recognize them and the solution writes itself.
+</Callout>
+
+## Medium
+
+| Problem                                                                              | Pattern                                  | Status     |
+| :----------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Number of Islands](/day10/practice_questions/number_of_islands)                     | Grid DFS — count component starts        | Available  |
+| [Max Area of Island](/day10/practice_questions/max_area_of_island)                   | Grid DFS — aggregate during traversal    | Available  |
+| [Clone Graph](/day10/practice_questions/clone_graph)                                  | DFS / BFS + hash-map memo                | Available  |
+| [Course Schedule](/day10/practice_questions/course_schedule)                          | Directed cycle detection (DFS or BFS)    | Available  |
+
+## Hard
+
+| Problem                                                | Pattern                                  | Status     |
+| :----------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Word Ladder](/day10/practice_questions/word_ladder)   | BFS on word transformations              | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                            | Status        |
+| :------------------------------------- | :--------------------------------- | :------------ |
+| Pacific Atlantic Water Flow            | Multi-source DFS / BFS             | Coming Soon   |
+| Course Schedule II                     | Topological sort (Kahn's)          | Coming Soon   |
+| Surrounded Regions                     | Border-anchored DFS                | Coming Soon   |
+| Walls and Gates                        | Multi-source BFS                   | Coming Soon   |
+| Is Graph Bipartite?                    | BFS coloring                       | Coming Soon   |
+| Shortest Path in Binary Matrix         | BFS with 8-directional moves       | Coming Soon   |
+| Open the Lock                          | BFS on state space                 | Coming Soon   |

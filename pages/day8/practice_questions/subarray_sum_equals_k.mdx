@@ -1,0 +1,166 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Subarray Sum Equals K <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums` and an integer `k`, return the **total number of contiguous subarrays** whose elements sum to exactly `k`.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [1, 1, 1], k = 2
+    Output: 2
+    # Subarrays summing to 2: [1,1] at indices 0..1, and [1,1] at indices 1..2
+
+> Case 2:
+    Input:  nums = [1, 2, 3], k = 3
+    Output: 2
+    # [1, 2] and [3]
+
+> Case 3:
+    Input:  nums = [1, -1, 0], k = 0
+    Output: 3
+    # [1, -1], [-1, 1, 0]... wait — [1, -1, 0], [-1, 1, 0]? Let me recount: [1,-1], [0], and [1,-1,0]. Three.
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 2 · 10^4`
+- `-1000 <= nums[i] <= 1000`
+- `-10^7 <= k <= 10^7`
+
+Negative numbers ruin the simpler sliding-window approach — we can't just expand and contract because adding an element doesn't monotonically increase the sum. This is *the* problem to learn the hash-map prefix-sum trick on.
+
+#### The naïve approach
+
+For every `(i, j)` pair, sum `nums[i..j]` and check. **O(n²)** with prefix sums, O(n³) without. Too slow for n = 2·10⁴.
+
+#### The prefix-sum + hash-map trick
+
+Define `prefix[i] = nums[0] + nums[1] + ... + nums[i-1]` (with `prefix[0] = 0`).
+
+The sum of subarray `nums[i..j]` is `prefix[j+1] - prefix[i]`.
+
+So "find subarrays summing to k" becomes: **find pairs of prefix sums whose difference is k.**
+
+For each `prefix[j+1]`, we want to know how many earlier `prefix[i]` values satisfy `prefix[j+1] - prefix[i] = k` — i.e., how many earlier prefix sums equal `prefix[j+1] - k`.
+
+That's exactly what a hash map of `{prefix_value: count_of_occurrences}` answers in O(1).
+
+```text
+walk i from 0 to n-1:
+    current_sum += nums[i]
+    if current_sum - k is in the map:
+        result += map[current_sum - k]
+    map[current_sum] += 1
+```
+
+Initialize the map with `{0: 1}` — the empty prefix has sum 0, and there's one such prefix.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <vector>
+    using namespace std;
+
+    int subarraySum(vector<int>& nums, int k) {
+        unordered_map<int, int> count;
+        count[0] = 1;
+        int current = 0, result = 0;
+        for (int x : nums) {
+            current += x;
+            if (count.count(current - k)) {
+                result += count[current - k];
+            }
+            count[current]++;
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def subarray_sum(nums, k):
+        count = defaultdict(int)
+        count[0] = 1                   # empty prefix
+        current = 0
+        result = 0
+        for x in nums:
+            current += x
+            result += count[current - k]
+            count[current] += 1
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.HashMap;
+    import java.util.Map;
+
+    public int subarraySum(int[] nums, int k) {
+        Map<Integer, Integer> count = new HashMap<>();
+        count.put(0, 1);
+        int current = 0, result = 0;
+        for (int x : nums) {
+            current += x;
+            result += count.getOrDefault(current - k, 0);
+            count.merge(current, 1, Integer::sum);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Why initialize `count[0] = 1`?** Without this, you'd miss any subarray that *starts at index 0* and sums to `k`. Conceptually: before processing any element, the empty prefix has sum 0, and the subarray `nums[0..j]` matches when `prefix[j+1] = k` — i.e., when `prefix[j+1] - k = 0` is already in the map.
+</Callout>
+
+#### Walk-through on `[1, 1, 1], k = 2`
+
+```text
+init:  count = {0: 1}, current = 0, result = 0
+
+i = 0, x = 1:
+    current = 1
+    current - k = -1 → not in map
+    count = {0: 1, 1: 1}, result = 0
+
+i = 1, x = 1:
+    current = 2
+    current - k = 0 → in map with count 1, result += 1 → result = 1
+    count = {0: 1, 1: 1, 2: 1}
+
+i = 2, x = 1:
+    current = 3
+    current - k = 1 → in map with count 1, result += 1 → result = 2
+    count = {0: 1, 1: 1, 2: 1, 3: 1}
+
+answer: 2  ✓
+```
+
+#### Why prefix-sum problems are so common
+
+This trick — **storing running sums in a hash map and looking up complements** — solves a huge family of subarray-style problems:
+
+- **Subarray Sum Equals K** (this one)
+- **Continuous Subarray Sum** (multiple of k → store sum % k)
+- **Binary Subarrays with Sum**
+- **Subarray Sums Divisible by K**
+- **Count Number of Nice Subarrays**
+
+The variations only differ in what you store as the *key* (sum, sum mod k, count of odd numbers...) and what you look up as the *complement*. The hash-map pattern is identical.
+
+#### Analysis
+
+- **Time:** **O(n)** — one pass with O(1) hash-map operations per element.
+- **Space:** **O(n)** for the map (worst case: every prefix sum is unique).

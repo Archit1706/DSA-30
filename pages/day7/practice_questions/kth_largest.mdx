@@ -1,0 +1,117 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Kth Largest Element in an Array <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an integer array `nums` and an integer `k`, return the **k-th largest** element in the array. Note that it's the k-th largest in **sorted order**, not the k-th distinct.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [3, 2, 1, 5, 6, 4], k = 2
+    Output: 5
+
+> Case 2:
+    Input:  nums = [3, 2, 3, 1, 2, 4, 5, 5, 6], k = 4
+    Output: 4
+```
+
+#### Constraints
+
+- `1 <= k <= nums.length <= 10^5`
+
+#### Two heap approaches — pick your trade-off
+
+**Approach 1: Sort and pick.** Sort the array, return `nums[n - k]`. Time **O(n log n)**, space **O(1)** (or O(n) depending on the sort). Easy but wasteful — we sorted *everything* when we only needed the k-th largest.
+
+**Approach 2: Max-heap of all elements.** Heapify all `n` elements (O(n)), then pop `k` times. Time **O(n + k log n)**. Better when `k` is small.
+
+**Approach 3 (the classic trick): Size-K min-heap.** Walk the array once, maintaining a heap that contains **only the K largest elements seen so far**. When the heap exceeds size K, pop the smallest. After processing, the root is the K-th largest. Time **O(n log k)**, space **O(k)** — best when `k << n`.
+
+We'll implement approach 3 — it's the one interviewers want and it generalizes to streams of unknown length.
+
+#### Why a *min*-heap for the K *largest*?
+
+This trips everyone up the first time. The min-heap holds the **K largest values we've seen so far**, with the *smallest* of those at the top so we can quickly check "is the new value bigger than my current threshold?"
+
+- If `new > heap.top()` → the new value is bigger than the smallest of our K-best, so it deserves to be in the top K. Push it. If the heap now has K+1 elements, pop the smallest.
+- If `new <= heap.top()` → the new value isn't even bigger than our current K-th largest, so it definitely isn't in the top K. Skip it.
+
+At the end, the heap holds the K largest values, and the **root is the smallest of them — which is the K-th largest overall**.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    int findKthLargest(vector<int>& nums, int k) {
+        priority_queue<int, vector<int>, greater<int>> minHeap;  // min-heap
+        for (int x : nums) {
+            minHeap.push(x);
+            if ((int)minHeap.size() > k) minHeap.pop();
+        }
+        return minHeap.top();
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    def find_kth_largest(nums, k):
+        heap = []
+        for x in nums:
+            heapq.heappush(heap, x)
+            if len(heap) > k:
+                heapq.heappop(heap)
+        return heap[0]
+
+    # Or even shorter using the built-in nlargest:
+    # def find_kth_largest(nums, k):
+    #     return heapq.nlargest(k, nums)[-1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.PriorityQueue;
+
+    public int findKthLargest(int[] nums, int k) {
+        PriorityQueue<Integer> minHeap = new PriorityQueue<>();
+        for (int x : nums) {
+            minHeap.offer(x);
+            if (minHeap.size() > k) minHeap.poll();
+        }
+        return minHeap.peek();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this is the interview answer
+
+Three reasons it's better than just sorting:
+
+1. **It works on streams.** If `nums` is an infinite generator, you can't sort it — but the size-K heap approach keeps memory bounded and gives you the answer at every moment.
+2. **Space is O(k), not O(n).** For massive `n` and small `k` (top 10 search results out of billions), this matters.
+3. **It generalizes immediately** to *Top K Frequent*, *K Closest Points*, *K Most Similar Strings*, etc. — same template, different priority.
+
+<Callout type="info">
+    **Quickselect** gives an even faster **O(n) average** solution using a partition-based approach (no heap at all). It's better for fixed-size arrays in memory but harder to code under interview pressure and has worst-case O(n²). The heap solution is the safer choice unless you're explicitly asked for it.
+</Callout>
+
+#### Analysis
+
+| Approach            | Time            | Space  | When to use                                |
+| :------------------ | :-------------: | :----: | :----------------------------------------- |
+| Sort                | O(n log n)      | O(1)   | Small `n`, or `k` close to `n`             |
+| Heapify all + pop k | O(n + k log n)  | O(n)   | When you already have the array            |
+| **Size-K min-heap** | **O(n log k)**  | **O(k)** | **Streams, large n, small k**            |
+| Quickselect         | O(n) avg, O(n²) worst | O(1) | When you can afford the complexity      |

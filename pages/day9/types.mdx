@@ -1,0 +1,152 @@
+import { Callout } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+
+# Types of Graphs
+
+You'll meet these shapes again and again. Each one has a name, a defining property, and a set of algorithms that work especially well on it. Spot the type early and the problem usually gets simpler.
+
+## Tree
+
+A **tree** is a connected, undirected, acyclic graph. n nodes, exactly n−1 edges.
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "D"], ["B", "E"]]}
+    title="A tree — connected, no cycles"
+/>
+
+We covered trees on [Day 6](/day6). Almost every tree algorithm (DFS for traversal, finding height, etc.) generalizes to graphs with one addition: a **visited** set to prevent revisiting nodes when there *are* cycles.
+
+## DAG — Directed Acyclic Graph
+
+A **DAG** is a directed graph with no cycles. You can never get back to where you started by following arrows.
+
+<GraphVisualizer
+    nodes={["build", "test", "package", "deploy", "notify"]}
+    edges={[["build", "test"], ["build", "package"], ["test", "deploy"], ["package", "deploy"], ["deploy", "notify"]]}
+    directed={true}
+    title="A DAG of CI/CD steps — every arrow goes forward in time"
+/>
+
+DAGs are everywhere in real software:
+
+- **Build systems** — Make, Bazel, npm scripts: do A before B if B depends on A.
+- **Course prerequisites** — finish *Calc I* before *Calc II*.
+- **Spreadsheet recalculation** — cells depend on other cells; recompute in dependency order.
+- **Version control history** — commits depend on their parents.
+- **Task scheduling** — pipelines and DAG schedulers like Airflow.
+
+The killer algorithm for DAGs is **topological sort** — produce a linear ordering of nodes such that every edge points forward. We'll cover it on [Day 23](/day23).
+
+<Callout type="info">
+    **Useful theorem:** a directed graph has a topological order *iff* it's a DAG. Cycle ⇔ no valid ordering. So topological sort is also a clean way to **detect cycles** in a directed graph.
+</Callout>
+
+## Bipartite Graph
+
+A graph is **bipartite** if its nodes split into two groups, **and every edge goes between groups, never within**.
+
+<GraphVisualizer
+    nodes={["S1", "S2", "S3", "C1", "C2"]}
+    edges={[["S1", "C1"], ["S1", "C2"], ["S2", "C1"], ["S3", "C2"]]}
+    layout={[
+        { x: 60, y: 60 },
+        { x: 60, y: 130 },
+        { x: 60, y: 200 },
+        { x: 260, y: 90 },
+        { x: 260, y: 170 },
+    ]}
+    title="Bipartite: students (left) and courses (right)"
+/>
+
+Examples that show up constantly:
+
+- **Job applicants ↔ jobs** ("find the best matching")
+- **Students ↔ courses**
+- **Users ↔ products** (recommendation graphs)
+- **Servers ↔ tasks** (load balancing)
+- **Items in two halves of a divide-and-conquer**
+
+The defining test: a graph is bipartite iff you can **2-color** the nodes (red and blue) such that every edge connects a red to a blue. Equivalently: it has no **odd-length cycles**. Both tests can be checked with a simple BFS coloring, and you'll see that on [Day 10](/day10).
+
+Bipartite graphs unlock specialized algorithms like **Hopcroft-Karp** for maximum matching — used in everything from kidney-donor matching to ad auctions.
+
+## Weighted Graph
+
+Each edge carries a number — a cost, distance, capacity, probability. The "weight" can mean almost anything depending on context.
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "D"], ["C", "D"], ["B", "C"]]}
+    weighted={true}
+    weights={{ "A-B": 4, "A-C": 2, "B-D": 5, "C-D": 8, "B-C": 1 }}
+    title="A weighted undirected graph"
+/>
+
+Algorithms that need weights:
+
+- **Dijkstra's / A\*** — shortest path with non-negative weights ([Day 21](/day21))
+- **Bellman-Ford** — shortest path that tolerates negative weights
+- **Floyd-Warshall** — all-pairs shortest path
+- **Prim's / Kruskal's** — minimum spanning tree ([Day 22](/day22))
+
+<Callout type="warning">
+    **Negative weights matter.** Dijkstra's algorithm — the workhorse — *breaks* if any edge has a negative weight. You need Bellman-Ford instead, at higher cost. Always check the problem statement for "negative weights allowed."
+</Callout>
+
+## Connected Components
+
+In undirected graphs, the graph **partitions** into one or more groups of mutually reachable nodes. Each group is a **connected component**.
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E", "F"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "C"], ["D", "E"]]}
+    title="3 connected components: {A,B,C}, {D,E}, {F}"
+/>
+
+Counting components is a one-liner with DFS or BFS — visit each unvisited node and traverse from it. Number of traversals = number of components.
+
+For directed graphs, this generalizes to:
+
+- **Weakly connected components** — replace each arrow with an undirected edge, then count components.
+- **Strongly connected components (SCCs)** — every node reaches every other node *via directed edges*. Computed with Tarjan's or Kosaraju's algorithm in O(V + E).
+
+## Complete Graph
+
+A **complete graph** has an edge between every pair of distinct nodes. Notation: `K_n` is the complete graph on n vertices. Has `n(n-1)/2` edges in the undirected case.
+
+```text
+K_4:        K_5 has 10 edges, K_6 has 15...
+   A
+  /|\
+ B-+-C
+  \|/
+   D
+```
+
+Useful for worst-case analysis ("what if my graph is *that* dense?") and as a benchmark. Rarely appears in real problems — but if your input *is* complete, an adjacency matrix is almost certainly the right representation.
+
+## Self-loop & Multigraph
+
+- **Self-loop** — an edge from a node to itself.
+- **Multigraph** — two or more edges between the same pair of nodes.
+
+```text
+self-loop:      multigraph:
+    A               A=B  (two edges)
+    ↺              A—B
+                    A—B
+```
+
+Most algorithms quietly assume neither exists. Always check.
+
+## A small decision tree
+
+If you remember nothing else from this page, remember this triage:
+
+> **Directed?** If yes → check for cycles (DAG?) and consider topological order.
+> **Weighted?** If yes → weighted-graph algorithms (Dijkstra, MST).
+> **Bipartite?** If yes → coloring or matching algorithms.
+> **Otherwise** → it's a generic graph, reach for BFS/DFS.
+
+That's the mental quick-look you'll do at the start of every graph problem from now on. Next: practice exercising the model, before we add the actual traversal algorithms on Day 10.

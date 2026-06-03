@@ -2,18 +2,39 @@ import { Callout } from "nextra/components";
 
 # Day 9 — Graphs (Basics)
 
+A **graph** is the most general data structure in our toolbox. Linked lists, trees, grids — they're all graphs with extra rules. So is the road network you used to get here, the social network you scroll on, the dependency graph npm grumbles about, and the citation network of every research paper ever written.
+
+Today is foundation day. We won't solve a hundred problems — we'll learn the **vocabulary** and the **two representations** that 95% of graph code uses. That's enough to unlock the rest of the course.
+
+## What you'll learn today
+
+- What a **graph** actually is — vertices and edges, and the four big design choices (directed vs undirected, weighted vs unweighted)
+- The vocabulary: **degree, path, cycle, connected component, DAG, bipartite**
+- The two universal **representations**: **adjacency list** and **adjacency matrix** — when each wins
+- Special graph shapes you'll meet again: **trees, DAGs, bipartite graphs**
+- Three warm-up problems that exercise the model without any traversal yet
+
+## Why graphs are the master template
+
+A huge fraction of "real algorithm problems" are graph problems in disguise. Once you can spot the graph hiding inside a problem statement, the rest is choosing the right traversal.
+
+- **Social network** — "people who liked the same posts" → bipartite graph between people and posts.
+- **Word ladder** — words become nodes, edges connect words that differ by one letter. Shortest path = BFS.
+- **Course prerequisites** — courses are nodes, "must finish A before B" is a directed edge. "Can I graduate?" = topological sort.
+- **Pathfinding in a maze** — every cell is a node, neighbours are edges. BFS or A*.
+- **State machines** — states are nodes, transitions are edges. "Can I reach state X from state A?" = reachability.
+
+You'll meet all of these (and many more) in later chapters. **Today we lay the groundwork.**
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    Day 6 already taught you about **trees** — and a tree is just a special kind of graph: connected, undirected, no cycles. Most tree algorithms generalize naturally to graphs once you add a "visited" set to prevent re-visiting. We'll see exactly that on [Day 10 — DFS & BFS](/day10).
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- What a **graph** is, and the difference between **directed / undirected** and **weighted / unweighted**
-- The vocabulary: **vertices, edges, degree, path, cycle, connected component, DAG**
-- Two ways to represent a graph in code: **adjacency list** vs **adjacency matrix** — and when each one wins
-- Special graph shapes: **trees, DAGs, bipartite graphs, complete graphs**
-- Building a graph in C++/Python/Java and printing its structure
+1. **[Introduction](/day9/introduction)** — definitions, terminology, the four design choices that shape every graph.
+2. **[Representing Graphs](/day9/representation)** — adjacency list vs adjacency matrix, the code in C++/Python/Java, and when each wins.
+3. **[Types of Graphs](/day9/types)** — DAGs, trees, bipartite graphs, complete graphs, weighted graphs, and what each one is good for.
+4. **[Practice Questions](/day9/practice_questions)** — three model-only problems to lock in the representation before we start traversing on Day 10.
 
-This is the foundation chapter. [Day 10](/day10) covers DFS and BFS — the two universal graph traversal algorithms. [Day 21](/day21) covers shortest paths. [Day 22](/day22) covers MSTs. [Day 23](/day23) covers topological sort. All of them assume you've built the mental model that this chapter lays down.
-
-Graphs are everywhere once you start looking: social networks, road maps, web pages and links, dependencies between software modules, electrical circuits, biology networks. Half of "real-world algorithm problems" reduce to a graph problem in disguise.
+Coming up next on **[Day 10](/day10)** — the two universal graph algorithms: **DFS** and **BFS**. Once you have both, you've unlocked the door to shortest paths, cycle detection, connected components, topological sort, and most of the graph practice problems on the internet.

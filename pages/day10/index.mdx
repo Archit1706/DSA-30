@@ -1,22 +1,33 @@
 import { Callout } from "nextra/components";
 
-# Day 10 — Graph Traversal (BFS and DFS)
+# Day 10 — Graph Traversal (DFS & BFS)
+
+Two algorithms. That's all you really need to navigate any graph: **DFS** (go deep) and **BFS** (go wide). Everything more complicated — shortest paths, cycle detection, topological sort, connected components, bipartite check — is one of these two with a small tweak.
+
+If [Day 9](/day9) was about the *model*, today is about the *motion*. We give the graph a starting node and watch the algorithm walk it.
+
+## What you'll learn today
+
+- **DFS** — go as deep as possible along one path, then backtrack. The recursive sibling of tree traversal.
+- **BFS** — explore layer by layer using a queue. The natural fit for "shortest path on an unweighted graph."
+- The **visited set** pattern that turns infinite loops into termination on graphs with cycles.
+- The mental rule for picking **DFS vs BFS** based on the question.
+- Five interview classics: Number of Islands, Clone Graph, Course Schedule, Pacific Atlantic, Word Ladder.
+
+## You've already seen both — in disguise
+
+- **DFS = recursion on graphs.** [Day 5](/day5) was DFS on call-stack frames. The tree-traversal problems on [Day 6](/day6) (Same Tree, Symmetric Tree, Balanced Tree) were DFS in miniature — the only difference is trees can't loop back, so we didn't need a visited set.
+- **BFS = the [queue from Day 4](/day4/queues)** processing nodes one layer at a time. The [Rotting Oranges](/day4/queues/practice_questions/rotting_oranges) practice problem you solved was multi-source BFS.
+
+Today is the moment those two concepts get their proper names and become the building blocks of an entire chapter of algorithms.
+
+## Roadmap
+
+1. **[DFS](/day10/dfs)** — recursive and iterative templates, visited tracking, on grids vs adjacency lists, two complete walkthroughs.
+2. **[BFS](/day10/bfs)** — queue-based template, level-by-level processing, shortest-path-on-unweighted-graphs trick.
+3. **[DFS vs BFS](/day10/when_to_use)** — the decision guide: which to reach for given the question.
+4. **[Practice Questions](/day10/practice_questions)** — five interview classics covering both algorithms across grid, graph, and word problems.
 
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    A single observation makes the rest of graph algorithms feel easy: **DFS and BFS visit every node and every edge once, in O(V + E) total**. Both. Always. Whatever fancy thing you're computing — components, distances, ordering — you're doing it inside that O(V + E) walk. Everything else is just *what you store* during the walk.
 </Callout>
-
-## What you'll learn here
-
-- **Depth-First Search (DFS)** — go as deep as possible, then backtrack. The recursive cousin of trees and the foundation of cycle detection, topological sort, and connected components.
-- **Breadth-First Search (BFS)** — explore layer by layer using a queue. The natural fit for **shortest path on unweighted graphs** and "spread outward" problems.
-- The **visited set** pattern that turns infinite loops into termination
-- How DFS and BFS differ on the same graph — and why each is right for different problem shapes
-- Real applications: **connected components, bipartite check, maze solving, web crawling, flood fill, social network distances**
-
-You've already seen both in disguise:
-
-- DFS = the call stack from [Day 5 — Recursion](/day5) applied to graph nodes
-- BFS = the [queue from Day 4](/day4/queues) processing nodes one layer at a time, as in [Rotting Oranges](/day4/queues/practice_questions/rotting_oranges)
-
-This chapter formalizes both into the universal templates you'll use for the rest of the course — and for every graph problem you'll ever see in an interview.

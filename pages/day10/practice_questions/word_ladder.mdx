@@ -1,0 +1,211 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Word Ladder <DifficultyBadge level="hard" />
+
+#### Description
+
+Given two words `beginWord` and `endWord`, and a `wordList`, return the **length of the shortest transformation sequence** from `beginWord` to `endWord` such that:
+
+1. Only **one letter** can be changed at a time.
+2. Every transformed word must exist in the `wordList`.
+
+Return `0` if no such sequence exists. (The length counts both endpoints — `hit → hot → dot → dog → cog` has length 5.)
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  beginWord = "hit"
+            endWord   = "cog"
+            wordList  = ["hot", "dot", "dog", "lot", "log", "cog"]
+    Output: 5
+    # hit → hot → dot → dog → cog (length 5)
+
+> Case 2:
+    Input:  beginWord = "hit"
+            endWord   = "cog"
+            wordList  = ["hot", "dot", "dog", "lot", "log"]
+    Output: 0
+    # "cog" not in wordList → no valid sequence
+```
+
+#### Constraints
+
+- `1 <= beginWord.length <= 10`
+- `endWord.length == beginWord.length`
+- `1 <= wordList.length <= 5000`
+- All words are lowercase English letters.
+
+#### Recognizing the graph
+
+The trick is to *see* the graph:
+
+- Each word is a **node**.
+- Two words are connected by an **edge** if they differ by exactly one letter.
+- The problem asks for the **shortest path** from `beginWord` to `endWord`.
+
+**"Shortest path on an unweighted graph" — that's BFS.**
+
+#### The naive way to build the graph
+
+For every pair of words, check if they differ by one letter. That's O(W² · L) where W = word count, L = word length. For W = 5000, L = 10, that's 250 million operations. Slow.
+
+#### The clever way: pattern keys
+
+For each word, generate "patterns" by replacing each character with `*`:
+
+```text
+"hot" → ["*ot", "h*t", "ho*"]
+"dot" → ["*ot", "d*t", "do*"]
+"dog" → ["*og", "d*g", "do*"]
+```
+
+Two words are neighbours iff they share at least one pattern. Build a `Map<pattern, [words]>` in O(W · L²) time, then look up neighbours in O(L) per word.
+
+For W = 5000, L = 10, this is 500,000 operations. **500× faster.**
+
+#### Code (BFS with pattern keys)
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import defaultdict, deque
+
+    def ladder_length(beginWord, endWord, wordList):
+        wordSet = set(wordList)
+        if endWord not in wordSet:
+            return 0
+
+        L = len(beginWord)
+        patterns = defaultdict(list)             # pattern -> words matching it
+        for w in wordSet:
+            for i in range(L):
+                patterns[w[:i] + '*' + w[i+1:]].append(w)
+
+        visited = {beginWord}
+        queue = deque([(beginWord, 1)])
+        while queue:
+            word, steps = queue.popleft()
+            if word == endWord:
+                return steps
+            for i in range(L):
+                key = word[:i] + '*' + word[i+1:]
+                for nei in patterns[key]:
+                    if nei not in visited:
+                        visited.add(nei)
+                        queue.append((nei, steps + 1))
+                patterns[key] = []               # avoid revisiting this pattern
+        return 0
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <unordered_map>
+    #include <unordered_set>
+    #include <vector>
+    #include <string>
+    using namespace std;
+
+    int ladderLength(string beginWord, string endWord, vector<string>& wordList) {
+        unordered_set<string> wordSet(wordList.begin(), wordList.end());
+        if (!wordSet.count(endWord)) return 0;
+
+        int L = beginWord.size();
+        unordered_map<string, vector<string>> patterns;
+        for (auto& w : wordSet) {
+            for (int i = 0; i < L; i++) {
+                string key = w.substr(0, i) + '*' + w.substr(i + 1);
+                patterns[key].push_back(w);
+            }
+        }
+
+        unordered_set<string> visited{beginWord};
+        queue<pair<string, int>> q;
+        q.push({beginWord, 1});
+        while (!q.empty()) {
+            auto [word, steps] = q.front(); q.pop();
+            if (word == endWord) return steps;
+            for (int i = 0; i < L; i++) {
+                string key = word.substr(0, i) + '*' + word.substr(i + 1);
+                for (auto& nei : patterns[key]) {
+                    if (!visited.count(nei)) {
+                        visited.insert(nei);
+                        q.push({nei, steps + 1});
+                    }
+                }
+                patterns[key].clear();
+            }
+        }
+        return 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public int ladderLength(String beginWord, String endWord, List<String> wordList) {
+        Set<String> wordSet = new HashSet<>(wordList);
+        if (!wordSet.contains(endWord)) return 0;
+
+        int L = beginWord.length();
+        Map<String, List<String>> patterns = new HashMap<>();
+        for (String w : wordSet) {
+            for (int i = 0; i < L; i++) {
+                String key = w.substring(0, i) + '*' + w.substring(i + 1);
+                patterns.computeIfAbsent(key, k -> new ArrayList<>()).add(w);
+            }
+        }
+
+        Set<String> visited = new HashSet<>();
+        visited.add(beginWord);
+        Deque<Map.Entry<String, Integer>> q = new ArrayDeque<>();
+        q.offer(Map.entry(beginWord, 1));
+        while (!q.isEmpty()) {
+            var cur = q.poll();
+            String word = cur.getKey();
+            int steps = cur.getValue();
+            if (word.equals(endWord)) return steps;
+            for (int i = 0; i < L; i++) {
+                String key = word.substring(0, i) + '*' + word.substring(i + 1);
+                for (String nei : patterns.getOrDefault(key, Collections.emptyList())) {
+                    if (visited.add(nei)) q.offer(Map.entry(nei, steps + 1));
+                }
+                patterns.put(key, Collections.emptyList());      // avoid revisiting
+            }
+        }
+        return 0;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why clearing `patterns[key]` after use?** Once we've processed every word for a given pattern, we never need that pattern again — the visited set will reject those words on future visits anyway. Clearing the list avoids re-scanning it, a small but worthwhile optimization.
+</Callout>
+
+#### The bigger trick: bidirectional BFS
+
+For very large word lists, **bidirectional BFS** halves the search depth: explore simultaneously from `beginWord` *and* `endWord`, alternating the smaller frontier each step. The two searches meet somewhere in the middle.
+
+If standard BFS explores `O(b^d)` nodes (branching factor `b`, distance `d`), bidirectional BFS does `O(2 · b^(d/2))` — exponentially less for large `d`. It's the same principle that makes meet-in-the-middle algorithms so powerful.
+
+We won't implement it here — but if your interviewer says "the input could be huge," that's the magic phrase.
+
+#### Why this problem is the canonical BFS interview question
+
+It's the perfect test of recognizing a graph hidden in non-graph language:
+
+- The problem says "transform words by changing letters."
+- The candidate has to recognize: *that's just edges. Words are nodes. This is a graph.*
+- And then: *"shortest sequence" + each step costs 1 = BFS.*
+
+Spot both leaps and the implementation is mechanical.
+
+#### Analysis
+
+- **Time:** **O(W · L²)** to build patterns + **O(W · L²)** for BFS (each word is visited once, generating L patterns of length L). Net: O(W · L²).
+- **Space:** **O(W · L²)** for the pattern map plus O(W) for visited.

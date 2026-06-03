@@ -1,0 +1,180 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Substring Without Repeating Characters <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s`, find the length of the **longest substring** without repeating characters.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  s = "abcabcbb"
+    Output: 3      # "abc" is the longest
+
+> Case 2:
+    Input:  s = "bbbbb"
+    Output: 1      # "b"
+
+> Case 3:
+    Input:  s = "pwwkew"
+    Output: 3      # "wke" — note: "pwke" is a subsequence, not a substring
+```
+
+#### Constraints
+
+- `0 <= s.length <= 5 · 10^4`
+- `s` consists of English letters, digits, symbols, and spaces.
+
+#### Naive vs. sliding window
+
+**Naive:** check every substring for the no-repeat property. There are O(n²) substrings and checking each takes O(n). **O(n³)** — embarrassing.
+
+**Sliding window with a hash set:** maintain a window `[l, r]` that always contains distinct characters. Expand `r` to the right. If `s[r]` is already in the window, shrink from the left until it's removed.
+
+That's O(n) amortized — each character enters and exits the window once.
+
+**Sliding window with a *last-seen* hash map:** even slicker. Instead of shrinking one character at a time, **jump** the left pointer past the previous occurrence of `s[r]`. This skips work.
+
+We'll show both; the second is the canonical interview answer.
+
+#### Approach 1: sliding window with a set
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        seen = set()
+        l = 0
+        best = 0
+        for r in range(len(s)):
+            while s[r] in seen:
+                seen.remove(s[l])
+                l += 1
+            seen.add(s[r])
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <string>
+    #include <unordered_set>
+    using namespace std;
+
+    int lengthOfLongestSubstring(string s) {
+        unordered_set<char> seen;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            while (seen.count(s[r])) {
+                seen.erase(s[l++]);
+            }
+            seen.insert(s[r]);
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.HashSet;
+    import java.util.Set;
+
+    public int lengthOfLongestSubstring(String s) {
+        Set<Character> seen = new HashSet<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            while (seen.contains(s.charAt(r))) {
+                seen.remove(s.charAt(l++));
+            }
+            seen.add(s.charAt(r));
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Both pointers move forward only — total work is O(n).
+
+#### Approach 2: hash map of last-seen index (jump optimization)
+
+The set approach removes characters one at a time. If `s[r]` was seen at index 5 and `l` is currently 0, we have to remove 6 characters one by one. With a `{char: last_index}` map we can jump `l` directly past index 5.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        last = {}              # char -> most recent index
+        l = 0
+        best = 0
+        for r, c in enumerate(s):
+            if c in last and last[c] >= l:
+                l = last[c] + 1        # jump past the previous occurrence
+            last[c] = r
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstring(string s) {
+        unordered_map<char, int> last;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            auto it = last.find(s[r]);
+            if (it != last.end() && it->second >= l) {
+                l = it->second + 1;
+            }
+            last[s[r]] = r;
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.HashMap;
+    import java.util.Map;
+
+    public int lengthOfLongestSubstring(String s) {
+        Map<Character, Integer> last = new HashMap<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            char c = s.charAt(r);
+            if (last.containsKey(c) && last.get(c) >= l) {
+                l = last.get(c) + 1;
+            }
+            last.put(c, r);
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The `last[c] >= l` guard matters.** A character might be in the map *but* outside the current window (already left behind by a previous jump). Without the check, you'd incorrectly retreat `l`. The map records *every* last-seen index, even those before `l`.
+</Callout>
+
+#### Why both versions are O(n)
+
+In the set version, each character is added to the set once and removed once — 2n operations total.
+
+In the jump version, each iteration is O(1) — we never look backward, just possibly jump `l` forward. n iterations × O(1) = O(n).
+
+Both are optimal; the jump version is faster in practice because it avoids the inner while-loop.
+
+#### Analysis
+
+- **Time:** **O(n)** — each character processed once.
+- **Space:** **O(min(n, |Σ|))** — bounded by the alphabet size in the worst case, never more than n.
+
+This problem is the **sliding window template's** entry point. Once you have it, the same shape solves [Longest Substring with At Most K Distinct Characters](https://leetcode.com/problems/longest-substring-with-at-most-k-distinct-characters/), [Permutation in String](https://leetcode.com/problems/permutation-in-string/), [Find All Anagrams in a String](https://leetcode.com/problems/find-all-anagrams-in-a-string/), and dozens of similar problems we'll see on [Day 24 — Sliding Window](/day24).

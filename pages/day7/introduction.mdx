@@ -1,0 +1,132 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { HeapVisualizer, InteractiveHeap } from "../../components/HeapVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Introduction to Heaps
+
+A **heap** is a special kind of binary tree with one rule: the parent of every node is "smaller than" (or "larger than") all of its children. That single rule — applied recursively all the way down — gives us instant access to the smallest (or largest) element in the entire structure.
+
+## The two flavors
+
+There are exactly two kinds of binary heap:
+
+- **Min-heap** — every parent is ≤ both of its children. The smallest element sits at the **root**.
+- **Max-heap** — every parent is ≥ both of its children. The largest element sits at the **root**.
+
+That's the **heap property**, and it's the only invariant we maintain.
+
+<HeapVisualizer
+    initialHeap={[1, 3, 5, 7, 9, 8, 6]}
+    kind="min"
+    title="A valid min-heap: every parent ≤ both children"
+/>
+
+<HeapVisualizer
+    initialHeap={[50, 30, 40, 10, 20, 35, 25]}
+    kind="max"
+    title="A valid max-heap: every parent ≥ both children"
+/>
+
+<Callout type="info">
+    Notice what a heap is **not**: a sorted list. The values at the same level aren't ordered against each other, and the left subtree isn't related to the right subtree. The only guarantee is the parent-child relationship. That's enough.
+</Callout>
+
+## The shape rule: a complete binary tree
+
+A heap is always a **complete binary tree** — every level is fully filled except possibly the last, and the last level is filled from left to right. No gaps in the middle.
+
+```text
+       1                      1                       1
+      / \                    / \                     / \
+     3   5                  3   5                   3   5
+    / \                    / \  /                  / \   \
+   7   9                  7   9 8                 7   9   6   ← gap! NOT valid
+   ✓ complete            ✓ complete              ✗ not a heap shape
+```
+
+That shape rule is *crucial*. It's what makes the array storage trick work.
+
+## The array trick
+
+Here's the part that makes heaps fast and beautiful. Even though a heap is conceptually a tree, we store it in a **plain array** — no pointers, no node objects.
+
+For a node at index `i`:
+
+| Relationship  | Formula           |
+| :------------ | :---------------- |
+| **Parent**    | `(i - 1) / 2`     |
+| **Left child** | `2 * i + 1`      |
+| **Right child** | `2 * i + 2`     |
+
+That's it. No allocations. No pointers to chase. Just integer arithmetic.
+
+<HeapVisualizer
+    initialHeap={[1, 3, 5, 7, 9, 8, 6]}
+    kind="min"
+    title="Same heap, two views: tree on the left, array on the right"
+/>
+
+The tree and the array represent **exactly the same data**. Index 0 is the root. Indices 1–2 are the next level. Indices 3–6 are the level after that. Doubling capacity gives you another level.
+
+<Callout type="info">
+    **Why this is fast:** array access is O(1). Computing `2*i+1` is one CPU instruction. Compare that to following a pointer through scattered memory — heap operations get to live in L1 cache and never miss.
+</Callout>
+
+## What heaps are good at — and what they're not
+
+Heaps are an **incredibly specialized** structure. They're not a replacement for arrays, lists, or BSTs. They have exactly one trick:
+
+| Operation                          | Time      |
+| :--------------------------------- | :-------: |
+| **Get min/max** (peek)             | **O(1)**  |
+| **Remove min/max** (pop)           | **O(log n)** |
+| **Add an element** (push)          | **O(log n)** |
+| **Build heap from array** (heapify) | **O(n)** ‼️ |
+| Search for arbitrary element       | O(n)      |
+| Sort (read out one at a time)      | O(n log n) |
+
+If your problem starts with the words "find the K largest" or "what's the next event by time" or "give me the smallest unprocessed item", a heap is almost certainly the right tool. If you need to look up arbitrary elements or maintain a fully sorted view, use something else (BST, sorted array, hash map).
+
+## When you'd reach for a heap
+
+A few real applications, just to plant the pattern:
+
+- **Dijkstra's shortest-path algorithm** — always process the closest unvisited node next. Pop from a min-heap.
+- **A\* pathfinding** — same as Dijkstra, but the priority is `g + h`.
+- **Huffman coding** — repeatedly merge the two least-frequent symbols. Pop, pop, push.
+- **Top-K problems** — keep a heap of size K; everything bigger (or smaller) than the root gets in.
+- **Event-driven simulation** — process events in chronological order. Push events as they're scheduled; pop to handle.
+- **Scheduling and task queues** — execute the highest-priority job next.
+- **Median maintenance** — keep two heaps (max-heap below, min-heap above) and the median sits at one of the tops.
+
+That list is *most* of competitive programming. Heaps earn their keep.
+
+## Try it
+
+Push values, pop them, switch between min and max — watch how the tree rearranges to keep the heap property. Hit **Shuffle** to get a random array, then **Heapify** to see the O(n) build in action.
+
+<InteractiveHeap initialHeap={[10, 20, 15, 30, 40, 25]} />
+
+## Quick check
+
+<QuizBox
+    question="In a min-heap stored as an array, where is the smallest element?"
+    options={[
+        "At index n-1 (the end)",
+        "At index 0 (the root)",
+        "It depends on insertion order",
+        "Somewhere in the middle"
+    ]}
+    correctIndex={1}
+    explanation="The defining property of a min-heap is that every parent is smaller than its children. Apply that recursively up to the root, and the root is necessarily the smallest element. Since we store the heap as an array with the root at index 0, the smallest element is always at index 0."
+/>
+
+<QuizBox
+    question="If a node is at index 5 in a heap array, where is its parent?"
+    options={["index 2", "index 3", "index 10", "index 11"]}
+    correctIndex={0}
+    explanation="The parent of index i is at (i - 1) / 2. For i = 5: (5 - 1) / 2 = 2. So index 2 is the parent. Its children would be at 2*2+1 = 5 and 2*2+2 = 6 — confirming index 5 is one of index 2's children."
+/>
+
+Got the mental model? Next: how to actually implement the four core operations.

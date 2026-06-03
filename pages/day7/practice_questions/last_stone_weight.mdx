@@ -1,0 +1,115 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Last Stone Weight <DifficultyBadge level="easy" />
+
+#### Description
+
+You're given an array of positive integers `stones` representing weights. Each turn:
+
+1. Pick the **two heaviest** stones, call them `x` and `y` with `y >= x`.
+2. **Smash them together**:
+   - If `x == y`, both are destroyed.
+   - If `x != y`, `x` is destroyed and `y` becomes `y - x`.
+3. Repeat until at most one stone remains.
+
+Return the weight of the last stone, or `0` if the pile is empty.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  stones = [2, 7, 4, 1, 8, 1]
+    Output: 1
+    # 8,7 → 1; pile becomes [2, 4, 1, 1, 1]
+    # 4,2 → 2; pile becomes [2, 1, 1, 1]
+    # 2,1 → 1; pile becomes [1, 1, 1]
+    # 1,1 → 0; pile becomes [1]
+    # Last stone = 1
+
+> Case 2:
+    Input:  stones = [1]
+    Output: 1
+```
+
+#### Constraints
+
+- `1 <= stones.length <= 30`
+- `1 <= stones[i] <= 1000`
+
+#### Intuition
+
+We need the **two heaviest stones** repeatedly. That's exactly what a **max-heap** is for.
+
+- `peek` gives us the biggest in O(1).
+- `pop` removes and returns it in O(log n).
+- `push` adds the difference back in O(log n).
+
+Repeat until the heap has at most one element. We get the answer in **O(n log n)**.
+
+The alternative — sorting after every smash — is O(n² log n). The heap pays for itself the moment `n` grows.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    int lastStoneWeight(vector<int>& stones) {
+        priority_queue<int> pq(stones.begin(), stones.end());   // max-heap, O(n)
+        while (pq.size() > 1) {
+            int y = pq.top(); pq.pop();
+            int x = pq.top(); pq.pop();
+            if (y != x) pq.push(y - x);
+        }
+        return pq.empty() ? 0 : pq.top();
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    def last_stone_weight(stones):
+        # Python's heapq is min-heap; negate for max-heap behavior.
+        heap = [-s for s in stones]
+        heapq.heapify(heap)
+        while len(heap) > 1:
+            y = -heapq.heappop(heap)
+            x = -heapq.heappop(heap)
+            if y != x:
+                heapq.heappush(heap, -(y - x))
+        return -heap[0] if heap else 0
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.PriorityQueue;
+    import java.util.Comparator;
+
+    public int lastStoneWeight(int[] stones) {
+        PriorityQueue<Integer> pq = new PriorityQueue<>(Comparator.reverseOrder());
+        for (int s : stones) pq.offer(s);
+        while (pq.size() > 1) {
+            int y = pq.poll();
+            int x = pq.poll();
+            if (y != x) pq.offer(y - x);
+        }
+        return pq.isEmpty() ? 0 : pq.peek();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The Python negation trick** is unavoidable because `heapq` only does min-heaps. Negate everything going in, negate everything coming out — the *order* between negated values is the reverse of the original, so the smallest negative is the most positive original.
+</Callout>
+
+#### Analysis
+
+- **Time:** **O(n log n)** — at most `n` rounds, each doing constant heap operations of O(log n). Initial heapify is O(n).
+- **Space:** **O(n)** for the heap.

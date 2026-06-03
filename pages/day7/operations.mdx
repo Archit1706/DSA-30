@@ -1,0 +1,345 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { HeapVisualizer } from "../../components/HeapVisualizer";
+export const Tab = Tabs.Tab;
+
+# Heap Operations
+
+A binary heap has four operations worth memorizing. All of them are short — under ten lines of real code — and they all rely on two helper routines: **sift-up** and **sift-down**. Once you have those two, everything else falls out.
+
+We'll build a **min-heap** throughout this page. Swap every `<` for `>` and you have a max-heap; the structure is identical.
+
+## The two primitives: sift-up and sift-down
+
+When we mess with the heap (insert at the end, replace the root), we temporarily violate the heap property at one node. We then "sift" that bad node up or down until the property is restored.
+
+### Sift-up
+
+Used after we add a new element at the end of the array. Compare the new element to its parent; if it's smaller, swap; repeat until you stop being smaller (or you reach the root).
+
+```text
+sift_up(i):
+    while i > 0 and heap[i] < heap[parent(i)]:
+        swap heap[i] and heap[parent(i)]
+        i = parent(i)
+```
+
+At most **O(log n)** swaps — that's the height of the tree.
+
+### Sift-down
+
+Used after we replace the root. Compare the bad node to both children; if it's larger than the smaller child, swap with that child; repeat.
+
+```text
+sift_down(i):
+    while True:
+        l = 2*i + 1, r = 2*i + 2
+        smallest = i
+        if l < n and heap[l] < heap[smallest]: smallest = l
+        if r < n and heap[r] < heap[smallest]: smallest = r
+        if smallest == i: return
+        swap heap[i] and heap[smallest]
+        i = smallest
+```
+
+Also **O(log n)**. Crucially: we always compare against **both** children and swap with the *smaller* one. Swapping with the wrong child can re-break the heap property.
+
+<Callout type="warning">
+    The single most common bug in heap code: only checking one child in sift-down. If the right child is smaller than both the node and the left child, but you only swap with the left, the heap is now corrupted. Always check both.
+</Callout>
+
+## 1. Push (insert)
+
+Stick the new element at the **end** of the array, then sift it up.
+
+<Steps>
+
+### The algorithm
+
+```text
+push(val):
+    heap.append(val)         // append at the bottom-right of the tree
+    sift_up(len(heap) - 1)   // restore heap property upward
+```
+
+### The intuition
+
+Adding at the end keeps the **complete-tree shape**: we extend the last level (or start a new one) from the left. The shape is fine. Now we just need to bubble up if the new value is smaller than its parent.
+
+### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    using namespace std;
+
+    class MinHeap {
+        vector<int> heap;
+
+        void siftUp(int i) {
+            while (i > 0) {
+                int p = (i - 1) / 2;
+                if (heap[i] >= heap[p]) break;
+                swap(heap[i], heap[p]);
+                i = p;
+            }
+        }
+    public:
+        void push(int val) {
+            heap.push_back(val);
+            siftUp(heap.size() - 1);
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class MinHeap:
+        def __init__(self):
+            self.heap = []
+
+        def _sift_up(self, i):
+            while i > 0:
+                p = (i - 1) // 2
+                if self.heap[i] >= self.heap[p]:
+                    break
+                self.heap[i], self.heap[p] = self.heap[p], self.heap[i]
+                i = p
+
+        def push(self, val):
+            self.heap.append(val)
+            self._sift_up(len(self.heap) - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.ArrayList;
+    import java.util.List;
+
+    class MinHeap {
+        private List<Integer> heap = new ArrayList<>();
+
+        private void siftUp(int i) {
+            while (i > 0) {
+                int p = (i - 1) / 2;
+                if (heap.get(i) >= heap.get(p)) break;
+                int tmp = heap.get(i);
+                heap.set(i, heap.get(p));
+                heap.set(p, tmp);
+                i = p;
+            }
+        }
+
+        public void push(int val) {
+            heap.add(val);
+            siftUp(heap.size() - 1);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** **O(log n)** — at most we swap our way from the leaf to the root.
+
+</Steps>
+
+## 2. Pop (extract min)
+
+Pop the **root** — that's the minimum. Replace it with the **last** element, then sift that down to restore the heap.
+
+<Steps>
+
+### The algorithm
+
+```text
+pop():
+    if heap is empty: error
+    min = heap[0]
+    heap[0] = heap.pop_back()   // move the last element to the root
+    sift_down(0)
+    return min
+```
+
+### Why we move the last element to the root
+
+Popping the root leaves a hole. We can't just shift everything up by one — that would scramble the structure. Instead, we put the **last** element in the root slot. That keeps the shape complete. Then we sift down.
+
+### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void siftDown(int i) {
+        int n = heap.size();
+        while (true) {
+            int l = 2 * i + 1, r = 2 * i + 2, smallest = i;
+            if (l < n && heap[l] < heap[smallest]) smallest = l;
+            if (r < n && heap[r] < heap[smallest]) smallest = r;
+            if (smallest == i) return;
+            swap(heap[i], heap[smallest]);
+            i = smallest;
+        }
+    }
+
+    int pop() {
+        int top = heap[0];
+        heap[0] = heap.back();
+        heap.pop_back();
+        if (!heap.empty()) siftDown(0);
+        return top;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def _sift_down(self, i):
+        n = len(self.heap)
+        while True:
+            l, r = 2 * i + 1, 2 * i + 2
+            smallest = i
+            if l < n and self.heap[l] < self.heap[smallest]: smallest = l
+            if r < n and self.heap[r] < self.heap[smallest]: smallest = r
+            if smallest == i:
+                return
+            self.heap[i], self.heap[smallest] = self.heap[smallest], self.heap[i]
+            i = smallest
+
+    def pop(self):
+        if not self.heap:
+            return None
+        top = self.heap[0]
+        last = self.heap.pop()
+        if self.heap:
+            self.heap[0] = last
+            self._sift_down(0)
+        return top
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    private void siftDown(int i) {
+        int n = heap.size();
+        while (true) {
+            int l = 2 * i + 1, r = 2 * i + 2, smallest = i;
+            if (l < n && heap.get(l) < heap.get(smallest)) smallest = l;
+            if (r < n && heap.get(r) < heap.get(smallest)) smallest = r;
+            if (smallest == i) return;
+            int tmp = heap.get(i);
+            heap.set(i, heap.get(smallest));
+            heap.set(smallest, tmp);
+            i = smallest;
+        }
+    }
+
+    public int pop() {
+        int top = heap.get(0);
+        int last = heap.remove(heap.size() - 1);
+        if (!heap.isEmpty()) {
+            heap.set(0, last);
+            siftDown(0);
+        }
+        return top;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** **O(log n)** — at most we swap from the root to a leaf.
+
+</Steps>
+
+## 3. Peek
+
+Just return `heap[0]`. If the heap is empty, decide whether you want an exception or a sentinel.
+
+```python copy
+def peek(self):
+    if not self.heap:
+        return None
+    return self.heap[0]
+```
+
+**Time:** **O(1)**. This is the operation you actually came to the heap for.
+
+## 4. Heapify (build heap from an array)
+
+You'd think building a heap from `n` random elements would cost `n × O(log n) = O(n log n)` — push each one in turn. **It can be done in O(n).**
+
+The trick: don't push from empty. Start with the whole array already there (it's a valid complete tree, just not a valid heap), and **sift down** every non-leaf node starting from the **last** one and working back to the root.
+
+<Steps>
+
+### The algorithm
+
+```text
+heapify(arr):
+    for i from (n / 2 - 1) down to 0:
+        sift_down(i)
+```
+
+Indices `n/2` through `n-1` are leaves — they don't have children, so they're already valid one-node "heaps." We only need to fix the inner nodes.
+
+### Why it's O(n) and not O(n log n)
+
+It looks like we call sift-down `n/2` times, each costing O(log n), so the total is O(n log n). The naive analysis is correct as an upper bound — but it's loose.
+
+The deeper truth: **most nodes are near the bottom**, where sift-down is *cheap*. Half the nodes are leaves (zero work). A quarter are one level up (at most one swap). An eighth are two levels up. And so on.
+
+The sum is:
+
+```text
+T(n) = (n/2)·0 + (n/4)·1 + (n/8)·2 + (n/16)·3 + ...  =  O(n)
+```
+
+You can pop a heap one element at a time to get a sorted array — that's [Heap Sort](/day12/heap_sort), and it costs O(n log n) overall. **But building the heap itself is O(n).** That asymmetry is what makes heaps useful when you only need the top few of many.
+
+### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void heapify(vector<int>& arr) {
+        heap = arr;
+        for (int i = heap.size() / 2 - 1; i >= 0; i--) {
+            siftDown(i);
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def heapify(self, arr):
+        self.heap = list(arr)
+        for i in range(len(self.heap) // 2 - 1, -1, -1):
+            self._sift_down(i)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void heapify(int[] arr) {
+        heap = new ArrayList<>();
+        for (int x : arr) heap.add(x);
+        for (int i = heap.size() / 2 - 1; i >= 0; i--) {
+            siftDown(i);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+</Steps>
+
+## Putting it all together
+
+Summary of every operation, with the right intuition for each:
+
+| Operation  | Cost     | Where the work happens                     |
+| :--------- | :------: | :----------------------------------------- |
+| **peek**   | O(1)     | Return root                                |
+| **push**   | O(log n) | Append + sift-up                           |
+| **pop**    | O(log n) | Save root, move last to root, sift-down    |
+| **heapify** | O(n)    | Sift-down on all internal nodes, back-to-front |
+
+That's the entire heap API. The rest of this chapter is just consequences.
+
+Next: how to actually *use* a heap in real code. Every modern language ships one — and you should rarely write your own.

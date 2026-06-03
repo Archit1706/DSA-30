@@ -1,0 +1,189 @@
+import { Callout, Tabs } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Priority Queues — Using the stdlib heap
+
+A **priority queue** is the abstract API:
+
+```text
+push(item, priority)   →  add an item
+pop()                  →  remove and return the item with the highest priority
+peek()                 →  look at the highest-priority item
+```
+
+How is "highest priority" defined? *However you want.* Smallest number, largest number, lexicographically smallest string, smallest `(end_time, id)` tuple — any comparison rule works, as long as it's consistent.
+
+Under the hood, a priority queue is almost always implemented with a **binary heap** — exactly the structure we just built. Every modern language exposes one in the standard library. **Use it.** Don't write your own except as a learning exercise.
+
+## C++ — `priority_queue` and `make_heap`
+
+The standard `std::priority_queue` is a **max-heap** by default. For a min-heap, pass `greater<T>` as the comparator.
+
+```cpp copy
+#include <queue>
+#include <vector>
+#include <functional>
+using namespace std;
+
+// Default: max-heap
+priority_queue<int> maxPQ;
+maxPQ.push(5);
+maxPQ.push(1);
+maxPQ.push(3);
+cout << maxPQ.top();   // 5
+maxPQ.pop();
+cout << maxPQ.top();   // 3
+
+// Min-heap: pass greater<int>
+priority_queue<int, vector<int>, greater<int>> minPQ;
+minPQ.push(5);
+minPQ.push(1);
+minPQ.push(3);
+cout << minPQ.top();   // 1
+```
+
+For custom comparisons (e.g., comparing structs by a field), pass a lambda or a comparator functor:
+
+```cpp copy
+struct Job { int priority; string name; };
+
+auto cmp = [](const Job& a, const Job& b) {
+    return a.priority < b.priority;   // less => max-heap on priority
+};
+
+priority_queue<Job, vector<Job>, decltype(cmp)> pq(cmp);
+```
+
+If you ever need to **heapify** an existing `vector<int>`, use `make_heap`:
+
+```cpp copy
+#include <algorithm>
+vector<int> v = {3, 1, 4, 1, 5, 9, 2};
+make_heap(v.begin(), v.end());          // max-heap in O(n)
+pop_heap(v.begin(), v.end()); v.pop_back();  // remove max
+push_heap(v.begin(), v.end());           // after push_back
+sort_heap(v.begin(), v.end());           // turns heap into sorted ascending — heap sort
+```
+
+## Python — `heapq` (always a min-heap)
+
+The `heapq` module operates on a **plain list** that you keep in heap order. There's no `Heap` class — just functions that maintain the invariant.
+
+```python copy
+import heapq
+
+heap = []
+heapq.heappush(heap, 5)
+heapq.heappush(heap, 1)
+heapq.heappush(heap, 3)
+heapq.heappush(heap, 7)
+
+print(heap[0])               # peek — 1 (the min)
+print(heapq.heappop(heap))   # 1
+print(heapq.heappop(heap))   # 3
+```
+
+To turn an existing list into a heap, use `heapify` (O(n)):
+
+```python copy
+nums = [5, 2, 8, 1, 4, 9, 6]
+heapq.heapify(nums)        # O(n) in place
+print(nums[0])             # 1
+```
+
+<Callout type="warning">
+    **Python only has min-heap.** For a max-heap, the standard trick is to **negate** the values on the way in and on the way out:
+    ```python
+    heapq.heappush(heap, -val)
+    largest = -heapq.heappop(heap)
+    ```
+    Or store tuples `(-priority, payload)` if you only want to invert the priority but keep the value clean.
+</Callout>
+
+For ordering by a custom key, push **tuples** where the first element is your sort key:
+
+```python copy
+import heapq
+
+# Process jobs by priority, then by arrival time, then by id
+jobs = []
+heapq.heappush(jobs, (1, 10, "buildA"))
+heapq.heappush(jobs, (1, 5,  "buildB"))   # earlier arrival wins
+heapq.heappush(jobs, (2, 1,  "deployC"))
+
+while jobs:
+    priority, arrival, name = heapq.heappop(jobs)
+    print(name)
+# buildB, buildA, deployC
+```
+
+Two useful one-liners that wrap the heap internally:
+
+```python copy
+heapq.nlargest(3, nums)    # the 3 largest values, sorted desc
+heapq.nsmallest(3, nums)   # the 3 smallest, sorted asc
+heapq.merge(a, b, c)       # merge several sorted iterables lazily
+```
+
+## Java — `PriorityQueue`
+
+Java's `PriorityQueue` is a **min-heap** by default. For a max-heap, pass a reverse comparator.
+
+```java copy
+import java.util.PriorityQueue;
+import java.util.Comparator;
+
+// Min-heap (default)
+PriorityQueue<Integer> minPQ = new PriorityQueue<>();
+minPQ.offer(5);
+minPQ.offer(1);
+minPQ.offer(3);
+System.out.println(minPQ.peek());   // 1
+System.out.println(minPQ.poll());   // 1 (removed)
+
+// Max-heap
+PriorityQueue<Integer> maxPQ = new PriorityQueue<>(Comparator.reverseOrder());
+maxPQ.offer(5); maxPQ.offer(1); maxPQ.offer(3);
+System.out.println(maxPQ.peek());   // 5
+```
+
+For custom objects, supply a comparator:
+
+```java copy
+class Job {
+    int priority;
+    String name;
+    Job(int p, String n) { priority = p; name = n; }
+}
+
+PriorityQueue<Job> pq = new PriorityQueue<>(
+    Comparator.comparingInt(j -> j.priority)
+);
+pq.offer(new Job(2, "deploy"));
+pq.offer(new Job(1, "build"));
+System.out.println(pq.poll().name);   // build (lower priority value comes first)
+```
+
+To heapify an existing collection in O(n), use the collection constructor:
+
+```java copy
+PriorityQueue<Integer> pq = new PriorityQueue<>(Arrays.asList(5, 2, 8, 1, 4));   // O(n)
+```
+
+## What the API does *not* give you
+
+A priority queue is single-purpose. It does *not* offer:
+
+- **Look up an arbitrary element.** Not O(1), not O(log n) — it's O(n) because you'd have to scan.
+- **Update an element's priority.** You can't tell the heap "this thing changed; re-sift it." The standard trick is to mark the old entry as stale and push a new one, ignoring the stale one when you pop it later (used in Dijkstra).
+- **Iterate in sorted order without destroying.** You can pop everything in O(n log n), but that empties the queue.
+
+If you need more than the heap gives you, reach for a **balanced BST** (C++ `std::set`, Java `TreeMap`, Python `sortedcontainers.SortedList`) — all operations are O(log n), and you can iterate in order.
+
+## The pattern to remember
+
+> **"Of these many things, give me the most extreme one — repeatedly."**
+
+If your problem boils down to that sentence, you want a heap. Top-K, scheduling, shortest path, Huffman, median of a stream — all the same pattern.
+
+Now let's flex it on real problems.

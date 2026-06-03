@@ -1,0 +1,132 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Max Area of Island <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an `m × n` binary grid where `1` is land and `0` is water, return the **maximum area** of an island. An island is a maximal group of 1s connected horizontally or vertically. The area is the count of cells in the island. If there are no islands, return `0`.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:
+        [[0,0,1,0,0,0,0,1,0,0,0,0,0],
+         [0,0,0,0,0,0,0,1,1,1,0,0,0],
+         [0,1,1,0,1,0,0,0,0,0,0,0,0],
+         [0,1,0,0,1,1,0,0,1,0,1,0,0],
+         [0,1,0,0,1,1,0,0,1,1,1,0,0],
+         [0,0,0,0,0,0,0,0,0,0,1,0,0],
+         [0,0,0,0,0,0,0,1,1,1,0,0,0],
+         [0,0,0,0,0,0,0,1,1,0,0,0,0]]
+    Output: 6      # the L-shape in the lower-right area is 6 cells
+
+> Case 2:
+    Input:  [[0,0,0,0,0,0,0,0]]
+    Output: 0
+```
+
+#### Constraints
+
+- `1 <= m, n <= 50`
+- `grid[i][j]` is `0` or `1`.
+
+#### Intuition
+
+Almost identical to [Number of Islands](/day10/practice_questions/number_of_islands), with one twist: instead of incrementing a *count*, we compute the *area* of each island and track the maximum.
+
+The trick: have the DFS function **return the area** of the island that includes the current cell. Adding 1 (for the current cell) plus the recursive results from each direction gives the total.
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def max_area_of_island(grid):
+        if not grid: return 0
+        m, n = len(grid), len(grid[0])
+
+        def area(r, c):
+            if r < 0 or r >= m or c < 0 or c >= n or grid[r][c] == 0:
+                return 0
+            grid[r][c] = 0                              # mark visited
+            return (1 + area(r + 1, c) + area(r - 1, c)
+                      + area(r, c + 1) + area(r, c - 1))
+
+        best = 0
+        for r in range(m):
+            for c in range(n):
+                if grid[r][c] == 1:
+                    best = max(best, area(r, c))
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    int area(vector<vector<int>>& g, int r, int c) {
+        int m = g.size(), n = g[0].size();
+        if (r < 0 || r >= m || c < 0 || c >= n || g[r][c] == 0) return 0;
+        g[r][c] = 0;
+        return 1 + area(g, r + 1, c) + area(g, r - 1, c)
+                 + area(g, r, c + 1) + area(g, r, c - 1);
+    }
+
+    int maxAreaOfIsland(vector<vector<int>>& grid) {
+        int best = 0;
+        for (int r = 0; r < (int)grid.size(); r++) {
+            for (int c = 0; c < (int)grid[0].size(); c++) {
+                if (grid[r][c] == 1) best = max(best, area(grid, r, c));
+            }
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxAreaOfIsland(int[][] grid) {
+        int best = 0;
+        for (int r = 0; r < grid.length; r++) {
+            for (int c = 0; c < grid[0].length; c++) {
+                if (grid[r][c] == 1) best = Math.max(best, area(grid, r, c));
+            }
+        }
+        return best;
+    }
+
+    private int area(int[][] g, int r, int c) {
+        if (r < 0 || r >= g.length || c < 0 || c >= g[0].length || g[r][c] == 0) return 0;
+        g[r][c] = 0;
+        return 1 + area(g, r + 1, c) + area(g, r - 1, c)
+                 + area(g, r, c + 1) + area(g, r, c - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    Notice how the DFS function **returns a value** here — the area — instead of mutating an external counter. That's the cleaner functional style. It's the same trick we used on the Day 6 tree problems: each subtree returns a value, the caller combines them.
+</Callout>
+
+#### Why this pattern is so common
+
+"Walk the structure and aggregate" is half of all DFS problems. Examples:
+
+- **Max Area of Island** — aggregate by sum
+- **Diameter of Binary Tree** — aggregate by max(left + right + 1)
+- **Path Sum** — aggregate by sum along a root-to-leaf path
+- **Count Subtrees with All Same Value** — aggregate by "is this subtree uniform?"
+- **Sum of Distances in Tree** — aggregate by rerooting
+
+The shape of the aggregation changes; the DFS shape doesn't.
+
+#### Analysis
+
+- **Time:** **O(m · n)** — every cell visited at most once.
+- **Space:** **O(m · n)** worst case for the recursion stack (one giant island).

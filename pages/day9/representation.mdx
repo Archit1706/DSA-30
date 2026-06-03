@@ -1,0 +1,273 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+export const Tab = Tabs.Tab;
+
+# Representing Graphs
+
+A graph is a *concept*. To run algorithms on it, you need to store it in memory. There are two universal ways — **adjacency list** and **adjacency matrix** — and choosing between them is one of the most important decisions in any graph problem.
+
+Let's use this graph as our running example throughout:
+
+<GraphVisualizer
+    nodes={["0", "1", "2", "3", "4"]}
+    edges={[["0", "1"], ["0", "2"], ["1", "2"], ["1", "3"], ["3", "4"], ["2", "4"]]}
+    title="Our running example: 5 nodes, 6 edges"
+/>
+
+## Representation 1: Adjacency list
+
+The most common choice. For each node, store a list of its neighbours.
+
+```text
+0: [1, 2]
+1: [0, 2, 3]
+2: [0, 1, 4]
+3: [1, 4]
+4: [2, 3]
+```
+
+In code, this is usually a `Map<Node, List<Node>>` (or simply a list-of-lists indexed by node number).
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def build_graph(n, edges, directed=False):
+        adj = defaultdict(list)
+        for u, v in edges:
+            adj[u].append(v)
+            if not directed:
+                adj[v].append(u)
+        return adj
+
+    # Example
+    edges = [(0, 1), (0, 2), (1, 2), (1, 3), (3, 4), (2, 4)]
+    adj = build_graph(5, edges)
+    print(adj[1])    # [0, 2, 3]
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    using namespace std;
+
+    vector<vector<int>> buildGraph(int n, vector<pair<int,int>>& edges, bool directed = false) {
+        vector<vector<int>> adj(n);
+        for (auto& [u, v] : edges) {
+            adj[u].push_back(v);
+            if (!directed) adj[v].push_back(u);
+        }
+        return adj;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public List<List<Integer>> buildGraph(int n, int[][] edges, boolean directed) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] e : edges) {
+            adj.get(e[0]).add(e[1]);
+            if (!directed) adj.get(e[1]).add(e[0]);
+        }
+        return adj;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### What an adjacency list costs
+
+| Operation                              | Cost              |
+| :------------------------------------- | :---------------: |
+| Add an edge                            | O(1)              |
+| Look up a node's neighbours            | O(degree)         |
+| Check if edge (u, v) exists            | O(degree of u)    |
+| Iterate every edge in the graph        | O(V + E)          |
+| **Total memory**                       | **O(V + E)**      |
+
+The "**O(V + E) memory**" is the key win. For sparse graphs (most real-world graphs are sparse — every node connected to only a few others), this is dramatically smaller than the matrix.
+
+## Representation 2: Adjacency matrix
+
+A `V × V` boolean (or integer) matrix where `M[u][v] = 1` if there's an edge from `u` to `v`, and `0` otherwise. For weighted graphs, `M[u][v]` stores the weight directly (often using `infinity` for "no edge").
+
+```text
+For our example (undirected):
+
+    0  1  2  3  4
+0 [ 0  1  1  0  0 ]
+1 [ 1  0  1  1  0 ]
+2 [ 1  1  0  0  1 ]
+3 [ 0  1  0  0  1 ]
+4 [ 0  0  1  1  0 ]
+```
+
+The matrix is symmetric for undirected graphs (because `(u, v)` and `(v, u)` are the same edge).
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def build_matrix(n, edges, directed=False):
+        m = [[0] * n for _ in range(n)]
+        for u, v in edges:
+            m[u][v] = 1
+            if not directed:
+                m[v][u] = 1
+        return m
+
+    # m[1][3] == 1 → edge exists in O(1)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    vector<vector<int>> buildMatrix(int n, vector<pair<int,int>>& edges, bool directed = false) {
+        vector<vector<int>> m(n, vector<int>(n, 0));
+        for (auto& [u, v] : edges) {
+            m[u][v] = 1;
+            if (!directed) m[v][u] = 1;
+        }
+        return m;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[][] buildMatrix(int n, int[][] edges, boolean directed) {
+        int[][] m = new int[n][n];
+        for (int[] e : edges) {
+            m[e[0]][e[1]] = 1;
+            if (!directed) m[e[1]][e[0]] = 1;
+        }
+        return m;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### What an adjacency matrix costs
+
+| Operation                              | Cost          |
+| :------------------------------------- | :-----------: |
+| Add an edge                            | O(1)          |
+| Check if edge (u, v) exists            | **O(1)**      |
+| Look up a node's neighbours            | O(V)          |
+| Iterate every edge in the graph        | O(V²)         |
+| **Total memory**                       | **O(V²)**     |
+
+The win: edge existence is **O(1)**. The loss: memory is **O(V²)** *regardless of how few edges you have*.
+
+## When to use which
+
+The trade-off is sharp. Pick based on **how dense your graph is**:
+
+- **Sparse graph** (m ≈ V or 2V): use an **adjacency list**. Memory is O(V + E) ≈ O(V), and every algorithm is fast.
+- **Dense graph** (m ≈ V²): use an **adjacency matrix**. The O(1) edge check pays off, and you're stuck with O(V²) memory anyway.
+
+Concrete rules of thumb:
+
+| Use adjacency list when…                              | Use adjacency matrix when…                |
+| :---------------------------------------------------- | :---------------------------------------- |
+| Most algorithms (BFS, DFS, Dijkstra, Bellman-Ford)    | The graph is dense (`E ≈ V²`)             |
+| Memory-constrained or large `V` with sparse edges     | You need O(1) "is (u, v) an edge?"        |
+| Iterating neighbours is the bottleneck                | Algorithms over matrix algebra (Floyd-Warshall) |
+| Default — over 90% of problems                        | Small graphs (V ≤ 1000) where memory isn't an issue |
+
+<Callout type="info">
+    **Quick math:** for V = 10⁴ vertices, an adjacency matrix uses `10⁴ × 10⁴ = 10⁸` cells — about 100 MB even with one byte each. Adjacency list with E = 10⁵ edges uses 10⁵ list entries. **1000× less memory.** That's why adjacency list is the default.
+</Callout>
+
+## Bonus: edge list
+
+Sometimes the simplest representation is the right one — just a list of edges. Used in some algorithms (Bellman-Ford, Kruskal's MST, Union-Find based algorithms) that iterate over edges anyway.
+
+```text
+[(0, 1), (0, 2), (1, 2), (1, 3), (2, 4), (3, 4)]
+```
+
+No fast neighbour lookup — but if your algorithm only ever loops over edges, this is the cleanest data structure.
+
+## Weighted graphs
+
+For weighted graphs, just attach the weight to each entry:
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    # adjacency list with weights: { node: [(neighbour, weight), ...] }
+    from collections import defaultdict
+
+    def build_weighted(edges, directed=False):
+        adj = defaultdict(list)
+        for u, v, w in edges:
+            adj[u].append((v, w))
+            if not directed:
+                adj[v].append((u, w))
+        return adj
+
+    # adjacency matrix with weights: float('inf') for missing edges
+    def build_weighted_matrix(n, edges, directed=False):
+        m = [[float('inf')] * n for _ in range(n)]
+        for u, v, w in edges:
+            m[u][v] = w
+            if not directed:
+                m[v][u] = w
+        return m
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    // Adjacency list with weights
+    vector<vector<pair<int, int>>> buildWeighted(
+        int n, vector<tuple<int, int, int>>& edges, bool directed = false
+    ) {
+        vector<vector<pair<int, int>>> adj(n);
+        for (auto& [u, v, w] : edges) {
+            adj[u].push_back({v, w});
+            if (!directed) adj[v].push_back({u, w});
+        }
+        return adj;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    // Adjacency list with weights — list of (neighbour, weight)
+    public List<List<int[]>> buildWeighted(int n, int[][] edges, boolean directed) {
+        List<List<int[]>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] e : edges) {
+            adj.get(e[0]).add(new int[]{e[1], e[2]});
+            if (!directed) adj.get(e[1]).add(new int[]{e[0], e[2]});
+        }
+        return adj;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+We'll use this exact pattern for **Dijkstra's algorithm** on [Day 21](/day21).
+
+## A common gotcha — node IDs
+
+A subtle question: what *is* a node? In most LeetCode problems they're integers `0..n-1`, perfect for arrays. But in real problems they might be strings, custom objects, coordinates, or anything else.
+
+Two common approaches:
+
+1. **Map IDs to integers first.** Build a `Map<NodeID, int>` indexing each node from 0 to n-1, then use plain arrays for everything. Best performance, slight extra code.
+2. **Use a `Map<NodeID, List<NodeID>>` directly.** Slower (hash lookups), more memory, but reads cleanly when node IDs are strings or tuples.
+
+Pick (1) for tight competitive code, (2) for clarity. Most interview problems are fine with either.
+
+## Summary
+
+| Representation     | Memory     | Edge check | Iterate neighbours | Best for                |
+| :----------------- | :--------: | :--------: | :----------------: | :---------------------- |
+| **Adjacency list** | O(V + E)   | O(deg)     | O(deg)             | Sparse graphs (default) |
+| **Adjacency matrix** | O(V²)    | **O(1)**   | O(V)               | Dense graphs            |
+| **Edge list**      | O(E)       | O(E)       | —                  | Algorithms over edges (Kruskal) |
+
+Default choice for almost everything: **adjacency list**. Now let's see the special graph shapes you'll meet again and again.

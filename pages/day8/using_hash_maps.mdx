@@ -1,0 +1,231 @@
+import { Callout, Tabs } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Using Hash Maps in Real Code
+
+You almost never write a hash map from scratch. Every language ships one, and they're battle-tested by millions of programs. This page covers the **stdlib API** in C++, Python, and Java, plus four patterns that solve 90% of interview problems.
+
+## The four core operations
+
+Every language exposes the same fundamental API. Here's the Rosetta stone:
+
+| Operation                  | C++                                   | Python                       | Java                                 |
+| :------------------------- | :------------------------------------ | :--------------------------- | :----------------------------------- |
+| Create empty               | `unordered_map<K, V> m;`              | `m = {}`                     | `Map<K, V> m = new HashMap<>();`     |
+| Put / set                  | `m[k] = v;`                           | `m[k] = v`                   | `m.put(k, v);`                       |
+| Get                        | `m[k]` (creates if missing!)          | `m[k]` (KeyError if missing) | `m.get(k)`                           |
+| Get with default           | `m.count(k) ? m[k] : default`         | `m.get(k, default)`          | `m.getOrDefault(k, default)`         |
+| Contains key               | `m.count(k) > 0` or `m.contains(k)`   | `k in m`                     | `m.containsKey(k)`                   |
+| Delete                     | `m.erase(k);`                         | `del m[k]`                   | `m.remove(k);`                       |
+| Size                       | `m.size()`                            | `len(m)`                     | `m.size()`                           |
+| Iterate keys + values      | `for (auto& [k, v] : m)`              | `for k, v in m.items():`     | `for (var e : m.entrySet())`         |
+
+<Callout type="warning">
+    **C++ trap:** `m[k]` on a missing key **silently inserts** a default-constructed value (e.g. `0` for `int`). Use `m.count(k)` or `m.find(k)` first if you don't want that. Python's `m[k]` correctly throws `KeyError`; Java's `m.get(k)` returns `null`.
+</Callout>
+
+## Pattern 1: Counting frequencies
+
+By far the most common use. Walk a sequence, build `{element: count}`.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    # The idiomatic way:
+    from collections import Counter
+    counts = Counter("abracadabra")
+    # Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1})
+
+    # Or manually:
+    counts = {}
+    for c in "abracadabra":
+        counts[c] = counts.get(c, 0) + 1
+
+    # Or with defaultdict:
+    from collections import defaultdict
+    counts = defaultdict(int)
+    for c in "abracadabra":
+        counts[c] += 1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <string>
+    using namespace std;
+
+    unordered_map<char, int> counts;
+    for (char c : string("abracadabra")) {
+        counts[c]++;            // default-constructs to 0, then increments
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.HashMap;
+    import java.util.Map;
+
+    Map<Character, Integer> counts = new HashMap<>();
+    for (char c : "abracadabra".toCharArray()) {
+        counts.merge(c, 1, Integer::sum);          // best Java idiom
+        // Or longhand:
+        // counts.put(c, counts.getOrDefault(c, 0) + 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This single pattern powers **Top K Frequent**, **Sort Characters by Frequency**, **First Unique Character**, **Find All Anagrams**, **Group Anagrams**, and many more.
+
+## Pattern 2: Seen-set for O(1) "have I seen this?"
+
+A `HashSet` (or a `HashMap` you only use the keys of) lets you answer "have I encountered `x` before?" in O(1).
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def contains_duplicate(nums):
+        seen = set()
+        for x in nums:
+            if x in seen:
+                return True
+            seen.add(x)
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_set>
+    bool containsDuplicate(vector<int>& nums) {
+        unordered_set<int> seen;
+        for (int x : nums) {
+            if (seen.count(x)) return true;
+            seen.insert(x);
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.HashSet;
+    import java.util.Set;
+
+    public boolean containsDuplicate(int[] nums) {
+        Set<Integer> seen = new HashSet<>();
+        for (int x : nums) {
+            if (!seen.add(x)) return true;     // add returns false if already present
+        }
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`Set.add(x)` returning `false` for duplicates (Java) and `set.add(x)` being a no-op (Python) are useful idioms — they fold "check + insert" into one operation.
+
+## Pattern 3: Value → original-index map (the Two Sum trick)
+
+A hash map can also map *values* to *indices*. This is the trick behind [Two Sum](/day2/arrays/practice_questions/two_sum) and most "find two elements that satisfy X" problems.
+
+```python copy
+def two_sum(nums, target):
+    seen = {}                              # value → index
+    for i, x in enumerate(nums):
+        complement = target - x
+        if complement in seen:
+            return [seen[complement], i]
+        seen[x] = i
+    return []
+```
+
+The pattern generalizes: any time you need to know "is the *partner* of this element somewhere in the past?", a value → index map answers in O(1).
+
+## Pattern 4: Grouping (bucket by a key signature)
+
+When you need to group items that share a property — anagrams (same sorted letters), points on the same line (same slope from origin), etc. — a hash map keyed by the **signature** does it in one pass.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def group_anagrams(strs):
+        groups = defaultdict(list)
+        for s in strs:
+            key = "".join(sorted(s))      # canonical signature
+            groups[key].append(s)
+        return list(groups.values())
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <vector>
+    #include <string>
+    #include <algorithm>
+    using namespace std;
+
+    vector<vector<string>> groupAnagrams(vector<string>& strs) {
+        unordered_map<string, vector<string>> groups;
+        for (string& s : strs) {
+            string key = s;
+            sort(key.begin(), key.end());
+            groups[key].push_back(s);
+        }
+        vector<vector<string>> result;
+        for (auto& [_, group] : groups) result.push_back(group);
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public List<List<String>> groupAnagrams(String[] strs) {
+        Map<String, List<String>> groups = new HashMap<>();
+        for (String s : strs) {
+            char[] chars = s.toCharArray();
+            Arrays.sort(chars);
+            String key = new String(chars);
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
+        }
+        return new ArrayList<>(groups.values());
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Choosing a good signature is the whole art of the bucket pattern. Sort the characters? Use a tuple of counts? Hash the chars in a particular way? Whatever makes "same group" easy to express as a hash key.
+
+## HashMap vs HashSet — when to use which
+
+The difference is small but important:
+
+- **`HashSet<T>`** stores **keys only**. Use when you only care whether something is present.
+- **`HashMap<K, V>`** stores keys mapped to values. Use when you need additional info per key (counts, indices, lists of items).
+
+In practice, `Set` is just `Map<K, Boolean>` with a friendlier API. Pick the one whose API reads cleanest in your problem.
+
+## Caveats and edge cases
+
+A few real-world cracks to be aware of:
+
+1. **Iteration order is *not* guaranteed.** `unordered_map` (C++) and `HashMap` (Java) iterate in implementation-defined order. Python 3.7+ guarantees insertion order for `dict` (and Java has `LinkedHashMap` for this). Don't rely on hash-map iteration order unless you've explicitly checked the language spec.
+
+2. **Concurrent modification is unsafe.** Modifying a hash map while iterating over it crashes in Java (`ConcurrentModificationException`), corrupts in C++, and raises `RuntimeError` in Python. Snapshot the keys first if you need to delete during iteration.
+
+3. **NaN as a key** is weird. `NaN != NaN`, so you can insert it but never look it up. Avoid.
+
+4. **Custom keys need both `hash` and `equals`.** Override one without the other and your map will silently misbehave. Java's IDE-generated `hashCode` + `equals` is the safe path. Python uses `__hash__` + `__eq__`.
+
+## The mental shortcut for problem-solving
+
+When you're stuck on a problem, ask:
+
+> **"If I had a magic spell that could check 'have I seen this value (or this signature) before?' in O(1), would this be easier?"**
+
+If yes — and it almost always is — that magic spell is a hash map. Add it to your solution; you've usually just collapsed a quadratic problem to linear.
+
+Time to flex it on real problems.

@@ -1,0 +1,116 @@
+import { Callout, Tabs } from "nextra/components";
+
+# DFS vs BFS — Which to Use When
+
+Both are O(V + E). Both visit every node. The difference is **the order of visits** — and that controls which problems each one solves cleanly.
+
+The cheat sheet:
+
+| If the question is about…                              | Reach for…    |
+| :----------------------------------------------------- | :-----------: |
+| **Shortest** path in number of edges                   | **BFS**       |
+| Any path / existence of a path                         | DFS or BFS    |
+| Connected components / counting groups                 | DFS (sweep)   |
+| Cycle detection in a directed graph                    | DFS           |
+| Topological sort                                       | DFS           |
+| Spread / infection / multi-source distance             | BFS (multi-source) |
+| Bipartite check (2-coloring)                           | BFS           |
+| Tree problems (Day 6)                                  | DFS           |
+| Backtracking ("try every choice, undo, try next")      | DFS           |
+| Level-by-level processing                              | BFS           |
+| State-space search where every move costs 1            | BFS           |
+| State-space search with varied costs                   | Dijkstra (Day 21) |
+
+The single most reliable rule:
+
+> **If the problem says "shortest" or "minimum number of steps" on an unweighted graph, use BFS. Otherwise default to DFS.**
+
+## The deeper why
+
+These two algorithms differ in **what they *prove*** as they walk.
+
+### What BFS proves
+
+When BFS pops node X with distance d, it has proven:
+
+> **"There is no shorter path from start to X than d."**
+
+That's because BFS finishes layer d-1 before starting layer d. If a shorter path existed, X would have been in an earlier layer. This is why BFS solves shortest-path problems for free — the *order* of visits is the proof.
+
+### What DFS proves
+
+When DFS finishes visiting node X (returns from the recursive call), it has proven:
+
+> **"Every node reachable from X has been fully explored."**
+
+This is why DFS solves problems about **subtree-style properties**: every descendant has been processed before the ancestor finishes. Topological sort, cycle detection via post-order timestamps, and tree-style aggregations all exploit this.
+
+## A worked decision example
+
+**Problem 1:** "Given a maze, find the *shortest* number of moves to reach the exit."
+
+- The word "shortest" is the giveaway. Every move costs 1. → **BFS.**
+
+**Problem 2:** "Given a binary tree, return its diameter (longest path between any two nodes)."
+
+- Tree problem; needs post-order aggregation (each node combines left and right heights). → **DFS.**
+
+**Problem 3:** "Determine if a directed graph has a cycle."
+
+- Need to detect back-edges. → **DFS** with a "currently-on-stack" flag.
+
+**Problem 4:** "Find the minimum number of steps to transform one word into another by changing one character at a time, using a dictionary."
+
+- "Minimum number of steps" + each step costs 1. → **BFS.** (This is the [Word Ladder](https://leetcode.com/problems/word-ladder/) classic.)
+
+**Problem 5:** "Count the number of connected groups in a friendship graph."
+
+- Component counting. → **DFS sweep** (start DFS from every unvisited node).
+
+Notice how often "shortest / minimum / fewest" + unit-cost edges → BFS, and "count / detect / enumerate / aggregate" → DFS. Train your reading: those keywords trigger the algorithm choice.
+
+## When they're equivalent
+
+For some problems, **either works**:
+
+- "Does a path from A to B exist?" — DFS and BFS both answer in O(V + E).
+- "Find any single path from A to B." — Both work; BFS gives you the shortest, DFS gives you *some* path.
+- "Visit every node in a connected component." — Same O(V + E), different order.
+
+Pick the one that **reads more cleanly**. For tree-shaped data, DFS recursion is gorgeous. For grid problems, BFS often reads better (no max-depth-recursion worries).
+
+## Implementation choices
+
+| Decision                          | DFS                          | BFS                          |
+| :-------------------------------- | :--------------------------- | :--------------------------- |
+| Container                         | Stack (or call stack)        | Queue                        |
+| When to mark visited              | Before recursing             | When pushing                 |
+| Risk on deep / huge inputs        | Stack overflow (recursion)   | Memory blow-up (wide layer)  |
+| Natural code style                | Recursive (4-5 lines)        | Iterative                    |
+
+<Callout type="warning">
+    **For very wide graphs**, BFS can blow up memory — the queue holds an entire layer at a time, which can be O(V) in the worst case. For very *deep* graphs, recursive DFS can blow the call stack. Pick the algorithm whose worst case isn't your problem's shape.
+</Callout>
+
+## The unified mental model
+
+Look at the templates side by side:
+
+```python
+def traverse(start, adj):
+    visited = {start}
+    container = [start]                           # stack or queue
+    while container:
+        node = container.pop_one()                # pop() for DFS, popleft() for BFS
+        # process node
+        for nei in adj[node]:
+            if nei not in visited:
+                visited.add(nei)
+                container.add(nei)
+```
+
+They are **the same algorithm** with a different container. Stack → DFS. Queue → BFS. That's the entire difference at the code level.
+
+This is the key insight: graph traversal is one algorithm. The choice of stack vs queue chooses the *order* in which nodes come out — but the work done at each node, and the total complexity, are identical.
+
+Now go practice both.

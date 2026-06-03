@@ -1,0 +1,148 @@
+import { Callout, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+
+# Introduction to Graphs
+
+A **graph** is a set of **nodes** (also called vertices) connected by **edges**. That's it. Both definitions are deliberately vague — the *meaning* of nodes and edges depends entirely on what you're modeling.
+
+In a social network, nodes are people and edges are friendships. In a city map, nodes are intersections and edges are roads. In a course catalog, nodes are courses and edges are prerequisites. The graph algorithm doesn't care.
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "D"], ["C", "D"], ["D", "E"]]}
+    title="A simple undirected graph with 5 nodes and 5 edges"
+/>
+
+## Notation
+
+The standard math notation:
+
+> **G = (V, E)** — a graph G is the pair of a vertex set V and an edge set E.
+
+When we write `n = |V|` we mean "number of vertices" and `m = |E|` for "number of edges." Complexity analyses use these letters constantly: O(V + E), O(V log V + E), and so on.
+
+## The four design choices
+
+Every graph problem starts with four yes/no questions. The answers shape what algorithms you can use.
+
+### 1. Directed or undirected?
+
+- **Undirected** edges have no direction — if A is connected to B, then B is connected to A. Friendships, two-way streets, "X is similar to Y."
+- **Directed** edges (also called *arcs*) point one way — A → B does **not** mean B → A. Twitter follows, web hyperlinks, "A depends on B."
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D"]}
+    edges={[["A", "B"], ["B", "C"], ["C", "D"], ["D", "A"], ["B", "D"]]}
+    directed={true}
+    title="A directed graph — arrows matter"
+/>
+
+### 2. Weighted or unweighted?
+
+- **Unweighted** edges all count the same. "Find a path from A to B" means any path.
+- **Weighted** edges carry a number — a cost, distance, capacity, probability. "Find the *shortest* path" usually means the cheapest weighted total.
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "D"], ["C", "D"]]}
+    weighted={true}
+    weights={{ "A-B": 4, "A-C": 2, "B-D": 1, "C-D": 5 }}
+    title="A weighted undirected graph"
+/>
+
+### 3. Connected or disconnected?
+
+- **Connected** — every node is reachable from every other (in undirected graphs).
+- **Disconnected** — the graph splits into multiple **connected components**. You can't get from one piece to another.
+
+Most real-world graphs are *almost* connected with a few isolated bits. Most algorithm questions assume connected unless they specifically test for components.
+
+### 4. Simple or multigraph?
+
+- **Simple graph** — at most one edge between any pair of nodes, no self-loops (an edge from A to A).
+- **Multigraph** — multiple edges between the same pair allowed; self-loops allowed.
+
+99% of interview problems are simple graphs. Multigraphs come up in real-world routing (multiple flights between the same two cities) and some specialized algorithms.
+
+## Vocabulary you'll meet again
+
+The terms that show up in every graph algorithm. Learn these now and you won't be lost later.
+
+<Steps>
+
+### Degree
+
+The **degree** of a node is the number of edges touching it. In a directed graph, we distinguish:
+
+- **In-degree** — incoming edges
+- **Out-degree** — outgoing edges
+
+### Path
+
+A **path** is a sequence of nodes where each consecutive pair is connected by an edge. The **length** of a path is the number of edges (or sum of weights for weighted graphs).
+
+A path that doesn't repeat any node is a **simple path** — most algorithms only care about these.
+
+### Cycle
+
+A **cycle** is a path that starts and ends at the same node, with all other nodes distinct. A graph with no cycles is **acyclic**.
+
+A directed acyclic graph — **DAG** — is one of the most common shapes in real applications: build systems, course dependencies, lineage trees, version histories.
+
+### Connected component
+
+In an undirected graph, a **connected component** is a maximal set of nodes that can all reach each other. A graph with one component is "connected"; with more, it's "disconnected."
+
+In a directed graph there are two flavours: **strongly connected** (you can reach every node from every other, in both directions) and **weakly connected** (you can if you ignore edge directions).
+
+### Tree
+
+A **tree** is a special graph: connected, undirected, no cycles. n nodes means exactly n-1 edges. You met trees on [Day 6](/day6); we'll re-meet them everywhere.
+
+### Bipartite
+
+A graph is **bipartite** if its nodes can be split into two groups such that **every edge goes between groups, never within**. Job applicants and jobs. Students and courses. Boys and girls at a dance. Bipartite structure unlocks faster algorithms (maximum matching, Hopcroft-Karp).
+
+</Steps>
+
+## A worked example: read this graph
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E", "F"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "C"], ["B", "D"], ["E", "F"]]}
+    title="A small graph — what can we say about it?"
+/>
+
+Quick check, before reading on:
+
+- **6 nodes**, **5 edges**. (Count the lines.)
+- Node A has **degree 2** (neighbours B and C). Node C has **degree 2**. Node B has **degree 3** (A, C, D).
+- It's **disconnected** — `{A, B, C, D}` is one component, `{E, F}` is another.
+- It has a **cycle**: A → B → C → A.
+- It's **undirected** (no arrows shown).
+
+That's basically all the vocabulary you need to read any graph problem statement.
+
+## Quick check
+
+<QuizBox
+    question="In an undirected graph with 5 nodes where every pair of distinct nodes is connected by an edge, how many edges are there?"
+    options={["5", "10", "20", "25"]}
+    correctIndex={1}
+    explanation="A complete undirected graph on n nodes has n(n-1)/2 edges — every unordered pair gets one edge. For n = 5: 5·4/2 = 10. (For a directed complete graph it would be n·(n-1) = 20 because each pair gets two arrows.)"
+/>
+
+<QuizBox
+    question="Which of these is NOT a tree?"
+    options={[
+        "A connected undirected graph with no cycles",
+        "A graph on n nodes with exactly n-1 edges and no cycles",
+        "A connected graph on n nodes with exactly n edges",
+        "A graph that's connected and acyclic"
+    ]}
+    correctIndex={2}
+    explanation="A tree has exactly n-1 edges. Adding the n-th edge to a connected graph necessarily creates a cycle — by the pigeonhole-ish argument that a connected graph on n vertices needs at least n-1 edges, and any extra edge between connected nodes closes a loop."
+/>
+
+Got the model? Next: how to actually *store* a graph in code so an algorithm can use it.

@@ -1,0 +1,193 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Clone Graph <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a reference to a node in a **connected undirected graph**, return a **deep copy** of the entire graph. Each node contains a value and a list of neighbours.
+
+The node definition:
+
+```python
+class Node:
+    def __init__(self, val=0, neighbors=None):
+        self.val = val
+        self.neighbors = neighbors or []
+```
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  adjList = [[2, 4], [1, 3], [2, 4], [1, 3]]
+    Output: [[2, 4], [1, 3], [2, 4], [1, 3]]
+    # 4 nodes:
+    #   1 connected to 2, 4
+    #   2 connected to 1, 3
+    #   3 connected to 2, 4
+    #   4 connected to 1, 3
+
+> Case 2:
+    Input:  adjList = [[]]
+    Output: [[]]    # one node, no neighbours
+
+> Case 3:
+    Input:  adjList = []
+    Output: []      # empty graph
+```
+
+#### The fundamental challenge
+
+A graph can have **cycles**. If you just recursively copy each neighbour, you'll loop forever as the recursion follows the cycle back to itself.
+
+The fix: maintain a **hash map `{original_node: clone_node}`**. Before recursing on a neighbour, check the map. If the neighbour is already there, use the cached clone. Otherwise, create the clone, store it, then recurse.
+
+This is the exact same idea as **memoization** from [Day 5](/day5/memoization) — cache the result to avoid revisiting.
+
+#### Approach 1: DFS with hash-map memo
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    class Node:
+        def __init__(self, val=0, neighbors=None):
+            self.val = val
+            self.neighbors = neighbors or []
+
+    def cloneGraph(node):
+        if not node: return None
+
+        clones = {}            # original_node -> cloned_node
+
+        def dfs(orig):
+            if orig in clones:
+                return clones[orig]
+            copy = Node(orig.val)
+            clones[orig] = copy                       # store BEFORE recursing
+            for nei in orig.neighbors:
+                copy.neighbors.append(dfs(nei))
+            return copy
+
+        return dfs(node)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    using namespace std;
+
+    class Node {
+    public:
+        int val;
+        vector<Node*> neighbors;
+        Node(int v) : val(v) {}
+    };
+
+    Node* cloneGraph(Node* node) {
+        if (!node) return nullptr;
+        unordered_map<Node*, Node*> clones;
+
+        function<Node*(Node*)> dfs = [&](Node* orig) -> Node* {
+            if (clones.count(orig)) return clones[orig];
+            Node* copy = new Node(orig->val);
+            clones[orig] = copy;                       // store BEFORE recursing
+            for (Node* nei : orig->neighbors) {
+                copy->neighbors.push_back(dfs(nei));
+            }
+            return copy;
+        };
+
+        return dfs(node);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    class Node {
+        public int val;
+        public List<Node> neighbors;
+        public Node(int v) { val = v; neighbors = new ArrayList<>(); }
+    }
+
+    private Map<Node, Node> clones = new HashMap<>();
+
+    public Node cloneGraph(Node node) {
+        if (node == null) return null;
+        if (clones.containsKey(node)) return clones.get(node);
+
+        Node copy = new Node(node.val);
+        clones.put(node, copy);                        // store BEFORE recursing
+        for (Node nei : node.neighbors) {
+            copy.neighbors.add(cloneGraph(nei));
+        }
+        return copy;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Storing the clone in the map *before* recursing is critical.** If you wait until after, the recursion will hit a cycle, fail to find the already-being-built node in the map, create *another* clone for it, and you'll get duplicate nodes. The "create-then-store-then-recurse" sequence is the entire trick.
+</Callout>
+
+#### Approach 2: BFS variant
+
+Same idea, but iteratively with a queue. Some find this easier to reason about because there's no recursion to trace.
+
+<Tabs items={['Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def cloneGraph(node):
+        if not node: return None
+        clones = {node: Node(node.val)}
+        queue = deque([node])
+        while queue:
+            cur = queue.popleft()
+            for nei in cur.neighbors:
+                if nei not in clones:
+                    clones[nei] = Node(nei.val)
+                    queue.append(nei)
+                clones[cur].neighbors.append(clones[nei])
+        return clones[node]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public Node cloneGraph(Node node) {
+        if (node == null) return null;
+        Map<Node, Node> clones = new HashMap<>();
+        clones.put(node, new Node(node.val));
+        Deque<Node> q = new ArrayDeque<>();
+        q.offer(node);
+        while (!q.isEmpty()) {
+            Node cur = q.poll();
+            for (Node nei : cur.neighbors) {
+                if (!clones.containsKey(nei)) {
+                    clones.put(nei, new Node(nei.val));
+                    q.offer(nei);
+                }
+                clones.get(cur).neighbors.add(clones.get(nei));
+            }
+        }
+        return clones.get(node);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this problem matters
+
+"DFS / BFS with a memo to avoid revisiting" is **half of all graph algorithms in disguise**. Once you're comfortable with it, problems that sound completely different — *Number of Distinct Subsequences*, *Reorder Routes*, *Walk a Bidirected Maze* — all use the same shape.
+
+It's the single most reusable trick in graph problems. Memorize the pattern, not the problem.
+
+#### Analysis
+
+- **Time:** **O(V + E)** — each node is created once and each edge is traversed once.
+- **Space:** **O(V)** for the hash map and the recursion stack / queue.

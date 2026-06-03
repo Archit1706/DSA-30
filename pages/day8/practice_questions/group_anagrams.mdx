@@ -1,0 +1,179 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Group Anagrams <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array of strings `strs`, group the **anagrams** together. You can return the answer in any order. An anagram is a word formed by rearranging the letters of another — like `"eat"` and `"tea"`.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  strs = ["eat", "tea", "tan", "ate", "nat", "bat"]
+    Output: [["eat", "tea", "ate"], ["tan", "nat"], ["bat"]]
+
+> Case 2:
+    Input:  strs = [""]
+    Output: [[""]]
+
+> Case 3:
+    Input:  strs = ["a"]
+    Output: [["a"]]
+```
+
+#### Constraints
+
+- `1 <= strs.length <= 10^4`
+- `0 <= strs[i].length <= 100`
+- `strs[i]` consists of lowercase English letters.
+
+#### The bucketing pattern
+
+Two strings are anagrams iff they have the **same multiset of characters**. So we need a **signature** that two anagrams share but non-anagrams don't.
+
+Two natural choices:
+
+| Signature                            | Cost to compute | Notes                                  |
+| :----------------------------------- | :-------------: | :------------------------------------- |
+| **Sort the characters**              | O(k log k)      | `"eat"` → `"aet"`, `"tea"` → `"aet"`   |
+| **Tuple of 26 character counts**     | O(k)            | `"eat"` → `(1,0,0,0,1,...,1,...)`     |
+
+Either works. The sorted-string signature is shorter to write; the count-tuple is asymptotically faster.
+
+Once we have the signature, we use a `HashMap<signature, List<string>>` and bucket each input under its signature.
+
+#### Code (sort signature)
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def group_anagrams(strs):
+        groups = defaultdict(list)
+        for s in strs:
+            key = "".join(sorted(s))
+            groups[key].append(s)
+        return list(groups.values())
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <vector>
+    #include <string>
+    #include <algorithm>
+    using namespace std;
+
+    vector<vector<string>> groupAnagrams(vector<string>& strs) {
+        unordered_map<string, vector<string>> groups;
+        for (string& s : strs) {
+            string key = s;
+            sort(key.begin(), key.end());
+            groups[key].push_back(s);
+        }
+        vector<vector<string>> result;
+        for (auto& [_, group] : groups) result.push_back(group);
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public List<List<String>> groupAnagrams(String[] strs) {
+        Map<String, List<String>> groups = new HashMap<>();
+        for (String s : strs) {
+            char[] chars = s.toCharArray();
+            Arrays.sort(chars);
+            String key = new String(chars);
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(s);
+        }
+        return new ArrayList<>(groups.values());
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n · k log k) where n = number of strings, k = max string length.
+**Space:** O(n · k) for the grouping.
+
+#### Code (count signature — faster)
+
+For long strings, the character-count signature avoids the `O(k log k)` sort:
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def group_anagrams(strs):
+        groups = defaultdict(list)
+        for s in strs:
+            counts = [0] * 26
+            for c in s:
+                counts[ord(c) - ord('a')] += 1
+            groups[tuple(counts)].append(s)         # tuple is hashable
+        return list(groups.values())
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    vector<vector<string>> groupAnagrams(vector<string>& strs) {
+        unordered_map<string, vector<string>> groups;
+        for (string& s : strs) {
+            // Build a fixed 26-character signature from counts
+            string key(26, '0');
+            for (char c : s) key[c - 'a']++;
+            groups[key].push_back(s);
+        }
+        vector<vector<string>> result;
+        for (auto& [_, group] : groups) result.push_back(group);
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<List<String>> groupAnagrams(String[] strs) {
+        Map<String, List<String>> groups = new HashMap<>();
+        for (String s : strs) {
+            int[] count = new int[26];
+            for (char c : s.toCharArray()) count[c - 'a']++;
+            // Convert to a hashable signature
+            StringBuilder sb = new StringBuilder();
+            for (int x : count) { sb.append('#').append(x); }
+            groups.computeIfAbsent(sb.toString(), k -> new ArrayList<>()).add(s);
+        }
+        return new ArrayList<>(groups.values());
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n · k) — strictly better than the sort version when strings are long.
+
+<Callout type="warning">
+    **Why the `#` separator in Java?** Without it, `[1, 11]` and `[11, 1]` both become `"111"` — collisions! The separator `#1#11` vs `#11#1` keeps the signatures distinct. A subtle bug that's easy to miss.
+</Callout>
+
+#### What about prime products?
+
+A clever-but-fragile approach: assign each letter a distinct prime (`a`=2, `b`=3, `c`=5, ...), then a string's signature is the product of its letters' primes. Anagrams have the same product because multiplication commutes.
+
+It works mathematically — but **overflows** fast. The 26th prime is 101, and `101^20` is gigantic. Don't use this on real inputs; it's a fun trivia answer.
+
+#### Analysis
+
+| Approach                    | Time         | Space     | Notes                              |
+| :-------------------------- | :----------: | :-------: | :--------------------------------- |
+| Sort signature              | O(n · k log k) | O(n · k)  | Simplest                           |
+| Count signature             | O(n · k)     | O(n · k)  | Fastest for long strings           |
+| Prime product (don't!)      | O(n · k)     | O(n · k)  | Overflows; bad for production      |
+
+This bucketing pattern generalizes to **Group Shifted Strings**, **Group Words by Pattern**, **Find Duplicate Subtrees**, and any problem of the form "group items that share a canonical signature."

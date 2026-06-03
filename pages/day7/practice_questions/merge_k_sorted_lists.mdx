@@ -1,0 +1,183 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Merge K Sorted Lists <DifficultyBadge level="hard" />
+
+#### Description
+
+You're given an array of `k` linked lists, each sorted in ascending order. Merge all of them into one sorted linked list and return it.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  lists = [[1, 4, 5], [1, 3, 4], [2, 6]]
+    Output: [1, 1, 2, 3, 4, 4, 5, 6]
+
+> Case 2:
+    Input:  lists = []
+    Output: []
+```
+
+#### Constraints
+
+- `k == lists.length`
+- `0 <= k <= 10^4`
+- `0 <= lists[i].length <= 500`
+- The total number of nodes won't exceed `10^4`.
+
+#### Why naive merges are too slow
+
+If you merge two lists at a time using the standard two-list merge:
+
+- Merging list 1 and list 2: O(n + m).
+- Merging the result with list 3: copies all previous nodes again.
+- After K merges, every node has been copied K times.
+
+**Total: O(K · N)** where N is the total number of nodes. For K = 10⁴ and N = 10⁴, that's 10⁸ — borderline TLE.
+
+#### The heap approach
+
+The trick: at every step, **which K-way list head has the smallest value?** A heap answers that in O(log K).
+
+- Push the **head of each input list** onto a min-heap (K items).
+- Repeatedly **pop the smallest head**, append it to the output, and push the **next node from that same list** into the heap.
+- When the heap is empty, we're done.
+
+We process every node once. Each operation is O(log K) (the heap never holds more than K items). Total: **O(N log K)**. For N = K = 10⁴, that's 130,000 operations — comfortable.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    struct ListNode {
+        int val;
+        ListNode* next;
+        ListNode(int v) : val(v), next(nullptr) {}
+    };
+
+    ListNode* mergeKLists(vector<ListNode*>& lists) {
+        auto cmp = [](ListNode* a, ListNode* b) { return a->val > b->val; };
+        priority_queue<ListNode*, vector<ListNode*>, decltype(cmp)> heap(cmp);
+
+        for (ListNode* node : lists) {
+            if (node) heap.push(node);
+        }
+
+        ListNode dummy(0);
+        ListNode* tail = &dummy;
+        while (!heap.empty()) {
+            ListNode* node = heap.top(); heap.pop();
+            tail->next = node;
+            tail = node;
+            if (node->next) heap.push(node->next);
+        }
+        return dummy.next;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    class ListNode:
+        def __init__(self, val=0, next=None):
+            self.val = val
+            self.next = next
+
+    def merge_k_lists(lists):
+        # heapq compares tuples element-by-element; second slot is a unique id
+        # to prevent comparing ListNode objects directly (which lacks __lt__).
+        heap = []
+        for i, node in enumerate(lists):
+            if node:
+                heapq.heappush(heap, (node.val, i, node))
+
+        dummy = ListNode(0)
+        tail = dummy
+        counter = len(lists)
+        while heap:
+            val, _, node = heapq.heappop(heap)
+            tail.next = node
+            tail = node
+            if node.next:
+                heapq.heappush(heap, (node.next.val, counter, node.next))
+                counter += 1
+        return dummy.next
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.PriorityQueue;
+    import java.util.List;
+
+    class ListNode {
+        int val;
+        ListNode next;
+        ListNode(int v) { val = v; }
+    }
+
+    public ListNode mergeKLists(ListNode[] lists) {
+        PriorityQueue<ListNode> heap = new PriorityQueue<>((a, b) -> a.val - b.val);
+        for (ListNode node : lists) {
+            if (node != null) heap.offer(node);
+        }
+
+        ListNode dummy = new ListNode(0);
+        ListNode tail = dummy;
+        while (!heap.isEmpty()) {
+            ListNode node = heap.poll();
+            tail.next = node;
+            tail = node;
+            if (node.next != null) heap.offer(node.next);
+        }
+        return dummy.next;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Python gotcha:** `heapq` compares tuple elements in order. If two `(val, node)` pairs have the same `val`, Python tries to compare the `ListNode` objects directly and crashes (`ListNode` has no `__lt__`). The fix is the universal trick: insert a **unique counter** as a tiebreaker between the priority and the payload — `(val, counter, node)`.
+</Callout>
+
+#### Alternative: pairwise merging in a tournament
+
+You can also achieve **O(N log K)** without a heap by repeatedly merging pairs of lists in a "tournament" — round 1 merges K/2 pairs, round 2 merges K/4 pairs, etc. After log₂(K) rounds you have a single merged list, and every node has been touched O(log K) times.
+
+```python copy
+def merge_two(a, b):
+    dummy = ListNode(0); tail = dummy
+    while a and b:
+        if a.val <= b.val: tail.next = a; a = a.next
+        else:              tail.next = b; b = b.next
+        tail = tail.next
+    tail.next = a or b
+    return dummy.next
+
+def merge_k_lists_pairwise(lists):
+    if not lists: return None
+    while len(lists) > 1:
+        merged = []
+        for i in range(0, len(lists), 2):
+            a = lists[i]
+            b = lists[i + 1] if i + 1 < len(lists) else None
+            merged.append(merge_two(a, b))
+        lists = merged
+    return lists[0]
+```
+
+Same asymptotic cost; sometimes faster in practice because there's no heap overhead.
+
+#### Analysis
+
+- **Time:** **O(N log K)** — every node enters and exits the heap once at cost O(log K).
+- **Space:** **O(K)** for the heap (plus the output, which is unavoidable).
+
+This problem is the bridge from "heap as priority queue" to **K-way merge** — a pattern that shows up in *External Merge Sort*, *Smallest Range Covering Elements*, and *Ugly Number II*.

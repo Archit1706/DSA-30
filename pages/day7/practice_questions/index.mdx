@@ -1,0 +1,40 @@
+import { Callout } from "nextra/components";
+
+# Heap Practice Questions
+
+Five classic heap problems. Every one of them is the same sentence in disguise: **"of these many things, give me the most extreme one — repeatedly."** Recognize that pattern and a heap becomes the obvious tool.
+
+<Callout type="info">
+    All five solutions below use the standard library's priority queue rather than rolling our own heap. That's the right call in real code — the implementation is identical and well-tested. We covered the from-scratch version on the [Operations page](/day7/operations).
+</Callout>
+
+## Easy
+
+| Problem                                                                                  | Pattern                                  | Status     |
+| :--------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Last Stone Weight](/day7/practice_questions/last_stone_weight)                          | Repeatedly extract the two largest       | Available  |
+| [Kth Largest Element in an Array](/day7/practice_questions/kth_largest)                  | Size-K min-heap                          | Available  |
+
+## Medium
+
+| Problem                                                                                  | Pattern                                  | Status     |
+| :--------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Top K Frequent Elements](/day7/practice_questions/top_k_frequent)                       | Hash count + size-K min-heap             | Available  |
+| [K Closest Points to Origin](/day7/practice_questions/k_closest_points)                  | Size-K max-heap of distances             | Available  |
+
+## Hard
+
+| Problem                                                                                  | Pattern                                  | Status     |
+| :--------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Merge K Sorted Lists](/day7/practice_questions/merge_k_sorted_lists)                    | Min-heap of list heads                   | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                            | Status        |
+| :------------------------------------- | :--------------------------------- | :------------ |
+| Find Median from Data Stream           | Two heaps (max + min)              | Coming Soon   |
+| Reorganize String                      | Max-heap by frequency              | Coming Soon   |
+| Task Scheduler                         | Max-heap + cooldown                | Coming Soon   |
+| Sliding Window Median                  | Two heaps with lazy deletion       | Coming Soon   |
+| Sort Characters by Frequency           | Bucket / heap                      | Coming Soon   |
+| Connect Ropes with Minimum Cost        | Min-heap, repeated merging         | Coming Soon   |

@@ -1,0 +1,240 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { TraversalStepper } from "../../components/GraphVisualizer";
+export const Tab = Tabs.Tab;
+
+# Breadth-First Search (BFS)
+
+**Breadth-first search** is the algorithm that explores **layer by layer** — visit all the neighbours of the start, then all of *their* unvisited neighbours, and so on. It uses a **queue** (the [Day 4](/day4/queues) data structure) instead of a stack.
+
+The single most important property: **BFS finds the shortest path** (in number of edges) from the start to every node it reaches. That one property is the reason BFS exists.
+
+## Step through it
+
+Press **Next** to watch BFS spread outward from `A` one layer at a time. Notice how `C` is visited *before* `D` and `E` — even though DFS visited `D` and `E` first on the exact same graph.
+
+<TraversalStepper
+    nodes={["A", "B", "C", "D", "E", "F"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "D"], ["B", "E"], ["C", "F"]]}
+    start="A"
+    kind="bfs"
+    title="BFS from A — visits A, then B and C (distance 1), then D, E, F (distance 2)"
+/>
+
+DFS dove deep into one branch first. BFS spreads out radially. Same graph, same start — different exploration order.
+
+## The template
+
+The single line of difference from DFS: use a **queue** (FIFO) instead of a stack (LIFO).
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def bfs(start, adj):
+        visited = {start}
+        queue = deque([start])
+        while queue:
+            node = queue.popleft()                  # FIFO!
+            # process node here
+            for nei in adj[node]:
+                if nei not in visited:
+                    visited.add(nei)
+                    queue.append(nei)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <unordered_set>
+    #include <vector>
+    using namespace std;
+
+    void bfs(int start, vector<vector<int>>& adj) {
+        unordered_set<int> visited{start};
+        queue<int> q;
+        q.push(start);
+        while (!q.empty()) {
+            int node = q.front(); q.pop();
+            // process node here
+            for (int nei : adj[node]) {
+                if (!visited.count(nei)) {
+                    visited.insert(nei);
+                    q.push(nei);
+                }
+            }
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    void bfs(int start, List<List<Integer>> adj) {
+        Set<Integer> visited = new HashSet<>();
+        visited.add(start);
+        Deque<Integer> q = new ArrayDeque<>();
+        q.offer(start);
+        while (!q.isEmpty()) {
+            int node = q.poll();
+            // process node here
+            for (int nei : adj.get(node)) {
+                if (visited.add(nei)) {       // returns false if already present
+                    q.offer(nei);
+                }
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Mark visited when you *push*, not when you *pop*.** A common bug: if you only mark visited at pop time, the same node can be added to the queue multiple times by different predecessors — you'll process it more than once and your distance counts will be wrong. Always mark on push.
+</Callout>
+
+## Why BFS finds the shortest path
+
+Each layer of the BFS exploration corresponds to a fixed distance from the start. The start is distance 0. Its neighbours are distance 1. Their unvisited neighbours are distance 2. And so on.
+
+The queue's **FIFO** property ensures we always finish a layer before starting the next — and the first time we see any node X, we've reached it through the shortest possible path. (If a shorter path existed, we'd have seen X in an earlier layer.)
+
+## Computing distances
+
+To get *distances* (not just visited-ness), store the distance alongside the node:
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def shortest_distances(start, adj):
+        dist = {start: 0}
+        queue = deque([start])
+        while queue:
+            node = queue.popleft()
+            for nei in adj[node]:
+                if nei not in dist:
+                    dist[nei] = dist[node] + 1
+                    queue.append(nei)
+        return dist        # dist[x] = shortest edge count from start to x
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    unordered_map<int, int> shortestDistances(int start, vector<vector<int>>& adj) {
+        unordered_map<int, int> dist{{start, 0}};
+        queue<int> q; q.push(start);
+        while (!q.empty()) {
+            int node = q.front(); q.pop();
+            for (int nei : adj[node]) {
+                if (!dist.count(nei)) {
+                    dist[nei] = dist[node] + 1;
+                    q.push(nei);
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    Map<Integer, Integer> shortestDistances(int start, List<List<Integer>> adj) {
+        Map<Integer, Integer> dist = new HashMap<>();
+        dist.put(start, 0);
+        Deque<Integer> q = new ArrayDeque<>();
+        q.offer(start);
+        while (!q.isEmpty()) {
+            int node = q.poll();
+            for (int nei : adj.get(node)) {
+                if (!dist.containsKey(nei)) {
+                    dist.put(nei, dist.get(node) + 1);
+                    q.offer(nei);
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Level-by-level BFS
+
+Some problems need you to process **one entire layer at a time** (e.g., "level order traversal of a tree"). The standard trick: snapshot the queue size at the top of each iteration.
+
+```python copy
+def level_order(start, adj):
+    visited = {start}
+    queue = deque([start])
+    levels = []
+    while queue:
+        size = len(queue)
+        layer = []
+        for _ in range(size):
+            node = queue.popleft()
+            layer.append(node)
+            for nei in adj[node]:
+                if nei not in visited:
+                    visited.add(nei)
+                    queue.append(nei)
+        levels.append(layer)
+    return levels
+```
+
+`size` captures the count of nodes in the current layer. The inner loop processes exactly those nodes, after which the queue holds only the *next* layer.
+
+## Multi-source BFS
+
+Sometimes you want shortest distances **from multiple sources simultaneously**. Examples: "how far is every cell from the nearest exit?", or [Rotting Oranges](/day4/queues/practice_questions/rotting_oranges) where every rotten orange spreads at the same time.
+
+Just start with all the sources in the queue and distance 0:
+
+```python copy
+def multi_source_bfs(sources, adj):
+    dist = {s: 0 for s in sources}
+    queue = deque(sources)
+    while queue:
+        node = queue.popleft()
+        for nei in adj[node]:
+            if nei not in dist:
+                dist[nei] = dist[node] + 1
+                queue.append(nei)
+    return dist
+```
+
+Same template, just multiple starting points. Each cell's distance is to the *nearest* source.
+
+## What BFS is good at
+
+- **Shortest path on unweighted graphs.** The killer use case. Single source, single (or all) destinations.
+- **"Levels" or "layers."** Anything you'd phrase as "after k steps."
+- **Detecting bipartiteness.** Color the start red, all neighbours blue, all their neighbours red, etc. If two adjacent nodes ever get the same color, it's not bipartite.
+- **Multi-source spread.** Rotting Oranges, infection spread, flood fill from multiple seeds.
+- **Word ladder / state-space search** where each transition has cost 1.
+
+## What BFS is *bad* at
+
+- **Weighted shortest paths.** BFS assumes all edges are weight 1. For varying weights, use **Dijkstra** ([Day 21](/day21)).
+- **Counting paths or finding *all* paths.** DFS is more natural — though both work.
+- **Deep recursive structure** (DAG topological sort, tree backtracking) — DFS reads more naturally.
+
+## Complexity
+
+| Quantity         | Cost           |
+| :--------------- | :------------: |
+| Time             | **O(V + E)**   |
+| Space (queue)    | O(V)           |
+| Space (visited)  | O(V)           |
+
+Each node enters and exits the queue at most once. Each edge is examined twice in an undirected graph. Same O(V + E) as DFS — the difference is *the order* of visits, not the cost.
+
+## The pattern to memorize
+
+> **BFS = "explore everything one step away, then everything two steps away, then three..."**
+
+Use a queue. Mark visited on push. Process layer by layer if you care about distance.
+
+Next: how to choose **DFS vs BFS** for any given problem.

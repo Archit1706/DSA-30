@@ -1,0 +1,111 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { HashTableVisualizer, InteractiveHashTable } from "../../components/HashTableVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Introduction to Hash Tables
+
+A **hash table** is a data structure that maps **keys to values** with average-case **O(1)** lookup, insert, and delete.
+
+The keys can be almost anything — integers, strings, tuples, custom objects — as long as they implement two simple methods: **equality** and **hashing**. Once those are in place, the rest is mechanical.
+
+## The mental model: labelled mailboxes
+
+Imagine an apartment building with `M` mailboxes, numbered `0` to `M-1`. Each tenant has a name, and the building has a clerk whose only job is:
+
+> **"Given a name, tell me which mailbox to put the letter in."**
+
+The clerk uses some deterministic rule — say, "sum the ASCII codes of the letters in the name, modulo M." Different names go to different mailboxes (usually), and looking up a name is a single computation followed by a single peek into one mailbox.
+
+That's a hash table. The clerk is the **hash function**. The mailboxes are the **buckets**. The names are the **keys**.
+
+<HashTableVisualizer
+    entries={[["apple", 1], ["banana", 2], ["cherry", 3], ["date", 4]]}
+    buckets={7}
+    title="A small hash table with 4 entries spread across 7 buckets"
+/>
+
+Notice the spread — different keys land in different buckets. Looking up `"banana"` is one hash computation and one array index. **O(1).**
+
+## What's a hash function?
+
+A **hash function** is just a function that takes a key and returns a non-negative integer — the bucket index. Three properties matter:
+
+1. **Deterministic.** `hash(k)` always returns the same value for the same `k`. Otherwise we couldn't find things back.
+2. **Fast.** Computed in O(1) (or at least O(length of key)). Anything slower defeats the point.
+3. **Well-distributed.** Different keys should land in different buckets. A bad hash that sends every key to bucket 0 gives you O(n) lookups — same as a list.
+
+You almost **never need to write your own** hash function. Every language provides good ones:
+
+- **C++:** `std::hash<T>` specialized for built-in types; `std::unordered_map<K, V>` uses it.
+- **Python:** Every object has `__hash__()`. Built-in types use battle-tested implementations.
+- **Java:** Every object has `hashCode()`. Override it for custom classes.
+
+The only time you'll write a hash from scratch is for an interview question that specifically asks for "implement HashMap" — a worthwhile exercise we'll do at the end of the [Collisions page](/day8/collisions).
+
+## The four operations
+
+| Operation         | What it does                                  | Average    | Worst    |
+| :---------------- | :-------------------------------------------- | :--------: | :------: |
+| **put(k, v)**     | Insert or update — store `v` under key `k`    | O(1)       | O(n)     |
+| **get(k)**        | Look up the value for `k`                     | O(1)       | O(n)     |
+| **contains(k)**   | Does `k` exist as a key?                      | O(1)       | O(n)     |
+| **delete(k)**     | Remove `k` and its value                      | O(1)       | O(n)     |
+
+That worst-case O(n) is what we spend the next page protecting against. It happens when too many keys hash to the same bucket — the dreaded **collision**.
+
+<Callout type="warning">
+    A poorly designed hash function (or an adversarial input) can force every key into the same bucket — turning every operation into O(n). This is a real attack vector: in 2003, security researchers showed that PHP, Python, and Java's default hash maps could be DDoSed by crafting URLs whose keys all hashed to the same slot. Modern stdlib hash maps now use **randomized hashing** to defend against this.
+</Callout>
+
+## What is a "collision"?
+
+The hash function maps an *infinite* space of keys (any string, any integer) into a *finite* space of bucket indices. Two different keys eventually have to share a bucket.
+
+For example, with a 7-bucket table and our simple "sum of char codes mod 7" hash:
+
+- `"abc"` → 97 + 98 + 99 = 294 → 294 % 7 = **0**
+- `"bca"` → 98 + 99 + 97 = 294 → 294 % 7 = **0**
+
+Boom — collision. Both `"abc"` and `"bca"` want to live in bucket 0.
+
+We need a rule for what happens next. There are two main strategies, and we'll cover them in detail on the next page:
+
+- **Chaining** — each bucket is a linked list (or a small array). Multiple collided entries live in the same bucket. Lookup means scanning the bucket's list.
+- **Open addressing** — keep everything in the bucket array itself. On collision, try the next slot. Lookup means probing until you find the key or an empty slot.
+
+Both give O(1) average if the **load factor** (entries / buckets) is kept low — typically below 0.75.
+
+## Try it
+
+Put some keys in, look them up, delete them. Try keys with the same characters in a different order (`"cat"` and `"act"`) — depending on the hash function they may collide. Resize the table with the +/− buttons and watch how the layout changes.
+
+<InteractiveHashTable />
+
+## Quick check
+
+<QuizBox
+    question="Why is hash-table lookup O(1) on average, even though it's stored as an array?"
+    options={[
+        "Because the array is sorted",
+        "Because the hash function gives us the bucket index directly — no scanning",
+        "Because hash tables use a special CPU instruction",
+        "It's actually O(log n) — the question is wrong"
+    ]}
+    correctIndex={1}
+    explanation="The hash function turns a key into a bucket index in O(1) time. We then jump directly to that index in the bucket array (also O(1)). Combined: O(1) to find a candidate bucket, plus O(1) to verify the key inside it (assuming buckets are small). No searching, no comparison chain — it's the index calculation that does the work."
+/>
+
+<QuizBox
+    question="What's the *worst-case* time for a lookup in a hash table?"
+    options={[
+        "O(1)",
+        "O(log n)",
+        "O(n) — when all keys collide into one bucket",
+        "O(n log n)"
+    ]}
+    correctIndex={2}
+    explanation="In the worst case — every key hashes to the same bucket — the hash table degenerates into a linked list (with chaining) or a probe sequence covering all slots (with open addressing). Lookup becomes a linear scan: O(n). Good hash functions and load-factor management push this case from 'common' to 'astronomically unlikely', which is why we say hash tables are O(1) average."
+/>
+
+Got the picture? Next: what *actually* happens when collisions occur.

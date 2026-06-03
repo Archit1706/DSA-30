@@ -1,0 +1,280 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { HashTableVisualizer } from "../../components/HashTableVisualizer";
+export const Tab = Tabs.Tab;
+
+# Collisions & Load Factor
+
+Two keys hash to the same bucket. Now what?
+
+There are two main strategies — and most stdlib hash maps use one of them, occasionally switching between them based on the situation.
+
+## Strategy 1: Separate Chaining
+
+Each bucket holds a **linked list** (or a small dynamic array) of all the entries that hash to it. On insert, append to the list. On lookup, walk the list and compare keys.
+
+<HashTableVisualizer
+    entries={[
+        ["apple", 1],
+        ["banana", 2],
+        ["cherry", 3],
+        ["date", 4],
+        ["fig", 5],
+        ["grape", 6],
+        ["kiwi", 7],
+    ]}
+    buckets={5}
+    title="Chaining at high load factor — multiple entries per bucket"
+/>
+
+### Code: a tiny hash map with chaining
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    class HashMap:
+        def __init__(self, num_buckets=16):
+            self.buckets = [[] for _ in range(num_buckets)]
+            self.n = 0
+
+        def _idx(self, key):
+            return hash(key) % len(self.buckets)
+
+        def put(self, key, val):
+            bucket = self.buckets[self._idx(key)]
+            for i, (k, _) in enumerate(bucket):
+                if k == key:
+                    bucket[i] = (key, val)        # update existing
+                    return
+            bucket.append((key, val))             # new key
+            self.n += 1
+
+        def get(self, key):
+            bucket = self.buckets[self._idx(key)]
+            for k, v in bucket:
+                if k == key:
+                    return v
+            raise KeyError(key)
+
+        def delete(self, key):
+            bucket = self.buckets[self._idx(key)]
+            for i, (k, _) in enumerate(bucket):
+                if k == key:
+                    bucket.pop(i)
+                    self.n -= 1
+                    return
+            raise KeyError(key)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <list>
+    #include <vector>
+    #include <utility>
+    #include <functional>
+    using namespace std;
+
+    template <typename K, typename V>
+    class HashMap {
+        vector<list<pair<K, V>>> buckets;
+        size_t n;
+        size_t idx(const K& key) const {
+            return hash<K>{}(key) % buckets.size();
+        }
+    public:
+        HashMap(size_t cap = 16) : buckets(cap), n(0) {}
+
+        void put(const K& key, const V& val) {
+            auto& bucket = buckets[idx(key)];
+            for (auto& [k, v] : bucket) {
+                if (k == key) { v = val; return; }
+            }
+            bucket.emplace_back(key, val);
+            n++;
+        }
+
+        V get(const K& key) const {
+            const auto& bucket = buckets[idx(key)];
+            for (auto& [k, v] : bucket) {
+                if (k == key) return v;
+            }
+            throw out_of_range("key not found");
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.LinkedList;
+    import java.util.List;
+
+    class HashMap<K, V> {
+        private List<List<Entry<K, V>>> buckets;
+        private int n;
+
+        static class Entry<K, V> {
+            K key; V value;
+            Entry(K k, V v) { key = k; value = v; }
+        }
+
+        public HashMap(int cap) {
+            buckets = new java.util.ArrayList<>(cap);
+            for (int i = 0; i < cap; i++) buckets.add(new LinkedList<>());
+        }
+
+        private int idx(K key) {
+            return (key.hashCode() & 0x7fffffff) % buckets.size();
+        }
+
+        public void put(K key, V value) {
+            List<Entry<K, V>> bucket = buckets.get(idx(key));
+            for (Entry<K, V> e : bucket) {
+                if (e.key.equals(key)) { e.value = value; return; }
+            }
+            bucket.add(new Entry<>(key, value));
+            n++;
+        }
+
+        public V get(K key) {
+            for (Entry<K, V> e : buckets.get(idx(key))) {
+                if (e.key.equals(key)) return e.value;
+            }
+            return null;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Pros & cons of chaining
+
+| Pros                                              | Cons                                                |
+| :------------------------------------------------ | :-------------------------------------------------- |
+| Simple to implement and reason about              | Extra memory per entry (the list node overhead)     |
+| Degrades gracefully under high load               | Cache-unfriendly — buckets are scattered            |
+| Load factor can safely exceed 1.0                 | Worst case is O(n) if everything chains             |
+
+Java's `HashMap` uses chaining (and famously upgrades long chains to red-black trees once they exceed 8 entries).
+
+## Strategy 2: Open Addressing
+
+Instead of a list per bucket, **everything lives in the main array**. On collision, **probe** for the next available slot.
+
+The simplest variant — **linear probing** — works like this:
+
+```text
+put(k, v):
+    i = hash(k) % M
+    while buckets[i] is occupied with a different key:
+        i = (i + 1) % M
+    buckets[i] = (k, v)
+```
+
+To look up, hash to the starting slot, then walk forward until you either find the key (return its value) or hit an empty slot (key not present).
+
+```text
+                     [   ][ A:1 ][ B:2 ][ C:3 ][   ][   ][   ]
+hash("D") → 2 (taken)
+hash("D") → 3 (taken)
+hash("D") → 4 (empty!)
+                     [   ][ A:1 ][ B:2 ][ C:3 ][ D:4 ][   ][   ]
+```
+
+### Pros & cons of open addressing
+
+| Pros                                                  | Cons                                          |
+| :---------------------------------------------------- | :-------------------------------------------- |
+| Excellent cache locality — everything in one array    | Load factor must stay well below 1.0 (~0.5–0.75) |
+| Lower memory overhead — no list-node pointers         | Deletion is tricky (need tombstones)          |
+| Faster in practice when sized correctly               | Clustering can hurt performance               |
+
+Variants try to spread probes better:
+
+- **Quadratic probing** — try `i + 1, i + 4, i + 9, …`. Better distribution than linear.
+- **Double hashing** — use a second hash function to determine the probe step. Best distribution; used by Python's `dict`.
+
+Python's `dict` and C++ `unordered_map` use open addressing variants. Most modern hash table implementations have moved this way.
+
+## The load factor
+
+The **load factor** `α = n / M` (entries / buckets) is the single number that controls how fast a hash table is.
+
+- α small (< 0.5): lots of empty buckets, hash collisions rare, operations close to O(1) — **wastes memory**.
+- α around 0.5–0.75: sweet spot for most implementations.
+- α near 1.0 with chaining: still works but slows down — buckets get long.
+- α near 1.0 with open addressing: **catastrophic** — every probe might need to scan most of the table.
+
+When α exceeds a threshold (typically 0.75), the hash table **resizes**: allocate a new array of double the size, then **rehash every existing entry** into the new array using the new modulus.
+
+```text
+Old: 8 buckets, 6 entries — α = 0.75 → resize!
+New: 16 buckets, 6 entries — α = 0.375 → roomy again
+```
+
+Resizing is **O(n)** work. But it happens roughly every time the table doubles in size, so it's amortized to **O(1) per insert**:
+
+- After resizing to size 2M, the next resize needs n = 2M × 0.75 = 1.5M new entries.
+- We do M work for the resize, but we add 1.5M − 0.75M = 0.75M new entries between resizes.
+- Cost per insert: O(M) ÷ O(M new inserts) = O(1) amortized.
+
+<Callout type="info">
+    This is the **same amortized argument** as the dynamic array (`vector`, `list`, `ArrayList`) doubling strategy from [Day 2](/day2/arrays). A rare expensive operation, spread across many cheap ones, averages out to O(1) per operation.
+</Callout>
+
+## What if you implement a HashMap from scratch?
+
+A common interview question. The skeleton:
+
+```python copy
+class MyHashMap:
+    def __init__(self):
+        self.cap = 8
+        self.n = 0
+        self.buckets = [[] for _ in range(self.cap)]
+
+    def _idx(self, key):
+        return hash(key) % self.cap
+
+    def _resize(self):
+        old = self.buckets
+        self.cap *= 2
+        self.buckets = [[] for _ in range(self.cap)]
+        self.n = 0
+        for bucket in old:
+            for k, v in bucket:
+                self.put(k, v)        # re-insert under new capacity
+
+    def put(self, key, value):
+        bucket = self.buckets[self._idx(key)]
+        for i, (k, _) in enumerate(bucket):
+            if k == key:
+                bucket[i] = (key, value); return
+        bucket.append((key, value))
+        self.n += 1
+        if self.n / self.cap > 0.75:
+            self._resize()
+
+    def get(self, key, default=None):
+        for k, v in self.buckets[self._idx(key)]:
+            if k == key: return v
+        return default
+
+    def remove(self, key):
+        bucket = self.buckets[self._idx(key)]
+        for i, (k, _) in enumerate(bucket):
+            if k == key:
+                bucket.pop(i); self.n -= 1; return
+```
+
+Six core methods. Implement them once, understand them forever, and use the stdlib version everywhere else.
+
+## Common pitfalls
+
+The five things people get wrong:
+
+1. **Forgetting that keys can be `None` / `null`.** Most stdlib hash maps allow null keys (one slot reserved). Hand-rolled implementations often crash.
+2. **Mutating a key after insertion.** If a key's hash changes between put and get, you'll never find it again. Use *immutable* keys — Python tuples but not lists, strings but not bytearrays.
+3. **Comparing hashes instead of keys.** Two different keys can have the same hash. Always do `hash(k1) == hash(k2) AND k1 == k2` (and the stdlib already does this for you).
+4. **Ignoring the load factor.** If you build a hash map by repeated insertion without resizing, the table degrades to O(n) per operation.
+5. **Using a slow `equals` / `__eq__` on custom keys.** Hash maps call equality every time you probe. A multi-millisecond equality is a problem.
+
+Now that you understand the machinery, let's see how you actually *use* a hash map in real code — and the standard library patterns that solve 90% of problems.

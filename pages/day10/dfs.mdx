@@ -1,0 +1,225 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+import { TraversalStepper, GraphVisualizer } from "../../components/GraphVisualizer";
+export const Tab = Tabs.Tab;
+
+# Depth-First Search (DFS)
+
+**Depth-first search** is the algorithm that goes **as deep as possible** before backtracking. You pick a starting node, follow an edge, follow another edge, keep going — and only when you hit a dead end (no unvisited neighbours) do you backtrack and try another direction.
+
+If you remember [Day 5 — Recursion](/day5), you already know DFS. It's literally **recursion on a graph**, plus a small bookkeeping addition: a **visited set** to prevent cycles from looping forever.
+
+## Step through it
+
+Press **Next** to watch DFS walk this graph from node `A`. Notice how it commits to one path entirely before backtracking.
+
+<TraversalStepper
+    nodes={["A", "B", "C", "D", "E", "F"]}
+    edges={[["A", "B"], ["A", "C"], ["B", "D"], ["B", "E"], ["C", "F"]]}
+    start="A"
+    kind="dfs"
+    title="DFS from A — visits A, B, D, E (dead end → backtrack), then C, F"
+/>
+
+Notice how `D` and `E` are visited *before* `C`. DFS commits to the B-branch all the way down before ever looking at C.
+
+## The recursive template
+
+Three lines of logic:
+
+1. **Mark the current node as visited.**
+2. **Do whatever you came to do** (record it, count it, push it to a stack).
+3. **Recurse into each unvisited neighbour.**
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def dfs(node, adj, visited):
+        visited.add(node)
+        # process node here (count, collect, check predicate, ...)
+        for neighbour in adj[node]:
+            if neighbour not in visited:
+                dfs(neighbour, adj, visited)
+
+    # Usage
+    adj = {0: [1, 2], 1: [0, 3], 2: [0], 3: [1]}
+    visited = set()
+    dfs(0, adj, visited)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_set>
+    #include <vector>
+    using namespace std;
+
+    void dfs(int node, vector<vector<int>>& adj, unordered_set<int>& visited) {
+        visited.insert(node);
+        // process node here
+        for (int nei : adj[node]) {
+            if (!visited.count(nei)) dfs(nei, adj, visited);
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    void dfs(int node, List<List<Integer>> adj, Set<Integer> visited) {
+        visited.add(node);
+        // process node here
+        for (int nei : adj.get(node)) {
+            if (!visited.contains(nei)) dfs(nei, adj, visited);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Always mark visited *before* recursing**, not after. If you mark after, your neighbour's recursive call won't see that you've already started exploring — and they'll recurse back into you, then into themselves, then into you again. Infinite loop.
+</Callout>
+
+## The iterative template (with an explicit stack)
+
+Python's recursion limit is ~1000 frames by default. Java's is around 10,000. C++ depends on stack size. For deep graphs (long chains, big grids), use an iterative version with an explicit stack.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def dfs(start, adj):
+        visited = set()
+        stack = [start]
+        while stack:
+            node = stack.pop()
+            if node in visited:
+                continue
+            visited.add(node)
+            # process node here
+            for nei in adj[node]:
+                if nei not in visited:
+                    stack.append(nei)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    void dfs(int start, vector<vector<int>>& adj) {
+        unordered_set<int> visited;
+        vector<int> stack{start};
+        while (!stack.empty()) {
+            int node = stack.back(); stack.pop_back();
+            if (visited.count(node)) continue;
+            visited.insert(node);
+            // process node here
+            for (int nei : adj[node]) {
+                if (!visited.count(nei)) stack.push_back(nei);
+            }
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void dfs(int start, List<List<Integer>> adj) {
+        Set<Integer> visited = new HashSet<>();
+        Deque<Integer> stack = new ArrayDeque<>();
+        stack.push(start);
+        while (!stack.isEmpty()) {
+            int node = stack.pop();
+            if (!visited.add(node)) continue;
+            // process node here
+            for (int nei : adj.get(node)) {
+                if (!visited.contains(nei)) stack.push(nei);
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The iterative version has one quirk: a node can be **pushed onto the stack multiple times** before it's popped. That's why we check `visited` again *inside* the loop. The check at push-time is a useful optimization but doesn't replace the loop-body check.
+</Callout>
+
+## DFS on a grid
+
+A grid problem is just a graph problem where every cell is a node and the four (or eight) directional neighbours are edges. The DFS shape is identical — just with index arithmetic for neighbours.
+
+```python copy
+def grid_dfs(grid, r, c, visited):
+    if (r < 0 or r >= len(grid)
+        or c < 0 or c >= len(grid[0])
+        or (r, c) in visited
+        or grid[r][c] == 0):                  # 0 = water, 1 = land (Islands problem)
+        return
+    visited.add((r, c))
+    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+        grid_dfs(grid, r + dr, c + dc, visited)
+```
+
+That four-directional pattern (`(-1,0), (1,0), (0,-1), (0,1)`) is the most-typed snippet in all of grid DFS. Memorize it.
+
+## What DFS is good at
+
+DFS shines for problems where you need to **explore an entire branch** before considering alternatives, or where you need to know "is there *any* path" rather than "what's the shortest path."
+
+- **Connected components** — start a DFS at every unvisited node; each one explores exactly one component.
+- **Cycle detection** — DFS with a "currently on the stack" flag detects back-edges in directed graphs.
+- **Topological sort** — DFS with finish times produces a valid topological order.
+- **Path existence** — does a path from A to B exist? DFS from A; check if B was visited.
+- **Maze with constraints** — backtracking through choices is naturally DFS.
+- **Tree algorithms** — most tree problems are DFS in disguise.
+
+## What DFS is *bad* at
+
+The big one: **shortest paths in an unweighted graph.** DFS doesn't explore by distance — it commits to deep branches first. The first time DFS reaches node X might not be along the shortest path.
+
+For shortest paths on unweighted graphs, you want **BFS**, which we cover next.
+
+## Walked example: connected components
+
+Combine DFS with a sweep over all nodes and you can count connected components in O(V + E):
+
+```python copy
+def count_components(n, edges):
+    adj = [[] for _ in range(n)]
+    for u, v in edges:
+        adj[u].append(v); adj[v].append(u)
+
+    visited = set()
+    components = 0
+    for start in range(n):
+        if start in visited:
+            continue
+        components += 1
+        # DFS from start; marks the whole component visited
+        stack = [start]
+        while stack:
+            node = stack.pop()
+            if node in visited: continue
+            visited.add(node)
+            for nei in adj[node]:
+                if nei not in visited:
+                    stack.append(nei)
+    return components
+```
+
+This is the same trick used in [Number of Islands](/day10/practice_questions/number_of_islands) on grids.
+
+## Complexity
+
+| Quantity        | Cost          |
+| :-------------- | :-----------: |
+| Time            | **O(V + E)**  |
+| Space (visited) | O(V)          |
+| Space (stack)   | O(V) worst case |
+
+Each node is visited once. Each edge is examined twice (once from each endpoint in an undirected graph). Total: O(V + E).
+
+## The pattern to memorize
+
+> **DFS = "follow this thread all the way down, then come back and try another."**
+
+That single sentence covers tree traversal, cycle detection, topological sort, connected components, maze solving, and most backtracking. The shape doesn't change — only what you record during the walk.
+
+Now meet DFS's wide-loving sibling: **BFS**.

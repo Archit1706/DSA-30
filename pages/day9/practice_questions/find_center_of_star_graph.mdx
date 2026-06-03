@@ -1,0 +1,145 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { GraphVisualizer } from "../../../components/GraphVisualizer";
+export const Tab = Tabs.Tab;
+
+### Find Center of Star Graph <DifficultyBadge level="easy" />
+
+#### Description
+
+A graph is a **star graph** on `n` nodes if it consists of one center node connected to every other node by a single edge — and no other edges. You're given the edges of such a graph and must return the **center node**.
+
+#### Examples
+
+<GraphVisualizer
+    nodes={["1", "2", "3", "4"]}
+    edges={[["1", "2"], ["2", "3"], ["4", "2"]]}
+    layout={[{ x: 80, y: 60 }, { x: 160, y: 130 }, { x: 240, y: 60 }, { x: 160, y: 220 }]}
+    title="A star graph with center 2"
+/>
+
+```py
+> Case 1:
+    Input:  edges = [[1, 2], [2, 3], [4, 2]]
+    Output: 2
+
+> Case 2:
+    Input:  edges = [[1, 2], [5, 1], [1, 3], [1, 4]]
+    Output: 1
+```
+
+#### Constraints
+
+- `3 <= n <= 10^5`
+- `edges.length == n - 1`
+- The graph is guaranteed to be a valid star graph.
+
+#### The dead-simple intuition
+
+A star graph has exactly **one center node** that touches every edge. Every other node touches **exactly one** edge.
+
+So we don't even need to count degrees — the center appears in **every** edge. Look at *any two* edges; the node that appears in both is the center.
+
+```text
+edges[0] = [1, 2], edges[1] = [2, 3]
+                          ^
+                  shared in both → center
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    using namespace std;
+
+    int findCenter(vector<vector<int>>& edges) {
+        int a = edges[0][0], b = edges[0][1];
+        int c = edges[1][0], d = edges[1][1];
+        return (a == c || a == d) ? a : b;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_center(edges):
+        a, b = edges[0]
+        c, d = edges[1]
+        return a if a in (c, d) else b
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findCenter(int[][] edges) {
+        int a = edges[0][0], b = edges[0][1];
+        int c = edges[1][0], d = edges[1][1];
+        return (a == c || a == d) ? a : b;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    Why **O(1)?** We didn't build a graph at all. We didn't loop over `edges`. We didn't allocate a degree array. We looked at the first two edges and found our answer — the problem's structural guarantee did all the work for us. **Read the constraints carefully** before reaching for an adjacency list.
+</Callout>
+
+#### The degree-counting approach (for if you missed the shortcut)
+
+If you didn't notice the two-edge trick, the obvious O(n) approach is to **count how many edges touch each node** — the one with degree n-1 is the center.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import Counter
+
+    def find_center(edges):
+        degrees = Counter()
+        for u, v in edges:
+            degrees[u] += 1
+            degrees[v] += 1
+        n = len(edges) + 1
+        for node, deg in degrees.items():
+            if deg == n - 1:
+                return node
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int findCenter(vector<vector<int>>& edges) {
+        unordered_map<int, int> deg;
+        for (auto& e : edges) { deg[e[0]]++; deg[e[1]]++; }
+        int n = edges.size() + 1;
+        for (auto& [node, d] : deg) if (d == n - 1) return node;
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findCenter(int[][] edges) {
+        Map<Integer, Integer> deg = new HashMap<>();
+        for (int[] e : edges) {
+            deg.merge(e[0], 1, Integer::sum);
+            deg.merge(e[1], 1, Integer::sum);
+        }
+        int n = edges.length + 1;
+        for (var e : deg.entrySet()) if (e.getValue() == n - 1) return e.getKey();
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+That's perfectly correct, but takes O(n) time and O(n) space — vs. the trick which is O(1) for both.
+
+#### Why this lives on Day 9
+
+This problem barely uses graph algorithms — but it forces you to **think about degrees** and **read problem guarantees carefully**. Those two habits will pay enormous dividends throughout graph practice.
+
+#### Analysis
+
+| Approach           | Time   | Space  |
+| :----------------- | :----: | :----: |
+| **Two-edge trick** | O(1)   | O(1)   |
+| Degree counting    | O(n)   | O(n)   |

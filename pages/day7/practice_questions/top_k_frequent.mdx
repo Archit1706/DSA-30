@@ -1,0 +1,143 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Top K Frequent Elements <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums` and an integer `k`, return the **k most frequent** elements. You may return the answer in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [1, 1, 1, 2, 2, 3], k = 2
+    Output: [1, 2]
+    # 1 appears 3 times; 2 appears 2 times — those are the top 2.
+
+> Case 2:
+    Input:  nums = [1], k = 1
+    Output: [1]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- `k` is guaranteed to be in `[1, number of distinct elements]`
+
+#### Intuition
+
+The problem decomposes into two steps:
+
+1. **Count the frequencies** — that's just a hash map: `Counter(nums)` in Python, `unordered_map<int,int>` in C++, `HashMap<Integer,Integer>` in Java. **O(n)**.
+2. **Find the K largest counts**. Same pattern as [Kth Largest Element](/day7/practice_questions/kth_largest): a **size-K min-heap**, but the priority is the *frequency* and the *payload* is the element.
+
+The min-heap holds the K elements with the highest counts seen so far. The root is the one with the *smallest* count among the K — so a new element with a higher count kicks it out.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    vector<int> topKFrequent(vector<int>& nums, int k) {
+        unordered_map<int, int> freq;
+        for (int x : nums) freq[x]++;
+
+        // Min-heap of (count, value), ordered by count ascending
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> heap;
+        for (auto& [val, cnt] : freq) {
+            heap.push({cnt, val});
+            if ((int)heap.size() > k) heap.pop();
+        }
+
+        vector<int> result;
+        while (!heap.empty()) {
+            result.push_back(heap.top().second);
+            heap.pop();
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import Counter
+    import heapq
+
+    def top_k_frequent(nums, k):
+        freq = Counter(nums)
+        # heapq.nlargest does exactly this — size-K min-heap under the hood.
+        return [val for val, _ in freq.most_common(k)]
+
+    # Manual version, same idea:
+    def top_k_frequent_manual(nums, k):
+        freq = Counter(nums)
+        heap = []
+        for val, cnt in freq.items():
+            heapq.heappush(heap, (cnt, val))
+            if len(heap) > k:
+                heapq.heappop(heap)
+        return [val for _, val in heap]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public int[] topKFrequent(int[] nums, int k) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        for (int x : nums) freq.merge(x, 1, Integer::sum);
+
+        // Min-heap of (count, value)
+        PriorityQueue<int[]> heap = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        for (Map.Entry<Integer, Integer> e : freq.entrySet()) {
+            heap.offer(new int[]{e.getValue(), e.getKey()});
+            if (heap.size() > k) heap.poll();
+        }
+
+        int[] result = new int[k];
+        for (int i = 0; i < k; i++) result[i] = heap.poll()[1];
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Bucket sort — the linear alternative
+
+When the counts are bounded (and here they are — no count can exceed `n`), there's a faster trick: **bucket sort by frequency**. Create `n + 1` buckets where `bucket[i]` is "elements that appear exactly i times." Walk the buckets from high to low and collect the first K elements you find. **O(n)** total.
+
+```python copy
+def top_k_frequent_bucket(nums, k):
+    freq = Counter(nums)
+    buckets = [[] for _ in range(len(nums) + 1)]
+    for val, cnt in freq.items():
+        buckets[cnt].append(val)
+
+    result = []
+    for i in range(len(buckets) - 1, 0, -1):
+        for val in buckets[i]:
+            result.append(val)
+            if len(result) == k:
+                return result
+```
+
+In an interview, either is acceptable. Heap = the general pattern, bucket sort = the optimal answer for this specific shape.
+
+<Callout type="info">
+    The same **frequency + heap** template solves *Sort Characters by Frequency*, *Reorganize String*, *Task Scheduler*, *K Most Common Words*, and many more. Once you spot the pattern (count → top K by count), the implementation is identical.
+</Callout>
+
+#### Analysis
+
+| Approach            | Time        | Space       |
+| :------------------ | :---------: | :---------: |
+| Heap (this page)    | O(n log k)  | O(n)        |
+| Bucket sort         | **O(n)**    | O(n)        |
+| Sort by frequency   | O(n log n)  | O(n)        |

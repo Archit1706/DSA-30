@@ -1,0 +1,209 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Number of Islands <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an `m × n` grid of `'1'`s (land) and `'0'`s (water), return the **number of islands**. An island is a maximal group of `'1'`s connected horizontally or vertically. The grid's edges are surrounded by water (the grid does not wrap around).
+
+#### Examples
+
+```py
+> Case 1:
+    Input:
+        [['1','1','1','1','0'],
+         ['1','1','0','1','0'],
+         ['1','1','0','0','0'],
+         ['0','0','0','0','0']]
+    Output: 1      # all the 1s are connected
+
+> Case 2:
+    Input:
+        [['1','1','0','0','0'],
+         ['1','1','0','0','0'],
+         ['0','0','1','0','0'],
+         ['0','0','0','1','1']]
+    Output: 3
+```
+
+#### Constraints
+
+- `m == grid.length`, `n == grid[i].length`
+- `1 <= m, n <= 300`
+- `grid[i][j]` is `'0'` or `'1'`
+
+#### Intuition
+
+This is the **counting components** pattern from [Day 9](/day9/practice_questions/count_connected_components), translated to a grid:
+
+- Sweep every cell in the grid.
+- When you find an unvisited land cell, increment the counter and **flood-fill** the entire island from there (DFS or BFS).
+- The flood-fill marks every cell of that island as visited so the sweep doesn't double-count.
+
+That's it. Counting components is "count the number of times you kick off a new traversal."
+
+#### Approach 1: DFS flood-fill (mutating the grid)
+
+The cleanest trick: instead of using a separate `visited` set, **overwrite each visited `'1'` with `'0'`**. We're not using the grid for anything else once we've found an island.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def num_islands(grid):
+        if not grid: return 0
+        m, n = len(grid), len(grid[0])
+
+        def dfs(r, c):
+            if (r < 0 or r >= m or c < 0 or c >= n or grid[r][c] != '1'):
+                return
+            grid[r][c] = '0'                      # mark visited
+            dfs(r + 1, c); dfs(r - 1, c)
+            dfs(r, c + 1); dfs(r, c - 1)
+
+        count = 0
+        for r in range(m):
+            for c in range(n):
+                if grid[r][c] == '1':
+                    count += 1
+                    dfs(r, c)
+        return count
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    using namespace std;
+
+    void dfs(vector<vector<char>>& g, int r, int c) {
+        int m = g.size(), n = g[0].size();
+        if (r < 0 || r >= m || c < 0 || c >= n || g[r][c] != '1') return;
+        g[r][c] = '0';
+        dfs(g, r + 1, c); dfs(g, r - 1, c);
+        dfs(g, r, c + 1); dfs(g, r, c - 1);
+    }
+
+    int numIslands(vector<vector<char>>& grid) {
+        int count = 0;
+        for (int r = 0; r < (int)grid.size(); r++) {
+            for (int c = 0; c < (int)grid[0].size(); c++) {
+                if (grid[r][c] == '1') {
+                    count++;
+                    dfs(grid, r, c);
+                }
+            }
+        }
+        return count;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int numIslands(char[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        int count = 0;
+        for (int r = 0; r < m; r++) {
+            for (int c = 0; c < n; c++) {
+                if (grid[r][c] == '1') {
+                    count++;
+                    dfs(grid, r, c);
+                }
+            }
+        }
+        return count;
+    }
+
+    private void dfs(char[][] g, int r, int c) {
+        if (r < 0 || r >= g.length || c < 0 || c >= g[0].length || g[r][c] != '1') return;
+        g[r][c] = '0';
+        dfs(g, r + 1, c); dfs(g, r - 1, c);
+        dfs(g, r, c + 1); dfs(g, r, c - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Mutating the input** is fast and elegant — but it changes the caller's grid. In an interview, mention it: "I'll mark visited cells by setting them to '0'; if the grid shouldn't be modified, I'll use a separate visited set instead." Adding `visited` doubles the memory, doesn't affect time.
+</Callout>
+
+#### Approach 2: Iterative BFS (avoid recursion depth)
+
+For very large grids, Python's recursion limit becomes a problem. BFS sidesteps that:
+
+<Tabs items={['Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def num_islands(grid):
+        if not grid: return 0
+        m, n = len(grid), len(grid[0])
+        dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        count = 0
+        for r in range(m):
+            for c in range(n):
+                if grid[r][c] == '1':
+                    count += 1
+                    queue = deque([(r, c)])
+                    grid[r][c] = '0'
+                    while queue:
+                        x, y = queue.popleft()
+                        for dx, dy in dirs:
+                            nx, ny = x + dx, y + dy
+                            if (0 <= nx < m and 0 <= ny < n
+                                    and grid[nx][ny] == '1'):
+                                grid[nx][ny] = '0'
+                                queue.append((nx, ny))
+        return count
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int numIslands(char[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+        int count = 0;
+        for (int r = 0; r < m; r++) {
+            for (int c = 0; c < n; c++) {
+                if (grid[r][c] == '1') {
+                    count++;
+                    Deque<int[]> q = new ArrayDeque<>();
+                    q.offer(new int[]{r, c});
+                    grid[r][c] = '0';
+                    while (!q.isEmpty()) {
+                        int[] cur = q.poll();
+                        for (int[] d : dirs) {
+                            int nr = cur[0] + d[0], nc = cur[1] + d[1];
+                            if (nr >= 0 && nr < m && nc >= 0 && nc < n && grid[nr][nc] == '1') {
+                                grid[nr][nc] = '0';
+                                q.offer(new int[]{nr, nc});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this is *the* archetypal grid-DFS problem
+
+Every grid DFS/BFS problem you'll see is a variation:
+
+- **Max Area of Island** — return island sizes instead of count
+- **Surrounded Regions** — flip `'O'` cells unless they touch the border
+- **Pacific Atlantic** — multi-source DFS from each border
+- **Flood Fill** — recolor connected region
+- **Number of Distinct Islands** — count up to translation
+
+Master the Number of Islands template and these are all 5-minute edits.
+
+#### Analysis
+
+- **Time:** **O(m · n)** — every cell visited at most once.
+- **Space:** **O(m · n)** worst case for the recursion stack / BFS queue when the entire grid is one big island.

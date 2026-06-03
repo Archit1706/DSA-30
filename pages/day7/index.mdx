@@ -2,18 +2,27 @@ import { Callout } from "nextra/components";
 
 # Day 7 — Heaps and Priority Queues
 
+Heaps are the data structure that answers a deceptively simple question: **"Give me the smallest (or largest) thing right now."** Not the sorted list. Not all of them. Just the one extreme element — fast.
+
+That's it. That's the entire job. And once you have an answer to that question in **O(log n)**, an enormous family of problems suddenly has clean solutions.
+
+## What you'll learn today
+
+- **Binary heaps** — a tree where the parent is always smaller (min-heap) or larger (max-heap) than its children, stored cleverly in a flat array
+- The four core operations — **push, pop, peek, heapify** — and why the array layout makes parent / child lookup arithmetic
+- The surprising **O(n) build-heap** that lets you turn an arbitrary array into a heap *faster* than sorting it
+- **Priority queues** — the abstract API that languages all expose, backed by a heap underneath
+- Five classic interview problems: Kth Largest, Top K Frequent, Last Stone Weight, K Closest Points, Merge K Sorted Lists
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    You've already met heaps twice. [Day 4's queue variants page](/day4/queues/variants) introduced priority queues. [Day 12's Heap Sort](/day12/heap_sort) used a max-heap to sort in place. Today we open the hood and look at what's actually inside.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Binary heaps** — the array-backed tree structure where the parent is always smaller (min-heap) or larger (max-heap) than its children
-- The four core operations: **`push`, `pop`, `peek`, `heapify`** — all in O(log n) or better
-- The surprising **O(n) build-heap** result and why it isn't O(n log n)
-- **Priority queues** — the universal API that heaps implement under the hood
-- Real applications: **Dijkstra's algorithm, A\*, Huffman coding, top-K problems, median maintenance**
+1. **[Introduction](/day7/introduction)** — what a heap is, the heap property, min vs max, why we store a tree in an array.
+2. **[Heap Operations](/day7/operations)** — push, pop, peek, sift-up, sift-down, and the O(n) build-heap.
+3. **[Priority Queues](/day7/priority_queue)** — the standard API, plus the stdlib heap in C++, Python, and Java.
+4. **[Practice Questions](/day7/practice_questions)** — five interview classics where a heap collapses an O(n log n) problem into something cleaner.
 
-You already saw heaps in passing on [Day 12 — Heap Sort](/day12/heap_sort) and in [Day 4 — Queue Variants](/day4/queues/variants). This chapter goes deep on the data structure itself — how it works, how to build one from scratch in C++/Python/Java, and the problems where it's the right tool.
-
-Once you have heaps in your toolbox, the door opens to graph algorithms ([Day 21 — Shortest Paths](/day21)) and a whole family of "top-K" interview problems.
+The mental model to keep: **a heap is a sorted *enough* structure — sorted enough to give you the extreme in O(1) and maintain that property in O(log n), but not fully sorted in the middle.** That partial-order is where all the speed comes from.
