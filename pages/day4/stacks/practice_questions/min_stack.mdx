@@ -1,0 +1,142 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Min Stack <DifficultyBadge level="easy" />
+
+#### Description
+
+Design a stack that supports `push`, `pop`, `top`, and **retrieving the minimum element in constant time**.
+
+Implement the `MinStack` class:
+
+- `push(val)` — push `val` onto the stack
+- `pop()` — remove the top element
+- `top()` — get the top element
+- `getMin()` — get the minimum element currently in the stack, in **O(1)**
+
+#### Examples
+
+```py
+MinStack stack
+stack.push(-2)
+stack.push(0)
+stack.push(-3)
+stack.getMin()    # -> -3
+stack.pop()
+stack.top()       # -> 0
+stack.getMin()    # -> -2
+```
+
+#### Constraints
+
+- Methods `push`, `pop`, `top`, and `getMin` must all run in **O(1)** time.
+- `pop`, `top`, `getMin` are always called on non-empty stacks.
+
+#### Intuition
+
+The first idea: scan the stack to find the min on every `getMin` call. That's O(n) — too slow.
+
+The trick: **keep a second stack** that tracks the minimum **at each level**. When we push `val`, we also push `min(val, currentMin)` onto the min-stack. When we pop, we pop from both. Then `getMin` is just `peek` of the min-stack — O(1).
+
+```text
+Main stack:  [-2,  0, -3]
+Min  stack:  [-2, -2, -3]   ← min seen so far at each depth
+```
+
+When we pop `-3`, both stacks pop together; the min stack's top becomes `-2`, which is the correct min of what's left.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <stack>
+    #include <algorithm>
+    using namespace std;
+
+    class MinStack {
+        stack<int> data;
+        stack<int> mins;
+    public:
+        void push(int val) {
+            data.push(val);
+            if (mins.empty() || val <= mins.top()) mins.push(val);
+            else mins.push(mins.top());
+        }
+
+        void pop() {
+            data.pop();
+            mins.pop();
+        }
+
+        int top() { return data.top(); }
+        int getMin() { return mins.top(); }
+    };
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    class MinStack:
+        def __init__(self):
+            self.data = []
+            self.mins = []
+
+        def push(self, val: int) -> None:
+            self.data.append(val)
+            current_min = val if not self.mins else min(val, self.mins[-1])
+            self.mins.append(current_min)
+
+        def pop(self) -> None:
+            self.data.pop()
+            self.mins.pop()
+
+        def top(self) -> int:
+            return self.data[-1]
+
+        def getMin(self) -> int:
+            return self.mins[-1]
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    class MinStack {
+        private Deque<Integer> data = new ArrayDeque<>();
+        private Deque<Integer> mins = new ArrayDeque<>();
+
+        public void push(int val) {
+            data.push(val);
+            mins.push(mins.isEmpty() ? val : Math.min(val, mins.peek()));
+        }
+
+        public void pop() {
+            data.pop();
+            mins.pop();
+        }
+
+        public int top()    { return data.peek(); }
+        public int getMin() { return mins.peek(); }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- Each entry in `mins` answers: *"what's the smallest element in the stack from the bottom up to this depth?"*
+- Pushing a new value either makes the new min (`val`) or inherits the previous min (`mins.top()`).
+- Because both stacks grow and shrink in lockstep, `mins.top()` always reflects the min of the *current* stack contents.
+
+<Callout type="warning">
+    A common optimization stores `mins` only when a *new* minimum appears — saving space when values tend to increase. But you have to be careful in `pop`: only pop from `mins` if the popped value equals `mins.top()`. The straightforward "push every time" version above is easier to get right under interview pressure.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(1)` for all four operations.
+- **Space:** `O(n)` — two stacks, each up to size `n`.

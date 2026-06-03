@@ -1,0 +1,159 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Evaluate Reverse Polish Notation <DifficultyBadge level="medium" />
+
+#### Description
+
+Evaluate the value of an arithmetic expression in **Reverse Polish Notation** (also called postfix notation).
+
+Valid operators are `+`, `-`, `*`, `/`. Each operand may be an integer or another expression. Division between two integers should **truncate toward zero**.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  tokens = ["2", "1", "+", "3", "*"]
+    Output: 9
+    # ((2 + 1) * 3) = 9
+
+> Case 2:
+    Input:  tokens = ["4", "13", "5", "/", "+"]
+    Output: 6
+    # (4 + (13 / 5)) = 4 + 2 = 6
+
+> Case 3:
+    Input:  tokens = ["10","6","9","3","+","-11","*","/","*","17","+","5","+"]
+    Output: 22
+```
+
+#### Constraints
+
+- `1 <= tokens.length <= 10^4`
+- Each token is either an operator or an integer in the range `[-200, 200]`.
+- The expression is always valid.
+
+#### Intuition
+
+Postfix notation is *built* for stacks. The rule is dead simple:
+
+- **Number?** Push it.
+- **Operator?** Pop the top two values, apply the operator, push the result.
+
+When you're done, the answer is the only thing left on the stack.
+
+The reason this works: in postfix, an operator always comes *after* the two operands it acts on. So by the time you reach an operator, its operands are guaranteed to be the top two on the stack.
+
+```text
+tokens = ["2", "1", "+", "3", "*"]
+
+"2"  → push 2          stack=[2]
+"1"  → push 1          stack=[2, 1]
+"+"  → pop 1, pop 2, push 2+1=3   stack=[3]
+"3"  → push 3          stack=[3, 3]
+"*"  → pop 3, pop 3, push 3*3=9   stack=[9]
+
+Answer: 9 ✓
+```
+
+<Callout type="warning">
+    **Order matters for `-` and `/`.** When you pop `b` then `a`, the operation is `a - b` (or `a / b`), **not** `b - a`. The second operand pushed is the first one popped.
+</Callout>
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <stack>
+    #include <string>
+    using namespace std;
+
+    int evalRPN(vector<string>& tokens) {
+        stack<int> st;
+        for (const string& t : tokens) {
+            if (t == "+" || t == "-" || t == "*" || t == "/") {
+                int b = st.top(); st.pop();
+                int a = st.top(); st.pop();
+                if      (t == "+") st.push(a + b);
+                else if (t == "-") st.push(a - b);
+                else if (t == "*") st.push(a * b);
+                else               st.push(a / b);  // truncates toward zero in C++
+            } else {
+                st.push(stoi(t));
+            }
+        }
+        return st.top();
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def eval_rpn(tokens):
+        stack = []
+        for t in tokens:
+            if t in "+-*/":
+                b = stack.pop()
+                a = stack.pop()
+                if   t == "+": stack.append(a + b)
+                elif t == "-": stack.append(a - b)
+                elif t == "*": stack.append(a * b)
+                else:          stack.append(int(a / b))  # truncate toward zero
+            else:
+                stack.append(int(t))
+        return stack[0]
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    public int evalRPN(String[] tokens) {
+        Deque<Integer> stack = new ArrayDeque<>();
+        for (String t : tokens) {
+            switch (t) {
+                case "+": case "-": case "*": case "/":
+                    int b = stack.pop();
+                    int a = stack.pop();
+                    if      (t.equals("+")) stack.push(a + b);
+                    else if (t.equals("-")) stack.push(a - b);
+                    else if (t.equals("*")) stack.push(a * b);
+                    else                    stack.push(a / b);
+                    break;
+                default:
+                    stack.push(Integer.parseInt(t));
+            }
+        }
+        return stack.pop();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Python truncation gotcha
+
+Python's `//` operator rounds **toward negative infinity**, but the problem asks for truncation **toward zero**. They differ for negative numbers:
+
+```py
+-7 // 2   # -4   (Python's floor division)
+int(-7 / 2)  # -3   (truncation toward zero — what we want)
+```
+
+Always use `int(a / b)` (not `a // b`) in this problem.
+
+#### Explanation
+
+- Walk the tokens left to right.
+- Numbers go on the stack and wait their turn.
+- Operators consume the top two values immediately and replace them with the result.
+- After processing everything, the lone value on the stack is the result.
+
+#### Analysis
+
+- **Time:** `O(n)` — single pass.
+- **Space:** `O(n)` — the stack holds operands until they're consumed.

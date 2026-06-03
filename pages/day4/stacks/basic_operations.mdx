@@ -1,207 +1,472 @@
-import { Tabs,Steps } from "nextra/components";
-export const Tab = Tabs.Tab
+import { Tabs, Steps, Callout } from "nextra/components";
+import { StackOperationStepper } from "../../../components/StackVisualizer";
+export const Tab = Tabs.Tab;
 
-### Basic Operations on a Stack
+# Basic Operations on a Stack
+
+There are two natural ways to build a stack: backed by an **array** or backed by a **linked list**. The API is the same — the trade-offs differ.
+
+We'll implement both. Pick whichever feels more comfortable; the operations are identical from the outside.
+
+<Callout type="info">
+    In real code you almost never write your own stack — your language already has one. Python uses `list`, Java has `Deque` / `ArrayDeque`, C++ has `std::stack`. But implementing it once teaches you exactly *why* push and pop are O(1).
+</Callout>
+
+## Part 1 — Stack using an Array
+
+The array version uses an index variable called `top` that points to the most recently pushed element. We push by incrementing `top`; we pop by decrementing it.
 
 <Steps>
 
-### Stack using Arrays
+### Push (insert an element)
 
-    <Steps>
-        ### Insert an Element
+The plan: bump `top` by one, write the value into `stack[top]`. If `top` is already at the end of the array, we have **overflow**.
 
-        - ALGORITHM
+```text copy
+ALGORITHM push(val)
+    if top == MAX - 1
+        report Overflow; return
+    top = top + 1
+    stack[top] = val
+```
 
-        ```py copy
-        Step 1: if top = max - 1
-                        Write Overflow
-                        Go to step 4
-                [END OF if]
-        Step 2: SET top = top + 1
-        Step 3: SET top = val
-        Step 4: END
-        ```
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <iostream>
+    using namespace std;
 
-        - CODE
+    class Stack {
+        static const int MAX = 100;
+        int data[MAX];
+        int top;
+    public:
+        Stack() : top(-1) {}
 
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
+        bool isEmpty() const { return top == -1; }
+        bool isFull()  const { return top == MAX - 1; }
 
-            ```
-            </Tab>
+        void push(int val) {
+            if (isFull()) {
+                cout << "Overflow\n";
+                return;
+            }
+            data[++top] = val;
+        }
+    };
+    ```
+    </Tab>
 
-            <Tab>
-            ```py copy
+    <Tab>
+    ```python copy
+    class Stack:
+        def __init__(self, max_size=100):
+            self.max_size = max_size
+            self.data = [None] * max_size
+            self.top = -1
 
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
+        def is_empty(self):
+            return self.top == -1
 
-    <Steps>
-        ### Delete an Element
+        def is_full(self):
+            return self.top == self.max_size - 1
 
-        - ALGORITHM
+        def push(self, val):
+            if self.is_full():
+                print("Overflow")
+                return
+            self.top += 1
+            self.data[self.top] = val
+    ```
+    </Tab>
 
-        ```py copy
-        Step 1: if top = NULL
-                    Write Underflow
-                    Go to step 4
-                [END OF if]
-        Step 2: SET val = stack[top]
-        Step 3: SET top = top - 1
-        Step 4: EXIT
-        ```
+    <Tab>
+    ```java copy
+    public class Stack {
+        private static final int MAX = 100;
+        private int[] data = new int[MAX];
+        private int top = -1;
 
-        - CODE
+        public boolean isEmpty() { return top == -1; }
+        public boolean isFull()  { return top == MAX - 1; }
 
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
+        public void push(int val) {
+            if (isFull()) {
+                System.out.println("Overflow");
+                return;
+            }
+            data[++top] = val;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
 
-            ```
-            </Tab>
+### Pop (remove the top element)
 
-            <Tab>
-            ```py copy
+Read `stack[top]`, then decrement `top`. If `top` is `-1`, the stack is already empty — that's **underflow**.
 
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
+```text copy
+ALGORITHM pop()
+    if top == -1
+        report Underflow; return
+    val = stack[top]
+    top = top - 1
+    return val
+```
 
-    <Steps>
-        ### Peek Operation
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int pop() {
+        if (isEmpty()) {
+            cout << "Underflow\n";
+            return -1;
+        }
+        return data[top--];
+    }
+    ```
+    </Tab>
 
-        - ALGORITHM
+    <Tab>
+    ```python copy
+    def pop(self):
+        if self.is_empty():
+            print("Underflow")
+            return None
+        val = self.data[self.top]
+        self.top -= 1
+        return val
+    ```
+    </Tab>
 
-        ```py copy
-        step 1: if top = NULL
-                    Write Underflow
-                    Go to step 3
-                [END OF if]
-        step 2: return stack[top]
-        step 3: EXIT
-        ```
+    <Tab>
+    ```java copy
+    public int pop() {
+        if (isEmpty()) {
+            System.out.println("Underflow");
+            return -1;
+        }
+        return data[top--];
+    }
+    ```
+    </Tab>
+</Tabs>
 
-        - CODE
+<Callout type="warning">
+    Notice we don't actually erase the old value — we just move `top` down. The next push will overwrite it. Languages with garbage collectors (Python, Java) sometimes prefer to null the slot out so the old object can be collected.
+</Callout>
 
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
+### Peek (look at the top without removing)
 
-            ```
-            </Tab>
+Return `stack[top]`. Don't move `top`. If empty, underflow again.
 
-            <Tab>
-            ```py copy
+```text copy
+ALGORITHM peek()
+    if top == -1
+        report Underflow
+    return stack[top]
+```
 
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int peek() const {
+        if (isEmpty()) {
+            cout << "Stack is empty\n";
+            return -1;
+        }
+        return data[top];
+    }
+    ```
+    </Tab>
 
-### Stack using Linked List
+    <Tab>
+    ```python copy
+    def peek(self):
+        if self.is_empty():
+            return None
+        return self.data[self.top]
+    ```
+    </Tab>
 
-    <Steps>
-        ### Insert an Element
-
-        - ALGORITHM
-
-        ```cpp copy
-        Step 1: Allocate memory for the new node and name it newNode
-        Step 2: SET newNode->data = val
-        Step 3: if top = NULL
-                    SET newNode->next = NULL
-                    SET top = newNode
-                else
-                    SET newNode->next = top
-                    SET top = newNode
-                [END OF if]
-        Step 4: END
-        ```
-
-        - CODE
-
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
-
-            ```
-            </Tab>
-
-            <Tab>
-            ```py copy
-
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
-
-    <Steps>
-        ### Delete an Element
-
-        - ALGORITHM
-
-        ```py copy
-        Step 1: if top = NULL
-                    Write Underflow
-                    Go to step 5
-                [END OF if]
-        Step 2: SET ptr = top
-        Step 3: SET top = top->next
-        Step 4: free ptr
-        Step 5: EXIT
-        ```
-
-        - CODE
-
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
-
-            ```
-            </Tab>
-
-            <Tab>
-            ```py copy
-
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
-
-
-    <Steps>
-        ### Peek Operation
-
-        - ALGORITHM
-
-        ```py copy
-        Step 1: if top = NULL
-                        Write Underflow
-                        Go to step 3
-                [END OF if]
-        Step 2: return top->data
-        Step 3: EXIT
-        ```
-
-        - CODE
-
-        <Tabs items={['C++', 'Python']} defaultIndex="0">
-            <Tab>
-            ```cpp copy
-
-            ```
-            </Tab>
-
-            <Tab>
-            ```py copy
-
-            ```
-            </Tab>
-        </Tabs>
-    </Steps>
+    <Tab>
+    ```java copy
+    public int peek() {
+        if (isEmpty()) return -1;
+        return data[top];
+    }
+    ```
+    </Tab>
+</Tabs>
 
 </Steps>
+
+### Walk through it
+
+Trace exactly what `top` does as we run the operations below:
+
+<StackOperationStepper
+    title="Trace on an array-backed stack"
+    operations={[
+        { type: "push", value: 5 },
+        { type: "push", value: 9 },
+        { type: "push", value: 2 },
+        { type: "peek" },
+        { type: "pop" },
+        { type: "push", value: 7 },
+        { type: "pop" },
+        { type: "pop" },
+        { type: "pop" },
+    ]}
+/>
+
+## Part 2 — Stack using a Linked List
+
+In the linked-list version, `top` is a pointer to the **head node**. Push means prepending a new head; pop means moving the head pointer to the next node. There's no fixed capacity, so no overflow (unless you literally run out of memory).
+
+<Steps>
+
+### Push (insert at the head)
+
+Allocate a new node, point its `next` at the current head, then make the new node the head.
+
+```text copy
+ALGORITHM push(val)
+    newNode = new Node(val)
+    newNode.next = top
+    top = newNode
+```
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct Node {
+        int data;
+        Node* next;
+        Node(int v) : data(v), next(nullptr) {}
+    };
+
+    class Stack {
+        Node* top;
+    public:
+        Stack() : top(nullptr) {}
+
+        bool isEmpty() const { return top == nullptr; }
+
+        void push(int val) {
+            Node* node = new Node(val);
+            node->next = top;
+            top = node;
+        }
+    };
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    class Node:
+        def __init__(self, val):
+            self.data = val
+            self.next = None
+
+    class Stack:
+        def __init__(self):
+            self.top = None
+
+        def is_empty(self):
+            return self.top is None
+
+        def push(self, val):
+            node = Node(val)
+            node.next = self.top
+            self.top = node
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    public class Stack {
+        private static class Node {
+            int data;
+            Node next;
+            Node(int v) { data = v; }
+        }
+
+        private Node top = null;
+
+        public boolean isEmpty() { return top == null; }
+
+        public void push(int val) {
+            Node node = new Node(val);
+            node.next = top;
+            top = node;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Pop (remove the head)
+
+Save the head's value, move `top` to `top.next`, free the old head if you're in a manual-memory language.
+
+```text copy
+ALGORITHM pop()
+    if top == NULL
+        report Underflow; return
+    val = top.data
+    temp = top
+    top = top.next
+    free temp
+    return val
+```
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int pop() {
+        if (isEmpty()) {
+            cout << "Underflow\n";
+            return -1;
+        }
+        Node* temp = top;
+        int val = top->data;
+        top = top->next;
+        delete temp;
+        return val;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def pop(self):
+        if self.is_empty():
+            return None
+        val = self.top.data
+        self.top = self.top.next
+        return val
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    public int pop() {
+        if (isEmpty()) return -1;
+        int val = top.data;
+        top = top.next;
+        return val;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Peek
+
+Return the head's value. Don't touch the pointer.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int peek() const {
+        if (isEmpty()) return -1;
+        return top->data;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def peek(self):
+        if self.is_empty():
+            return None
+        return self.top.data
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    public int peek() {
+        if (isEmpty()) return -1;
+        return top.data;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+</Steps>
+
+## Part 3 — Just use the built-in
+
+Real-world advice: unless you're learning, don't write your own. Every modern language has one ready to go.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <stack>
+    using namespace std;
+
+    stack<int> s;
+    s.push(10);
+    s.push(20);
+    s.push(30);
+
+    cout << s.top() << "\n";   // 30
+    s.pop();                    // removes 30, returns nothing
+    cout << s.top() << "\n";   // 20
+    cout << s.size() << "\n";  // 2
+    cout << s.empty() << "\n"; // 0 (false)
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    # Just use a list.
+    stack = []
+    stack.append(10)   # push
+    stack.append(20)
+    stack.append(30)
+
+    print(stack[-1])   # peek -> 30
+    print(stack.pop()) # pop  -> 30
+    print(len(stack))  # 2
+
+    # For thread-safe / blocking variants:
+    from queue import LifoQueue
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.ArrayDeque;
+    import java.util.Deque;
+
+    Deque<Integer> stack = new ArrayDeque<>();
+    stack.push(10);
+    stack.push(20);
+    stack.push(30);
+
+    System.out.println(stack.peek()); // 30
+    System.out.println(stack.pop());  // 30
+    System.out.println(stack.size()); // 2
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    Java has a legacy `java.util.Stack` class, but the official docs recommend `ArrayDeque` — it's faster and doesn't carry synchronization overhead from the 1990s.
+</Callout>
+
+## Summary
+
+|                 | Array-backed                          | Linked-list-backed                  |
+| :-------------- | :------------------------------------ | :---------------------------------- |
+| **Push / Pop**  | O(1)                                  | O(1)                                |
+| **Memory**      | One block, cache-friendly             | Scattered nodes, pointer overhead   |
+| **Capacity**    | Fixed (or amortized O(1) with resize) | Unbounded                           |
+| **Overflow?**   | Yes, if fixed                         | Only on out-of-memory               |
+
+The array version wins for almost all real use cases — better cache behavior, lower memory overhead per element. The linked-list version is mainly interesting for teaching, and useful when you genuinely need true O(1) push without amortization.
+
+Up next: the practice problems where stacks really earn their keep.

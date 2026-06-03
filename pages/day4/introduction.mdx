@@ -1,68 +1,72 @@
-import { Steps } from 'nextra/components'
- 
+import { Steps, Callout } from "nextra/components";
+
+# Day 4 — Stacks & Queues
+
+Today is about two of the most quietly important data structures in computer science: **stacks** and **queues**. They don't get the glamour of trees or graphs, but they hide inside everything from your browser's back button to the way operating systems schedule processes.
+
+The big idea: both are just lists with a **rule** about which end you're allowed to touch.
+
 <Steps>
- 
-### Linked Lists
- 
-- A linked list, in simple terms, is a linear collection of data elements. These data elements are called `nodes`. 
-- Linked list is a data structure which in turn can be used to implement other data structures. Thus, it acts as a building block to implement data structures such as `stacks`, `queues`, and their variations. 
-- A linked list can be perceived as a `train` or a `sequence` of nodes in which each node contains one or more **_data_** fields and a **_pointer_** to the next node.
 
-| ![Simple Linked List](/assets/linked-list.png) |
-| :--------------------------------------------: |
-|              _Simple Linked List_              |
+### What's a Stack?
 
--   We can see a linked list in which every node contains two parts, an `integer` and a `pointer` to the next node.
--   The left part of the node which contains data may include a simple data type, an array, or a structure. The right part of the node contains a pointer to the next node (or address of the next node in sequence).
--   The last node will have no next node connected to it, so it will store a special value called `NULL`.
+A stack is a list where you can only add or remove from **one end** — the top. Last in, first out (**LIFO**).
 
--   Now we are going to discuss different types of linked lists and the operations that can be
-    performed on these lists.
+Think of a stack of plates:
 
-### Linked Lists v/s Arrays
+- You can only put a plate on the **top** of the pile.
+- You can only take a plate from the **top** of the pile.
+- The plate at the bottom has been there the longest and will be the last one removed.
 
--   Both arrays and linked lists are a linear collection of data elements. But unlike an array, a linked list does not store its nodes in consecutive memory locations.
--   Another point of difference between an array and a linked list is that a linked list does not allow random access of data. Nodes in a linked list can be accessed only in a sequential manner. - But like an array, insertions and deletions can be done at any point in the list in a constant time.
--   Another advantage of a linked list over an array is that we can add any number of elements in the list. This is not possible in case of an array.
+The two core operations are:
 
-    > For example, if we declare an array as `int marks[20]`, then the array can store a maximum of 20 data elements only. There is no such restriction in case of a linked list.
+- **`push(x)`** — put `x` on the top
+- **`pop()`** — remove and return the top item
 
-### Different Types of Linked Lists
+That's it. There's also `peek()` (look at the top without removing) and `isEmpty()`, but those are conveniences, not new ideas.
 
-1. Singly Linked Lists
+<Callout type="info">
+    The "stack" you've heard about — the *call stack* that crashes when you have infinite recursion — is literally this data structure. Each function call pushes a frame; each return pops one.
+</Callout>
 
--   A singly linked list is the simplest type of linked list in which every node contains some data and a pointer to the next node of the same data type. By saying that the node contains a pointer to the next node, we mean that the node stores the address of the next node in sequence. A singly linked list allows traversal of data only in one way.
+### What's a Queue?
 
-| ![Singly Linked List](/assets/linked-list.png) |
-| :--------------------------------------------: |
-|              _Singly Linked List_              |
+A queue is a list where you add at one end and remove from the **other** end. First in, first out (**FIFO**).
 
-2. Circular Linked Lists
+Think of a line at a coffee shop:
 
--   In a circular linked list, the last node contains a pointer to the first node of the list. We can have a circular singly linked list as well as a circular doubly linked list. While traversing a circular linked list, we can begin at any node and traverse the list in any direction, forward or backward, until we reach the same node where we started. Thus, a circular linked list has no beginning and no ending.
+- New customers join at the **back** (enqueue).
+- The barista serves the customer at the **front** (dequeue).
+- The customer who's been waiting longest gets served first. (As it should be.)
 
-| ![Circular Linked List](/assets/circular-linked-list.png) |
-| :-------------------------------------------------------: |
-|                  _Circular Linked List_                   |
+The two core operations are:
 
-3. Doubly Linked Lists
+- **`enqueue(x)`** — add `x` to the back
+- **`dequeue()`** — remove and return the front item
 
--   A doubly linked list or a two-way linked list is a more complex type of linked list which contains a pointer to the next as well as the previous node in the sequence. Therefore, it consists of three parts—data, a pointer to the next node, and a pointer to the previous node.
+### Stack vs Queue — the one-line difference
 
-| ![Doubly Linked List](/assets/doubly-linked-list.png) |
-| :---------------------------------------------------: |
-|                 _Doubly Linked List_                  |
+|              | Add at | Remove at | Order | Real-life analogue |
+| :----------- | :----: | :-------: | :---: | :----------------- |
+| **Stack**    | top    | top       | LIFO  | Pile of plates, browser history |
+| **Queue**    | back   | front     | FIFO  | Line at a checkout, print spooler |
 
-3. Circular Doubly Linked Lists
+### Why we care
 
--   A circular doubly linked list or a circular two-way linked list is a more complex type of linked list which contains a pointer to the next as well as the previous node in the sequence.
--   The difference between a doubly linked and a circular doubly linked list is same as that exists between a singly linked list and a circular linked list.
--   The circular doubly linked list does not contain NULL in the previous field of the first node and the next field of the last node. Rather, the next field of the last node stores the address of the first node of the list, i.e., `START`. Similarly, the previous field of the first field stores the address of the last node.
+Both look like "just a list with a restriction." That's the whole point. The restriction is what makes them useful — it forces a particular order on the data, and a huge number of problems become trivial once you spot that the right *order* is LIFO or FIFO.
 
-| ![Circular Doubly Linked List](/assets/circular-doubly-linked-list.png) |
-| :---------------------------------------------------------------------: |
-|                      _Circular Doubly Linked List_                      |
+A few places they show up:
 
-Hop on to the next section to learn about the `operations` that can be performed on a `linked list`.
+- **Stacks** — function calls, undo/redo, expression evaluation, balanced parentheses, depth-first search, browser back button.
+- **Queues** — task scheduling, breadth-first search, message buffers, print jobs, request handling in web servers.
+
+### What we'll cover today
+
+- How to implement a stack two different ways (array-backed and linked-list-backed) and which to pick when.
+- The classic stack problems: valid parentheses, next greater element, evaluating expressions.
+- The same for queues, plus the surprisingly common **deque** (double-ended queue) and **circular queue**.
+- The complexity story for every operation.
+
+Head over to **Stacks** in the sidebar to start with LIFO.
 
 </Steps>

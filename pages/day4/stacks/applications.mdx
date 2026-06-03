@@ -1,0 +1,267 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { StackOperationStepper } from "../../../components/StackVisualizer";
+export const Tab = Tabs.Tab;
+
+# Stack Applications
+
+The stack is a quiet workhorse. Once you start looking for LIFO patterns, you'll find them everywhere — in compilers, browsers, recursion, expression parsers, and undo systems.
+
+Here are the most important places stacks earn their keep.
+
+## 1. Function calls (the call stack)
+
+Every time your program calls a function, the runtime **pushes a stack frame** containing:
+
+- The function's local variables
+- The arguments passed in
+- The return address (where to jump back to)
+
+When the function returns, that frame is **popped**, restoring the caller's state.
+
+```text
+main() calls foo()      →  push foo's frame
+foo() calls bar()       →  push bar's frame
+bar() returns           →  pop bar's frame
+foo() returns           →  pop foo's frame
+back in main()
+```
+
+<Callout type="warning">
+    Infinite recursion → infinite pushes → **Stack Overflow**. That's the same word, the same data structure, and the same error you've seen in your console. Yes, that's where the website got its name.
+</Callout>
+
+## 2. Balanced parentheses
+
+Given a string of brackets like `"([]{})"`, are they all matched and properly nested?
+
+The trick: scan left to right. **Push** every opening bracket. When you hit a closing bracket, **pop** and check it matches. If anything mismatches — or you try to pop an empty stack — it's invalid. At the end, the stack should be empty.
+
+<StackOperationStepper
+    title='Validating "([])"'
+    operations={[
+        { type: "push", value: "(" },
+        { type: "push", value: "[" },
+        { type: "pop" },
+        { type: "pop" },
+    ]}
+/>
+
+We see `(`, push it. See `[`, push it. See `]` — pop, top was `[`, matches. See `)` — pop, top was `(`, matches. Stack empty at the end ✓.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <stack>
+    #include <string>
+    using namespace std;
+
+    bool isValid(const string& s) {
+        stack<char> st;
+        for (char c : s) {
+            if (c == '(' || c == '[' || c == '{') {
+                st.push(c);
+            } else {
+                if (st.empty()) return false;
+                char open = st.top(); st.pop();
+                if ((c == ')' && open != '(') ||
+                    (c == ']' && open != '[') ||
+                    (c == '}' && open != '{')) return false;
+            }
+        }
+        return st.empty();
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def is_valid(s):
+        pairs = {')': '(', ']': '[', '}': '{'}
+        stack = []
+        for c in s:
+            if c in '([{':
+                stack.append(c)
+            else:
+                if not stack or stack.pop() != pairs[c]:
+                    return False
+        return not stack
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    public boolean isValid(String s) {
+        Deque<Character> stack = new ArrayDeque<>();
+        for (char c : s.toCharArray()) {
+            if (c == '(' || c == '[' || c == '{') {
+                stack.push(c);
+            } else {
+                if (stack.isEmpty()) return false;
+                char open = stack.pop();
+                if ((c == ')' && open != '(') ||
+                    (c == ']' && open != '[') ||
+                    (c == '}' && open != '{')) return false;
+            }
+        }
+        return stack.isEmpty();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## 3. Undo / Redo
+
+Editors keep two stacks:
+
+- **Undo stack** — every action you take gets pushed.
+- **Redo stack** — when you undo, the popped action goes onto this one.
+
+Press Ctrl+Z: pop from undo, push onto redo. Press Ctrl+Y: pop from redo, push onto undo. A new action clears the redo stack — because once you've changed the past, the future branches differently.
+
+## 4. Expression evaluation
+
+Stacks turn the headache of operator precedence into a clean algorithm.
+
+### Infix → Postfix (Shunting Yard)
+
+Humans write `2 + 3 * 4` (infix). Computers love `2 3 4 * +` (postfix / RPN) because there are no parentheses and no precedence to worry about — just left to right.
+
+To convert, use one stack for operators:
+
+- **Operand?** Append to output.
+- **Operator?** Pop operators with **higher-or-equal precedence** to output, then push the new one.
+- **`(`** → push. **`)`** → pop until matching `(`.
+
+### Evaluating Postfix
+
+Once it's postfix, one stack does everything:
+
+- **Number?** Push it.
+- **Operator?** Pop two operands, apply, push the result.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <stack>
+    #include <vector>
+    #include <string>
+    #include <stdexcept>
+    using namespace std;
+
+    int evalRPN(const vector<string>& tokens) {
+        stack<int> st;
+        for (const string& t : tokens) {
+            if (t == "+" || t == "-" || t == "*" || t == "/") {
+                int b = st.top(); st.pop();
+                int a = st.top(); st.pop();
+                if      (t == "+") st.push(a + b);
+                else if (t == "-") st.push(a - b);
+                else if (t == "*") st.push(a * b);
+                else               st.push(a / b);
+            } else {
+                st.push(stoi(t));
+            }
+        }
+        return st.top();
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def eval_rpn(tokens):
+        stack = []
+        for t in tokens:
+            if t in "+-*/":
+                b = stack.pop()
+                a = stack.pop()
+                if   t == "+": stack.append(a + b)
+                elif t == "-": stack.append(a - b)
+                elif t == "*": stack.append(a * b)
+                else:          stack.append(int(a / b))  # truncate toward zero
+            else:
+                stack.append(int(t))
+        return stack[0]
+
+    # eval_rpn(["2", "1", "+", "3", "*"])  →  9
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    public int evalRPN(String[] tokens) {
+        Deque<Integer> stack = new ArrayDeque<>();
+        for (String t : tokens) {
+            switch (t) {
+                case "+": case "-": case "*": case "/":
+                    int b = stack.pop(), a = stack.pop();
+                    if      (t.equals("+")) stack.push(a + b);
+                    else if (t.equals("-")) stack.push(a - b);
+                    else if (t.equals("*")) stack.push(a * b);
+                    else                    stack.push(a / b);
+                    break;
+                default:
+                    stack.push(Integer.parseInt(t));
+            }
+        }
+        return stack.pop();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## 5. Browser navigation
+
+Two stacks again — one for **back**, one for **forward**.
+
+- Visit a page → push current onto back, clear forward.
+- Click back → pop from back into forward; show the popped one.
+- Click forward → pop from forward into back; show the popped one.
+
+## 6. DFS (Depth-First Search)
+
+Tree and graph DFS is *literally* a stack algorithm. The recursive version uses the program's call stack; the iterative version uses an explicit one.
+
+```python
+def dfs(graph, start):
+    stack = [start]
+    visited = set()
+    while stack:
+        node = stack.pop()
+        if node in visited:
+            continue
+        visited.add(node)
+        for neighbor in graph[node]:
+            if neighbor not in visited:
+                stack.append(neighbor)
+```
+
+We'll cover DFS properly on Day 10 — but file it away that "go as deep as possible, then back up" is the LIFO mindset.
+
+## 7. Backtracking
+
+Solve a problem by trying a choice, exploring deeper, and **undoing** when it doesn't work. The undo step is a pop. Sudoku solvers, N-queens, maze solvers — all stack-driven, even when you don't see one explicitly.
+
+## The pattern that ties them all together
+
+If a problem involves:
+
+- **Matched pairs** that must be in order (brackets, HTML tags)
+- **Reversing** something while processing it
+- **"Most recent" unfinished thing** (next greater element, daily temperatures, histogram)
+- **Going deep, then backtracking** (DFS, recursion-without-recursion)
+- **Operator precedence** or expression structure
+
+…then think *stack*. It's almost always the right tool.
+
+<Callout type="info">
+    A common interview hint: if you find yourself wishing you could "look at the last unmatched X," you want a stack.
+</Callout>
+
+Ready to put this into practice? The practice questions are next.

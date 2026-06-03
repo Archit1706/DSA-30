@@ -1,7 +1,6 @@
 export default {
-    "index": "TODO",
+    "index": "Overview",
     "introduction": "Introduction",
     "stacks": "Stacks",
     "queues": "Queues"
 }
-

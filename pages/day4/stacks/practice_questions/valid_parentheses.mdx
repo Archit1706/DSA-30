@@ -1,0 +1,147 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+import { StackOperationStepper } from "../../../../components/StackVisualizer";
+export const Tab = Tabs.Tab;
+
+### Valid Parentheses <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a string `s` containing only the characters `'('`, `')'`, `'{'`, `'}'`, `'['`, `']'`, determine if the input string is **valid**.
+
+A string is valid if:
+
+1. Open brackets are closed by the same type of bracket.
+2. Open brackets are closed in the correct order.
+3. Every closing bracket has a matching opening bracket of the same type.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  s = "()"
+    Output: true
+
+> Case 2:
+    Input:  s = "()[]{}"
+    Output: true
+
+> Case 3:
+    Input:  s = "(]"
+    Output: false
+
+> Case 4:
+    Input:  s = "([)]"
+    Output: false      # Brackets close out of order
+
+> Case 5:
+    Input:  s = "{[]}"
+    Output: true
+```
+
+#### Constraints
+
+- `1 <= s.length <= 10^4`
+- `s` consists only of the six bracket characters.
+
+#### Intuition
+
+Every time we see an **opening** bracket, we don't know yet what will close it — we just remember it. That "remember the most recent unfinished thing" is exactly what a stack is for.
+
+When we see a **closing** bracket, the only one it could legally match is the most recently opened one — i.e., the top of the stack. If they match, pop and move on. If they don't, the string is invalid.
+
+At the end, every opening bracket must have been popped, so the stack should be empty.
+
+<StackOperationStepper
+    title='Trace: "{[]}"'
+    operations={[
+        { type: "push", value: "{" },
+        { type: "push", value: "[" },
+        { type: "pop" },
+        { type: "pop" },
+    ]}
+/>
+
+`{` push. `[` push. `]` — pop top `[`, matches ✓. `}` — pop top `{`, matches ✓. Stack is empty → valid.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <stack>
+    #include <string>
+    using namespace std;
+
+    bool isValid(string s) {
+        stack<char> st;
+        for (char c : s) {
+            if (c == '(' || c == '[' || c == '{') {
+                st.push(c);
+            } else {
+                if (st.empty()) return false;
+                char open = st.top(); st.pop();
+                if ((c == ')' && open != '(') ||
+                    (c == ']' && open != '[') ||
+                    (c == '}' && open != '{')) return false;
+            }
+        }
+        return st.empty();
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def is_valid(s: str) -> bool:
+        pairs = {')': '(', ']': '[', '}': '{'}
+        stack = []
+        for c in s:
+            if c in '([{':
+                stack.append(c)
+            else:
+                if not stack or stack.pop() != pairs[c]:
+                    return False
+        return not stack
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    public boolean isValid(String s) {
+        Deque<Character> stack = new ArrayDeque<>();
+        for (char c : s.toCharArray()) {
+            if (c == '(' || c == '[' || c == '{') {
+                stack.push(c);
+            } else {
+                if (stack.isEmpty()) return false;
+                char open = stack.pop();
+                if ((c == ')' && open != '(') ||
+                    (c == ']' && open != '[') ||
+                    (c == '}' && open != '{')) return false;
+            }
+        }
+        return stack.isEmpty();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- Walk through the string once.
+- Push openers (`(`, `[`, `{`) onto the stack.
+- For each closer, check the top of the stack. If the stack is empty or the top doesn't match, the string is invalid.
+- After the loop, the stack must be empty — leftover openers mean unclosed brackets.
+
+<Callout type="info">
+    The Python version uses a dictionary `pairs` mapping each closer to its opener — it makes the matching check one line instead of three.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)` — single pass through the string.
+- **Space:** `O(n)` — worst case the entire string is openers like `"((((((((("`.

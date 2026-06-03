@@ -1,0 +1,126 @@
+import { Callout } from "nextra/components";
+import { StackVisualizer, InteractiveStack, StackOperationStepper } from "../../../components/StackVisualizer";
+import { QuizBox } from "../../../components/QuizBox";
+import { ComplexityTable } from "../../../components/ComplexityTable";
+
+# Introduction to Stacks
+
+A **stack** is one of the simplest data structures you'll meet, and also one of the most useful. It's a list of items where you're only allowed to touch one end — the **top**.
+
+## The plate analogy (yes, again)
+
+Picture a stack of plates in a cafeteria:
+
+- New plates get **placed on top**.
+- When someone takes a plate, they take the **top one**.
+- The plate at the bottom has been there the longest, and it'll be the last one removed.
+
+That's a stack. The first item you put in is the last one you get out. We call this **LIFO** — **Last In, First Out**.
+
+<StackVisualizer initialStack={[10, 20, 30, 40]} />
+
+Here, `40` was pushed last and sits on top. It's also the next thing you'll get if you pop.
+
+## The four operations
+
+A stack has a tiny API. That's the point — restricting what you can do makes it *easy to reason about*.
+
+| Operation     | What it does                                                   | Time   |
+| :------------ | :------------------------------------------------------------- | :----: |
+| `push(x)`     | Put `x` on the top                                             | O(1)   |
+| `pop()`       | Remove and return the top element                              | O(1)   |
+| `peek()` / `top()` | Look at the top without removing                          | O(1)   |
+| `isEmpty()`   | Returns `true` if there's nothing in the stack                 | O(1)   |
+
+Every operation is **constant time**. That's a big deal — stacks are blisteringly fast.
+
+<Callout type="info">
+    Stacks don't let you access elements in the middle. If you need that, you want an array or a list, not a stack. The restriction *is* the feature.
+</Callout>
+
+## Play with it
+
+Push some values, pop them off, peek at the top. Notice how everything happens at the top — you literally can't reach the bottom items.
+
+<InteractiveStack />
+
+## Watch a stack in action
+
+Step through this sequence one operation at a time. Track what's at the top, and what `pop()` returns each time.
+
+<StackOperationStepper
+    title="Trace: push 1, push 2, push 3, pop, push 4, pop, pop"
+    operations={[
+        { type: "push", value: 1 },
+        { type: "push", value: 2 },
+        { type: "push", value: 3 },
+        { type: "pop" },
+        { type: "push", value: 4 },
+        { type: "pop" },
+        { type: "pop" },
+    ]}
+/>
+
+Notice the order things come out: `3`, `4`, `2`. Push `1, 2, 3`, then `pop` gives us `3` (newest). Push `4`, pop gives `4` (newest again), pop gives `2`. The leftover is `1` — the very first thing pushed. **LIFO** in action.
+
+## When two errors show up
+
+Stacks have two error conditions, and both have classic names:
+
+- **Overflow** — you `push` to a stack that's already full. Only possible with a fixed-size backing array.
+- **Underflow** — you `pop` (or `peek`) from an empty stack. This one is universal — guard against it.
+
+<Callout type="warning">
+    The infamous **stack overflow** error in your programs? That's literally this — too many function calls pushed onto the call stack without enough returns. Infinite recursion is the usual culprit.
+</Callout>
+
+## Two ways to build a stack
+
+There are two natural implementations, and the trade-off is exactly what you'd expect:
+
+| Backing store      | Pros                              | Cons                                |
+| :----------------- | :-------------------------------- | :---------------------------------- |
+| **Array**          | Cache-friendly, dead simple       | Fixed size (unless you resize)      |
+| **Linked list**    | Grows forever, no resize cost     | Pointer overhead, worse cache       |
+
+For most languages and most uses, the standard library's stack-like thing (Python's `list`, Java's `ArrayDeque`, C++'s `std::stack`) is array-backed with dynamic resizing. We'll build both in the next page.
+
+## Where you've already used stacks (without noticing)
+
+- **Browser back button** — every page you visit is pushed; back pops.
+- **Undo in your editor** — each edit pushes a delta; Ctrl+Z pops.
+- **Function calls** — every call pushes a stack frame with local vars and a return address.
+- **Compilers parsing expressions** — `(2 + 3) * 4` is evaluated using two stacks.
+- **DFS in graphs and trees** — recursion's stack *is* the algorithm.
+
+<ComplexityTable
+    operations={[
+        { name: "Push", time: "O(1)", space: "O(1)", notes: "Amortized O(1) for dynamic arrays" },
+        { name: "Pop", time: "O(1)", space: "O(1)", notes: "" },
+        { name: "Peek / Top", time: "O(1)", space: "O(1)", notes: "Read-only" },
+        { name: "Search (find x)", time: "O(n)", space: "O(1)", notes: "Have to pop everything" },
+    ]}
+/>
+
+## Quick check
+
+<QuizBox
+    question="You push 'A', 'B', 'C' onto an empty stack, then call pop() twice. What's at the top now?"
+    options={["A", "B", "C", "Stack is empty"]}
+    correctIndex={0}
+    explanation="After pushing A, B, C: the stack is [A, B, C] with C on top. First pop returns C, leaving [A, B] with B on top. Second pop returns B, leaving [A] — so A is now at the top."
+/>
+
+<QuizBox
+    question="Why is the time complexity of push() considered O(1) even for dynamic arrays that occasionally resize?"
+    options={[
+        "Resizes never happen in practice",
+        "Because we amortize the cost — most pushes are O(1), and the rare resize is spread across many cheap pushes, giving O(1) average",
+        "Because the language compiler optimizes it",
+        "It's actually O(n), people just round down"
+    ]}
+    correctIndex={1}
+    explanation="This is amortized analysis. A dynamic array doubles its capacity when full, which costs O(n) for that one push, but it then gets n more O(1) pushes before needing to resize again. The total cost averaged over all operations is O(1)."
+/>
+
+Ready to actually build one? Head to **Basic Operations** in the sidebar.

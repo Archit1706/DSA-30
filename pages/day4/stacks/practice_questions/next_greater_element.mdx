@@ -1,0 +1,144 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Next Greater Element <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array `nums`, for each element find the **next greater element** to its right — the first element after it that is strictly larger. If no such element exists, return `-1` for that position.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  nums = [4, 5, 2, 25]
+    Output: [5, 25, 25, -1]
+
+    nums[0]=4   → next greater is 5
+    nums[1]=5   → next greater is 25
+    nums[2]=2   → next greater is 25
+    nums[3]=25  → no element greater after it → -1
+
+> Case 2:
+    Input:  nums = [13, 7, 6, 12]
+    Output: [-1, 12, 12, -1]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^4`
+- Solve in **O(n)** time, not O(n²).
+
+#### Intuition
+
+The brute force is "for each element, scan to the right until we find something larger." That's O(n²).
+
+The key observation: **once we know that some earlier element hasn't found its next-greater yet, we don't need to look at it again until we see a larger value.** We can park "still waiting" elements on a stack, in *decreasing* order, and pop them off as we discover their answer.
+
+This pattern is called a **monotonic stack** — we maintain the invariant that the stack is sorted (here, decreasing from bottom to top).
+
+#### Algorithm
+
+Walk the array left to right. For each `nums[i]`:
+
+1. While the stack is non-empty **and** `nums[i]` is greater than the top, the top element has just found its next greater (`nums[i]`). Pop it and record the answer.
+2. Push the current index onto the stack.
+
+When the loop ends, anything still on the stack has no next greater — answer is `-1` for those.
+
+```text
+nums = [4, 5, 2, 25]
+
+i=0  nums[0]=4    stack empty → push 0          stack=[0]    ans=[?, ?, ?, ?]
+i=1  nums[1]=5    5 > nums[0]=4 → pop 0, ans[0]=5
+                  push 1                         stack=[1]    ans=[5, ?, ?, ?]
+i=2  nums[2]=2    2 < nums[1]=5 → don't pop
+                  push 2                         stack=[1,2]  ans=[5, ?, ?, ?]
+i=3  nums[3]=25   25 > nums[2]=2 → pop 2, ans[2]=25
+                  25 > nums[1]=5 → pop 1, ans[1]=25
+                  stack empty → push 3           stack=[3]    ans=[5, 25, 25, ?]
+
+End. Stack=[3] still has 3 → ans[3]=-1.
+Final: [5, 25, 25, -1] ✓
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <stack>
+    using namespace std;
+
+    vector<int> nextGreaterElement(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> ans(n, -1);
+        stack<int> st;  // stores indices, values decreasing from bottom to top
+
+        for (int i = 0; i < n; i++) {
+            while (!st.empty() && nums[i] > nums[st.top()]) {
+                ans[st.top()] = nums[i];
+                st.pop();
+            }
+            st.push(i);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    def next_greater_element(nums):
+        n = len(nums)
+        ans = [-1] * n
+        stack = []  # indices
+
+        for i, val in enumerate(nums):
+            while stack and val > nums[stack[-1]]:
+                ans[stack.pop()] = val
+            stack.append(i)
+
+        return ans
+
+    # next_greater_element([4, 5, 2, 25])  →  [5, 25, 25, -1]
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    public int[] nextGreaterElement(int[] nums) {
+        int n = nums.length;
+        int[] ans = new int[n];
+        java.util.Arrays.fill(ans, -1);
+        Deque<Integer> stack = new ArrayDeque<>();
+
+        for (int i = 0; i < n; i++) {
+            while (!stack.isEmpty() && nums[i] > nums[stack.peek()]) {
+                ans[stack.pop()] = nums[i];
+            }
+            stack.push(i);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Why this is O(n)
+
+It looks like a nested loop, but every index is pushed onto the stack **once** and popped **at most once**. Total work is at most `2n` operations across the entire run — that's `O(n)` amortized, even though any single iteration might do a lot of popping.
+
+<Callout type="info">
+    **The pattern:** whenever a problem says "for each element, find the nearest something to its left/right," reach for a monotonic stack. Variants include "previous smaller," "next smaller," "daily temperatures," "largest rectangle in histogram," and "trapping rain water."
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)` — each index enters and leaves the stack at most once.
+- **Space:** `O(n)` — stack can hold all indices in the worst case (strictly decreasing input).

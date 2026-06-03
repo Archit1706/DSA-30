@@ -1,0 +1,168 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Implement Queue using Stacks <DifficultyBadge level="easy" />
+
+#### Description
+
+Implement a first-in-first-out (FIFO) **queue** using only two stacks. The queue should support the standard operations:
+
+- `push(x)` — push `x` to the back of the queue
+- `pop()`   — remove and return the element at the front
+- `peek()`  — return the element at the front without removing
+- `empty()` — return whether the queue is empty
+
+You may only use the standard stack operations: `push`, `peek/top`, `pop`, `size`, `isEmpty`.
+
+#### Examples
+
+```py
+q.push(1)
+q.push(2)
+q.peek()   # -> 1
+q.pop()    # -> 1
+q.empty()  # -> False
+```
+
+#### Constraints
+
+- All calls to `pop` and `peek` are valid (the queue is non-empty when called).
+- Aim for **amortized O(1)** per operation.
+
+#### Intuition
+
+A stack reverses the order things come out (LIFO). If we run something through *two* stacks, it gets reversed twice — back to FIFO.
+
+Use two stacks:
+
+- **`inStack`** — everything we push goes here.
+- **`outStack`** — everything we pop comes from here.
+
+When `outStack` is empty and we need to pop or peek, **pour everything from `inStack` into `outStack`**. The order gets flipped, so the oldest element (front of the queue) ends up on top of `outStack`. Future pops are O(1) until `outStack` empties again.
+
+```text
+push 1, 2, 3:    inStack = [1, 2, 3]   outStack = []
+pop (empty out)  →  pour:  inStack = []  outStack = [3, 2, 1]   ← 1 is now on top
+pop  → returns 1, outStack = [3, 2]
+push 4:          inStack = [4]         outStack = [3, 2]
+pop  → returns 2, outStack = [3]
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <stack>
+    using namespace std;
+
+    class MyQueue {
+        stack<int> in, out;
+
+        void shift() {
+            if (out.empty()) {
+                while (!in.empty()) {
+                    out.push(in.top());
+                    in.pop();
+                }
+            }
+        }
+
+    public:
+        void push(int x) { in.push(x); }
+
+        int pop() {
+            shift();
+            int v = out.top();
+            out.pop();
+            return v;
+        }
+
+        int peek() {
+            shift();
+            return out.top();
+        }
+
+        bool empty() { return in.empty() && out.empty(); }
+    };
+    ```
+    </Tab>
+
+    <Tab>
+    ```python copy
+    class MyQueue:
+        def __init__(self):
+            self.in_stack = []
+            self.out_stack = []
+
+        def _shift(self):
+            if not self.out_stack:
+                while self.in_stack:
+                    self.out_stack.append(self.in_stack.pop())
+
+        def push(self, x: int) -> None:
+            self.in_stack.append(x)
+
+        def pop(self) -> int:
+            self._shift()
+            return self.out_stack.pop()
+
+        def peek(self) -> int:
+            self._shift()
+            return self.out_stack[-1]
+
+        def empty(self) -> bool:
+            return not self.in_stack and not self.out_stack
+    ```
+    </Tab>
+
+    <Tab>
+    ```java copy
+    import java.util.Deque;
+    import java.util.ArrayDeque;
+
+    class MyQueue {
+        private Deque<Integer> in  = new ArrayDeque<>();
+        private Deque<Integer> out = new ArrayDeque<>();
+
+        private void shift() {
+            if (out.isEmpty()) {
+                while (!in.isEmpty()) out.push(in.pop());
+            }
+        }
+
+        public void push(int x) { in.push(x); }
+
+        public int pop() {
+            shift();
+            return out.pop();
+        }
+
+        public int peek() {
+            shift();
+            return out.peek();
+        }
+
+        public boolean empty() {
+            return in.isEmpty() && out.isEmpty();
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Explanation
+
+- **`push`** is trivially O(1) — always lands in `inStack`.
+- **`pop` / `peek`** are usually O(1) (just hits `outStack`). Sometimes they trigger a "pour" — that one operation is O(n), but it spreads the work for `n` future O(1) pops.
+- This is **amortized O(1)** — the average cost over many operations.
+
+<Callout type="info">
+    Amortized analysis matters here: each element is moved across stacks **at most twice** (once into `inStack` on push, once into `outStack` on shift). So total work across `n` operations is `O(n)` → `O(1)` per operation on average.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(1)` amortized for all operations.
+- **Space:** `O(n)` — two stacks holding the queue's elements.
