@@ -1,0 +1,127 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Maximum Product Subarray <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums`, find a **contiguous non-empty subarray** within the array that has the largest **product**, and return the product.
+
+The array can contain negative numbers and zeros.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [2, 3, -2, 4]
+    Output: 6
+    Explanation: [2, 3] has the largest product 6.
+
+> Case 2:
+    nums = [-2, 0, -1]
+    Output: 0
+    Explanation: max product subarray is [0]; subarray [-2, 0, -1] would be 0 too.
+
+> Case 3:
+    nums = [-2, 3, -4]
+    Output: 24
+    Explanation: -2 × 3 × -4 = 24.
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 2 × 10^4`
+- `-10 <= nums[i] <= 10`
+
+#### Why Kadane doesn't directly work
+
+In Maximum Sub-Array (Kadane), `dp[i]` = best sum ending at `i`, and the recurrence is `max(nums[i], nums[i] + dp[i - 1])`. With products there's a catch: **multiplying by a negative number flips sign**. The smallest (most negative) product ending at `i - 1` could become the largest product ending at `i` if `nums[i]` is negative.
+
+So we have to track **both** the running max and the running min.
+
+#### State design
+
+1. **What am I computing?** `max_ending[i]` = max product of a subarray ending at `i`. `min_ending[i]` = min product of a subarray ending at `i`.
+2. **Dimensions?** Two scalars per position.
+3. **Base cases?** `max_ending[0] = min_ending[0] = nums[0]`.
+4. **Transition?** At index `i`, the candidates for `max_ending[i]` are:
+   - `nums[i]` itself (start fresh),
+   - `nums[i] × max_ending[i - 1]` (extend a positive run),
+   - `nums[i] × min_ending[i - 1]` (extend a negative run that became positive after multiplying by `nums[i]`).
+
+   Same for `min_ending[i]`, taking the min instead.
+5. **Order?** Increasing `i`.
+6. **Answer?** `max(max_ending[i])` over all `i`.
+
+We only need the previous `(max, min)`, so use two scalars and run in `O(1)` space.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxProduct(vector<int>& nums) {
+        int curMax = nums[0], curMin = nums[0], best = nums[0];
+        for (int i = 1; i < (int)nums.size(); i++) {
+            int x = nums[i];
+            int candMax = max({x, x * curMax, x * curMin});
+            int candMin = min({x, x * curMax, x * curMin});
+            curMax = candMax;
+            curMin = candMin;
+            best = max(best, curMax);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_product(nums):
+        cur_max = cur_min = best = nums[0]
+        for x in nums[1:]:
+            cand_max = max(x, x * cur_max, x * cur_min)
+            cand_min = min(x, x * cur_max, x * cur_min)
+            cur_max, cur_min = cand_max, cand_min
+            best = max(best, cur_max)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxProduct(int[] nums) {
+        int curMax = nums[0], curMin = nums[0], best = nums[0];
+        for (int i = 1; i < nums.length; i++) {
+            int x = nums[i];
+            int candMax = Math.max(x, Math.max(x * curMax, x * curMin));
+            int candMin = Math.min(x, Math.min(x * curMax, x * curMin));
+            curMax = candMax;
+            curMin = candMin;
+            best = Math.max(best, curMax);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **You must compute `candMax` and `candMin` before reassigning `curMax`.** If you write `curMax = max(...)` first, then `curMin = min(x, x * curMax, x * curMin)` uses the just-updated `curMax` — wrong. Compute both new values, *then* assign.
+</Callout>
+
+#### The "split by zeros" alternative
+
+There's a neat trick: zeros split the array into runs with no zeros. For each run, the answer is either the product of the whole run, or the product up to (but not including) the leftmost negative, or the product from just after the rightmost negative. Compute prefix products from the left and from the right; the max of those two scans (skipping zeros) is the answer.
+
+It's elegant but trickier to implement; the two-variable Kadane variant above is more interview-friendly.
+
+#### Analysis
+
+- **Time:** `O(n)`.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Maximum Subarray Sum** — the additive cousin (Kadane).
+- **Max Sum Circular Subarray** — combine Kadane with "total − min subarray sum."
+- **Best Sightseeing Pair** — two-track DP carrying the best `a[i] + i` so far.

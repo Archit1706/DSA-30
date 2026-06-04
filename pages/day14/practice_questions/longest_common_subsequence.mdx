@@ -1,0 +1,169 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Common Subsequence <DifficultyBadge level="medium" />
+
+#### Description
+
+Given two strings `text1` and `text2`, return the **length** of their longest common subsequence. If there's no common subsequence, return 0.
+
+A *subsequence* of a string is a new string generated from the original by deleting some characters (possibly none) without changing the order of the remaining characters. A *common* subsequence of two strings is one that's a subsequence of both.
+
+#### Examples
+
+```py
+> Case 1:
+    text1 = "abcde",  text2 = "ace"
+    Output: 3
+    Explanation: LCS = "ace".
+
+> Case 2:
+    text1 = "abc",  text2 = "abc"
+    Output: 3
+
+> Case 3:
+    text1 = "abc",  text2 = "def"
+    Output: 0
+```
+
+#### Constraints
+
+- `1 <= text1.length, text2.length <= 1000`
+- Both strings consist of lowercase English characters.
+
+#### State design
+
+1. **What am I computing?** `dp[i][j]` = length of the LCS of the first `i` characters of `text1` and the first `j` characters of `text2`.
+2. **Dimensions?** Two.
+3. **Base cases?** `dp[0][j] = dp[i][0] = 0` (empty string vs anything = 0).
+4. **Transition?** Look at the last characters of the two prefixes:
+   - **Match:** `text1[i - 1] == text2[j - 1]`. Drop both and extend: `dp[i][j] = dp[i - 1][j - 1] + 1`.
+   - **Mismatch:** drop one character from either side, take the better: `dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])`.
+5. **Order?** Row-major: increasing `i`, increasing `j`.
+6. **Answer?** `dp[n][m]`.
+
+<Callout type="info">
+    **Why is the mismatch branch `max(dp[i - 1][j], dp[i][j - 1])`?** Because a character that doesn't match can't be part of the LCS, so we must drop it from at least one side. We try both — drop from `text1` (the `dp[i - 1][j]` branch) and drop from `text2` (the `dp[i][j - 1]` branch) — and take whichever gives more.
+</Callout>
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int longestCommonSubsequence(string text1, string text2) {
+        int n = text1.size(), m = text2.size();
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (text1[i - 1] == text2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp[n][m];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longest_common_subsequence(text1, text2):
+        n, m = len(text1), len(text2)
+        dp = [[0] * (m + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                if text1[i - 1] == text2[j - 1]:
+                    dp[i][j] = dp[i - 1][j - 1] + 1
+                else:
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+        return dp[n][m]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int longestCommonSubsequence(String text1, String text2) {
+        int n = text1.length(), m = text2.length();
+        int[][] dp = new int[n + 1][m + 1];
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (text1.charAt(i - 1) == text2.charAt(j - 1)) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp[n][m];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Space-optimized version
+
+`dp[i][j]` only needs the previous row plus the cell to its left → roll on two rows for `O(m)` space.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int longestCommonSubsequence(string text1, string text2) {
+        int n = text1.size(), m = text2.size();
+        vector<int> prev(m + 1, 0), cur(m + 1, 0);
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (text1[i - 1] == text2[j - 1]) cur[j] = prev[j - 1] + 1;
+                else                              cur[j] = max(prev[j], cur[j - 1]);
+            }
+            swap(prev, cur);
+        }
+        return prev[m];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longest_common_subsequence(text1, text2):
+        n, m = len(text1), len(text2)
+        prev = [0] * (m + 1)
+        for i in range(1, n + 1):
+            cur = [0] * (m + 1)
+            for j in range(1, m + 1):
+                if text1[i - 1] == text2[j - 1]: cur[j] = prev[j - 1] + 1
+                else:                            cur[j] = max(prev[j], cur[j - 1])
+            prev = cur
+        return prev[m]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int longestCommonSubsequence(String text1, String text2) {
+        int n = text1.length(), m = text2.length();
+        int[] prev = new int[m + 1], cur = new int[m + 1];
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (text1.charAt(i - 1) == text2.charAt(j - 1)) cur[j] = prev[j - 1] + 1;
+                else                                             cur[j] = Math.max(prev[j], cur[j - 1]);
+            }
+            int[] tmp = prev; prev = cur; cur = tmp;
+            Arrays.fill(cur, 0);
+        }
+        return prev[m];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O(n × m)`.
+- **Space:** `O(n × m)` for the basic version; `O(m)` for the rolling-row version.
+
+#### Same skin
+
+- **Shortest Common Supersequence (length):** `n + m − LCS`.
+- **Delete Operation for Two Strings:** `n + m − 2 × LCS`.
+- **Longest Palindromic Subsequence:** LCS of `s` with `reverse(s)`.
+- **Distinct Subsequences:** same state, different operator (count of ways to embed `s2` in `s1`).

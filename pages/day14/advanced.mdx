@@ -1,0 +1,387 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Advanced DP
+
+The seven classic patterns will carry you through most interviews. The five techniques on this page are the next layer — they appear in the harder questions, the contest problems, and the "now do it under tight memory" follow-ups.
+
+## 1. Space optimization
+
+The single highest-leverage trick in DP. Most table cells are read once or twice after they're written; almost none need to live for the whole computation. If you can identify the *frontier* — the set of cells your current row depends on — you can throw away everything else.
+
+### The "two-row" pattern
+
+If `dp[i][j]` only depends on `dp[i - 1][...]` (the previous row), keep two rows: `prev` and `cur`. After each row is filled, swap them.
+
+For LCS (`dp[i][j]` depends on `dp[i-1][j-1]`, `dp[i-1][j]`, `dp[i][j-1]`) the two-row form is:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lcs(string s1, string s2) {
+        int n = s1.size(), m = s2.size();
+        vector<int> prev(m + 1, 0), cur(m + 1, 0);
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (s1[i - 1] == s2[j - 1]) cur[j] = prev[j - 1] + 1;
+                else                        cur[j] = max(prev[j], cur[j - 1]);
+            }
+            swap(prev, cur);
+        }
+        return prev[m];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def lcs(s1, s2):
+        n, m = len(s1), len(s2)
+        prev = [0] * (m + 1)
+        cur  = [0] * (m + 1)
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                if s1[i - 1] == s2[j - 1]: cur[j] = prev[j - 1] + 1
+                else:                      cur[j] = max(prev[j], cur[j - 1])
+            prev, cur = cur, [0] * (m + 1)
+        return prev[m]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int lcs(String s1, String s2) {
+        int n = s1.length(), m = s2.length();
+        int[] prev = new int[m + 1], cur = new int[m + 1];
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (s1.charAt(i - 1) == s2.charAt(j - 1)) cur[j] = prev[j - 1] + 1;
+                else                                       cur[j] = Math.max(prev[j], cur[j - 1]);
+            }
+            int[] tmp = prev; prev = cur; cur = tmp;
+            Arrays.fill(cur, 0);
+        }
+        return prev[m];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`O(n × m)` time stays the same; `O(n × m)` space drops to `O(m)`.
+
+### The "one-row" pattern (reverse iteration)
+
+For knapsack-style problems where `dp[i][w]` depends only on `dp[i - 1][w]` and `dp[i - 1][w - weight[i]]`, you can use **a single row** if you iterate the inner loop **in reverse**. The reverse order ensures that when you read `dp[w - weight[i]]`, it still holds the value from "row `i - 1`" — not yet updated.
+
+```python
+dp = [0] * (W + 1)
+for i in range(n):
+    for w in range(W, weight[i] - 1, -1):    # reverse
+        dp[w] = max(dp[w], dp[w - weight[i]] + value[i])
+```
+
+`O(n × W)` time, `O(W)` space. **Iterate forward instead** and you've silently turned 0/1 knapsack into unbounded knapsack — same code, different problem.
+
+### When you can't optimize
+
+If your transition reaches more than the previous row — e.g. `dp[i][j]` depends on `dp[i - 3][j]` or `dp[i - k][j]` for variable `k` — you have to keep at least `k + 1` rows around. Rule of thumb: **the space you need is the maximum row-distance your transition reaches.**
+
+## 2. Bitmask DP
+
+When the state needs to track **which elements have been chosen from a small universe** (`n <= ~22`), encode the subset as the bits of an integer. The state is then `(mask, ...)`. There are `2^n` masks, so this works only for small `n`.
+
+### Canonical: Traveling Salesman (Held–Karp)
+
+> `n` cities, distance `d[i][j]` between every pair. Find the shortest tour visiting every city once and returning to the start.
+
+**State:** `dp[mask][i]` = min cost of a path that has visited exactly the cities in `mask` and currently sits at city `i`.
+**Transition:** `dp[mask][i] = min(dp[mask ^ (1 << i)][j] + d[j][i])` over `j` in `mask \ {i}`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int tsp(vector<vector<int>>& d) {
+        int n = d.size();
+        const int INF = 1e9;
+        vector<vector<int>> dp(1 << n, vector<int>(n, INF));
+        dp[1][0] = 0;                              // start at city 0
+        for (int mask = 1; mask < (1 << n); mask++) {
+            for (int i = 0; i < n; i++) {
+                if (!(mask & (1 << i))) continue;
+                int prev = mask ^ (1 << i);
+                if (prev == 0) continue;
+                for (int j = 0; j < n; j++) {
+                    if (!(prev & (1 << j))) continue;
+                    dp[mask][i] = min(dp[mask][i], dp[prev][j] + d[j][i]);
+                }
+            }
+        }
+        int ans = INF;
+        int full = (1 << n) - 1;
+        for (int i = 1; i < n; i++) ans = min(ans, dp[full][i] + d[i][0]);
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def tsp(d):
+        n = len(d)
+        INF = float('inf')
+        dp = [[INF] * n for _ in range(1 << n)]
+        dp[1][0] = 0
+        for mask in range(1, 1 << n):
+            for i in range(n):
+                if not (mask >> i) & 1: continue
+                prev = mask ^ (1 << i)
+                if prev == 0: continue
+                for j in range(n):
+                    if not (prev >> j) & 1: continue
+                    if dp[prev][j] + d[j][i] < dp[mask][i]:
+                        dp[mask][i] = dp[prev][j] + d[j][i]
+        full = (1 << n) - 1
+        return min(dp[full][i] + d[i][0] for i in range(1, n))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int tsp(int[][] d) {
+        int n = d.length, INF = (int) 1e9;
+        int[][] dp = new int[1 << n][n];
+        for (int[] row : dp) Arrays.fill(row, INF);
+        dp[1][0] = 0;
+        for (int mask = 1; mask < (1 << n); mask++) {
+            for (int i = 0; i < n; i++) {
+                if ((mask & (1 << i)) == 0) continue;
+                int prev = mask ^ (1 << i);
+                if (prev == 0) continue;
+                for (int j = 0; j < n; j++) {
+                    if ((prev & (1 << j)) == 0) continue;
+                    dp[mask][i] = Math.min(dp[mask][i], dp[prev][j] + d[j][i]);
+                }
+            }
+        }
+        int ans = INF, full = (1 << n) - 1;
+        for (int i = 1; i < n; i++) ans = Math.min(ans, dp[full][i] + d[i][0]);
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(2^n × n²)`. **Space:** `O(2^n × n)`. The classic Held–Karp algorithm — exponential, but a huge improvement over naive `O(n!)`.
+
+### Same skin
+
+- **Shortest Path Visiting All Nodes** — BFS over `(mask, node)` states (or DP).
+- **Number of Ways to Wear Different Hats** — `dp[mask]` over people-mask, iterating hats.
+- **Partition to K Equal Sum Subsets** — `dp[mask]` over picked-elements.
+- **Find the Shortest Superstring** — `dp[mask][i]` where `i` is the last string in the supersequence.
+
+## 3. Interval DP
+
+State is `dp[l][r]` — the answer over the sub-array (or substring) from index `l` to index `r`. Transitions usually try every split point `k` in `(l, r)`. Iteration order is by **length** of the interval, not by position.
+
+### Canonical: Matrix Chain Multiplication
+
+> You have matrices `A1, A2, ..., An` with dimensions `p[0] x p[1]`, `p[1] x p[2]`, etc. Find the cheapest parenthesization.
+
+**State:** `dp[l][r]` = min multiplications to compute `Al × ... × Ar`.
+**Transition:** `dp[l][r] = min over k in [l, r)` of `dp[l][k] + dp[k + 1][r] + p[l - 1] × p[k] × p[r]`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int matrixChain(vector<int>& p) {
+        int n = p.size() - 1;
+        vector<vector<int>> dp(n + 1, vector<int>(n + 1, 0));
+        for (int len = 2; len <= n; len++) {
+            for (int l = 1; l + len - 1 <= n; l++) {
+                int r = l + len - 1;
+                dp[l][r] = INT_MAX;
+                for (int k = l; k < r; k++) {
+                    int cost = dp[l][k] + dp[k + 1][r] + p[l - 1] * p[k] * p[r];
+                    dp[l][r] = min(dp[l][r], cost);
+                }
+            }
+        }
+        return dp[1][n];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def matrix_chain(p):
+        n = len(p) - 1
+        dp = [[0] * (n + 1) for _ in range(n + 1)]
+        for length in range(2, n + 1):
+            for l in range(1, n - length + 2):
+                r = l + length - 1
+                dp[l][r] = float('inf')
+                for k in range(l, r):
+                    cost = dp[l][k] + dp[k + 1][r] + p[l - 1] * p[k] * p[r]
+                    if cost < dp[l][r]: dp[l][r] = cost
+        return dp[1][n]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int matrixChain(int[] p) {
+        int n = p.length - 1;
+        int[][] dp = new int[n + 1][n + 1];
+        for (int len = 2; len <= n; len++) {
+            for (int l = 1; l + len - 1 <= n; l++) {
+                int r = l + len - 1;
+                dp[l][r] = Integer.MAX_VALUE;
+                for (int k = l; k < r; k++) {
+                    int cost = dp[l][k] + dp[k + 1][r] + p[l - 1] * p[k] * p[r];
+                    if (cost < dp[l][r]) dp[l][r] = cost;
+                }
+            }
+        }
+        return dp[1][n];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n³)`. **Space:** `O(n²)`.
+
+### Same skin
+
+- **Burst Balloons** — `dp[l][r]` = max coins from popping balloons in the open interval `(l, r)`.
+- **Palindrome Partitioning II** — min cuts; uses interval-style preprocessing.
+- **Stone Game / Predict the Winner** — game-theory variant of interval DP.
+- **Longest Palindromic Subsequence** — `dp[l][r]` = LPS of `s[l..r]`.
+
+## 4. DP on Trees
+
+State lives on tree nodes, transitions combine answers from a node's children. Almost always solved with **post-order DFS** — compute children first, then combine.
+
+### Canonical: House Robber III
+
+> Same rules as House Robber, but the houses form a **binary tree**. You can't rob a node and either of its children.
+
+**State:** for each node, return a pair `(rob_this, skip_this)`.
+**Transition:**
+- `rob_this = node.val + skip_left + skip_right`
+- `skip_this = max(rob_left, skip_left) + max(rob_right, skip_right)`
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    pair<int, int> dfs(TreeNode* node) {
+        if (!node) return {0, 0};
+        auto [rl, sl] = dfs(node->left);
+        auto [rr, sr] = dfs(node->right);
+        int rob  = node->val + sl + sr;
+        int skip = max(rl, sl) + max(rr, sr);
+        return {rob, skip};
+    }
+    int rob(TreeNode* root) {
+        auto [r, s] = dfs(root);
+        return max(r, s);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def rob(root):
+        def dfs(node):
+            if not node: return (0, 0)
+            rl, sl = dfs(node.left)
+            rr, sr = dfs(node.right)
+            return (node.val + sl + sr, max(rl, sl) + max(rr, sr))
+        return max(dfs(root))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] dfs(TreeNode node) {
+        if (node == null) return new int[]{0, 0};
+        int[] l = dfs(node.left), r = dfs(node.right);
+        int rob = node.val + l[1] + r[1];
+        int skip = Math.max(l[0], l[1]) + Math.max(r[0], r[1]);
+        return new int[]{rob, skip};
+    }
+    public int rob(TreeNode root) {
+        int[] ans = dfs(root);
+        return Math.max(ans[0], ans[1]);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)` — each node visited once. **Space:** `O(h)` recursion stack.
+
+### Same skin
+
+- **Binary Tree Maximum Path Sum** — at each node, return "best one-armed path through me"; track global best with both arms.
+- **Diameter of a Tree** — same shape, length instead of sum.
+- **Longest Path with Different Adjacent Characters** — node value is a constraint, not a sum.
+- **Tree Distance Sum / Rerooting** — two DFS passes — first computes "answer rooted at root," second re-roots to every node.
+
+## 5. Subsequence vs Substring — the eternal pitfall
+
+These two words look almost identical and produce wildly different problems. Burn the distinction in.
+
+| Term         | Definition                                             | DP shape                                |
+| :----------- | :----------------------------------------------------- | :-------------------------------------- |
+| Subsequence  | Pick elements in order, but can **skip** any of them.  | `dp[i][j]` carries forward through mismatches with `max`. |
+| Substring    | A **contiguous** slice — no skipping.                  | `dp[i][j]` **resets to 0** on mismatch; answer is max over the whole table. |
+
+**LCS** finds the longest common *subsequence*: `dp[i][j] = max(dp[i-1][j], dp[i][j-1])` on mismatch.
+**Longest Common Substring** finds the longest common *contiguous* slice: `dp[i][j] = 0` on mismatch, and the answer is `max(dp[i][j])` over the whole table, not `dp[n][m]`.
+
+Same for **palindromic subsequence** (`O(n²)` LPS via LCS of `s` and `reverse(s)`) vs **palindromic substring** (different DP — `dp[l][r] = (s[l] == s[r]) and dp[l + 1][r - 1]`, expand-around-center, or Manacher's).
+
+When the problem says "subsequence" reach for the inclusion-exclusion-style DP. When it says "substring" or "subarray" reach for the contiguous-reset DP.
+
+## 6. The DP optimization toolkit (preview)
+
+Three named tricks that show up at the harder end of contests:
+
+- **Knuth's optimization** — for interval DP with monotonic split points. Drops `O(n³)` to `O(n²)`.
+- **Divide and Conquer optimization** — for DPs where the optimal split point is monotonic in the row index. Same `O(n³) → O(n²)` shape.
+- **Convex Hull Trick** — for DPs of the form `dp[i] = min(dp[j] + b[j] × a[i] + ...)` with linear-in-`a[i]` cost. Reduces an `O(n²)` DP to `O(n log n)` or `O(n)`.
+
+These are out of scope for most interviews — but worth knowing they exist when you hit a DP that's TLE-ing at `n = 10^5`.
+
+## Quick check
+
+<QuizBox
+    question="In 0/1 knapsack space-optimized to one row, why must the inner loop iterate capacity in REVERSE?"
+    options={[
+        "Forward iteration is slower",
+        "Forward iteration accidentally allows taking the same item multiple times — turning it into unbounded knapsack",
+        "Reverse is more cache-friendly",
+        "The answer is at index 0"
+    ]}
+    correctIndex={1}
+    explanation="With one row, dp[w - weight[i]] could already be updated in the current row if we iterate forward — meaning we'd be adding item i to a state that already includes item i. Reverse iteration ensures dp[w - weight[i]] still reflects the previous row (without item i). Forward iteration = unbounded knapsack, where each item can be reused."
+/>
+
+<QuizBox
+    question="You see n ≤ 20 and the problem involves choosing a subset of n elements. What DP shape should you try?"
+    options={[
+        "LIS",
+        "Bitmask DP — state includes a 2^n-sized subset mask",
+        "Edit distance",
+        "Linear DP"
+    ]}
+    correctIndex={1}
+    explanation="n ≤ 20 (sometimes ≤ 22 or 24) is a tell-tale sign of bitmask DP. Most other DP shapes don't care about the n ≤ 20 bound — only bitmask is bounded by 2^n. Whenever you see that constraint, ask yourself whether the state can be encoded as a subset."
+/>
+
+<QuizBox
+    question="Why is the iteration order for interval DP 'by length, not by left endpoint'?"
+    options={[
+        "Performance — longer intervals are slower",
+        "Correctness — dp[l][r] depends on smaller intervals like dp[l][k] and dp[k+1][r], all of which have a shorter length. Fill by length to ensure dependencies are ready.",
+        "Convention — left-endpoint order also works",
+        "Memory locality"
+    ]}
+    correctIndex={1}
+    explanation="The transition dp[l][r] = min over k of dp[l][k] + dp[k+1][r] uses two intervals strictly shorter than [l, r]. If you fill by length 1, then length 2, then length 3, ..., all dependencies are guaranteed to be already computed. Filling by left-endpoint visits some longer intervals before their shorter dependencies."
+/>
+
+Next: **basic warm-up questions** — climb stairs, min cost stairs, fib with memo, house robber.

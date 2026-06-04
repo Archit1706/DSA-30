@@ -2,15 +2,35 @@ import { Callout } from "nextra/components";
 
 # Day 14 — Dynamic Programming
 
+Recursion taught you to break a problem into smaller versions of itself. **Dynamic Programming** is what you do when those smaller versions keep showing up *over and over again* — instead of recomputing them, you remember the answer.
+
+That's the whole idea. Everything else in this chapter — memoization, tabulation, knapsack, LCS, LIS, bitmask DP — is just disciplined application of that one trick.
+
+DP has a reputation for being the **scariest** topic in interviews. It isn't. It's the topic where **pattern recognition pays off the most** — once you've seen 15 problems, the 16th feels like rerunning a recipe. This chapter is the recipe book.
+
+## What you'll learn today
+
+- The two ingredients of DP: **overlapping subproblems** + **optimal substructure**
+- **Top-down (memoization)** vs **bottom-up (tabulation)** — pick the right style for each problem
+- The **state-design checklist**: identify the dimensions, the transitions, and the base cases
+- The **classic patterns** every interviewer reaches for: Fibonacci-style 1D, grid 2D, knapsack, LIS, LCS, edit distance, coin change
+- **Space optimization** — when you can collapse an N×N table down to one row or two
+- **Advanced shapes**: bitmask DP, interval DP, DP on trees, DP on subsequences vs substrings
+- **Ten interview problems** that drill every pattern into muscle memory
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The secret nobody tells you about DP: **80% of the work is figuring out the state**. Once you write down `dp[i][j] = ...the answer for the subproblem indexed by i and j...`, the transition usually falls out in one or two lines. We will obsess over state design on every problem.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Overlapping subproblems** and **optimal substructure** — the two ingredients that make DP work
-- **Top-down (memoization)** vs **bottom-up (tabulation)** — pick the right style for the problem
-- Classic problems: **0/1 knapsack, edit distance, longest increasing subsequence, coin change**
-- **Space optimization** — when you can drop the table down to one or two rows
+1. **[Introduction](/day14/introduction)** — what makes a problem a DP problem, the Fibonacci tax, and the two-property test (overlapping subproblems + optimal substructure).
+2. **[Memoization vs Tabulation](/day14/memoization_vs_tabulation)** — top-down and bottom-up, side by side. When recursion is clearer, when iteration is faster, and how to convert one to the other.
+3. **[Classic Patterns](/day14/classic_patterns)** — the seven shapes that cover the majority of DP interview problems: 1D linear, 2D grid, 0/1 knapsack, unbounded knapsack, LIS, LCS, edit distance.
+4. **[Advanced DP](/day14/advanced)** — space optimization, bitmask DP, interval DP, DP on trees, and the "subsequence vs substring" distinction that trips everyone up.
+5. **[Basic Questions](/day14/basic_questions)** — warm-ups: climbing stairs, min cost stairs, Fibonacci with memo, house robber.
+6. **[Practice Questions](/day14/practice_questions)** — ten interview classics, one per pattern, with full state-design walkthroughs.
 
-Recursion already laid the groundwork. The [Memoization page in Day 5](/day5/memoization) is the bridge into this chapter — DP is just "memoized recursion taken seriously."
+Recursion is the bridge into this chapter — if `recursion(n)` and `recursion(n)` show up twice in your call tree, you've already invented DP. The [Memoization page in Day 5](/day5/memoization) is the prequel; this chapter is the full series.
+
+Coming up next: **Day 15 — Greedy Algorithms**, where you'll learn the *opposite* mindset — when *not* to remember anything, and just commit to the locally-best move.

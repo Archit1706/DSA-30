@@ -1,0 +1,135 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Word Break <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s` and a dictionary of strings `wordDict`, return `true` if `s` can be **segmented** into a space-separated sequence of one or more dictionary words.
+
+You may reuse dictionary words.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "leetcode",  wordDict = ["leet", "code"]
+    Output: true
+    Explanation: "leet code".
+
+> Case 2:
+    s = "applepenapple",  wordDict = ["apple", "pen"]
+    Output: true
+
+> Case 3:
+    s = "catsandog",  wordDict = ["cats", "dog", "sand", "and", "cat"]
+    Output: false
+```
+
+#### Constraints
+
+- `1 <= s.length <= 300`
+- `1 <= wordDict.length <= 1000`
+- `1 <= wordDict[i].length <= 20`
+
+#### State design
+
+Think of it as **unbounded knapsack on a string**: "coins" = words, "amount" = prefix length. Can we tile a prefix of length `i` using dictionary words?
+
+1. **What am I computing?** `dp[i]` = can the prefix `s[0..i)` be segmented?
+2. **Dimensions?** One — prefix length `i`.
+3. **Base cases?** `dp[0] = true` (empty string trivially segments).
+4. **Transition?** `dp[i]` is `true` iff there's some split point `j < i` where `dp[j] == true` **and** `s[j..i)` is in the dictionary.
+5. **Order?** Increasing `i` from 1 to `n`.
+6. **Answer?** `dp[n]`.
+
+For a fast dictionary lookup, store `wordDict` in a hash set.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool wordBreak(string s, vector<string>& wordDict) {
+        unordered_set<string> dict(wordDict.begin(), wordDict.end());
+        int n = s.size();
+        vector<bool> dp(n + 1, false);
+        dp[0] = true;
+        for (int i = 1; i <= n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (dp[j] && dict.count(s.substr(j, i - j))) {
+                    dp[i] = true;
+                    break;
+                }
+            }
+        }
+        return dp[n];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def word_break(s, word_dict):
+        words = set(word_dict)
+        n = len(s)
+        dp = [False] * (n + 1)
+        dp[0] = True
+        for i in range(1, n + 1):
+            for j in range(i):
+                if dp[j] and s[j:i] in words:
+                    dp[i] = True
+                    break
+        return dp[n]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean wordBreak(String s, List<String> wordDict) {
+        Set<String> dict = new HashSet<>(wordDict);
+        int n = s.length();
+        boolean[] dp = new boolean[n + 1];
+        dp[0] = true;
+        for (int i = 1; i <= n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (dp[j] && dict.contains(s.substring(j, i))) {
+                    dp[i] = true;
+                    break;
+                }
+            }
+        }
+        return dp[n];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### A practical speedup
+
+The inner loop tries *every* prior split point. But the only useful split points are those at `j = i - len(word)` for some `word` in the dictionary. If you know the max word length `L`, you can restrict the inner loop to the last `L` positions:
+
+```python
+max_len = max((len(w) for w in word_dict), default=0)
+for i in range(1, n + 1):
+    for j in range(max(0, i - max_len), i):
+        if dp[j] and s[j:i] in words:
+            dp[i] = True
+            break
+```
+
+For dictionaries with short words and long input strings, this is a big constant-factor win.
+
+<Callout type="info">
+    For an even faster approach, build a **Trie** of dictionary words and at each `i` walk the trie character-by-character from `s[i]` forward — every "word ends here" node marks a legal split. Same overall `O(n × max_len)` time but no string-hashing overhead. (We cover Tries on [Day 18](/day18).)
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n²)` plus the cost of substring hashing. With max-word-length truncation, `O(n × L)` where `L` is the longest word.
+- **Space:** `O(n)` for the DP table, plus the dictionary.
+
+#### Same skin
+
+- **Word Break II** — return *all* segmentations. Same DP for feasibility; reconstruct sentences via backtracking using the DP table as a pruning oracle.
+- **Concatenated Words** — for each word in the input list, run Word Break with the dictionary being all *other* words.
+- **Sentence Screen Fitting** — different problem, similar word-by-word DP shape.

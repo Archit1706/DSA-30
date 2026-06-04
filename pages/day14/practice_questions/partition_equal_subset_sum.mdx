@@ -1,0 +1,132 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Partition Equal Subset Sum <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a non-empty array `nums` containing only positive integers, decide whether it can be **partitioned into two subsets** such that the sum of elements in both subsets is equal.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 5, 11, 5]
+    Output: true
+    Explanation: [1, 5, 5] and [11] both sum to 11.
+
+> Case 2:
+    nums = [1, 2, 3, 5]
+    Output: false
+    Explanation: total is 11, which is odd. Can't split evenly.
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 200`
+- `1 <= nums[i] <= 100`
+
+#### The reduction
+
+A two-way split with equal sums means each side equals `total / 2`. So the question becomes: **does some subset of `nums` sum to exactly `total / 2`?**
+
+That's **subset-sum**, which is **0/1 knapsack** in disguise:
+
+- **Item weights** = the numbers themselves.
+- **Item values** = irrelevant (we only need existence).
+- **Capacity** = `total / 2`.
+- **Question** = "can we exactly fill the knapsack?"
+
+If `total` is odd, immediately return `false`. Otherwise, build a boolean DP.
+
+#### State design
+
+1. **What am I computing?** `dp[w]` = `true` if some subset of `nums` sums to exactly `w`.
+2. **Dimensions?** One — target sum `w`. (We collapse the item index away with the reverse-loop trick.)
+3. **Base cases?** `dp[0] = true` (the empty subset sums to 0). All other entries `false`.
+4. **Transition?** For each number `x` in `nums`, for each `w` from `target` down to `x`: `dp[w] = dp[w] OR dp[w - x]`.
+5. **Order?** Iterate `x` in any order; inner loop `w` must be reverse (0/1 knapsack rule).
+6. **Answer?** `dp[total / 2]`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool canPartition(vector<int>& nums) {
+        int total = accumulate(nums.begin(), nums.end(), 0);
+        if (total % 2 != 0) return false;
+        int target = total / 2;
+        vector<bool> dp(target + 1, false);
+        dp[0] = true;
+        for (int x : nums) {
+            for (int w = target; w >= x; w--) {
+                dp[w] = dp[w] || dp[w - x];
+            }
+        }
+        return dp[target];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def can_partition(nums):
+        total = sum(nums)
+        if total % 2: return False
+        target = total // 2
+        dp = [False] * (target + 1)
+        dp[0] = True
+        for x in nums:
+            for w in range(target, x - 1, -1):
+                dp[w] = dp[w] or dp[w - x]
+        return dp[target]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean canPartition(int[] nums) {
+        int total = 0;
+        for (int x : nums) total += x;
+        if (total % 2 != 0) return false;
+        int target = total / 2;
+        boolean[] dp = new boolean[target + 1];
+        dp[0] = true;
+        for (int x : nums) {
+            for (int w = target; w >= x; w--) {
+                dp[w] = dp[w] || dp[w - x];
+            }
+        }
+        return dp[target];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### A micro-optimization with bitsets
+
+In C++, you can use `std::bitset` to do the entire row update in a single shift-and-OR — making the inner loop effectively `O(target / 64)`:
+
+```cpp
+bool canPartition(vector<int>& nums) {
+    int total = accumulate(nums.begin(), nums.end(), 0);
+    if (total % 2 != 0) return false;
+    bitset<10001> dp;
+    dp[0] = 1;
+    for (int x : nums) dp |= (dp << x);
+    return dp[total / 2];
+}
+```
+
+Same algorithm, 64x speedup. Knowing this trick is the difference between a competitive-programming submission and an interview answer.
+
+#### Analysis
+
+- **Time:** `O(n × total / 2)` = `O(n × sum / 2)`.
+- **Space:** `O(sum / 2)`.
+
+#### Same skin
+
+- **Target Sum** — assign `+`/`−` signs to each number to hit target; the positive subset must sum to `(total + target) / 2`. Same subset-sum DP.
+- **Last Stone Weight II** — minimize `|sum_A − sum_B|`; equivalently, find the subset closest to `total / 2`.
+- **Ones and Zeroes** — two-dimensional capacity (count of 0s and 1s), same DP shape.

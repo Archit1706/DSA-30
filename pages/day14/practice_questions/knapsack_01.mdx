@@ -1,0 +1,156 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### 0/1 Knapsack <DifficultyBadge level="medium" />
+
+#### Description
+
+You have `n` items. Item `i` has weight `weight[i]` and value `value[i]`. You have a knapsack of capacity `W`. Pick a **subset** of items (each item at most once) that maximizes total value subject to total weight `<= W`.
+
+This is the parent problem of an entire pattern — the answer to "should I take this item or skip it?" repeated `n` times.
+
+#### Examples
+
+```py
+> Case 1:
+    weight = [1, 3, 4, 5],  value = [1, 4, 5, 7],  W = 7
+    Output: 9
+    Explanation: take items with weights 3 and 4 → values 4 + 5 = 9.
+
+> Case 2:
+    weight = [2, 3, 4, 5],  value = [3, 4, 5, 6],  W = 5
+    Output: 7
+    Explanation: take items 1 and 2 → 4 + 3 = 7.
+```
+
+#### Constraints
+
+- `1 <= n <= 1000`
+- `1 <= weight[i], value[i] <= 1000`
+- `1 <= W <= 10^4`
+
+#### State design
+
+1. **What am I computing?** `dp[i][w]` = max total value using **any subset of the first `i` items** with capacity exactly `w` (or less).
+2. **Dimensions?** Two — item index and capacity.
+3. **Base cases?** `dp[0][w] = 0` for all `w` (no items → no value).
+4. **Transition?** At item `i`, two options:
+   - **Skip:** carry the result without item `i`: `dp[i - 1][w]`.
+   - **Take:** add item `i`'s value, using `weight[i]` of the capacity: `dp[i - 1][w - weight[i]] + value[i]` — only valid if `w >= weight[i]`.
+
+   Pick the better: `dp[i][w] = max(skip, take)`.
+5. **Order?** Increasing `i`, any order in `w`.
+6. **Answer?** `dp[n][W]`.
+
+#### Standard 2D solution
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int knapsack(vector<int>& weight, vector<int>& value, int W) {
+        int n = weight.size();
+        vector<vector<int>> dp(n + 1, vector<int>(W + 1, 0));
+        for (int i = 1; i <= n; i++) {
+            for (int w = 0; w <= W; w++) {
+                dp[i][w] = dp[i - 1][w];
+                if (w >= weight[i - 1]) {
+                    dp[i][w] = max(dp[i][w],
+                                   dp[i - 1][w - weight[i - 1]] + value[i - 1]);
+                }
+            }
+        }
+        return dp[n][W];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def knapsack(weight, value, W):
+        n = len(weight)
+        dp = [[0] * (W + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            for w in range(W + 1):
+                dp[i][w] = dp[i - 1][w]
+                if w >= weight[i - 1]:
+                    dp[i][w] = max(dp[i][w],
+                                   dp[i - 1][w - weight[i - 1]] + value[i - 1])
+        return dp[n][W]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int knapsack(int[] weight, int[] value, int W) {
+        int n = weight.length;
+        int[][] dp = new int[n + 1][W + 1];
+        for (int i = 1; i <= n; i++) {
+            for (int w = 0; w <= W; w++) {
+                dp[i][w] = dp[i - 1][w];
+                if (w >= weight[i - 1]) {
+                    dp[i][w] = Math.max(dp[i][w],
+                                        dp[i - 1][w - weight[i - 1]] + value[i - 1]);
+                }
+            }
+        }
+        return dp[n][W];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### One-row space optimization
+
+`dp[i][w]` only depends on `dp[i - 1][w]` and `dp[i - 1][w - weight[i]]`. Use **one row** and iterate the inner loop **in reverse** so that when we read `dp[w - weight[i]]`, it still reflects the previous row.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int knapsack(vector<int>& weight, vector<int>& value, int W) {
+        int n = weight.size();
+        vector<int> dp(W + 1, 0);
+        for (int i = 0; i < n; i++) {
+            for (int w = W; w >= weight[i]; w--) {            // reverse
+                dp[w] = max(dp[w], dp[w - weight[i]] + value[i]);
+            }
+        }
+        return dp[W];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def knapsack(weight, value, W):
+        n = len(weight)
+        dp = [0] * (W + 1)
+        for i in range(n):
+            for w in range(W, weight[i] - 1, -1):              # reverse
+                dp[w] = max(dp[w], dp[w - weight[i]] + value[i])
+        return dp[W]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int knapsack(int[] weight, int[] value, int W) {
+        int n = weight.length;
+        int[] dp = new int[W + 1];
+        for (int i = 0; i < n; i++) {
+            for (int w = W; w >= weight[i]; w--) {             // reverse
+                dp[w] = Math.max(dp[w], dp[w - weight[i]] + value[i]);
+            }
+        }
+        return dp[W];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Iterate `w` in reverse, always.** Iterating forward turns this into **unbounded knapsack** (each item reusable). The bug is silent — the code still runs, the answers are just wrong. This is the most-asked DP gotcha in interviews; if you remember nothing else from this page, remember the reverse loop.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n × W)`.
+- **Space:** `O(n × W)` for the 2D table, `O(W)` for the rolled-row version.
+
+This is **pseudo-polynomial** — polynomial in `W` (the *value* of the capacity), not in the number of bits used to write `W`. For huge capacities it's intractable; for the bounded-`W` constraints typical in interviews, it's the right tool.

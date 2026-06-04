@@ -1,0 +1,217 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { ShowHideGif } from "../../components/ShowHideGif";
+import { QuizBox } from "../../components/QuizBox";
+import { RecursionTreeVisualizer } from "../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Introduction to Dynamic Programming
+
+Dynamic Programming is a technique for solving problems where **the same subproblem is asked multiple times during the natural recursion**. Instead of solving each subproblem from scratch on every visit, you solve it once and **cache the answer**. The recursive description stays the same — only the bookkeeping changes.
+
+That sentence hides a lot. Let's earn it.
+
+## The Fibonacci tax
+
+The world's most famous recursion:
+
+```python
+def fib(n):
+    if n < 2: return n
+    return fib(n - 1) + fib(n - 2)
+```
+
+Beautiful. Three lines. **And catastrophically slow.** Computing `fib(40)` makes over a billion calls. `fib(50)` won't finish in your lifetime.
+
+Why? Look at the call tree for `fib(5)`:
+
+<RecursionTreeVisualizer
+    root={5}
+    expand={(n) => (n < 2 ? null : [n - 1, n - 2])}
+    label={(n) => `fib(${n})`}
+    maxDepth={6}
+    title="fib(5) — the duplication is the whole story"
+/>
+
+Count how many times `fib(2)` appears. Three. `fib(3)` appears twice. **Every recursion above the leaves is doing redundant work** — and the redundancy compounds. The number of leaves grows like `2^n`.
+
+Now imagine you wrote down each answer the first time you computed it:
+
+```python
+memo = {}
+def fib(n):
+    if n < 2: return n
+    if n in memo: return memo[n]
+    memo[n] = fib(n - 1) + fib(n - 2)
+    return memo[n]
+```
+
+The same three lines, plus four characters of bookkeeping. `fib(50)` now finishes in microseconds. `fib(1000)` is instant.
+
+**That's the entire idea of DP.** The leap from `O(2^n)` to `O(n)` came from one observation: *we kept asking the same question.*
+
+<Callout type="info">
+    A useful slogan: **DP = recursion + memory.** Or, if you prefer to think bottom-up: **DP = filling out a table where every cell depends on cells you've already filled.** Both views are correct. We'll use both throughout.
+</Callout>
+
+## The two-property test
+
+Not every recursive problem benefits from DP. A problem is a DP problem if and only if it has both of these:
+
+### 1. Overlapping subproblems
+
+The same subproblem appears **more than once** during the natural recursion. If every recursive call solves a *different* subproblem, you have plain divide-and-conquer (think merge sort) — and memoization wastes memory without saving time.
+
+Fibonacci has overlap (we just counted it). Merge sort does not — every call sees a unique sub-array. Binary search does not — every call halves the range with no repeats.
+
+### 2. Optimal substructure
+
+The optimal answer to the whole problem can be **built from optimal answers to its subproblems**. The shortest path from `A` to `C` through `B` is the shortest path from `A` to `B` plus the shortest path from `B` to `C`. The longest increasing subsequence ending at index `i` is one element longer than the LIS ending at the best earlier index.
+
+Some problems look DP-shaped but fail this test. **Longest *simple* path** in a general graph (the path can't repeat vertices) — the optimal path to a vertex depends on which vertices you've already used, which depends on the path you took to get there. There's no clean substructure. (It's NP-hard.)
+
+| Property               | Fibonacci | Merge Sort | LIS  | Longest Simple Path |
+| :--------------------- | :-------- | :--------- | :--- | :------------------ |
+| Overlapping subproblems? | Yes     | No         | Yes  | Yes                 |
+| Optimal substructure?  | Yes       | Yes        | Yes  | **No**              |
+| DP works?              | Yes       | No (no overlap) | Yes | No (no substructure) |
+
+Two boxes ticked → reach for DP. Anything else → reach for something else.
+
+## The state-design checklist
+
+The hardest part of DP is **figuring out what the state is**. Once the state is right, the transition writes itself. Once the transition is right, the code writes itself. Once the code is right, optimization is mechanical.
+
+Here's the checklist I run through on every new problem:
+
+<Steps>
+
+### What am I computing?
+
+Write down the function in English first. *"The minimum number of coins to make amount `a` using coins from index `i` onward."* *"The number of unique paths from `(0,0)` to `(r,c)` moving only right or down."* If you can't say it cleanly, the state is wrong.
+
+### What are the dimensions of the state?
+
+A state is the set of variables you need to fully describe a subproblem. For Fibonacci it's just `n` (1D). For LCS of two strings it's `(i, j)` — your position in each string (2D). For knapsack it's `(i, capacity_remaining)` (2D). For interval DP it's `(left, right)` (2D). For bitmask DP it's `(mask, position)` (2D, but one dimension is exponential).
+
+Aim for the **fewest** dimensions that still capture everything you need to make a decision. Extra dimensions = wasted time and memory.
+
+### What are the base cases?
+
+The smallest subproblems whose answer is obvious. *"Zero coins → 0 ways unless the amount is also 0."* *"Empty string vs empty string → 0 edits."* *"Index past the array end → no more elements to pick."*
+
+These are the corners and edges of your DP table. Get them wrong and the rest of the table is garbage.
+
+### What's the transition?
+
+How does `dp[state]` depend on smaller `dp[other_state]` values? This is where you write `dp[i][j] = min(dp[i - 1][j], dp[i][j - 1]) + cost[i][j]` or whatever the recurrence is. **Almost every transition is a `min`, a `max`, a `sum`, or a `boolean OR`** — there's a small vocabulary.
+
+### What order do I fill the table?
+
+Each cell must depend only on cells already computed. For grid problems that's typically top-down + left-right. For LIS it's by ending index in increasing order. For knapsack it's by item index. Get the order wrong and you read garbage out of the table.
+
+</Steps>
+
+If you've answered all five questions cleanly, **writing the code is a 10-line transcription**. That's the whole point of this chapter.
+
+## A worked example end-to-end: Climbing Stairs
+
+> You're at the bottom of a staircase with `n` steps. You can climb either **1 step** or **2 steps** at a time. How many distinct ways can you reach the top?
+
+Let's run the checklist.
+
+1. **What am I computing?** *"The number of distinct ways to climb to step `i`."*
+2. **Dimensions?** One — just `i`. So `dp[i]` is the answer.
+3. **Base cases?** `dp[0] = 1` (one way to be at the start — don't move). `dp[1] = 1` (one way to be at step 1 — take a single step).
+4. **Transition?** To reach step `i`, the last move was either a 1-step (so you came from `i - 1`) or a 2-step (so you came from `i - 2`). So `dp[i] = dp[i - 1] + dp[i - 2]`.
+5. **Order?** Increasing `i`.
+
+The code is now a transcription:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climbStairs(int n) {
+        vector<int> dp(n + 1);
+        dp[0] = 1;
+        if (n >= 1) dp[1] = 1;
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+        return dp[n];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def climb_stairs(n):
+        dp = [0] * (n + 1)
+        dp[0] = 1
+        if n >= 1: dp[1] = 1
+        for i in range(2, n + 1):
+            dp[i] = dp[i - 1] + dp[i - 2]
+        return dp[n]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int climbStairs(int n) {
+        int[] dp = new int[n + 1];
+        dp[0] = 1;
+        if (n >= 1) dp[1] = 1;
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+        return dp[n];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+If the recurrence looks familiar, that's because it's literally Fibonacci. Welcome to the unspoken truth of DP: **most "new" DP problems are old ones with a paint job.**
+
+## DP is *not* magic
+
+People talk about DP like it's a separate algorithmic universe. It isn't. Here's the lineage:
+
+- **Brute force recursion** — try every possibility.
+- **Memoized recursion** — cache subproblem answers to avoid recomputation. **This is top-down DP.**
+- **Iterative table filling** — replace the recursion with a loop that fills the same answers in dependency order. **This is bottom-up DP.**
+
+Every DP problem can be solved in any of these three styles. The brute-force version is usually the slowest to run but the easiest to *think*. The bottom-up version is usually the fastest to run but the hardest to *think*. Memoization sits in the middle and is the right choice 70% of the time.
+
+The next page walks through both styles side by side, on the same problem, so the conversion is mechanical.
+
+## Quick check
+
+<QuizBox
+    question="Which of these is the WORST candidate for dynamic programming?"
+    options={[
+        "Fibonacci numbers",
+        "Counting paths in a grid moving only right or down",
+        "Merge sort",
+        "Edit distance between two strings"
+    ]}
+    correctIndex={2}
+    explanation="Merge sort has optimal substructure but ZERO overlapping subproblems — every recursive call operates on a unique sub-array. Memoization would only waste memory. Fibonacci, grid paths, and edit distance all have heavy overlap and are textbook DP problems."
+/>
+
+<QuizBox
+    question="In the 5-question state-design checklist, which step do most beginners get wrong?"
+    options={[
+        "Writing the recursion",
+        "Choosing the state dimensions",
+        "Implementing the loop",
+        "Returning the answer"
+    ]}
+    correctIndex={1}
+    explanation="State design is the hard part — almost all DP bugs come from a state that's either incomplete (missing a dimension you need to make a decision) or redundant (carrying information you don't need). Get the state right and the rest is mechanical."
+/>
+
+<QuizBox
+    question="What's the time complexity of the memoized Fibonacci?"
+    options={["O(2^n)", "O(n log n)", "O(n)", "O(1)"]}
+    correctIndex={2}
+    explanation="Each fib(k) is computed exactly once thanks to the cache. There are n unique subproblems (fib(0) through fib(n)), each taking O(1) work once its children are known. Total: O(n) time and O(n) memory."
+/>
+
+Next: **memoization vs tabulation** — how to convert one style into the other, and when each one wins.

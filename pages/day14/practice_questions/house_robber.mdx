@@ -1,0 +1,97 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### House Robber <DifficultyBadge level="easy" />
+
+#### Description
+
+You're a professional thief planning to rob houses along a street. Each house has some amount of money stashed. The only constraint stopping you from robbing each one is that adjacent houses have a connected security system — robbing **two adjacent houses** triggers the police.
+
+Given an array `nums` of non-negative integers representing the loot at each house, return the **maximum amount** you can rob tonight without alerting the police.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 2, 3, 1]
+    Output: 4
+    Explanation: rob house 0 (1) + rob house 2 (3) = 4.
+
+> Case 2:
+    nums = [2, 7, 9, 3, 1]
+    Output: 12
+    Explanation: rob house 0 (2) + house 2 (9) + house 4 (1) = 12.
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 100`
+- `0 <= nums[i] <= 400`
+
+#### State design
+
+1. **What am I computing?** Max loot considering the first `i + 1` houses, possibly skipping the last one.
+2. **Dimensions?** One — index `i`.
+3. **Base cases?** `dp[0] = nums[0]`. `dp[1] = max(nums[0], nums[1])`.
+4. **Transition?** At house `i`, two choices:
+   - **Skip:** carry forward the best from house `i - 1` → `dp[i - 1]`.
+   - **Rob:** add `nums[i]` to the best ending no later than `i - 2` (since `i - 1` is adjacent) → `nums[i] + dp[i - 2]`.
+
+   Take the max: `dp[i] = max(dp[i - 1], nums[i] + dp[i - 2])`.
+5. **Order?** Increasing `i`.
+
+Only two predecessors → space-optimize to `O(1)`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int rob(vector<int>& nums) {
+        int prev2 = 0, prev1 = 0;
+        for (int x : nums) {
+            int cur = max(prev1, prev2 + x);
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def rob(nums):
+        prev2, prev1 = 0, 0
+        for x in nums:
+            prev2, prev1 = prev1, max(prev1, prev2 + x)
+        return prev1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int rob(int[] nums) {
+        int prev2 = 0, prev1 = 0;
+        for (int x : nums) {
+            int cur = Math.max(prev1, prev2 + x);
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **House Robber II** wraps the street into a circle — house 0 and house `n - 1` are now adjacent. Solve it by running House Robber twice: once on `nums[0..n - 2]` (exclude last), once on `nums[1..n - 1]` (exclude first). Take the max.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)`.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+This *exact* recurrence — "skip or take, can't take two in a row" — also solves: **Delete and Earn**, **Min Cost to Paint Houses with k Colors**, and a long tail of constraint-respecting selection problems. Identify the "no two adjacent" structure and the template snaps right on.

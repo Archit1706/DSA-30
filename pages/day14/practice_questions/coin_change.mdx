@@ -1,0 +1,121 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Coin Change <DifficultyBadge level="medium" />
+
+#### Description
+
+You're given coin denominations `coins[]` and a target `amount`. Return the **fewest** number of coins that sum to `amount`. Each coin can be used an **unlimited** number of times. If the amount can't be made, return `-1`.
+
+#### Examples
+
+```py
+> Case 1:
+    coins = [1, 2, 5],  amount = 11
+    Output: 3
+    Explanation: 11 = 5 + 5 + 1.
+
+> Case 2:
+    coins = [2],  amount = 3
+    Output: -1
+
+> Case 3:
+    coins = [1],  amount = 0
+    Output: 0
+```
+
+#### Constraints
+
+- `1 <= coins.length <= 12`
+- `1 <= coins[i] <= 2^31 - 1`
+- `0 <= amount <= 10^4`
+
+#### State design
+
+This is **unbounded knapsack** in its purest form — pick coins (items) with repetition, minimize count, subject to a fixed sum.
+
+1. **What am I computing?** `dp[w]` = min coins to make amount `w`.
+2. **Dimensions?** One — `w`.
+3. **Base cases?** `dp[0] = 0` (zero coins for zero amount). Mark all other `dp[w]` as infinity / unreachable.
+4. **Transition?** For each amount `w`, try every coin `c <= w`: `dp[w] = min(dp[w], dp[w - c] + 1)`.
+5. **Order?** Amount `w` from 1 to `amount`. (Each `dp[w]` reads `dp[w - c]` for smaller `w`.)
+6. **Answer?** `dp[amount]`, or `-1` if it stayed at infinity.
+
+<Callout type="warning">
+    **The greedy "always take the largest coin first" doesn't work in general.** For `coins = [1, 3, 4]`, `amount = 6`: greedy gives 4 + 1 + 1 = 3 coins, but optimal is 3 + 3 = 2 coins. DP is required. For specific currency systems (US dollars, euros) greedy happens to be optimal — but never assume it.
+</Callout>
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int coinChange(vector<int>& coins, int amount) {
+        const int INF = amount + 1;
+        vector<int> dp(amount + 1, INF);
+        dp[0] = 0;
+        for (int w = 1; w <= amount; w++) {
+            for (int c : coins) {
+                if (c <= w) dp[w] = min(dp[w], dp[w - c] + 1);
+            }
+        }
+        return dp[amount] > amount ? -1 : dp[amount];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def coin_change(coins, amount):
+        INF = amount + 1
+        dp = [INF] * (amount + 1)
+        dp[0] = 0
+        for w in range(1, amount + 1):
+            for c in coins:
+                if c <= w:
+                    dp[w] = min(dp[w], dp[w - c] + 1)
+        return dp[amount] if dp[amount] != INF else -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int coinChange(int[] coins, int amount) {
+        int INF = amount + 1;
+        int[] dp = new int[amount + 1];
+        Arrays.fill(dp, INF);
+        dp[0] = 0;
+        for (int w = 1; w <= amount; w++) {
+            for (int c : coins) {
+                if (c <= w) dp[w] = Math.min(dp[w], dp[w - c] + 1);
+            }
+        }
+        return dp[amount] > amount ? -1 : dp[amount];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Why use `amount + 1` as infinity instead of `INT_MAX`?** Because `dp[w - c] + 1` might overflow if you start from `INT_MAX`. And no legitimate answer can exceed `amount` (the worst case is using `amount` ones), so `amount + 1` is a safe sentinel.
+
+#### Analysis
+
+- **Time:** `O(amount × len(coins))`.
+- **Space:** `O(amount)`.
+
+#### The closely-related cousin: Coin Change II
+
+> Count the **number of distinct ways** to make `amount` using unlimited coins.
+
+Same state, different operator, **and** a different loop order — to count *combinations* (unordered), iterate coins in the outer loop:
+
+```python
+def change(amount, coins):
+    dp = [0] * (amount + 1)
+    dp[0] = 1
+    for c in coins:                       # coins outside
+        for w in range(c, amount + 1):     # amount inside
+            dp[w] += dp[w - c]
+    return dp[amount]
+```
+
+Swap the loops and you'd count *permutations* (ordered) — a different problem.

@@ -1,0 +1,579 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Classic DP Patterns
+
+Seven shapes cover the overwhelming majority of DP interview problems. Once you've internalized these, most "new" problems are just one of these in a costume.
+
+For each pattern we'll give: **the canonical problem**, **the state**, **the transition**, **the code**, and a list of **other problems that wear the same skin.**
+
+## Pattern 1 — Linear (1D) DP
+
+The simplest shape. State is a single index `i`. `dp[i]` depends on a constant number of earlier cells like `dp[i - 1]`, `dp[i - 2]`, or `dp[i - k]` for fixed `k`.
+
+### Canonical: House Robber
+
+> You can't rob two adjacent houses. Maximize your loot from a row of houses with values `nums[i]`.
+
+**State:** `dp[i]` = max loot from the prefix `nums[0..i]`.
+**Transition:** at house `i`, either skip it (`dp[i - 1]`) or rob it and the best from before its neighbor (`nums[i] + dp[i - 2]`).
+**Base:** `dp[0] = nums[0]`, `dp[1] = max(nums[0], nums[1])`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int rob(vector<int>& nums) {
+        int n = nums.size();
+        if (n == 0) return 0;
+        if (n == 1) return nums[0];
+        vector<int> dp(n);
+        dp[0] = nums[0];
+        dp[1] = max(nums[0], nums[1]);
+        for (int i = 2; i < n; i++) {
+            dp[i] = max(dp[i - 1], nums[i] + dp[i - 2]);
+        }
+        return dp[n - 1];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def rob(nums):
+        n = len(nums)
+        if n == 0: return 0
+        if n == 1: return nums[0]
+        dp = [0] * n
+        dp[0] = nums[0]
+        dp[1] = max(nums[0], nums[1])
+        for i in range(2, n):
+            dp[i] = max(dp[i - 1], nums[i] + dp[i - 2])
+        return dp[-1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int rob(int[] nums) {
+        int n = nums.length;
+        if (n == 0) return 0;
+        if (n == 1) return nums[0];
+        int[] dp = new int[n];
+        dp[0] = nums[0];
+        dp[1] = Math.max(nums[0], nums[1]);
+        for (int i = 2; i < n; i++) {
+            dp[i] = Math.max(dp[i - 1], nums[i] + dp[i - 2]);
+        }
+        return dp[n - 1];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Space-optimizable to O(1)** — just keep `prev1` and `prev2`. Classic linear DP signature.
+
+### Same skin
+
+- **Climbing Stairs** — `dp[i] = dp[i-1] + dp[i-2]`.
+- **Min Cost Climbing Stairs** — `dp[i] = cost[i] + min(dp[i-1], dp[i-2])`.
+- **Maximum Subarray (Kadane)** — `dp[i] = max(nums[i], nums[i] + dp[i-1])`.
+- **Decode Ways** — `dp[i] = dp[i-1] (if single-digit valid) + dp[i-2] (if two-digit valid)`.
+
+## Pattern 2 — Grid (2D) DP
+
+State is a pair `(i, j)` — usually a position in a grid or two parallel strings. `dp[i][j]` depends on neighbors like `dp[i-1][j]`, `dp[i][j-1]`, `dp[i-1][j-1]`.
+
+### Canonical: Unique Paths
+
+> Count distinct paths from `(0, 0)` to `(m-1, n-1)` in a grid, moving only **right** or **down**.
+
+**State:** `dp[i][j]` = number of paths to cell `(i, j)`.
+**Transition:** `dp[i][j] = dp[i - 1][j] + dp[i][j - 1]`.
+**Base:** the entire first row and first column are `1` (only one way to reach them).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int uniquePaths(int m, int n) {
+        vector<vector<int>> dp(m, vector<int>(n, 1));
+        for (int i = 1; i < m; i++) {
+            for (int j = 1; j < n; j++) {
+                dp[i][j] = dp[i - 1][j] + dp[i][j - 1];
+            }
+        }
+        return dp[m - 1][n - 1];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def unique_paths(m, n):
+        dp = [[1] * n for _ in range(m)]
+        for i in range(1, m):
+            for j in range(1, n):
+                dp[i][j] = dp[i - 1][j] + dp[i][j - 1]
+        return dp[m - 1][n - 1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int uniquePaths(int m, int n) {
+        int[][] dp = new int[m][n];
+        for (int i = 0; i < m; i++) dp[i][0] = 1;
+        for (int j = 0; j < n; j++) dp[0][j] = 1;
+        for (int i = 1; i < m; i++) {
+            for (int j = 1; j < n; j++) {
+                dp[i][j] = dp[i - 1][j] + dp[i][j - 1];
+            }
+        }
+        return dp[m - 1][n - 1];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Space-optimizable to O(n)** — only the previous row is needed.
+
+### Same skin
+
+- **Unique Paths II** (with obstacles) — same transition, plus `dp[i][j] = 0` on blocked cells.
+- **Minimum Path Sum** — `dp[i][j] = grid[i][j] + min(dp[i-1][j], dp[i][j-1])`.
+- **Maximal Square** — `dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])` if `grid[i][j] == 1`.
+- **Triangle min path sum** — same shape on a triangle grid.
+
+## Pattern 3 — 0/1 Knapsack
+
+You have items, each with a weight and a value. You have a capacity. Pick a **subset** that maximizes value under the capacity constraint. **Each item can be picked at most once.**
+
+**State:** `dp[i][w]` = max value using the first `i` items with capacity `w`.
+**Transition:** at item `i`, either **skip** it (`dp[i - 1][w]`) or **take** it (`dp[i - 1][w - weight[i]] + value[i]`, if it fits).
+**Base:** `dp[0][w] = 0` (no items → no value, any capacity).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int knapsack(vector<int>& weight, vector<int>& value, int W) {
+        int n = weight.size();
+        vector<vector<int>> dp(n + 1, vector<int>(W + 1, 0));
+        for (int i = 1; i <= n; i++) {
+            for (int w = 0; w <= W; w++) {
+                dp[i][w] = dp[i - 1][w];                       // skip
+                if (w >= weight[i - 1]) {
+                    dp[i][w] = max(dp[i][w],
+                                   dp[i - 1][w - weight[i - 1]] + value[i - 1]);
+                }
+            }
+        }
+        return dp[n][W];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def knapsack(weight, value, W):
+        n = len(weight)
+        dp = [[0] * (W + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            for w in range(W + 1):
+                dp[i][w] = dp[i - 1][w]
+                if w >= weight[i - 1]:
+                    dp[i][w] = max(dp[i][w],
+                                   dp[i - 1][w - weight[i - 1]] + value[i - 1])
+        return dp[n][W]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int knapsack(int[] weight, int[] value, int W) {
+        int n = weight.length;
+        int[][] dp = new int[n + 1][W + 1];
+        for (int i = 1; i <= n; i++) {
+            for (int w = 0; w <= W; w++) {
+                dp[i][w] = dp[i - 1][w];
+                if (w >= weight[i - 1]) {
+                    dp[i][w] = Math.max(dp[i][w],
+                                        dp[i - 1][w - weight[i - 1]] + value[i - 1]);
+                }
+            }
+        }
+        return dp[n][W];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n × W)`. **Space:** `O(n × W)`, optimizable to `O(W)` by iterating capacity in **reverse** (so we don't double-count an item taken in the current row):
+
+```python
+dp = [0] * (W + 1)
+for i in range(n):
+    for w in range(W, weight[i] - 1, -1):     # reverse — critical
+        dp[w] = max(dp[w], dp[w - weight[i]] + value[i])
+```
+
+The reverse loop is the most common knapsack interview gotcha. Iterating forward turns 0/1 knapsack into **unbounded** knapsack — a different problem.
+
+### Same skin
+
+- **Partition Equal Subset Sum** — knapsack where capacity = `sum / 2` and values = weights; ask "can we hit exactly that capacity?"
+- **Target Sum** — assign `+` or `-` to each number to hit a target; reduces to a subset-sum DP.
+- **Last Stone Weight II** — minimize `|sum_A - sum_B|`; reduces to subset sum.
+- **Ones and Zeroes** — knapsack with **two** capacities (count of 0s and count of 1s).
+
+## Pattern 4 — Unbounded Knapsack
+
+Same as 0/1 knapsack, but **each item can be picked infinitely many times**. The state is still `dp[i][w]`, but in the recurrence the "take" branch comes from `dp[i][w - weight[i]]` instead of `dp[i - 1][...]` — because after taking item `i`, you're allowed to take it again.
+
+### Canonical: Coin Change
+
+> Given coins of denominations `coins[]` and an amount `n`, what's the **minimum number of coins** to make `n`? Return -1 if impossible.
+
+**State:** `dp[w]` = min coins for amount `w`.
+**Transition:** `dp[w] = min(dp[w - c] + 1)` over all coins `c <= w`.
+**Base:** `dp[0] = 0`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int coinChange(vector<int>& coins, int amount) {
+        const int INF = 1e9;
+        vector<int> dp(amount + 1, INF);
+        dp[0] = 0;
+        for (int w = 1; w <= amount; w++) {
+            for (int c : coins) {
+                if (c <= w && dp[w - c] + 1 < dp[w]) {
+                    dp[w] = dp[w - c] + 1;
+                }
+            }
+        }
+        return dp[amount] == INF ? -1 : dp[amount];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def coin_change(coins, amount):
+        INF = float('inf')
+        dp = [INF] * (amount + 1)
+        dp[0] = 0
+        for w in range(1, amount + 1):
+            for c in coins:
+                if c <= w:
+                    dp[w] = min(dp[w], dp[w - c] + 1)
+        return dp[amount] if dp[amount] != INF else -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int coinChange(int[] coins, int amount) {
+        int INF = (int) 1e9;
+        int[] dp = new int[amount + 1];
+        Arrays.fill(dp, INF);
+        dp[0] = 0;
+        for (int w = 1; w <= amount; w++) {
+            for (int c : coins) {
+                if (c <= w && dp[w - c] + 1 < dp[w]) {
+                    dp[w] = dp[w - c] + 1;
+                }
+            }
+        }
+        return dp[amount] == INF ? -1 : dp[amount];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n × amount)`. **Space:** `O(amount)` already, no further optimization needed.
+
+### Same skin
+
+- **Coin Change II** (count of ways, not min) — iterate coins outside and amount inside for "combinations"; flip for "permutations."
+- **Perfect Squares** — coins are `[1, 4, 9, 16, ...]`; find min coins to sum to `n`.
+- **Word Break** — "coins" are dictionary words, "amount" is the string; can we tile it?
+- **Combination Sum IV** — count tilings allowing different orderings.
+
+<Callout type="warning">
+    **Coin Change II vs Coin Change** is the most common DP-loop-order trap. To count **combinations** (unordered), iterate coins in the outer loop and amount in the inner. To count **permutations** (ordered), do the reverse. Same recurrence, different loop order — different problem.
+</Callout>
+
+## Pattern 5 — Longest Increasing Subsequence (LIS)
+
+A *subsequence* is a sequence you get by deleting some elements without changing the order of the rest. LIS = the longest such subsequence that's strictly increasing.
+
+**State:** `dp[i]` = length of the LIS that **ends at index `i`**.
+**Transition:** `dp[i] = 1 + max(dp[j])` for all `j < i` with `nums[j] < nums[i]`. If no such `j` exists, `dp[i] = 1`.
+**Answer:** `max(dp[i])` over all `i` (the LIS doesn't have to end at the last element).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLIS(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> dp(n, 1);
+        int best = 1;
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (nums[j] < nums[i]) {
+                    dp[i] = max(dp[i], dp[j] + 1);
+                }
+            }
+            best = max(best, dp[i]);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def length_of_lis(nums):
+        n = len(nums)
+        dp = [1] * n
+        for i in range(1, n):
+            for j in range(i):
+                if nums[j] < nums[i]:
+                    dp[i] = max(dp[i], dp[j] + 1)
+        return max(dp)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLIS(int[] nums) {
+        int n = nums.length;
+        int[] dp = new int[n];
+        Arrays.fill(dp, 1);
+        int best = 1;
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (nums[j] < nums[i]) {
+                    dp[i] = Math.max(dp[i], dp[j] + 1);
+                }
+            }
+            best = Math.max(best, dp[i]);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n²)`. **Space:** `O(n)`.
+
+<Callout type="info">
+    **There's an `O(n log n)` LIS** using a patience-sorting trick — maintain a list of "tail of best subsequence of each length" and binary-search the insertion point. We cover it in the [practice problem](/day14/practice_questions/longest_increasing_subsequence). It's worth knowing if the interviewer says "now do it faster."
+</Callout>
+
+### Same skin
+
+- **Number of LIS** — track count of LIS-of-max-length in addition to the length.
+- **Russian Doll Envelopes** — sort by width, then LIS on heights.
+- **Longest Bitonic Subsequence** — LIS from the left + LIS from the right.
+- **Box Stacking** — sort boxes by base, LIS by height with stackability check.
+
+## Pattern 6 — Longest Common Subsequence (LCS)
+
+Two strings. Find the longest sequence of characters appearing in both, in order, but not necessarily contiguously.
+
+**State:** `dp[i][j]` = length of LCS of `s1[0..i-1]` and `s2[0..j-1]`.
+**Transition:** if `s1[i - 1] == s2[j - 1]`, `dp[i][j] = dp[i - 1][j - 1] + 1`. Else `dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])`.
+**Base:** `dp[0][j] = dp[i][0] = 0`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int longestCommonSubsequence(string s1, string s2) {
+        int n = s1.size(), m = s2.size();
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (s1[i - 1] == s2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp[n][m];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longest_common_subsequence(s1, s2):
+        n, m = len(s1), len(s2)
+        dp = [[0] * (m + 1) for _ in range(n + 1)]
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                if s1[i - 1] == s2[j - 1]:
+                    dp[i][j] = dp[i - 1][j - 1] + 1
+                else:
+                    dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+        return dp[n][m]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int longestCommonSubsequence(String s1, String s2) {
+        int n = s1.length(), m = s2.length();
+        int[][] dp = new int[n + 1][m + 1];
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
+                } else {
+                    dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            }
+        }
+        return dp[n][m];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n × m)`. **Space:** `O(n × m)`, optimizable to `O(m)` by rolling on rows.
+
+### Same skin
+
+- **Longest Common Substring** — same but `dp[i][j]` resets to 0 on mismatch. The answer is `max(dp[i][j])` everywhere, not `dp[n][m]`.
+- **Shortest Common Supersequence** — `n + m − LCS`.
+- **Distinct Subsequences** — count, not length: `dp[i][j] = dp[i-1][j-1] + dp[i-1][j]` on match, else `dp[i-1][j]`.
+- **Longest Palindromic Subsequence** — LCS of `s` with `reverse(s)`.
+
+## Pattern 7 — Edit Distance
+
+Two strings. Find the minimum number of single-character **insertions, deletions, or replacements** to turn `s1` into `s2`. The Swiss army knife of string DP.
+
+**State:** `dp[i][j]` = min edits to turn `s1[0..i-1]` into `s2[0..j-1]`.
+**Transition:** if `s1[i - 1] == s2[j - 1]`, `dp[i][j] = dp[i - 1][j - 1]` (no edit needed). Otherwise, take 1 plus the minimum of:
+
+- `dp[i - 1][j - 1]` — replace
+- `dp[i - 1][j]` — delete from `s1`
+- `dp[i][j - 1]` — insert into `s1` (equivalent to advancing in `s2`)
+
+**Base:** `dp[0][j] = j` (insert `j` chars), `dp[i][0] = i` (delete `i` chars).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int minDistance(string s1, string s2) {
+        int n = s1.size(), m = s2.size();
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+        for (int i = 0; i <= n; i++) dp[i][0] = i;
+        for (int j = 0; j <= m; j++) dp[0][j] = j;
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (s1[i - 1] == s2[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = 1 + min({dp[i - 1][j - 1],
+                                        dp[i - 1][j],
+                                        dp[i][j - 1]});
+                }
+            }
+        }
+        return dp[n][m];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def min_distance(s1, s2):
+        n, m = len(s1), len(s2)
+        dp = [[0] * (m + 1) for _ in range(n + 1)]
+        for i in range(n + 1): dp[i][0] = i
+        for j in range(m + 1): dp[0][j] = j
+        for i in range(1, n + 1):
+            for j in range(1, m + 1):
+                if s1[i - 1] == s2[j - 1]:
+                    dp[i][j] = dp[i - 1][j - 1]
+                else:
+                    dp[i][j] = 1 + min(dp[i - 1][j - 1],
+                                       dp[i - 1][j],
+                                       dp[i][j - 1])
+        return dp[n][m]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int minDistance(String s1, String s2) {
+        int n = s1.length(), m = s2.length();
+        int[][] dp = new int[n + 1][m + 1];
+        for (int i = 0; i <= n; i++) dp[i][0] = i;
+        for (int j = 0; j <= m; j++) dp[0][j] = j;
+        for (int i = 1; i <= n; i++) {
+            for (int j = 1; j <= m; j++) {
+                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = 1 + Math.min(dp[i - 1][j - 1],
+                                  Math.min(dp[i - 1][j], dp[i][j - 1]));
+                }
+            }
+        }
+        return dp[n][m];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n × m)`. **Space:** `O(n × m)`, optimizable to `O(m)`.
+
+### Same skin
+
+- **One Edit Distance** — early exit when count exceeds 1.
+- **Delete Operation for Two Strings** — `n + m − 2 × LCS`.
+- **Minimum ASCII Delete Sum** — same shape, but `+= ascii(char)` instead of `+= 1`.
+- **Wildcard Matching / Regex Matching** — same skin, `*` and `?` extend the transition table.
+
+## The classification cheat sheet
+
+| Pattern              | State signature   | Hallmark recurrence ingredient        | Time         |
+| :------------------- | :---------------- | :------------------------------------ | :----------- |
+| 1D linear            | `dp[i]`           | `dp[i-1]`, `dp[i-2]`                  | `O(n)`       |
+| 2D grid              | `dp[i][j]`        | `dp[i-1][j]`, `dp[i][j-1]`            | `O(n × m)`   |
+| 0/1 knapsack         | `dp[i][w]`        | skip vs take (use `dp[i-1][...]`)     | `O(n × W)`   |
+| Unbounded knapsack   | `dp[w]`           | `dp[w - coin]` (reuse current row)    | `O(n × W)`   |
+| LIS                  | `dp[i]`           | `max(dp[j]+1)` over `j < i`           | `O(n²)` or `O(n log n)` |
+| LCS                  | `dp[i][j]`        | match: `dp[i-1][j-1]+1`; else max     | `O(n × m)`   |
+| Edit distance        | `dp[i][j]`        | match: `dp[i-1][j-1]`; else `1 + min` of 3 | `O(n × m)` |
+
+If a problem matches one of these state signatures and one of these recurrence ingredients, you're already 80% done.
+
+## Quick check
+
+<QuizBox
+    question="You see: 'pick a subset of items with weights w[i] to maximize value, subject to total weight ≤ W'. Which pattern?"
+    options={[
+        "1D linear DP (Kadane-style)",
+        "LIS",
+        "0/1 knapsack",
+        "Edit distance"
+    ]}
+    correctIndex={2}
+    explanation="Subset selection + capacity constraint + each item used at most once = textbook 0/1 knapsack. State is (item index, capacity remaining)."
+/>
+
+<QuizBox
+    question="Coin Change asking for MINIMUM coins vs Coin Change II asking for COUNT of ways. What's the key difference in code?"
+    options={[
+        "Different state",
+        "Same state, but Coin Change II uses += instead of min, and changes loop order to enforce combinations",
+        "Coin Change uses memoization; Coin Change II must use tabulation",
+        "They're the same problem"
+    ]}
+    correctIndex={1}
+    explanation="Both are unbounded-knapsack-shaped over (amount). Coin Change uses `dp[w] = min(dp[w-c] + 1)`. Coin Change II uses `dp[w] += dp[w-c]` and crucially iterates COINS in the OUTER loop to count combinations (not permutations). Same state, different operator and loop order."
+/>
+
+<QuizBox
+    question="What's the difference between Longest Common Substring and Longest Common Subsequence?"
+    options={[
+        "Substring requires contiguous characters; subsequence doesn't",
+        "They're synonyms",
+        "Substring is O(n³); subsequence is O(n²)",
+        "Substring uses memoization, subsequence uses tabulation"
+    ]}
+    correctIndex={0}
+    explanation="A substring is a contiguous slice. A subsequence preserves order but can skip characters. In DP terms, LCS keeps building forward through mismatches (using max); Longest Common Substring resets dp[i][j] to 0 on mismatch — and the answer is the max value anywhere in the table, not dp[n][m]."
+/>
+
+Next: **advanced DP** — space optimization, bitmask DP, interval DP, and DP on trees.

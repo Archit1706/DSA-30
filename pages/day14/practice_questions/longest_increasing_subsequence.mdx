@@ -1,0 +1,160 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Increasing Subsequence <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums`, return the length of the **longest strictly increasing subsequence**.
+
+A subsequence keeps the relative order of `nums` but can skip arbitrary elements.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [10, 9, 2, 5, 3, 7, 101, 18]
+    Output: 4
+    Explanation: one LIS is [2, 3, 7, 101].
+
+> Case 2:
+    nums = [0, 1, 0, 3, 2, 3]
+    Output: 4
+
+> Case 3:
+    nums = [7, 7, 7, 7]
+    Output: 1
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 2500`
+- `-10^4 <= nums[i] <= 10^4`
+- Follow-up: can you do it in `O(n log n)`?
+
+#### Solution 1 — O(n²) DP
+
+1. **What am I computing?** `dp[i]` = length of the LIS that **ends at index `i`**.
+2. **Dimensions?** One.
+3. **Base cases?** `dp[i] = 1` (any single element is an LIS of length 1).
+4. **Transition?** Look at every earlier `j`. If `nums[j] < nums[i]`, we can extend the LIS that ended at `j`: `dp[i] = max(dp[i], dp[j] + 1)`.
+5. **Order?** Increasing `i`.
+6. **Answer?** `max(dp[i])` over all `i` — the LIS doesn't have to end at the last element.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLIS(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> dp(n, 1);
+        int best = 1;
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (nums[j] < nums[i]) dp[i] = max(dp[i], dp[j] + 1);
+            }
+            best = max(best, dp[i]);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def length_of_lis(nums):
+        n = len(nums)
+        dp = [1] * n
+        for i in range(1, n):
+            for j in range(i):
+                if nums[j] < nums[i]:
+                    dp[i] = max(dp[i], dp[j] + 1)
+        return max(dp)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLIS(int[] nums) {
+        int n = nums.length;
+        int[] dp = new int[n];
+        Arrays.fill(dp, 1);
+        int best = 1;
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (nums[j] < nums[i]) dp[i] = Math.max(dp[i], dp[j] + 1);
+            }
+            best = Math.max(best, dp[i]);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n²)`. **Space:** `O(n)`.
+
+#### Solution 2 — O(n log n) patience sorting
+
+Maintain an array `tails`, where `tails[k]` = the **smallest possible tail value** of any increasing subsequence of length `k + 1`.
+
+For each `x` in `nums`, **binary-search** for the first `tails[k] >= x` and replace it with `x`. If no such `k` exists, append `x` to extend the longest run by one.
+
+The length of `tails` at the end is the LIS length.
+
+<Callout type="info">
+    **`tails` is not the LIS itself.** It's a clever bookkeeping array. The length of `tails` *is* correct, but the values inside may not form a valid subsequence of `nums`. Reconstructing the actual subsequence requires extra tracking — see "Russian Doll Envelopes" follow-ups.
+</Callout>
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLIS(vector<int>& nums) {
+        vector<int> tails;
+        for (int x : nums) {
+            auto it = lower_bound(tails.begin(), tails.end(), x);
+            if (it == tails.end()) tails.push_back(x);
+            else                   *it = x;
+        }
+        return tails.size();
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from bisect import bisect_left
+
+    def length_of_lis(nums):
+        tails = []
+        for x in nums:
+            i = bisect_left(tails, x)
+            if i == len(tails): tails.append(x)
+            else:               tails[i] = x
+        return len(tails)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLIS(int[] nums) {
+        int[] tails = new int[nums.length];
+        int len = 0;
+        for (int x : nums) {
+            int i = Arrays.binarySearch(tails, 0, len, x);
+            if (i < 0) i = -(i + 1);
+            tails[i] = x;
+            if (i == len) len++;
+        }
+        return len;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n log n)`. **Space:** `O(n)`.
+
+Why does it work? Replacing `tails[k]` with a smaller value `x` doesn't shrink any subsequence — it just makes it easier to extend in the future. The invariant ("`tails[k]` is the smallest possible tail of any length-`k+1` subsequence") is preserved, and the array's length only grows when we genuinely found a longer run.
+
+#### Analysis comparison
+
+| Approach           | Time         | Space  | When to use                                            |
+| :----------------- | :----------- | :----- | :----------------------------------------------------- |
+| `O(n²)` DP         | `O(n²)`      | `O(n)` | Default for small `n`; easiest to reason about; gives `dp[i]` for free if needed |
+| Patience sort      | `O(n log n)` | `O(n)` | Required for `n >= ~10^4`; cleaner code; harder to extract actual LIS |

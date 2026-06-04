@@ -1,0 +1,348 @@
+import { Tabs, Steps, Callout } from "nextra/components";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic DP Questions
+
+Six warm-ups to lock in the state-design checklist. Every one of these is **1D linear DP** with one or two predecessors. They're the muscle-memory exercises before the heavier patterns.
+
+For each problem, **try writing the state, transition, and base cases yourself** before peeking. That's where the learning is.
+
+<Steps>
+
+### 1. Fibonacci with memoization
+
+Compute the `n`-th Fibonacci number where `fib(0) = 0, fib(1) = 1`.
+
+**State:** `dp[i]` = `fib(i)`. **Transition:** `dp[i] = dp[i - 1] + dp[i - 2]`. **Base:** `dp[0] = 0, dp[1] = 1`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int fib(int n) {
+        if (n < 2) return n;
+        int prev2 = 0, prev1 = 1;
+        for (int i = 2; i <= n; i++) {
+            int cur = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def fib(n):
+        if n < 2: return n
+        prev2, prev1 = 0, 1
+        for _ in range(2, n + 1):
+            prev2, prev1 = prev1, prev1 + prev2
+        return prev1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int fib(int n) {
+        if (n < 2) return n;
+        int prev2 = 0, prev1 = 1;
+        for (int i = 2; i <= n; i++) {
+            int cur = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 2. Climbing Stairs
+
+You can climb 1 or 2 stairs at a time. How many ways to climb `n` stairs?
+
+The recurrence is literally Fibonacci. To reach step `i`, the last move was a 1-step (from `i - 1`) or a 2-step (from `i - 2`).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climbStairs(int n) {
+        if (n <= 1) return 1;
+        int prev2 = 1, prev1 = 1;
+        for (int i = 2; i <= n; i++) {
+            int cur = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def climb_stairs(n):
+        if n <= 1: return 1
+        prev2, prev1 = 1, 1
+        for _ in range(2, n + 1):
+            prev2, prev1 = prev1, prev1 + prev2
+        return prev1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int climbStairs(int n) {
+        if (n <= 1) return 1;
+        int prev2 = 1, prev1 = 1;
+        for (int i = 2; i <= n; i++) {
+            int cur = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 3. Min Cost Climbing Stairs
+
+`cost[i]` is the cost of stepping on stair `i`. You can start at stair 0 or 1 and climb 1 or 2 stairs at a time. Find the minimum cost to reach the top (past the last stair).
+
+**State:** `dp[i]` = min cost to *reach and step on* stair `i`. **Transition:** `dp[i] = cost[i] + min(dp[i - 1], dp[i - 2])`. **Answer:** `min(dp[n - 1], dp[n - 2])` — you can jump off either of the top two.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int minCostClimbingStairs(vector<int>& cost) {
+        int n = cost.size();
+        int prev2 = cost[0], prev1 = cost[1];
+        for (int i = 2; i < n; i++) {
+            int cur = cost[i] + min(prev1, prev2);
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return min(prev1, prev2);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def min_cost_climbing_stairs(cost):
+        n = len(cost)
+        prev2, prev1 = cost[0], cost[1]
+        for i in range(2, n):
+            prev2, prev1 = prev1, cost[i] + min(prev1, prev2)
+        return min(prev1, prev2)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int minCostClimbingStairs(int[] cost) {
+        int n = cost.length;
+        int prev2 = cost[0], prev1 = cost[1];
+        for (int i = 2; i < n; i++) {
+            int cur = cost[i] + Math.min(prev1, prev2);
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return Math.min(prev1, prev2);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 4. House Robber
+
+Can't rob two adjacent houses. Maximize total loot.
+
+**State:** `dp[i]` = best loot considering the first `i + 1` houses. **Transition:** at house `i`, skip it (`dp[i - 1]`) or take it (`nums[i] + dp[i - 2]`).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int rob(vector<int>& nums) {
+        int prev2 = 0, prev1 = 0;
+        for (int x : nums) {
+            int cur = max(prev1, prev2 + x);
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def rob(nums):
+        prev2, prev1 = 0, 0
+        for x in nums:
+            prev2, prev1 = prev1, max(prev1, prev2 + x)
+        return prev1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int rob(int[] nums) {
+        int prev2 = 0, prev1 = 0;
+        for (int x : nums) {
+            int cur = Math.max(prev1, prev2 + x);
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 5. Maximum Subarray (Kadane)
+
+Find the contiguous sub-array with the largest sum.
+
+**State:** `dp[i]` = best sum of a sub-array **ending at** `i`. **Transition:** `dp[i] = max(nums[i], nums[i] + dp[i - 1])` — either start fresh or extend.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxSubArray(vector<int>& nums) {
+        int best = nums[0], cur = nums[0];
+        for (int i = 1; i < (int)nums.size(); i++) {
+            cur = max(nums[i], cur + nums[i]);
+            best = max(best, cur);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_sub_array(nums):
+        best = cur = nums[0]
+        for x in nums[1:]:
+            cur = max(x, cur + x)
+            best = max(best, cur)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxSubArray(int[] nums) {
+        int best = nums[0], cur = nums[0];
+        for (int i = 1; i < nums.length; i++) {
+            cur = Math.max(nums[i], cur + nums[i]);
+            best = Math.max(best, cur);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+<Callout type="info">
+    Kadane's algorithm is the cleanest piece of DP you'll ever write. The recurrence — "either start fresh or extend" — captures the entire idea of contiguous-subarray problems in two operands.
+</Callout>
+
+### 6. Unique Paths
+
+Count paths in an `m × n` grid from top-left to bottom-right, moving only right or down.
+
+**State:** `dp[i][j]` = paths to cell `(i, j)`. **Transition:** `dp[i][j] = dp[i - 1][j] + dp[i][j - 1]`.
+
+Space-optimized to one row:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int uniquePaths(int m, int n) {
+        vector<int> dp(n, 1);
+        for (int i = 1; i < m; i++) {
+            for (int j = 1; j < n; j++) {
+                dp[j] += dp[j - 1];
+            }
+        }
+        return dp[n - 1];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def unique_paths(m, n):
+        dp = [1] * n
+        for i in range(1, m):
+            for j in range(1, n):
+                dp[j] += dp[j - 1]
+        return dp[n - 1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int uniquePaths(int m, int n) {
+        int[] dp = new int[n];
+        Arrays.fill(dp, 1);
+        for (int i = 1; i < m; i++) {
+            for (int j = 1; j < n; j++) {
+                dp[j] += dp[j - 1];
+            }
+        }
+        return dp[n - 1];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`dp[j]` (after update) plays the role of `dp[i][j]`; `dp[j]` (before update) plays the role of `dp[i - 1][j]`; `dp[j - 1]` is `dp[i][j - 1]` (already updated this row). One line of arithmetic = the full 2D recurrence.
+
+**Time:** `O(m × n)`. **Space:** `O(n)`.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="In Kadane's algorithm, what's the meaning of dp[i] = max(nums[i], nums[i] + dp[i - 1])?"
+    options={[
+        "dp[i] is the max sub-array sum of the whole prefix [0..i]",
+        "dp[i] is the max sub-array sum ENDING AT i — either fresh starting at i, or extending the best one that ends at i - 1",
+        "dp[i] is the max element in [0..i]",
+        "dp[i] is the index of the maximum element"
+    ]}
+    correctIndex={1}
+    explanation="Kadane's state is 'best contiguous sum ending exactly at index i.' If extending the previous best (dp[i-1] + nums[i]) is worse than starting fresh (just nums[i]), we restart. The final answer is max(dp[i]) over all i — not dp[n-1], because the best sub-array can end anywhere."
+/>
+
+<QuizBox
+    question="In House Robber, why is the transition max(dp[i - 1], nums[i] + dp[i - 2]) and not max(dp[i - 1], nums[i] + dp[i - 1])?"
+    options={[
+        "Off-by-one — both are correct",
+        "You can't rob two adjacent houses; if you take house i, the last legal house before it is i - 2, not i - 1",
+        "Because dp[i - 1] is undefined when i is 0",
+        "Performance"
+    ]}
+    correctIndex={1}
+    explanation="The constraint 'no two adjacent' means after taking house i, the most recent legal house is i - 2. Adding nums[i] to dp[i - 1] would allow robbing adjacent houses — wrong by construction."
+/>
+
+<QuizBox
+    question="Unique Paths can be solved with a closed-form combinatorial formula. What is it?"
+    options={[
+        "m × n",
+        "C(m + n - 2, m - 1) — choose which of the m + n - 2 moves are 'down' (or 'right')",
+        "2^(m + n)",
+        "m! × n!"
+    ]}
+    correctIndex={1}
+    explanation="A path consists of exactly (m - 1) down moves and (n - 1) right moves, in some order. The total number of orderings is the binomial coefficient C(m + n - 2, m - 1). DP gives the same answer in O(m × n); the formula gives it in O(min(m, n)). Knowing both impresses interviewers."
+/>
+
+Next: **the ten practice problems** — one per pattern, with full state-design walkthroughs.

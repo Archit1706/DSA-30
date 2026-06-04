@@ -1,0 +1,57 @@
+import { Callout } from "nextra/components";
+
+# DP Practice Questions
+
+Ten interview classics. Each one is a direct application of one of the [seven classic patterns](/day14/classic_patterns) or an [advanced technique](/day14/advanced) — once you spot the pattern, the state writes itself.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the state-design checklist:
+
+    1. **What am I computing?** (English sentence)
+    2. **What are the dimensions of the state?**
+    3. **What are the base cases?**
+    4. **What's the transition?**
+    5. **What order do I fill the table?**
+
+    The code is a 10-line transcription of those five answers. If you can answer them, you've solved the problem.
+</Callout>
+
+## Easy
+
+| Problem                                                                          | Pattern                       | Status     |
+| :------------------------------------------------------------------------------- | :---------------------------- | :--------- |
+| [Climbing Stairs](/day14/practice_questions/climbing_stairs)                     | 1D linear (Fibonacci-shaped)  | Available  |
+| [House Robber](/day14/practice_questions/house_robber)                           | 1D linear (skip/take)         | Available  |
+
+## Medium
+
+| Problem                                                                                          | Pattern                                 | Status     |
+| :----------------------------------------------------------------------------------------------- | :-------------------------------------- | :--------- |
+| [Coin Change](/day14/practice_questions/coin_change)                                             | Unbounded knapsack (min)                | Available  |
+| [Longest Increasing Subsequence](/day14/practice_questions/longest_increasing_subsequence)       | LIS — `O(n²)` and `O(n log n)`          | Available  |
+| [Longest Common Subsequence](/day14/practice_questions/longest_common_subsequence)               | 2D string DP                            | Available  |
+| [0/1 Knapsack](/day14/practice_questions/knapsack_01)                                            | Subset selection with weight limit      | Available  |
+| [Partition Equal Subset Sum](/day14/practice_questions/partition_equal_subset_sum)               | Subset sum (knapsack reduction)         | Available  |
+| [Word Break](/day14/practice_questions/word_break)                                               | Unbounded knapsack on strings           | Available  |
+| [Maximum Product Subarray](/day14/practice_questions/maximum_product_subarray)                   | Kadane variant — track min and max      | Available  |
+
+## Hard
+
+| Problem                                                                                          | Pattern                                 | Status     |
+| :----------------------------------------------------------------------------------------------- | :-------------------------------------- | :--------- |
+| [Edit Distance](/day14/practice_questions/edit_distance)                                         | 2D string DP — replace / insert / delete | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                              | Status        |
+| :------------------------------------- | :----------------------------------- | :------------ |
+| Unique Paths II                        | Grid DP with obstacles               | Coming Soon   |
+| Decode Ways                            | 1D linear with conditional transitions | Coming Soon |
+| House Robber II                        | Linear DP on a circular array        | Coming Soon   |
+| Coin Change II                         | Unbounded knapsack (count of ways)   | Coming Soon   |
+| Distinct Subsequences                  | LCS variant — count, not length      | Coming Soon   |
+| Burst Balloons                         | Interval DP                          | Coming Soon   |
+| Palindrome Partitioning II             | Min cuts via DP                      | Coming Soon   |
+| Best Time to Buy and Sell Stock IV     | Stock DP with state (day, txn, hold) | Coming Soon   |
+| Regular Expression Matching            | 2D DP with `*` and `.`               | Coming Soon   |
+| Travelling Salesman (Held–Karp)        | Bitmask DP                           | Coming Soon   |

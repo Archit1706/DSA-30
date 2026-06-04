@@ -1,0 +1,294 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Memoization vs Tabulation
+
+There are two ways to write any DP solution. They produce the same answers and have the same big-O time complexity. They differ in how natural the code feels, how much memory they use, and how easy they are to optimize further.
+
+| Aspect           | Memoization (top-down)             | Tabulation (bottom-up)             |
+| :--------------- | :--------------------------------- | :--------------------------------- |
+| Style            | Recursion + cache                  | Iterative loop filling a table     |
+| Direction        | Start at the answer, recurse down  | Start at the base case, build up   |
+| Visits           | Only the subproblems you need      | Every subproblem in the table      |
+| Stack            | Uses recursion stack (O(state depth)) | No recursion stack                |
+| Easier to write? | **Yes** — mirrors the recurrence    | Needs you to pick the fill order   |
+| Faster constant? | Slightly slower (function calls)   | Slightly faster (tight loops)      |
+| Space-optimizable? | Hard                              | **Easy** — drop the table to a row or two |
+
+If you're stuck, **start with memoization**. Once it works, *consider* converting to tabulation for speed or to unlock space optimization. Don't convert before it works — it's a recipe for double bugs.
+
+## The same problem, three ways
+
+Let's use the same problem — climbing stairs — and write it as plain recursion, top-down DP, and bottom-up DP, side by side.
+
+### Style 1 — pure recursion (the brute force)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climb(int n) {
+        if (n <= 1) return 1;
+        return climb(n - 1) + climb(n - 2);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def climb(n):
+        if n <= 1: return 1
+        return climb(n - 1) + climb(n - 2)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int climb(int n) {
+        if (n <= 1) return 1;
+        return climb(n - 1) + climb(n - 2);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Correct. **Time:** `O(2^n)`. **Space:** `O(n)` recursion depth. Times out on the LeetCode judge around `n = 35`.
+
+### Style 2 — memoization (top-down DP)
+
+Add a cache. Check the cache before recursing; fill the cache before returning.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climb(int n, vector<int>& memo) {
+        if (n <= 1) return 1;
+        if (memo[n] != -1) return memo[n];
+        memo[n] = climb(n - 1, memo) + climb(n - 2, memo);
+        return memo[n];
+    }
+    int climbStairs(int n) {
+        vector<int> memo(n + 1, -1);
+        return climb(n, memo);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from functools import lru_cache
+
+    def climb_stairs(n):
+        @lru_cache(maxsize=None)
+        def climb(k):
+            if k <= 1: return 1
+            return climb(k - 1) + climb(k - 2)
+        return climb(n)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int climbStairs(int n) {
+        Integer[] memo = new Integer[n + 1];
+        return climb(n, memo);
+    }
+    int climb(int n, Integer[] memo) {
+        if (n <= 1) return 1;
+        if (memo[n] != null) return memo[n];
+        memo[n] = climb(n - 1, memo) + climb(n - 2, memo);
+        return memo[n];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(n)` for the cache + `O(n)` recursion stack.
+
+Notice how the *body* of the function is identical to the brute force — only the cache check and write are new. **This is the memoization template**: take any recursion, sandwich the body between a cache hit-check and a cache write-back. Done.
+
+### Style 3 — tabulation (bottom-up DP)
+
+Replace recursion with a loop that fills the table in order.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climbStairs(int n) {
+        vector<int> dp(n + 1);
+        dp[0] = 1;
+        if (n >= 1) dp[1] = 1;
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+        return dp[n];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def climb_stairs(n):
+        dp = [0] * (n + 1)
+        dp[0] = 1
+        if n >= 1: dp[1] = 1
+        for i in range(2, n + 1):
+            dp[i] = dp[i - 1] + dp[i - 2]
+        return dp[n]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int climbStairs(int n) {
+        int[] dp = new int[n + 1];
+        dp[0] = 1;
+        if (n >= 1) dp[1] = 1;
+        for (int i = 2; i <= n; i++) {
+            dp[i] = dp[i - 1] + dp[i - 2];
+        }
+        return dp[n];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(n)`. No recursion, no stack.
+
+And because each cell only depends on the previous two, we can collapse the entire table to two variables:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int climbStairs(int n) {
+        int prev2 = 1, prev1 = 1;
+        for (int i = 2; i <= n; i++) {
+            int cur = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def climb_stairs(n):
+        prev2, prev1 = 1, 1
+        for _ in range(2, n + 1):
+            prev2, prev1 = prev1, prev1 + prev2
+        return prev1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int climbStairs(int n) {
+        int prev2 = 1, prev1 = 1;
+        for (int i = 2; i <= n; i++) {
+            int cur = prev1 + prev2;
+            prev2 = prev1;
+            prev1 = cur;
+        }
+        return prev1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`. This is the **space-optimized bottom-up form** — and it's why tabulation is worth converting *to* for problems with very tight rolling dependencies.
+
+## How to convert memoization to tabulation
+
+The mechanical recipe:
+
+<Steps>
+
+### Identify the state variables and their ranges
+
+If your memo is keyed on `(i, j)` with `0 <= i <= n` and `0 <= j <= m`, your table is `(n + 1) x (m + 1)`.
+
+### Identify the dependency direction
+
+Look at what `f(i, j)` recursively calls. If it calls `f(i - 1, j)` and `f(i, j - 1)`, then computing row `i` needs row `i - 1` already done. So you fill the table in increasing `i`, increasing `j` order. Always: **the cell you're computing must depend only on cells already filled**.
+
+### Translate base cases into table initialization
+
+`if (i == 0) return ...` in the recursion becomes `dp[0][...] = ...` in the table, set before the loops.
+
+### Translate the recursive body into a loop body
+
+Replace every `f(a, b)` recursive call with `dp[a][b]`. Replace the return with an assignment to `dp[i][j]`.
+
+### Return `dp[final state]`
+
+Whatever state you would have started the recursion with — `dp[n]`, `dp[n - 1][m - 1]`, etc.
+
+</Steps>
+
+Once you've done this conversion three or four times, you can do it in your head while reading the problem.
+
+## When to prefer each style
+
+### Prefer memoization when
+
+- **The state space is large but sparse.** If most subproblems are never visited, tabulation wastes time filling the irrelevant cells. Memoization only computes what it needs.
+- **The transitions are complex.** Multi-way recursion (try every split, every subset, every partition) is much easier to express as code that recurses than as a multi-loop table fill.
+- **You're still figuring the problem out.** Get the recursion right, slap a cache on, ship it. Optimize later if needed.
+
+### Prefer tabulation when
+
+- **You want to space-optimize.** Tabulation lets you keep only the rows you still need (one or two at a time), often dropping `O(n × m)` memory down to `O(m)` or `O(1)`. Memoization can't do this — the cache has to hold every visited cell.
+- **You're running into stack overflow.** Deep recursion (state depth `>` ~10,000 in most languages) blows the stack. Tabulation has no stack.
+- **You want the absolute fastest constant factor.** Tight inner loops with no function-call overhead matter on heavily-judged problems and competitive-programming benchmarks.
+
+## A side-by-side cheat sheet
+
+For the same DP problem, here's how the two styles compare on every axis:
+
+| Step              | Memoization                            | Tabulation                          |
+| :---------------- | :------------------------------------- | :---------------------------------- |
+| Write base case   | `if (...) return ...` at top of function | `dp[base index] = ...` before loop |
+| Write transition  | `return f(smaller) + f(other smaller)` | `dp[i] = dp[i - 1] + dp[i - 2]`     |
+| Cache             | `if memo[i] is set, return memo[i]`    | (implicit — array is the cache)     |
+| Call site         | `return f(n)`                          | `return dp[n]`                      |
+| Direction         | Top-down: needed cells first           | Bottom-up: every cell, in order     |
+
+## A subtle gotcha: the base case in memo arrays
+
+When you use `-1` (or any sentinel value) to mean "not yet computed," **the sentinel must be a value the function can never legitimately return**. If your DP computes counts that can be `-1` (some Manhattan-distance puzzle, or a problem with "no solution → -1" outputs), pick a different sentinel — or use a parallel boolean `computed[i]` array, or use language-native nullable types (`Integer` in Java, `Optional<int>` in C++17, `None` in Python).
+
+This is the kind of bug that doesn't crash — it just silently returns wrong answers. Watch for it.
+
+## Quick check
+
+<QuizBox
+    question="You're solving a knapsack-style problem with state (item_index, capacity_remaining). You realize many capacities never get visited because items are large. Which style is more efficient?"
+    options={[
+        "Tabulation — fills every cell, faster constant factor",
+        "Memoization — only computes the cells you actually need",
+        "They're identical",
+        "Pure brute force"
+    ]}
+    correctIndex={1}
+    explanation="Tabulation fills all (n × C) cells whether you need them or not. Memoization only computes cells you actually visit. For sparse state spaces — large items, large capacities, but few reachable combinations — memoization wins."
+/>
+
+<QuizBox
+    question="What's the main reason people convert their working memoized solution to tabulation?"
+    options={[
+        "Tabulation is always faster",
+        "To enable space optimization (dropping O(n×m) memory to O(m) or O(1))",
+        "Because recursion is wrong",
+        "To impress the interviewer"
+    ]}
+    correctIndex={1}
+    explanation="The killer feature of bottom-up is space optimization: once you see that dp[i] only depends on dp[i-1] and dp[i-2], you can throw away everything else and use two variables. Memoization holds the whole cache forever. Sometimes that O(n×m) → O(m) drop is the difference between accepted and memory-limit-exceeded."
+/>
+
+<QuizBox
+    question="Which is true about the recursion-stack space of memoization?"
+    options={[
+        "It's always O(1)",
+        "It's the size of the cache",
+        "It's the depth of the deepest recursive call chain",
+        "It depends on the input data, not the algorithm"
+    ]}
+    correctIndex={2}
+    explanation="The stack holds one frame per nested call. For a state like (i, j) on an N×M grid, the depth is roughly N+M (you can only move toward the base case). So O(N+M) stack space in addition to the O(N×M) cache. On problems with state-depth > ~10,000, this can blow the stack — convert to tabulation."
+/>
+
+Next: **the classic patterns** — seven shapes that show up in nearly every DP interview problem.
