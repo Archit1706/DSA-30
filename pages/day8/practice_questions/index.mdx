@@ -2,10 +2,10 @@ import { Callout } from "nextra/components";
 
 # Hash Map Practice Questions
 
-Five interview problems that all collapse to the same idea: **"if I knew whether I'd seen this before, the answer would be one line."** The hash map is what makes "knowing" O(1).
+Ten interview problems that all collapse to the same idea: **"if I knew whether I'd seen this before, the answer would be one line."** The hash map is what makes "knowing" O(1).
 
 <Callout type="info">
-    Two of these problems — [Two Sum](/day2/arrays/practice_questions/two_sum) and [Top K Frequent Elements](/day7/practice_questions/top_k_frequent) — also live in earlier chapters where they're the canonical example. Same pattern, just told from a different angle.
+    Two related problems live in earlier chapters: [Two Sum](/day2/arrays/practice_questions/two_sum) (which is the canonical example) and [Top K Frequent Elements](/day7/practice_questions/top_k_frequent) (which combines a counter with a heap). Same pattern, different angles.
 </Callout>
 
 ## Easy
@@ -13,7 +13,10 @@ Five interview problems that all collapse to the same idea: **"if I knew whether
 | Problem                                                                                                          | Pattern                       | Status     |
 | :--------------------------------------------------------------------------------------------------------------- | :---------------------------- | :--------- |
 | [Contains Duplicate](/day8/practice_questions/contains_duplicate)                                                 | Seen-set                      | Available  |
+| [Valid Anagram](/day8/practice_questions/valid_anagram)                                                          | Frequency comparison          | Available  |
 | [First Unique Character in a String](/day8/practice_questions/first_unique_character)                            | Frequency count               | Available  |
+| [Intersection of Two Arrays](/day8/practice_questions/intersection_of_two_arrays)                                | Set intersection              | Available  |
+| [Happy Number](/day8/practice_questions/happy_number)                                                            | Cycle detection via set       | Available  |
 
 ## Medium
 
@@ -22,15 +25,19 @@ Five interview problems that all collapse to the same idea: **"if I knew whether
 | [Group Anagrams](/day8/practice_questions/group_anagrams)                                                         | Signature → bucket            | Available  |
 | [Longest Substring Without Repeating Characters](/day8/practice_questions/longest_substring_without_repeating)    | Sliding window + last-seen    | Available  |
 | [Subarray Sum Equals K](/day8/practice_questions/subarray_sum_equals_k)                                          | Prefix-sum + count map        | Available  |
+| [Insert Delete GetRandom O(1)](/day8/practice_questions/insert_delete_get_random)                                | HashMap + array swap-and-pop  | Available  |
+| [LRU Cache](/day8/practice_questions/lru_cache)                                                                  | HashMap + doubly linked list  | Available  |
 
 ## More Practice (Coming Soon)
 
 | Problem                                | Pattern                            | Status        |
 | :------------------------------------- | :--------------------------------- | :------------ |
-| Valid Anagram                          | Frequency comparison               | Coming Soon   |
-| Intersection of Two Arrays             | Set intersection                   | Coming Soon   |
-| Happy Number                           | Cycle detection via set            | Coming Soon   |
 | Isomorphic Strings                     | Bijection via two maps             | Coming Soon   |
 | Word Pattern                           | Bijection by character             | Coming Soon   |
-| LRU Cache                              | HashMap + Doubly linked list       | Coming Soon   |
-| Insert Delete GetRandom O(1)           | HashMap + array swap-and-pop       | Coming Soon   |
+| Longest Consecutive Sequence           | Hash set + smart starts            | Coming Soon   |
+| Top K Frequent Words                   | Counter + heap + tie-break         | Coming Soon   |
+| Substring with Concatenation of All Words | Sliding window + counter        | Coming Soon   |
+| Find All Anagrams in a String          | Sliding-window counter             | Coming Soon   |
+| Daily Temperatures                     | Monotonic stack + lookup           | Coming Soon   |
+| Design Twitter                         | HashMap + heap-of-lists            | Coming Soon   |
+| LFU Cache                              | HashMap + frequency buckets        | Coming Soon   |

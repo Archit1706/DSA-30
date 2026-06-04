@@ -1,0 +1,200 @@
+import { Callout, Tabs, Steps } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Advanced Hash Table Topics
+
+You've got the basics — chaining, probing, load factor, resize. This page is the **next level**: the variants and applications that show up in system-design interviews, performance-critical code, and distributed systems. None of these are usually written from scratch in interviews — but knowing *when each one exists* is the difference between "I use hash maps" and "I understand hash tables."
+
+## Bloom filters — "definitely no, probably yes"
+
+A **Bloom filter** is a hash-table-adjacent structure that answers "have I seen this item?" with two possible answers:
+
+- **No** — guaranteed correct.
+- **Maybe** — could be a false positive, but never a false negative.
+
+In exchange for that one-sided uncertainty, you get **dramatically less memory** than storing the set itself. A Bloom filter for 10 million URLs with 1% false-positive rate fits in **about 12 MB** — versus hundreds of MB for a hash set.
+
+### How it works
+
+- An array of `m` bits, initially all zero.
+- `k` independent hash functions.
+
+**Insert(x):** compute `h_1(x), h_2(x), …, h_k(x)`. Set those `k` bit positions to 1.
+
+**Query(x):** compute the same `k` hashes. If *all* `k` positions are 1, return "maybe." If *any* is 0, return "no" — definitely never added.
+
+False positives happen when several other inserts together flipped exactly the bits a query needs. They can never miss — every insert *guarantees* its bits are set.
+
+### Real uses
+
+- **Chrome** uses a Bloom filter to check URLs against the Safe Browsing list locally before doing a network round-trip.
+- **Apache Cassandra** uses Bloom filters per SSTable to avoid disk reads for keys that aren't there.
+- **CDN edge caches** use Bloom filters to skip looking up objects that definitely aren't cached.
+- **Bitcoin SPV clients** use Bloom filters to ask peers for only the transactions relevant to their wallet, without revealing which addresses they care about.
+
+### Minimum implementation (Python)
+
+```python copy
+import hashlib
+
+class BloomFilter:
+    def __init__(self, size, num_hashes):
+        self.size = size
+        self.bits = [False] * size
+        self.k = num_hashes
+
+    def _positions(self, item):
+        h = hashlib.md5(str(item).encode()).digest()
+        return [int.from_bytes(h[i:i+4], 'big') % self.size for i in range(self.k)]
+
+    def add(self, item):
+        for pos in self._positions(item):
+            self.bits[pos] = True
+
+    def contains(self, item):
+        return all(self.bits[pos] for pos in self._positions(item))
+```
+
+In production you'd use a fast non-crypto hash (xxHash, MurmurHash3) and clever k-from-two-hashes derivation. The point is the bit-array + multi-hash combo.
+
+<Callout type="warning">
+    Bloom filters **cannot support deletion** in the basic form — clearing a bit might affect other items hashing to that bit. Use a **counting Bloom filter** (count instead of bool per slot) if you need delete.
+</Callout>
+
+## Consistent hashing — distributed hash table sharding
+
+When you have N servers and want to distribute keys across them, the obvious answer is `bucket = hash(key) % N`. **Don't do that.** When `N` changes (a server is added or removed), **every key reshards** — a disaster for caches and replicated stores.
+
+**Consistent hashing** is the fix. Place servers *and* keys on a circular hash ring (typically `[0, 2^32)`). Each key is owned by the server whose hash falls **clockwise-nearest** to it. When you add or remove a server, **only the keys between it and its predecessor move** — about `1/N` of the keys instead of all of them.
+
+```text
+              ┌─────────────────┐
+              │       0         │
+              │  serverA  ●     │
+       ●keyX  │                 │
+              │ server B ●      │
+              │                 │
+              │  keyY ●         │
+              │       serverC ● │
+              │                 │
+              │ keyZ ●          │
+              └─────────────────┘
+```
+
+`keyX` → `serverA` (nearest clockwise). `keyZ` → `serverA` too. Add `serverD` between `serverC` and `serverA` → only the keys that previously went to `serverA` and now fall behind `serverD` move.
+
+To smooth out load imbalance from random server placement, real systems use **virtual nodes** — each physical server claims hundreds of ring positions.
+
+### Real uses
+
+- **Amazon DynamoDB / Cassandra** — partition data across nodes via consistent hashing.
+- **Memcached & Redis Cluster** — distribute keys to nodes (Redis uses CRC16 mod 16384, then a static slot-to-node map — a variant).
+- **CDN load balancers** — route requests to backend caches by hash of URL, so the same URL always lands on the same cache.
+- **GlusterFS / Ceph** — distribute file blocks across storage nodes.
+
+This is a **system-design interview staple**. "How would you shard a distributed cache?" → consistent hashing is your starting answer.
+
+## Cuckoo hashing — guaranteed O(1) worst case
+
+Standard hash tables are O(1) average but O(n) worst-case (everyone collides into one bucket). **Cuckoo hashing** guarantees **O(1) worst-case lookups**.
+
+The trick: two hash functions and two tables. Every key has *exactly two possible homes*. To look up `x`: check `table1[h1(x)]` and `table2[h2(x)]` — that's it, two reads max.
+
+Inserts are trickier. If the chosen slot is occupied, **kick the resident out** (like a cuckoo bird) and insert the new key. The displaced key tries its alternate slot; if *that's* occupied, evict again, and so on. If the chain of evictions gets too long, **rehash the entire table** with new hash functions.
+
+### Why care
+
+- **Network packet processors / routers** use cuckoo hashing because they need worst-case latency bounds, not just averages.
+- **GPU hash tables** for graphics — same reason: no stragglers.
+- **Memcached's slab allocator** uses cuckoo-like ideas to bound lookups.
+
+The competing idea **hopscotch hashing** also targets bounded worst-case lookups but with different constants. Both are research-grade structures you'd reach for in performance-critical systems.
+
+## Robin Hood hashing — fair probing
+
+In standard linear probing, "rich gets richer" — long collision chains stay long, while a key dropped near the start has a quick lookup. **Robin Hood hashing** evens this out: on insert, if the new key has "traveled farther from its ideal slot" than the existing resident, **swap them** — give the longer-suffering one a closer spot, and let the just-arrived one take over the displacement.
+
+The result: probe sequence variance shrinks dramatically. The longest lookup stays small even at high load factors. Used in:
+
+- **Rust's `std::collections::HashMap`** uses Robin Hood probing.
+- **Swift's `Dictionary`**.
+- Many modern systems libraries.
+
+## Perfect hashing — no collisions, ever
+
+If your set of keys is **fixed and known in advance** (configuration parsers, compiler keyword tables, hard-coded enums), you can construct a **perfect hash function**: one that maps every key to a unique slot with zero collisions.
+
+Tools like **gperf** generate perfect hash functions for compile-time string sets. The result is faster than any normal hash table because there's literally no collision logic to run.
+
+Two flavors:
+
+- **Minimal perfect hashing** — uses exactly `n` slots for `n` keys.
+- **Perfect hashing with load factor < 1** — uses more space for faster construction.
+
+You won't write this by hand, but you might use gperf-generated code in C/C++ projects without realizing it.
+
+## Hash flooding — when adversaries weaponize your hash table
+
+If an attacker knows your hash function (and it's deterministic and not seeded), they can craft a flood of keys that **all collide into the same bucket**. Your O(1) hash table degrades to O(n) per lookup, and a service handling 10K requests/sec can be brought down with a single malicious payload.
+
+This is real:
+
+- **PHP, Python, Ruby, Java, Node.js — all were vulnerable in the early 2010s.**
+- A 2011 Black Hat presentation (Klink & Wälde) showed how to DoS PHP applications with a few KB of POST data.
+
+The fix:
+
+- **Random per-process hash seed** — every time the process starts, a fresh random value is mixed into the hash function. The attacker can't precompute collisions.
+- **SipHash** — a cryptographic hash family designed specifically for hash-table use, fast enough to use everywhere. Python 3.3+, Rust, Perl 5.18+ all switched to SipHash.
+
+This is why **Python's `hash()` returns different values across runs** unless you set `PYTHONHASHSEED`.
+
+## Cryptographic vs non-cryptographic hashes
+
+| Property                          | Non-crypto (xxHash, MurmurHash) | Crypto (SHA-256, bcrypt) |
+| :-------------------------------- | :------------------------------: | :----------------------: |
+| Speed                             | Very fast (GB/s)                 | Slow on purpose          |
+| Collision resistance              | Average                          | Cryptographically strong |
+| Pre-image resistance              | None                             | Yes                      |
+| Use case                          | Hash tables, dedup, Bloom        | Passwords, signatures, content addressing |
+
+**Don't use SHA-256 for your hash table.** It's 100× slower than xxHash and you don't need the security properties. **Don't use xxHash for password storage.** It's instant to brute-force.
+
+A simple rule: **if an adversary's goal is to break the hash, use crypto. Otherwise, use fast.**
+
+## Order-preserving hashing — when you wish hash maps were sorted
+
+Standard hash maps **don't preserve order**. If you need both O(1) lookup *and* sorted iteration:
+
+- **`std::map` (C++)** — Red-Black tree, O(log n) everything but ordered iteration.
+- **`TreeMap` (Java)** — same.
+- **Python's `sortedcontainers.SortedDict`** — skip list, O(log n).
+- **`OrderedDict` (Python pre-3.7)** — preserves *insertion* order, not key order; O(1) hash map under the hood with a doubly-linked list.
+
+For "give me the next bigger key" or "give me all keys in range [a, b]," you need an ordered structure — a hash map can't do that without iterating all keys.
+
+## Quotient filters, Cuckoo filters, learned indices
+
+Three more frontiers worth knowing the names of:
+
+- **Quotient filters** — like Bloom filters but support delete and resize.
+- **Cuckoo filters** — fingerprint-based, also support delete, often more space-efficient than Bloom.
+- **Learned indices** (Kraska et al., 2018) — replace hash tables with neural networks that *predict* the bucket. Surprisingly effective for read-heavy workloads with stable distributions. Research-grade but moving toward production.
+
+## The cheat sheet
+
+| Tool                  | When to reach for it                                          |
+| :-------------------- | :------------------------------------------------------------ |
+| **Bloom filter**      | Maybe-set membership in tiny memory; "is this even worth looking up?" |
+| **Counting Bloom**    | Bloom with delete support                                     |
+| **Consistent hashing** | Sharding data/requests across N nodes that can change       |
+| **Cuckoo hashing**    | Hash table with guaranteed O(1) worst case                    |
+| **Robin Hood hashing** | Open-addressing with low probe variance                      |
+| **Perfect hashing**   | Fixed compile-time key set, zero-collision lookup             |
+| **SipHash**           | Hash table that needs to be DoS-resistant                     |
+| **xxHash / MurmurHash** | Fast non-crypto hashing for tables, dedup, Bloom            |
+| **SHA-256 / bcrypt**  | Content addressing, signatures, password storage              |
+
+You don't need to implement most of these. You do need to recognize when one is the right answer to "how would you build X at scale?"
+
+Now jump into the **practice questions** — including a couple of design problems that combine hash maps with other structures.

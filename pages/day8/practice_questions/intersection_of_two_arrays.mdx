@@ -1,0 +1,170 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Intersection of Two Arrays <DifficultyBadge level="easy" />
+
+#### Description
+
+Given two integer arrays `nums1` and `nums2`, return their **intersection** as an array. Each element in the result must be **unique**, and you may return the result in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    nums1 = [1, 2, 2, 1],   nums2 = [2, 2]
+    Output: [2]
+
+> Case 2:
+    nums1 = [4, 9, 5],      nums2 = [9, 4, 9, 8, 4]
+    Output: [9, 4]      (or [4, 9])
+```
+
+#### Constraints
+
+- `1 <= nums1.length, nums2.length <= 1000`
+- `0 <= nums1[i], nums2[i] <= 1000`
+
+#### Approach 1: Two sets — the canonical answer
+
+Convert one array to a set, then iterate the other and collect elements that are in the set.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def intersection(nums1, nums2):
+        return list(set(nums1) & set(nums2))
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_set>
+    #include <vector>
+    using namespace std;
+
+    vector<int> intersection(vector<int>& nums1, vector<int>& nums2) {
+        unordered_set<int> s1(nums1.begin(), nums1.end());
+        unordered_set<int> result;
+        for (int x : nums2)
+            if (s1.count(x)) result.insert(x);
+        return vector<int>(result.begin(), result.end());
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] intersection(int[] nums1, int[] nums2) {
+        Set<Integer> s1 = new HashSet<>();
+        for (int x : nums1) s1.add(x);
+        Set<Integer> result = new HashSet<>();
+        for (int x : nums2) if (s1.contains(x)) result.add(x);
+        int[] out = new int[result.size()];
+        int i = 0;
+        for (int x : result) out[i++] = x;
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time O(n + m)**, **space O(n)** for the smaller-array set.
+
+#### Approach 2: Sort + two pointers
+
+If you can't use extra hash-map memory (or the arrays are already sorted), use two pointers.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def intersection(nums1, nums2):
+        nums1.sort(); nums2.sort()
+        i = j = 0
+        result = []
+        while i < len(nums1) and j < len(nums2):
+            if nums1[i] < nums2[j]: i += 1
+            elif nums1[i] > nums2[j]: j += 1
+            else:
+                if not result or result[-1] != nums1[i]:
+                    result.append(nums1[i])
+                i += 1; j += 1
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    vector<int> intersection(vector<int>& nums1, vector<int>& nums2) {
+        sort(nums1.begin(), nums1.end());
+        sort(nums2.begin(), nums2.end());
+        vector<int> result;
+        int i = 0, j = 0;
+        while (i < (int)nums1.size() && j < (int)nums2.size()) {
+            if (nums1[i] < nums2[j]) i++;
+            else if (nums1[i] > nums2[j]) j++;
+            else {
+                if (result.empty() || result.back() != nums1[i])
+                    result.push_back(nums1[i]);
+                i++; j++;
+            }
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] intersection(int[] nums1, int[] nums2) {
+        Arrays.sort(nums1); Arrays.sort(nums2);
+        List<Integer> result = new ArrayList<>();
+        int i = 0, j = 0;
+        while (i < nums1.length && j < nums2.length) {
+            if (nums1[i] < nums2[j]) i++;
+            else if (nums1[i] > nums2[j]) j++;
+            else {
+                if (result.isEmpty() || result.get(result.size() - 1) != nums1[i])
+                    result.add(nums1[i]);
+                i++; j++;
+            }
+        }
+        return result.stream().mapToInt(Integer::intValue).toArray();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time O(n log n + m log m)**, space depends on the sort (O(1) for in-place quicksort).
+
+#### Approach comparison
+
+| Approach           | Time              | Space            | When to pick                          |
+| :----------------- | :---------------: | :--------------: | :------------------------------------ |
+| **Two sets**       | **O(n + m)**      | O(min(n, m))     | Default — simpler and faster          |
+| Sort + two pointers | O(n log n + m log m) | O(1) extra     | When arrays are already sorted, or you need to avoid hash memory |
+
+For the given constraints (n, m ≤ 1000), both work in microseconds. In a real interview, mention both — and explain why two sets is the better default.
+
+<Callout type="info">
+    **The "convert one collection to a set, scan the other" pattern** is one of the most common hash-map plays. Same shape solves: Intersection of Two Arrays II (with duplicates), Common Words in 3 Strings, Find Duplicates in Two Sorted Streams. The hash set gives you O(1) "is this in the other collection?"
+</Callout>
+
+#### Variant: Intersection of Two Arrays II (keep duplicates)
+
+If duplicates count (`[1,2,2,1] ∩ [2,2] = [2,2]` instead of `[2]`), use a **counter** instead of a set:
+
+```python copy
+from collections import Counter
+def intersect(nums1, nums2):
+    c1 = Counter(nums1)
+    result = []
+    for x in nums2:
+        if c1[x] > 0:
+            result.append(x)
+            c1[x] -= 1
+    return result
+```
+
+The counter tracks remaining capacity per value. Each match decrements; when capacity hits zero, no more matches for that value.
+
+#### Analysis
+
+- **Time:** **O(n + m)** with the two-set approach.
+- **Space:** **O(min(n, m))** — we only need to store the smaller array's set.

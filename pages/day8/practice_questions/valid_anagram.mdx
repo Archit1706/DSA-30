@@ -1,0 +1,151 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Valid Anagram <DifficultyBadge level="easy" />
+
+#### Description
+
+Given two strings `s` and `t`, return `true` if `t` is an **anagram** of `s` — i.e., uses exactly the same characters with the same counts.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "anagram",  t = "nagaram"
+    Output: true
+
+> Case 2:
+    s = "rat",      t = "car"
+    Output: false       # different characters
+
+> Case 3:
+    s = "aab",      t = "abb"
+    Output: false       # 'a' appears 2 in s but only 1 in t
+```
+
+#### Constraints
+
+- `1 <= s.length, t.length <= 5 * 10^4`
+- `s` and `t` consist of **lowercase English letters** only.
+- **Follow-up:** what if the input contains Unicode?
+
+#### Approach 1: Sort and compare — O(n log n)
+
+The one-liner solution. Two strings are anagrams iff their sorted forms match.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def is_anagram(s, t):
+        return sorted(s) == sorted(t)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    bool isAnagram(string s, string t) {
+        sort(s.begin(), s.end());
+        sort(t.begin(), t.end());
+        return s == t;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isAnagram(String s, String t) {
+        char[] a = s.toCharArray(), b = t.toCharArray();
+        Arrays.sort(a); Arrays.sort(b);
+        return Arrays.equals(a, b);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Time **O(n log n)**, space O(1) extra (in-place sort). Fine for the constraints, but we can do better.
+
+#### Approach 2: Count once — O(n)
+
+For lowercase English, the alphabet has 26 letters. Use a 26-element array as a fixed-size hash map.
+
+The trick: **walk both strings simultaneously**, incrementing for `s` and decrementing for `t`. If at the end any count is non-zero, the strings differ.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def is_anagram(s, t):
+        if len(s) != len(t):
+            return False
+        counts = [0] * 26
+        for c in s: counts[ord(c) - ord('a')] += 1
+        for c in t: counts[ord(c) - ord('a')] -= 1
+        return all(c == 0 for c in counts)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    bool isAnagram(string s, string t) {
+        if (s.size() != t.size()) return false;
+        int counts[26] = {0};
+        for (char c : s) counts[c - 'a']++;
+        for (char c : t) counts[c - 'a']--;
+        for (int x : counts) if (x != 0) return false;
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isAnagram(String s, String t) {
+        if (s.length() != t.length()) return false;
+        int[] counts = new int[26];
+        for (int i = 0; i < s.length(); i++) {
+            counts[s.charAt(i) - 'a']++;
+            counts[t.charAt(i) - 'a']--;
+        }
+        for (int x : counts) if (x != 0) return false;
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time O(n), space O(1)** — the 26-element array doesn't grow with input. This is the textbook winning answer.
+
+<Callout type="info">
+    **The "increment for one, decrement for the other" trick** is a tiny optimization that lets you do a single sweep instead of two — but more importantly, it's a useful pattern: **encode "matched"** as a counter that returns to zero. Same trick appears in valid-parentheses checks (push on `(`, pop on `)`).
+</Callout>
+
+#### Follow-up: Unicode
+
+For unicode, the 26-slot array breaks — there are over a million code points. Switch to a hash map:
+
+```python copy
+from collections import Counter
+def is_anagram_unicode(s, t):
+    return Counter(s) == Counter(t)
+```
+
+Same logic, just with a `Counter` (which is a `dict` under the hood). Still **O(n)** time.
+
+For most non-Unicode inputs the 26-slot array beats the hash map on constant factor, because no hashing is needed.
+
+#### Why this matters as a building block
+
+Valid Anagram looks trivial. But the **same character-count signature** that solves it powers:
+
+| Problem                                 | Twist                                              |
+| :-------------------------------------- | :------------------------------------------------- |
+| **Group Anagrams**                      | Use the signature as a hash-map key.              |
+| **Find All Anagrams in a String**       | Slide a window over `s`, comparing window counts to pattern counts. |
+| **Substring with Concatenation of All Words** | Generalized to multi-word matching.          |
+| **Permutation in String**               | Same as Find All Anagrams, return bool only.       |
+
+This is why Valid Anagram is one of the **most-asked easy problems** — it's the gateway to a family of medium and hard problems.
+
+#### Analysis
+
+| Approach           | Time          | Space        |
+| :----------------- | :-----------: | :----------: |
+| Sort               | O(n log n)    | O(1)         |
+| **Count array**    | **O(n)**      | **O(1)** (k=26 buckets) |
+| Hash counter       | O(n)          | O(k) (k distinct chars) |

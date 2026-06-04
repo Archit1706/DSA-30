@@ -1,0 +1,190 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Happy Number <DifficultyBadge level="easy" />
+
+#### Description
+
+A **happy number** is defined by the following process:
+
+- Starting with any positive integer, replace the number by the **sum of the squares of its digits**.
+- Repeat the process until the number equals 1 (in which case it is happy), or it loops endlessly in a cycle that does not include 1.
+
+Return `true` if `n` is a happy number, `false` otherwise.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 19  →  1² + 9² = 82
+              8² + 2² = 68
+              6² + 8² = 100
+              1² + 0² + 0² = 1     ✓ happy
+    Output: true
+
+> Case 2:
+    n = 2   →  4, 16, 37, 58, 89, 145, 42, 20, 4, ...   ← loops back to 4
+    Output: false       # cycle that never reaches 1
+```
+
+#### Constraints
+
+- `1 <= n <= 2^31 - 1`
+
+#### The cycle-detection insight
+
+Either the sequence reaches `1` (happy), or it eventually **repeats** a number and loops forever. The third option — "blows up to infinity" — doesn't happen: every step's output is bounded by ~`9² × digit_count(n)`, which is small.
+
+So the problem reduces to **cycle detection**. Two ways:
+
+#### Approach 1: Hash set (the easy way)
+
+Track every number we've seen. If we see one again, we're in a cycle → not happy. If we reach 1, we're done.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def is_happy(n):
+        seen = set()
+        while n != 1 and n not in seen:
+            seen.add(n)
+            n = sum(int(d) ** 2 for d in str(n))
+        return n == 1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int next_num(int n) {
+        int total = 0;
+        while (n > 0) {
+            int d = n % 10;
+            total += d * d;
+            n /= 10;
+        }
+        return total;
+    }
+
+    bool isHappy(int n) {
+        unordered_set<int> seen;
+        while (n != 1 && !seen.count(n)) {
+            seen.insert(n);
+            n = next_num(n);
+        }
+        return n == 1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    private int nextNum(int n) {
+        int total = 0;
+        while (n > 0) {
+            int d = n % 10;
+            total += d * d;
+            n /= 10;
+        }
+        return total;
+    }
+
+    public boolean isHappy(int n) {
+        Set<Integer> seen = new HashSet<>();
+        while (n != 1 && !seen.contains(n)) {
+            seen.add(n);
+            n = nextNum(n);
+        }
+        return n == 1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(k) where k is the number of distinct values in the trajectory (bounded by ~243 — see below).
+**Space:** O(k).
+
+<Callout type="info">
+    **Why 243?** For any 3-digit number, the max next-value is `9² + 9² + 9² = 243`. So once the sequence drops below 1000, it stays below 243. Even starting from `2^31 - 1` (which has 10 digits), one step brings it under 810, and the next step under 244. So the trajectory has very few distinct values — the hash set never grows large.
+</Callout>
+
+#### Approach 2: Floyd's cycle-detection — O(1) space
+
+The same trick as detecting a cycle in a [linked list](/day3/practice_questions/linked_list_cycle). Two pointers, one moving twice as fast as the other:
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def is_happy(n):
+        def step(x):
+            return sum(int(d) ** 2 for d in str(x))
+
+        slow, fast = n, step(n)
+        while fast != 1 and slow != fast:
+            slow = step(slow)
+            fast = step(step(fast))
+        return fast == 1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int step(int x) {
+        int total = 0;
+        while (x > 0) { int d = x % 10; total += d * d; x /= 10; }
+        return total;
+    }
+
+    bool isHappy(int n) {
+        int slow = n, fast = step(n);
+        while (fast != 1 && slow != fast) {
+            slow = step(slow);
+            fast = step(step(fast));
+        }
+        return fast == 1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    private int step(int x) {
+        int total = 0;
+        while (x > 0) { int d = x % 10; total += d * d; x /= 10; }
+        return total;
+    }
+
+    public boolean isHappy(int n) {
+        int slow = n, fast = step(n);
+        while (fast != 1 && slow != fast) {
+            slow = step(slow);
+            fast = step(step(fast));
+        }
+        return fast == 1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(k). **Space:** O(1) — no hash set needed.
+
+If `n` is happy, `fast` eventually hits 1 (and we return true). If not, the two pointers eventually land on the same number in the cycle.
+
+#### Approach comparison
+
+| Approach              | Time  | Space  | Trade-off                                            |
+| :-------------------- | :---: | :----: | :--------------------------------------------------- |
+| **Hash set (Floyd)** | O(k)  | O(k)   | Simpler code, slightly faster average constant       |
+| **Two pointers**     | O(k)  | **O(1)** | No extra memory; slightly more LOC                |
+
+For this problem k is tiny so both are basically instant. The interview value is showing you **recognize cycle detection as a pattern** that applies to more than just linked lists.
+
+#### Where else cycle detection shows up
+
+- **Linked list cycle** (Floyd's hare-and-tortoise, the original).
+- **Find the duplicate number** in an array of length n+1 with values 1..n — treat the array as a function, look for a cycle.
+- **Linked list cycle II** (find the cycle start) — same idea with one extra phase.
+- **Detecting infinite loops** in any iterative process.
+
+Hash-set-for-cycle-detection is your default; Floyd's is the optimization when space matters.
+
+#### Analysis
+
+- **Time:** **O(k)** where k ≤ ~243 for inputs up to `2^31 - 1`.
+- **Space:** **O(k)** with hash set, **O(1)** with Floyd's.

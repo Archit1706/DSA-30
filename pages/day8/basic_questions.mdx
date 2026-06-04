@@ -1,0 +1,247 @@
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+export const Tab = Tabs.Tab;
+
+# Basic Hash Map Questions
+
+Seven warm-up exercises to build hash-map muscle memory before the interview problems. Each one is short, but each one drills a different reflex: when to use a `set` vs a `map`, when to use a counter, how a tiny hash map is implemented under the hood, and the canonical "build a signature" trick.
+
+<Steps>
+
+### 1. Compute a simple hash by hand
+
+Given the function `h(s) = (sum of ASCII codes) mod 7`, what bucket does each of these strings land in?
+
+```
+"cat", "dog", "act", "tac", "god"
+```
+
+<ShowHideSolution>
+
+```text
+"cat" → 99 + 97 + 116 = 312      mod 7 = 4
+"dog" → 100 + 111 + 103 = 314    mod 7 = 6
+"act" → 97 + 99 + 116 = 312      mod 7 = 4
+"tac" → 116 + 97 + 99 = 312      mod 7 = 4
+"god" → 103 + 111 + 100 = 314    mod 7 = 6
+```
+
+Three observations:
+
+1. **`"cat"`, `"act"`, `"tac"` all collide** — they're anagrams, and a sum-based hash ignores order. Bad hash function.
+2. **`"dog"` and `"god"`** are also anagrams and also collide.
+3. A real hash function uses **multiplication and shifts** (or fancy polynomial hashing) to break this anagram symmetry — that's why `std::hash<string>` and Python's `hash()` give different values for `"cat"` and `"act"`.
+
+</ShowHideSolution>
+
+### 2. Pick the right structure: set vs map vs counter
+
+For each task, which structure fits best?
+
+a) "Have I seen this number before?"
+b) "How many times does each word appear?"
+c) "Which words are unique to *this* file but not in another?"
+d) "Given a username, look up that user's score."
+
+<ShowHideSolution>
+
+a) **Set.** You only care about membership.
+b) **Counter / map of `string → int`.** Word as key, count as value.
+c) **Set difference** — `set(file1) - set(file2)`.
+d) **Map of `string → int`** — username as key, score as value.
+
+The general rule: **set when only existence matters; map when each key carries data.**
+
+</ShowHideSolution>
+
+### 3. First duplicate in a list, fast
+
+Given `[2, 7, 1, 8, 7, 2, 9]`, find the **first** number that appears more than once (the first one whose duplicate we encounter when walking left-to-right).
+
+<ShowHideSolution>
+
+Walk once with a `seen` set. The first element we encounter that's already in the set is the answer.
+
+```python copy
+def first_duplicate(nums):
+    seen = set()
+    for x in nums:
+        if x in seen:
+            return x
+        seen.add(x)
+    return None       # no duplicates
+```
+
+For `[2, 7, 1, 8, 7, 2, 9]`: we add 2, 7, 1, 8; then we see 7 again → return **7**.
+
+**O(n)** time, **O(n)** worst-case space.
+
+</ShowHideSolution>
+
+### 4. Anagram check in two lines
+
+Decide whether `"listen"` and `"silent"` are anagrams. Then `"rat"` and `"car"`.
+
+<ShowHideSolution>
+
+The cleanest test: **same character counts**. Two ways:
+
+```python copy
+# Way 1: Counter
+from collections import Counter
+def is_anagram(a, b):
+    return Counter(a) == Counter(b)
+
+# Way 2: sort
+def is_anagram_sort(a, b):
+    return sorted(a) == sorted(b)
+```
+
+For `"listen"`/`"silent"` → `True`. For `"rat"`/`"car"` → `False` (no `t` in `"car"`).
+
+The Counter version is **O(n)**; the sort version is **O(n log n)**. Both are fine for most interviews; reach for Counter when n is large.
+
+</ShowHideSolution>
+
+### 5. The "signature → bucket" pattern
+
+You're given a list of strings. Group all the anagrams together.
+
+```text
+Input:  ["eat", "tea", "tan", "ate", "nat", "bat"]
+Output: [["eat","tea","ate"], ["tan","nat"], ["bat"]]
+```
+
+What's the right hash-map key?
+
+<ShowHideSolution>
+
+The **signature** that's identical for anagrams and unique otherwise:
+
+- **Sorted string** — `"eat"` → `"aet"`, `"tea"` → `"aet"`. Same! ✓ (O(k log k) per key)
+- **Character count tuple** — `(1,0,0,…1,…1,0)`. Anagrams produce the same tuple. (O(k) per key — better for big strings)
+
+```python copy
+from collections import defaultdict
+
+def group_anagrams(strs):
+    groups = defaultdict(list)
+    for s in strs:
+        key = "".join(sorted(s))       # signature
+        groups[key].append(s)
+    return list(groups.values())
+```
+
+This is the **"signature → bucket"** template — recognizable in dozens of problems where you need to group things by an equivalence relation (anagrams, isomorphisms, similar shapes, etc.).
+
+</ShowHideSolution>
+
+### 6. Build your own tiny hash map
+
+Implement a hash map with chained collisions, supporting `put(key, value)`, `get(key)`, and `remove(key)`. Use 8 buckets and `hash(key) % 8` for indexing.
+
+<ShowHideSolution>
+
+```python copy
+class TinyHashMap:
+    def __init__(self, num_buckets=8):
+        self.buckets = [[] for _ in range(num_buckets)]
+
+    def _bucket(self, key):
+        return self.buckets[hash(key) % len(self.buckets)]
+
+    def put(self, key, value):
+        b = self._bucket(key)
+        for i, (k, v) in enumerate(b):
+            if k == key:
+                b[i] = (key, value)         # update existing
+                return
+        b.append((key, value))              # new entry
+
+    def get(self, key):
+        for k, v in self._bucket(key):
+            if k == key: return v
+            # walk the chain
+        return None                         # not found
+
+    def remove(self, key):
+        b = self._bucket(key)
+        for i, (k, _) in enumerate(b):
+            if k == key:
+                b.pop(i)
+                return
+```
+
+Three things to notice:
+
+1. **Each bucket is a list** (chaining) — collisions live as linked entries in the same bucket.
+2. **`put` checks for existing key** before appending — otherwise duplicates accumulate.
+3. **There's no resize.** A real implementation grows the bucket array when load factor exceeds ~0.75; without that, performance degrades to O(n) per op when buckets fill up.
+
+</ShowHideSolution>
+
+### 7. Two-sum check by hand
+
+Given `nums = [3, 5, 8, 11, 4]` and `target = 13`, which two numbers add to `target`? Trace the hash-map approach.
+
+<ShowHideSolution>
+
+```text
+seen = {}        (value → index)
+target = 13
+
+i=0, x=3:  need 13 - 3 = 10. Not in seen. Add {3: 0}.
+i=1, x=5:  need 13 - 5 = 8.  Not in seen. Add {3: 0, 5: 1}.
+i=2, x=8:  need 13 - 8 = 5.  Found 5 at index 1! → return [1, 2]
+```
+
+The hash map gave us O(1) "have I seen the complement?" — turning the naive nested loop into a single pass.
+
+This same pattern (look up a complement / a partner in a map you build as you go) shows up in:
+
+- Two Sum, Three Sum (with sorting), Subarray Sum Equals K, Continuous Subarray Sum, Longest Subarray with Sum K — all the same shape with slightly different complements.
+
+</ShowHideSolution>
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="What's the worst-case time complexity of `get(key)` in a hash table?"
+    options={[
+        "O(1) — always",
+        "O(log n)",
+        "O(n) — if every key collides into one bucket",
+        "O(n²)"
+    ]}
+    correctIndex={2}
+    explanation="The AVERAGE case is O(1) — a good hash function spreads keys evenly. The WORST case is O(n): if every key happens to hash to the same bucket (or an adversary engineers this — see hash flooding), you walk a single long chain. That's why production hash tables use randomized hash seeds — to prevent attackers from forcing the worst case."
+/>
+
+<QuizBox
+    question="You have a list of 10,000 user IDs and you need to check whether a specific ID is in the list, repeatedly. What's the right data structure?"
+    options={[
+        "Plain unsorted list — O(n) per lookup is fine",
+        "Sorted list with binary search — O(log n) per lookup",
+        "Hash set — O(1) per lookup",
+        "Tree — O(log n) per lookup"
+    ]}
+    correctIndex={2}
+    explanation="For pure membership testing with no ordering needs, a hash set is unambiguously best. O(1) average per lookup, O(n) total space. The other options work but are slower; the BST/sorted list options only win when you also need ordered iteration or range queries."
+/>
+
+<QuizBox
+    question="Which of these is NOT a good design for a hash function on strings?"
+    options={[
+        "Multiply each character by a prime and accumulate, then mod by table size",
+        "Sum the ASCII codes of all characters, then mod by table size",
+        "Polynomial rolling hash: h = h * 31 + c, all mod 2^32",
+        "Use the language's built-in hash() function"
+    ]}
+    correctIndex={1}
+    explanation="Plain sum of ASCII codes is catastrophically bad because it ignores character ORDER — every anagram hashes to the same bucket. 'cat', 'act', 'tac' would all collide. The other three are all reasonable, with polynomial rolling being the standard for strings because it's fast AND order-sensitive."
+/>
+
+Ready for the interview classics? Head to **Practice Questions**.

@@ -1,0 +1,206 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Insert Delete GetRandom O(1) <DifficultyBadge level="medium" />
+
+#### Description
+
+Design a `RandomizedSet` class that supports all three of these in **O(1) average time**:
+
+- `insert(int val)` — adds `val` to the set if not present. Returns `true` if added, `false` if it was already there.
+- `remove(int val)` — removes `val` from the set if present. Returns `true` if removed, `false` if not.
+- `getRandom()` — returns a uniformly random element from the current set. Each element must have equal probability.
+
+#### Examples
+
+```py
+> Case 1:
+    set = RandomizedSet()
+    set.insert(1)      → true   (1 wasn't there)
+    set.remove(2)      → false  (2 wasn't there)
+    set.insert(2)      → true
+    set.getRandom()    → 1 or 2 with equal probability
+    set.remove(1)      → true
+    set.insert(2)      → false  (2 already exists)
+    set.getRandom()    → 2 (only element left)
+```
+
+#### Constraints
+
+- `-2^31 <= val <= 2^31 - 1`
+- At most `2 * 10^5` calls.
+
+#### Why neither a hash set nor an array alone works
+
+| Structure          | Insert    | Remove    | GetRandom              |
+| :----------------- | :-------: | :-------: | :--------------------: |
+| Hash set alone     | O(1)      | O(1)      | ❌ no random access    |
+| Array alone        | O(1) append | O(n) — find + shift | O(1) by index |
+| **Hash map + array** | **O(1)** | **O(1)** | **O(1)**             |
+
+A hash set is fast for the membership checks but **doesn't support random access** — you can't pick the k-th element in O(1). An array gives you O(1) random access but **slow remove** if the element isn't at the end.
+
+The combined structure: an **array** holds the actual values (so `getRandom` is `array[random_index]`), and a **hash map** stores `value → index_in_array` for O(1) lookup.
+
+#### The swap-and-pop trick for O(1) remove
+
+How do we remove from the middle of an array in O(1)?
+
+**We don't.** Instead, when removing element `x` at index `i`:
+
+1. Look up `i` from the hash map.
+2. **Copy the LAST element of the array to position `i`** — overwriting `x`.
+3. Pop the last element off (O(1)).
+4. Update the hash map: the moved element's new index is `i`. Delete `x`'s entry.
+
+Two array writes + two hash map updates = **O(1)**. The trade-off is the array no longer preserves insertion order — but for a *set*, order never mattered.
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    import random
+
+    class RandomizedSet:
+        def __init__(self):
+            self.arr = []
+            self.idx = {}            # value → index in arr
+
+        def insert(self, val):
+            if val in self.idx:
+                return False
+            self.idx[val] = len(self.arr)
+            self.arr.append(val)
+            return True
+
+        def remove(self, val):
+            if val not in self.idx:
+                return False
+            # Swap with last, then pop
+            i = self.idx[val]
+            last = self.arr[-1]
+            self.arr[i] = last
+            self.idx[last] = i
+            self.arr.pop()
+            del self.idx[val]
+            return True
+
+        def getRandom(self):
+            return random.choice(self.arr)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <unordered_map>
+    #include <cstdlib>
+    using namespace std;
+
+    class RandomizedSet {
+        vector<int> arr;
+        unordered_map<int, int> idx;
+    public:
+        bool insert(int val) {
+            if (idx.count(val)) return false;
+            idx[val] = arr.size();
+            arr.push_back(val);
+            return true;
+        }
+        bool remove(int val) {
+            auto it = idx.find(val);
+            if (it == idx.end()) return false;
+            int i = it->second;
+            int last = arr.back();
+            arr[i] = last;
+            idx[last] = i;
+            arr.pop_back();
+            idx.erase(it);
+            return true;
+        }
+        int getRandom() {
+            return arr[rand() % arr.size()];
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    class RandomizedSet {
+        private List<Integer> arr = new ArrayList<>();
+        private Map<Integer, Integer> idx = new HashMap<>();
+        private Random rand = new Random();
+
+        public boolean insert(int val) {
+            if (idx.containsKey(val)) return false;
+            idx.put(val, arr.size());
+            arr.add(val);
+            return true;
+        }
+
+        public boolean remove(int val) {
+            Integer i = idx.get(val);
+            if (i == null) return false;
+            int last = arr.get(arr.size() - 1);
+            arr.set(i, last);
+            idx.put(last, i);
+            arr.remove(arr.size() - 1);
+            idx.remove(val);
+            return true;
+        }
+
+        public int getRandom() {
+            return arr.get(rand.nextInt(arr.size()));
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The order of operations in remove matters.** If you `del self.idx[val]` *before* updating `self.idx[last] = i`, you'd be fine *unless* `val == last` (you're removing the last element). Then `del self.idx[val]` first followed by `idx[last] = i` would re-create the entry — wrong. The shown order handles both cases correctly. Test on a single-element set to convince yourself.
+</Callout>
+
+#### Trace on `insert(1), insert(2), insert(3), remove(2)`
+
+```text
+insert(1):  arr = [1],        idx = {1: 0}
+insert(2):  arr = [1, 2],     idx = {1: 0, 2: 1}
+insert(3):  arr = [1, 2, 3],  idx = {1: 0, 2: 1, 3: 2}
+
+remove(2):
+    i = idx[2] = 1
+    last = arr[2] = 3
+    arr[1] = 3      → arr = [1, 3, 3]
+    idx[3] = 1      → idx = {1: 0, 2: 1, 3: 1}
+    arr.pop()       → arr = [1, 3]
+    del idx[2]      → idx = {1: 0, 3: 1}
+```
+
+The element `3` "swapped in" for `2` at index 1, and the array shrank to size 2. Both structures stay consistent.
+
+#### Why getRandom is uniform
+
+`random.choice(arr)` picks a uniformly random index, and the array contains exactly one copy of each set element. So each element is returned with probability `1/n`. The swap-and-pop preserves this: every element is still at exactly one index, and indices `0..n-1` are all valid.
+
+#### Variant: with duplicates (LeetCode 381)
+
+If the set can contain duplicates (`RandomizedCollection`), the hash map must store **a set of indices per value** (since the same value can appear at multiple positions). On remove, pop any one of the indices for the chosen value. The swap-and-pop logic stays the same; just the bookkeeping for the moved element's indices changes.
+
+#### The bigger pattern: combining structures for combined invariants
+
+LRU Cache and Insert-Delete-GetRandom are both flavors of the **"two structures with cross-references"** design pattern:
+
+- LRU = hash map + doubly linked list (key lookup + recency order).
+- Insert-Delete-GetRandom = hash map + dynamic array (key lookup + random access).
+- LFU = hash map + hash map of doubly linked lists (key lookup + frequency buckets).
+
+Each problem demands invariants that **no single structure satisfies**, so you compose two — and use the hash map to keep them in sync.
+
+#### Analysis
+
+- **Time:** **O(1) average** for all three operations.
+- **Space:** **O(n)** — both structures hold `n` entries.

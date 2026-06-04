@@ -1,0 +1,168 @@
+import { Callout, Tabs } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Where Hash Tables Power Real Systems
+
+Hash tables aren't just an interview prop. They're the silent infrastructure under almost every fast service you use — databases, caches, version control, package managers, web routers, distributed systems. This page walks the lineup.
+
+## 1. The dictionary inside your programming language
+
+Every modern language's "default associative container" is a hash table:
+
+- **Python:** `dict` (and `set`). Since Python 3.7 it preserves insertion order — but lookups are still O(1) via a hash table.
+- **JavaScript:** `Map`, `Set`, and the older "plain object as map" pattern.
+- **Java:** `HashMap`, `HashSet`, `ConcurrentHashMap`.
+- **C++:** `std::unordered_map`, `std::unordered_set`.
+- **Go:** `map[K]V` is built-in.
+- **Rust:** `HashMap`, `HashSet`.
+
+In every case, you reach for these for the same reason: **constant-time lookup of arbitrary keys**. Without them, the entire dynamic-language ecosystem would be impossibly slow.
+
+## 2. Caches — Redis, Memcached, your browser
+
+A cache's whole job is "given a key (URL, query, file path), do I have the value? If yes, return it instantly."
+
+- **Memcached** is essentially "a giant distributed hash table in RAM."
+- **Redis** is a hash table with extra data structures bolted on (sorted sets, lists, hyperloglogs).
+- **Your CPU's L1/L2/L3 caches** are hardware hash tables keyed by memory address.
+- **Your browser's HTTP cache** maps URL → cached response.
+- **CDN edges** (Cloudflare, Fastly) hash request URLs to find cached responses.
+
+When latency must be sub-millisecond, the answer is almost always "put a hash table in front of it."
+
+<Callout type="info">
+    **LRU cache = hash map + doubly linked list.** The hash map gives you O(1) "do I have this key?" and the linked list lets you bump used items to the front in O(1). We build this in the [LRU Cache practice problem](/day8/practice_questions/lru_cache).
+</Callout>
+
+## 3. Database indices — the secret weapon
+
+A SQL database without indices is a hash table waiting to happen. There are two flavors of index:
+
+- **B-tree indices** — the default in PostgreSQL/MySQL/SQLite for general-purpose ordered lookups.
+- **Hash indices** — for equality lookups only, but blazing fast. PostgreSQL has explicit `USING HASH`. Many in-memory databases default to hash for everything.
+
+When you write `SELECT * FROM users WHERE email = 'alice@example.com'`, the database checks if there's a hash index on `email`. If yes, it computes `hash('alice@example.com')`, jumps to the matching bucket, and returns in microseconds.
+
+Distributed databases (Cassandra, DynamoDB) **shard data by hash of the primary key** — the cluster *is* a giant hash table.
+
+## 4. Git — the entire model is content-addressed
+
+Git stores every file, commit, and tree as an object **keyed by its SHA-1 (or SHA-256) hash**. Every `git log`, `git diff`, `git checkout` is essentially:
+
+```text
+hash = sha1(content)
+lookup .git/objects/{hash[:2]}/{hash[2:]}
+```
+
+That's why Git can detect a single bit of corruption: the hash wouldn't match. And it's why "git is a tree of hash pointers" is technically correct (the best kind of correct).
+
+The same idea — **content addressing via hash** — underpins IPFS, BitTorrent's piece hashes, npm's lockfile integrity checks, Docker image layers, and the whole class of "Merkle DAG" systems.
+
+## 5. Deduplication
+
+How does cloud storage avoid keeping 50 copies of the same vacation photo?
+
+```text
+for each incoming file:
+    hash = sha256(file)
+    if hash exists in dedup_table:
+        store a reference, not the file
+    else:
+        store the file
+        dedup_table.add(hash)
+```
+
+Dropbox, Backblaze, Google Drive, S3 deduplication, ZFS block-level dedup, browser caches — all use **hash-based fingerprinting** to skip storing duplicates. The hash table maps `content_hash → storage_pointer`.
+
+## 6. Routing tables and DNS
+
+Routers map "destination IP prefix" → "next hop." High-end routers use hash-based lookup tables to handle millions of prefixes at line rate.
+
+**DNS resolvers** cache `(domain, record_type) → ip_address` in giant hash tables. Cloudflare's 1.1.1.1, Google's 8.8.8.8 — billions of queries per second backed by extremely tuned hash maps.
+
+## 7. Symbol tables in compilers and interpreters
+
+When the compiler sees `x = y + 1`, how does it find what `x` and `y` are? **Symbol table** — a hash map from identifier to type/scope/storage info.
+
+Every modern compiler — GCC, Clang, Rust's rustc, TypeScript's tsc — has a hash-table-based symbol table at its core. So does every interpreter (Python's `frame.f_locals` is a dict).
+
+## 8. Message routing and pub/sub
+
+When Kafka, RabbitMQ, or Redis pub/sub receives a message with a key, it hashes the key to decide:
+
+- **Which partition** the message goes to (Kafka).
+- **Which subscriber queue** receives it (RabbitMQ with a hash exchange).
+- **Which shard** stores it (Redis Cluster — uses CRC16 modulo 16384).
+
+The hash gives **predictable, repeatable routing** — the same key always goes to the same destination. This is also how **consistent hashing** works (covered on the [Advanced Topics page](/day8/advanced_topics)).
+
+## 9. Memoization and dynamic programming
+
+Every memoized recursive function uses a hash map under the hood:
+
+```python copy
+from functools import lru_cache
+
+@lru_cache(maxsize=None)
+def fib(n):
+    if n <= 1: return n
+    return fib(n - 1) + fib(n - 2)
+```
+
+`lru_cache` is literally a hash map (`(args) → result`) with a doubly-linked list for eviction order. Day 5's [Memoization page](/day5/memoization) explained the recursive use; the hash map is what makes it O(1) per cache hit.
+
+## 10. Sets of things — the dual
+
+Whenever you've used a `set`, you've used a hash table. Some real uses:
+
+- **Garbage collection** — "which objects are reachable from the roots?" → mark via hash set of seen pointers.
+- **Web crawlers** — "have I crawled this URL?" → hash set of seen URLs.
+- **Linter / type checker** — "have I emitted this warning?" → hash set to dedup.
+- **Database transactions** — "which rows have I locked?" → hash set of row IDs.
+- **Graph DFS / BFS** — "have I visited this node?" → hash set of visited nodes. (You'll meet this in [Day 10](/day10).)
+
+A `set` is just a `dict` whose values are all `True`.
+
+## 11. Counters — frequency analysis at scale
+
+Counters are hash maps from element to count, and they power:
+
+- **Word frequency** in NLP (TF-IDF starts with a giant counter per document).
+- **Click counts, page views, A/B test exposures.**
+- **Top-K queries** — pair a counter with a heap (we did this in [Top K Frequent](/day7/practice_questions/top_k_frequent)).
+- **Approximate counters** — count-min sketch, HyperLogLog — when exact counts don't fit in memory.
+
+`from collections import Counter` (Python), `MultiSet` (Java guava), `unordered_map<T, int>` (C++) — they all show up wherever you need to count things.
+
+## 12. Authentication — bcrypt, scrypt, argon2
+
+When you log in, the server doesn't store your password — it stores a **slow, salted hash** of it. On login:
+
+```text
+hash(salt + password) == stored_hash ?
+```
+
+This is hash table-adjacent — the lookup itself is by username — but the security model relies on hash functions being **one-way** (easy to compute, infeasible to invert). Cryptographic hashes (SHA-256, bcrypt, argon2) are designed with that property in mind, unlike the fast hash functions used inside hash tables.
+
+We cover the **crypto vs non-crypto hash distinction** on the [Advanced Topics page](/day8/advanced_topics).
+
+## The pattern-recognition cheat sheet
+
+If a problem looks like any of these, a hash table is almost certainly the right tool:
+
+| Phrase                                              | Use                              |
+| :-------------------------------------------------- | :------------------------------- |
+| "Find the first / any duplicate"                    | Seen-set                         |
+| "Count how many times each X appears"               | Counter / map of `X → int`       |
+| "Group by an equivalence relation"                  | Signature → bucket map           |
+| "Look up by key, fast"                              | Map                              |
+| "Cache: I've computed this; do it once"             | Memoization map                  |
+| "Have I seen this URL / node / state before?"       | Seen-set                         |
+| "Find two numbers / elements whose property holds"  | Complement / partner map         |
+| "Subarray with given sum / property"                | Prefix-sum map                   |
+| "Cycle detection in linked list / Floyd"            | Seen-set (or two-pointer)        |
+| "Constant-time insert + delete + random sample"     | Map + array (swap-and-pop)       |
+
+The structure is always the same — only what you put in the map changes.
+
+Next: the **advanced topics** — Bloom filters, consistent hashing, and the variants that make hash tables work at distributed scale.

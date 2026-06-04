@@ -1,0 +1,228 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### LRU Cache <DifficultyBadge level="medium" />
+
+#### Description
+
+Design a data structure that follows the **Least Recently Used (LRU)** cache eviction policy. It supports:
+
+- `LRUCache(int capacity)` — initialize with a positive capacity.
+- `int get(int key)` — return the value if the key exists, otherwise return `-1`. **This counts as recent use.**
+- `void put(int key, int value)` — insert or update. If the cache is at capacity, **evict the least recently used key** first.
+
+Both operations must run in **O(1) average time**.
+
+#### Examples
+
+```py
+> Case 1:
+    LRUCache cache = new LRUCache(2)
+    cache.put(1, 1)              # cache: {1=1}
+    cache.put(2, 2)              # cache: {1=1, 2=2}
+    cache.get(1)                 # returns 1, marks key 1 recent
+    cache.put(3, 3)              # evicts key 2 (least recent); cache: {1=1, 3=3}
+    cache.get(2)                 # returns -1 (not found)
+    cache.put(4, 4)              # evicts key 1; cache: {3=3, 4=4}
+    cache.get(1)                 # returns -1
+    cache.get(3)                 # returns 3
+    cache.get(4)                 # returns 4
+```
+
+#### Constraints
+
+- `1 <= capacity <= 3000`
+- At most `2 * 10^5` calls to `get` and `put`.
+
+#### Why the obvious solutions don't work
+
+We need both:
+
+- **Fast lookup by key** (for `get` and `put`).
+- **Fast "find the least-recently-used"** (for eviction).
+- **Fast "mark as most recently used"** (every `get` and `put` must update recency).
+
+| Structure         | Lookup | Mark MRU      | Find LRU  |
+| :---------------- | :----: | :-----------: | :-------: |
+| Hash map alone    | O(1)   | ❌ no order   | ❌        |
+| Sorted by time    | O(log n) | O(log n)    | O(1)      |
+| **Hash map + doubly linked list** | **O(1)** | **O(1)** | **O(1)** |
+
+The winning combination uses a **doubly linked list** to track recency order (most-recent at one end, least-recent at the other), and a **hash map** from key → node pointer so we can find any node in O(1) and splice it out / re-insert it.
+
+#### The data structure
+
+```text
+key → node lookup
+           │
+           ▼
+        ┌─────┐ ◄──MRU end──┐
+        │ key │
+        │ val │              │
+        │next │──┐
+        │prev │  │           │
+        └─────┘  │
+            ┌────┘           │
+            ▼
+        ┌─────┐              │
+        │ key │
+        │ val │              │
+        │next │──┐           │
+        │prev │  │           │
+        └─────┘  │           │
+            ┌────┘           │
+            ▼                │
+        ┌─────┐              │
+        │ key │              │
+        │ val │ ◄──LRU end───┘
+        └─────┘
+```
+
+`get(k)`: look up the node via the hash map, **move it to the MRU end** of the list, return its value.
+`put(k, v)`: if the key exists, update value + move to MRU. If not, **create new node, add to MRU**. If over capacity, **evict the node at the LRU end** (and remove its hash map entry).
+
+Both operations: one hash map lookup + one splice in the linked list = **O(1)**.
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    class Node:
+        __slots__ = ('key', 'val', 'prev', 'next')
+        def __init__(self, key=0, val=0):
+            self.key = key; self.val = val
+            self.prev = self.next = None
+
+    class LRUCache:
+        def __init__(self, capacity: int):
+            self.cap = capacity
+            self.lookup = {}
+            # Two sentinels — no edge cases for first/last
+            self.head = Node()      # MRU end
+            self.tail = Node()      # LRU end
+            self.head.next = self.tail
+            self.tail.prev = self.head
+
+        def _remove(self, node):
+            node.prev.next = node.next
+            node.next.prev = node.prev
+
+        def _add_to_front(self, node):
+            node.next = self.head.next
+            node.prev = self.head
+            self.head.next.prev = node
+            self.head.next = node
+
+        def get(self, key):
+            if key not in self.lookup: return -1
+            node = self.lookup[key]
+            self._remove(node)
+            self._add_to_front(node)
+            return node.val
+
+        def put(self, key, value):
+            if key in self.lookup:
+                node = self.lookup[key]
+                node.val = value
+                self._remove(node)
+                self._add_to_front(node)
+            else:
+                if len(self.lookup) >= self.cap:
+                    lru = self.tail.prev
+                    self._remove(lru)
+                    del self.lookup[lru.key]
+                node = Node(key, value)
+                self._add_to_front(node)
+                self.lookup[key] = node
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <unordered_map>
+    #include <list>
+    using namespace std;
+
+    class LRUCache {
+        int cap;
+        list<pair<int,int>> dll;                          // {key, value}, front = MRU
+        unordered_map<int, list<pair<int,int>>::iterator> lookup;
+    public:
+        LRUCache(int capacity) : cap(capacity) {}
+
+        int get(int key) {
+            auto it = lookup.find(key);
+            if (it == lookup.end()) return -1;
+            dll.splice(dll.begin(), dll, it->second);     // move to front
+            return it->second->second;
+        }
+
+        void put(int key, int value) {
+            auto it = lookup.find(key);
+            if (it != lookup.end()) {
+                it->second->second = value;
+                dll.splice(dll.begin(), dll, it->second);
+                return;
+            }
+            if ((int)dll.size() == cap) {
+                lookup.erase(dll.back().first);
+                dll.pop_back();
+            }
+            dll.push_front({key, value});
+            lookup[key] = dll.begin();
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.LinkedHashMap;
+    import java.util.Map;
+
+    // The cheat-mode solution: LinkedHashMap has access-order baked in.
+    class LRUCache extends LinkedHashMap<Integer, Integer> {
+        private final int capacity;
+        public LRUCache(int capacity) {
+            super(capacity, 0.75f, true);   // accessOrder = true
+            this.capacity = capacity;
+        }
+        public int get(int key) { return super.getOrDefault(key, -1); }
+        public void put(int key, int value) { super.put(key, value); }
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Integer,Integer> eldest) {
+            return size() > capacity;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The C++ `std::list::splice` trick** moves a node from anywhere in the list to the front **without invalidating its iterator**. That's why we can store the iterator in the hash map and reuse it after a splice. `vector` and `deque` wouldn't allow this.
+</Callout>
+
+<Callout type="info">
+    **The Java cheat:** `LinkedHashMap` already maintains an order — and with `accessOrder = true` constructor flag, it becomes an LRU map automatically. In real code, use it. In interviews, write the hash-map + doubly-linked-list version manually to show you understand the underlying mechanism.
+</Callout>
+
+#### Why the sentinel nodes matter
+
+Notice the Python version uses two **sentinel nodes** (`head` and `tail`) that don't carry data. This eliminates every "first / last node" edge case — adding to front and removing always have a `prev` and a `next`. Without sentinels, you'd need explicit null checks everywhere.
+
+This is a **standard linked-list idiom** worth internalizing.
+
+#### Variants worth knowing
+
+- **LFU Cache** (Least Frequently Used) — adds a frequency dimension; harder, uses HashMap + HashMap of doubly-linked-lists per frequency.
+- **TTL Cache** — items expire after a fixed time; needs HashMap + min-heap of (expiry, key).
+- **W-TinyLFU** — production-grade cache used in Caffeine (Java) and Ristretto (Go); combines frequency, recency, and probabilistic admission.
+
+Real production caches (Redis, Memcached, Caffeine) usually use **approximate LRU** — they don't strictly maintain perfect recency because the bookkeeping overhead isn't worth it. Sampling 5 random keys and evicting the LRU among them is what Redis actually does.
+
+#### Analysis
+
+- **Time:** **O(1) average per `get` and `put`** — one hash map op + a constant number of linked-list pointer updates.
+- **Space:** **O(capacity)** — both structures hold `capacity` entries.
+
+LRU Cache is the **single most-asked design problem** in front-end and back-end interviews for a reason: it forces you to combine two data structures meaningfully, and it has a direct correspondence to real-world systems (browser caches, CPU caches, Redis maxmemory policies).
