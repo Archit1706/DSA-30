@@ -1,42 +1,49 @@
-import { Steps } from "nextra/components";
+{/*
+  Template for a Day N "overview" / index.mdx page.
 
-<Steps>
- 
-### Topic 1
- 
-- Topic Details / Description
-- Use the same format for all topics
--
+  Used by Days 6, 7, 8, 9, 10, 11, 12, 13 and matches the post-restructure
+  convention. Copy this file and replace the placeholders.
 
-### Topic 2 with Code
+  Sidebar order convention (set in pages/dayN/_meta.js):
+    Overview → Introduction → [Topic Pages] → Applications →
+    [Advanced Topics] → Basic Questions → Practice Questions
 
-```cpp copy
-for (int i = 0; i < n; i++) {
-    cout << i << endl;
-}
-```
+  Sub-page conventions:
+    - introduction.mdx        — core concepts, vocabulary, first visualizer
+    - <topic>.mdx             — one focused page per major sub-topic
+    - applications.mdx        — real-world systems that use this data structure / algorithm
+    - advanced_topics.mdx     — optional; for chapters with depth (e.g. Day 8)
+    - basic_questions.mdx     — warm-up exercises with ShowHideSolution
+    - practice_questions/     — directory of interview problems + index.mdx table
+*/}
 
-### Topic 3 with Code and Image
+import { Callout } from "nextra/components";
 
-```cpp copy
-for (int i = 0; i < n; i++) {
-    cout << i << endl;
-}
-```
+# Day N — <Topic Name>
 
-{/* image format copied from the templates/image.mdx */}
+<short paragraph explaining what the topic is and why it matters — 2-3 sentences, hook the reader>
 
-| ![Circular Doubly Linked List](/assets/circular-doubly-linked-list.jpg) |
-| :---------------------------------------------------------------------: |
-|                      _Circular Doubly Linked List_                      |
+<one more paragraph that previews the "big idea" or central pattern of the chapter>
 
-### Topic 4 with Table
+## What you'll learn today
 
-| Big-O Notation |  Definition   |
-| :------------: | :-----------: |
-|      O(1)      | Constant Time |
-|      O(n)      |  Linear Time  |
+- **<concept 1>** — short one-line gloss
+- **<concept 2>** — short one-line gloss
+- The **<central pattern of the chapter>** — the one-line distillation that makes everything else click
+- Where **<topic>** powers real systems — short tease of the applications page
+- **N interview problems** spanning the difficulty range, all reducing to the same template
 
-</Steps>
+<Callout type="info">
+    <one-sentence insight or callback to a previous chapter that this builds on>
+</Callout>
 
-{/* One doesn't need to follow the same structure these are just for understanding */}
+## Roadmap
+
+1. **[Introduction](/dayN/introduction)** — definitions, vocabulary, first interactive demo.
+2. **[<Topic 1>](/dayN/topic_1)** — short description.
+3. **[<Topic 2>](/dayN/topic_2)** — short description.
+4. **[Applications](/dayN/applications)** — where this earns its keep in production.
+5. **[Basic Questions](/dayN/basic_questions)** — warm-up exercises to drill the templates.
+6. **[Practice Questions](/dayN/practice_questions)** — N interview classics with C++/Python/Java solutions.
+
+Coming up: **Day N+1 — <Next Topic>**, which extends today's pattern by <how>.

@@ -72,11 +72,11 @@ export default {
         </>
     ),
     banner: {
-        key: "1.0-release",
+        key: "phases-1-4-live",
         content: (
-            <a href="" target="_blank">
-                DSA-30 is now live!
-            </a>
+            <span>
+                🚀 Phases 1–4 are live — Days 1–13 + Day 17 are fully written. <a href="/" style={{ textDecoration: "underline" }}>See the roadmap →</a>
+            </span>
         ),
         dismissible: true,
     },
@@ -88,7 +88,7 @@ export default {
     footer: {
         text: (
             <span>
-                DSA-30 © 2023 | Made by{" "}
+                DSA-30 © {new Date().getFullYear()} | Made by{" "}
                 <a href="https://archit-rathod.vercel.app/" target="_blank">
                     Archit Rathod
                 </a>
@@ -105,11 +105,11 @@ export default {
     },
     faviconGlyph: "30",
     feedback: {
-        useLink: () => " https://mailto:architrathod77@gmail.com",
+        useLink: () => "https://github.com/Archit1706/DSA-30/issues/new",
         content: () => (
             <p>
-                <b>DSA-30</b> is yet to be an open-source project. If you find a
-                bug or want to suggest a feature, please mail me.
+                Found a bug or want to suggest a feature?{" "}
+                <b>Open an issue</b> on GitHub.
             </p>
         ),
     },

@@ -1,86 +1,115 @@
-import { Tabs,Steps } from "nextra/components";
-export const Tab = Tabs.Tab
+{/*
+  Template for a practice question page (pages/dayN/practice_questions/<slug>.mdx).
 
-### Title Goes Here
+  Matches the convention used across Days 4-13. Copy this file and replace
+  the placeholders. Section order matters — do not reorder.
+
+  Convention notes:
+    - Tab order is always C++ → Python → Java (left to right).
+    - Use the DifficultyBadge component on the heading.
+    - The "Intuition" section is what separates this from a code dump.
+    - The "Analysis" section closes every problem and uses a table when
+      comparing multiple approaches, bullets otherwise.
+    - Cross-link to related problems at the end so readers can follow patterns.
+*/}
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### <Problem Title> <DifficultyBadge level="easy" />
+
+{/* level can be "easy", "medium", or "hard" */}
 
 #### Description
 
--   Description Goes Here. You can highlight the important points using **bold** or _italic_ or `code` or [links](https://www.google.com).
+<one paragraph stating the problem in your own words, not pasted from LeetCode>
+
+#### Examples
+
+```py
+> Case 1:
+    Input:  <input>
+    Output: <output>
+
+> Case 2:
+    Input:  <input>
+    Output: <output>     # optional inline comment explaining a subtlety
+```
 
 #### Constraints
 
--   Constraints Goes Here
--   Eg. `1 <= n <= 10^5`
+- `<constraint 1>` (wrap math in backticks to avoid the MDX `<=` parse trap)
+- `<constraint 2>`
 
-#### Test Cases
+#### Intuition
 
--   Input: ` ` <br />
-    Output: ` `
+<2–4 paragraphs that walk through HOW to arrive at the solution from first principles, not WHAT the solution is. Identify the pattern, the key insight, the trick. This is the most important section of the page.>
 
--   Input: ` ` <br />
-    Output: ` `
+#### Approach 1: <name>
 
-#### Code
+<short prose introducing this approach>
 
-<Steps>
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    // C++ solution
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    # Python solution
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    // Java solution
+    ```
+    </Tab>
+</Tabs>
 
-    ##### Approach 1: ``
+<Callout type="info">
+    <Optional callout — call out a non-obvious trick, a gotcha, or the reason a particular line is what it is>
+</Callout>
 
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
+#### Approach 2: <optional second approach>
 
-        ```
+<short prose contrasting with approach 1>
 
-        </Tab>
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    ```
+    </Tab>
+</Tabs>
 
-        <Tab>
-        ```python copy
-        Comming Soon...
-        ```
+#### The bigger pattern
 
-        </Tab>
+<Optional but recommended: a table or paragraph linking this problem to the family of problems it belongs to. Lists 3-6 related interview problems that solve via the same template.>
 
-        #### Explanation
+| Problem                  | Twist                                           |
+| :----------------------- | :---------------------------------------------- |
+| **<related 1>**          | <what's different>                              |
+| **<related 2>**          | <what's different>                              |
 
-        1.
-        2.
+#### Analysis
 
-        #### Analysis
+For single-approach problems, use bullets:
 
-        - Time Complexity: `O()`
-        - Space Complexity: `O()`
-    </Tabs>
+- **Time:** **O(?)** — short reason
+- **Space:** **O(?)** — short reason
 
-    ---
+For multi-approach problems, use a comparison table:
 
-    ##### Approach 2: ``
-
-    <Tabs items={['C++', 'Python']} defaultIndex="0">
-        <Tab>
-        ```cpp copy
-
-        ```
-
-        </Tab>
-
-        <Tab>
-        ```python copy
-        Comming Soon...
-        ```
-
-        </Tab>
-
-        #### Explanation
-
-        1.
-        2.
-
-        #### Analysis
-
-        - Time Complexity: `O()`
-        - Space Complexity: `O()`
-
-    </Tabs>
-
-</Steps>
+| Approach        | Time     | Space    | Notes                          |
+| :-------------- | :------: | :------: | :----------------------------- |
+| Approach 1      | O(?)     | O(?)     | <when to use>                  |
+| Approach 2      | O(?)     | O(?)     | <when to use>                  |
