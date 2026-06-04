@@ -1,0 +1,135 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Binary Search <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a **sorted** array `nums` and a target value `target`, return the **index** of `target` in `nums`. If it doesn't exist, return `-1`.
+
+You must write an algorithm with **O(log n)** runtime.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [-1, 0, 3, 5, 9, 12],  target = 9
+    Output: 4
+
+> Case 2:
+    nums = [-1, 0, 3, 5, 9, 12],  target = 2
+    Output: -1
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^4`
+- `-10^4 < nums[i], target < 10^4`
+- All integers in `nums` are unique and sorted in ascending order.
+
+#### The canonical template solution
+
+This problem is exactly what the [unified binary-search template](/day13/binary_search_template) was designed for. Predicate: `nums[i] >= target`. Find the first true index; if it points at the target, we found it.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int search(vector<int>& nums, int target) {
+        int lo = 0, hi = nums.size();
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] >= target) hi = mid;
+            else                     lo = mid + 1;
+        }
+        return (lo < (int)nums.size() && nums[lo] == target) ? lo : -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def search(nums, target):
+        lo, hi = 0, len(nums)
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if nums[mid] >= target: hi = mid
+            else:                   lo = mid + 1
+        return lo if lo < len(nums) and nums[lo] == target else -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int search(int[] nums, int target) {
+        int lo = 0, hi = nums.length;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] >= target) hi = mid;
+            else                     lo = mid + 1;
+        }
+        return (lo < nums.length && nums[lo] == target) ? lo : -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### The classic "find target directly" variant
+
+If you've seen binary search elsewhere, you might recognize this version — check `nums[mid] == target` directly inside the loop:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int search(vector<int>& nums, int target) {
+        int lo = 0, hi = nums.size() - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] == target) return mid;
+            if (nums[mid] < target) lo = mid + 1;
+            else                    hi = mid - 1;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def search(nums, target):
+        lo, hi = 0, len(nums) - 1
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            if nums[mid] == target: return mid
+            if nums[mid] < target: lo = mid + 1
+            else:                  hi = mid - 1
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int search(int[] nums, int target) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] == target) return mid;
+            if (nums[mid] < target) lo = mid + 1;
+            else                    hi = mid - 1;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Both versions are correct and O(log n). The **direct version** has slightly cleaner code for this exact problem, but breaks down for harder variants (first/last occurrence, search-on-answer). The **template version** generalizes — invest in muscle memory for it now.
+
+<Callout type="info">
+    **Use `lo + (hi - lo) / 2`, not `(lo + hi) / 2`.** Same trick as everywhere else — overflow safety. Python users get away with it; C++ and Java don't.
+</Callout>
+
+#### Why O(log n)?
+
+Each iteration halves the remaining search space. After `k` iterations, `n / 2^k` elements remain. Terminate when 1 element is left → `k = log₂(n)`. For `n = 10⁹`, that's just **30 iterations** total.
+
+#### Analysis
+
+- **Time:** **O(log n)** — halving per step.
+- **Space:** **O(1)** — iterative; no recursion stack.

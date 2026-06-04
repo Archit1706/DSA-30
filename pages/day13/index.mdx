@@ -1,7 +1,32 @@
-# Day 10
+import { Callout } from "nextra/components";
 
-### Hello peeps! Welcome to Day 10 - Graph Traversal (BFS & DFS)
+# Day 13 — Searching Algorithms
 
-> What we learn today?
+Yesterday and the day before, you learned how to **arrange** data. Today you learn how to **find** something in it. The two are joined at the hip — most searching algorithms only work because the data is sorted, which is exactly what Days 11–12 prepared.
 
--
+Searching might sound like a tiny topic — but **binary search** is one of the most consistently asked algorithms in interviews, and the cleanest binary-search template is a single piece of code that solves dozens of problems with a one-line tweak.
+
+## What you'll learn today
+
+- **Linear search** — the brute-force baseline, plus when it's actually the right answer
+- **Binary search** — the O(log n) classic, both iterative and recursive
+- **The unified binary-search template** — one piece of code, dozens of problems, no off-by-one errors
+- **The variants:** jump search, interpolation search, exponential search, Fibonacci search — when each one wins
+- The **"binary search on the answer"** pattern — the most powerful interview trick this chapter teaches
+- Where searching powers **real systems** — database indexes, Git bisect, version-solvers, search engines, debuggers
+- **Eight interview problems**, from the canonical Binary Search to Search in a Rotated Sorted Array
+
+<Callout type="info">
+    The hidden lesson of binary search: **as long as a "yes/no" property is monotonic** (false…false…true…true), you can binary-search for the boundary. That insight unlocks problems that don't even *look* like search problems — Sqrt(x), Capacity to Ship Packages, Median of Two Sorted Arrays, and many more.
+</Callout>
+
+## Roadmap
+
+1. **[Introduction](/day13/introduction)** — linear vs binary search, the iterative and recursive templates.
+2. **[The Binary Search Template](/day13/binary_search_template)** — one bullet-proof template that eliminates off-by-one bugs and solves the whole family.
+3. **[Variants](/day13/variants)** — jump, interpolation, exponential, and Fibonacci search — when to reach for each.
+4. **[Applications](/day13/applications)** — where searching is the secret behind the scenes: database B-tree lookups, Git bisect, package version resolution, search engines, debugger watchpoints.
+5. **[Basic Questions](/day13/basic_questions)** — warm-ups: index lookup, first/last occurrence, peak finding, sqrt by binary search.
+6. **[Practice Questions](/day13/practice_questions)** — eight interview classics covering every binary-search shape you're likely to see.
+
+Coming up: **Day 14 — Dynamic Programming**, where the searching mindset meets the recursion mindset.

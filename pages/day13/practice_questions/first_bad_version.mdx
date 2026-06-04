@@ -1,0 +1,122 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### First Bad Version <DifficultyBadge level="easy" />
+
+#### Description
+
+You are a product manager. After some bad version `v`, every subsequent version is also bad. You have an API `isBadVersion(int)` that tells you whether a given version is bad. Given `n` versions `[1, 2, …, n]`, find the **first bad version**.
+
+Minimize the number of calls to `isBadVersion`.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 5,  bad = 4
+    isBadVersion(3) = false
+    isBadVersion(5) = true
+    isBadVersion(4) = true
+    Output: 4
+
+> Case 2:
+    n = 1,  bad = 1
+    Output: 1
+```
+
+#### Constraints
+
+- `1 <= bad <= n <= 2^31 - 1`
+
+#### Why this is "binary search in disguise"
+
+The versions form a sorted "array" `[1..n]`. The function `isBadVersion` gives us a **monotonic boolean** — `false, false, …, false, true, true, …, true`. Binary search finds the boundary (first `true`) in **O(log n)** calls.
+
+This is the textbook use case for the [unified template](/day13/binary_search_template): the predicate is the API itself.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    // Forward declaration of the API
+    bool isBadVersion(int version);
+
+    int firstBadVersion(int n) {
+        int lo = 1, hi = n;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (isBadVersion(mid)) hi = mid;
+            else                   lo = mid + 1;
+        }
+        return lo;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    # The isBadVersion API is already defined.
+    # def isBadVersion(version: int) -> bool:
+
+    def first_bad_version(n):
+        lo, hi = 1, n
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if isBadVersion(mid): hi = mid
+            else:                 lo = mid + 1
+        return lo
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    /* The isBadVersion API is defined in the parent class VersionControl. */
+
+    public int firstBadVersion(int n) {
+        int lo = 1, hi = n;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (isBadVersion(mid)) hi = mid;
+            else                   lo = mid + 1;
+        }
+        return lo;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **`lo + (hi - lo) / 2`, not `(lo + hi) / 2`.** With `n` up to `2^31 - 1` and `hi = n`, the sum `lo + hi` overflows a 32-bit signed integer. This problem is *specifically designed* to catch the overflow bug. Java's `Arrays.binarySearch` had exactly this bug for nine years before someone noticed.
+</Callout>
+
+#### How few calls?
+
+Binary search makes at most `log₂(n) + 1` API calls. For `n = 2^31 - 1`, that's **32 calls**. Compare to the naive sequential check — up to 2 billion calls. The interview point is partly: "do you know it's O(log n)?" and partly: "do you write the overflow-safe midpoint?"
+
+#### Why the template is perfect for this
+
+This problem is the **minimal viable use case** for the unified template:
+
+| Template piece              | Here                          |
+| :-------------------------- | :---------------------------- |
+| Answer space                | `[1, n]`                      |
+| Predicate                   | `isBadVersion(mid)`           |
+| What we want                | First true                    |
+
+Three pieces, plug them in, done. **The template removed the off-by-one error from the conversation.**
+
+#### Variants
+
+The "find the boundary in a monotonic predicate" shape generalizes:
+
+- **Find First Good Server in a Cluster** — same shape, different API.
+- **Find First Build that Failed in CI** — `git bisect` is literally this algorithm.
+- **Find First Day Inventory Ran Out** — monotonic boolean over days.
+- **Find First Date with Above-Threshold Latency** — log analysis.
+
+If you can describe your problem as "first index where some condition flips," it's First Bad Version.
+
+#### Analysis
+
+- **Time:** **O(log n)** — at most 32 API calls for `n = 2^31`.
+- **Space:** **O(1)**.

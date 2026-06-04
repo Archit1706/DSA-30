@@ -1,0 +1,166 @@
+import { Callout, Tabs } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Where Searching Powers Real Systems
+
+Binary search isn't just an interview prop. It's silently load-bearing in databases, version control, package managers, debuggers, and dozens of other systems. This page surveys those uses — knowing them gives you pattern recognition for *when* to reach for binary search outside textbook problems.
+
+## 1. Database B-tree indexes — the most-used binary search on the planet
+
+Every relational database — PostgreSQL, MySQL, SQLite, Oracle, SQL Server — stores its primary and secondary indexes as **B-trees** (or B+ trees). When you write:
+
+```sql
+SELECT * FROM users WHERE id = 12345;
+```
+
+The database walks the B-tree by binary searching at every node:
+
+1. Load the root node (one disk page).
+2. Binary-search the keys in that node to find which child contains `12345`.
+3. Recurse into that child.
+4. Repeat until you hit a leaf — there's the row pointer.
+
+A B-tree with 10 million rows is typically 3–4 levels deep. Three or four binary searches and you've found your row.
+
+<Callout type="info">
+    **B-trees are why databases have logarithmic, not linear, scaling.** Without them, every `SELECT … WHERE id = X` would be O(n). The cost of building and maintaining the B-tree on writes is the price you pay for O(log n) reads.
+</Callout>
+
+## 2. Git bisect — binary search through history
+
+`git bisect` is one of the most loved (and underused) tools in version control. The pitch:
+
+> "Some commit between v1.0 and HEAD broke the tests. There are 500 commits between them. Find the bad one."
+
+`git bisect` runs **binary search through commit history**. You mark the current commit as good or bad; it checks out the midpoint commit; you test it; repeat. **9 iterations** to find the bad commit out of 500. Without bisect, you'd be checking out and testing commits one at a time.
+
+The predicate: `is this commit broken?` — monotonic if every commit since the bad one is also broken. Exactly the binary-search shape.
+
+```bash
+git bisect start
+git bisect bad HEAD
+git bisect good v1.0
+# ...git checks out the midpoint; you test and report...
+git bisect good   # or git bisect bad
+```
+
+When you find the culprit, `git bisect reset` cleans up. **The whole feature is one binary search.**
+
+## 3. Package version resolution — "what versions satisfy this constraint?"
+
+When you run `npm install foo@^2.3.0`, the package manager has to find the latest version of `foo` that satisfies `^2.3.0` (meaning ≥ 2.3.0 and < 3.0.0). Given a sorted list of available versions:
+
+```text
+foo: 2.1.0, 2.2.0, 2.3.0, 2.3.1, 2.4.0, 2.4.1, 3.0.0, 3.1.0
+```
+
+The package manager binary-searches for:
+
+- **Lower bound** — first version `>= 2.3.0` → 2.3.0.
+- **Upper bound** — first version `>= 3.0.0` → 3.0.0.
+
+The range `[lower, upper)` is the candidate set. Pick the maximum within that range — `2.4.1`.
+
+**npm, pip, cargo, maven** all do this. The constraint solver on top is more complex (multiple packages with conflicting constraints — combinatorial in the worst case), but the core "find versions matching this range" is binary search.
+
+## 4. Search engines — sorted posting lists
+
+Inverted indexes (the foundation of every search engine) store, for each word, a **sorted list of document IDs** that contain that word. To find documents containing **both** "rust" AND "compiler", you intersect their two posting lists.
+
+A clever speedup: as you walk one list, **binary-search forward in the other** instead of linearly walking. If the next element to match in list A is `87654`, jumping straight to that position in list B (or finding the first element ≥ 87654) is way faster than walking.
+
+This **galloping search** (a hybrid of exponential and binary search) is what makes Lucene, Elasticsearch, and every modern search engine fast.
+
+## 5. Debugger watchpoints and log searches
+
+When you set a conditional breakpoint or scan a 10GB log file for "the first occurrence of error X," tools commonly use binary search:
+
+- **Time-series log files** (like Cloudwatch or Datadog) — sorted by timestamp; binary-search to find the start of a time window.
+- **Debugger memory watchpoints** — binary-search-style narrowing to find which write changed the value.
+- **System call tracing** — binary-search the call sequence to localize where state went wrong.
+
+If your tooling supports "jump to timestamp," it's almost certainly powered by a binary search on a sorted index.
+
+## 6. Library functions you've used 1000 times
+
+Binary search hides in plain sight everywhere:
+
+| Language    | Function                                  | What it does                              |
+| :---------- | :---------------------------------------- | :---------------------------------------- |
+| **Python**  | `bisect.bisect_left`, `bisect.bisect_right` | Find insertion point in sorted list     |
+| **C++**     | `std::lower_bound`, `std::upper_bound`, `std::binary_search` | Same, plus existence check |
+| **Java**    | `Arrays.binarySearch`, `Collections.binarySearch` | Find index of element             |
+| **Go**      | `sort.Search`, `sort.SearchInts`           | Templated binary search                  |
+| **Rust**    | `slice::binary_search`, `slice::partition_point` | Same                                |
+| **JavaScript** | (no stdlib) — implement yourself or use `lodash.sortedIndex` | |
+
+Knowing which standard-library functions are binary searches is **interview-level skill** — interviewers often want to see you reach for `bisect_left` instead of writing the loop by hand.
+
+## 7. Binary search on the answer — the killer pattern
+
+This is the most powerful application and the one that surprises people most. Many optimization problems have the form:
+
+> "Find the smallest / largest **value** X such that some condition holds."
+
+If the condition is **monotonic in X**, you binary-search over the answer space directly. Examples in production code:
+
+- **Auto-scaling cloud capacity** — find the smallest number of servers to keep response time below 100ms. Predicate: `does N servers give response time <= 100ms?` (monotonic — more servers, lower time).
+- **Database query planner** — find the optimal join order's cost threshold by bisection.
+- **TCP slow-start** — exponential then binary search to find the optimal congestion window size.
+- **GPU shader optimization** — find the highest texture-resolution level a frame can render at 60fps.
+
+In interview form, the same pattern shows up as:
+
+- **Capacity to Ship Packages** — minimum capacity to ship in D days.
+- **Koko Eating Bananas** — minimum eating speed to finish in H hours.
+- **Split Array Largest Sum** — minimum largest subarray sum when splitting into K parts.
+- **Minimum Speed to Arrive on Time** — minimum speed to arrive by deadline.
+
+All four problems are *literally the same code* with different predicates. See the **Binary Search Template** page for the unified solution.
+
+## 8. Cryptographic and security applications
+
+- **Rainbow table attacks** binary-search through precomputed hash → password tables.
+- **Certificate transparency logs** (which you use every time you visit an HTTPS site) use binary search through Merkle-tree paths to verify a certificate is logged.
+- **TPM secure element lookups** binary-search a sorted attestation table.
+
+The "binary" in "binary search" has nothing to do with the "binary" in "binary attack" — but both heavily use the algorithm.
+
+## 9. Compilers — symbol table lookups
+
+When a compiler encounters `foo.bar()`, it needs to look up `bar` in `foo`'s symbol table. Symbol tables are usually:
+
+- **Hash tables** for global symbols (the common case).
+- **Sorted arrays + binary search** for compact module exports.
+- **B-trees** for very large symbol sets (e.g., a giant header file's preprocessor symbols).
+
+GCC, Clang, and the Rust compiler all use combinations of these depending on the situation.
+
+## 10. Game development — A* heuristics and spatial structures
+
+- **Pathfinding A\*** uses a priority queue (binary heap), which is structurally a kind of binary search tree maintained in array form.
+- **Sorted enemy lists** (for "find the closest enemy in range") are binary-searched on distance.
+- **Animation keyframes** are stored sorted by time; the animation engine binary-searches to find which two keyframes to interpolate at the current time.
+
+Every game runtime has dozens of binary searches per frame.
+
+## The pattern-recognition cheat sheet
+
+If a problem statement looks like any of these, **reach for binary search**:
+
+| Phrase                                              | Binary search shape              |
+| :-------------------------------------------------- | :------------------------------- |
+| "Find the position / index of X in a sorted list"   | Classic binary search            |
+| "Find the FIRST occurrence of X"                    | Lower bound                      |
+| "Find the LAST occurrence of X"                     | Upper bound − 1                  |
+| "Find the smallest X such that condition is true"   | Binary search on answer          |
+| "Find the threshold above which property holds"     | Find first true                  |
+| "Find when something switched from good to bad"     | Git-bisect-style boundary search |
+| "Minimum capacity / speed / size to satisfy constraint" | Binary search on answer      |
+| "Search in a sorted-but-rotated array"              | Modified binary search           |
+| "Find peak / valley in a unimodal function"         | Ternary or binary search         |
+| "Estimate position based on value distribution"     | Interpolation search             |
+
+Binary search is the highest-leverage chapter in this course. Master the template, internalize the pattern, and you've unlocked a tool you'll use for the rest of your career.
+
+Next: **basic warm-up questions** to drill the template.

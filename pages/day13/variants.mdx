@@ -1,0 +1,267 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Search Variants Beyond Binary
+
+Binary search isn't the only game in town. A handful of specialized variants beat plain binary search in specific scenarios — sometimes by enough to be the right answer for a real-world system. This page catalogs them.
+
+You won't see most of these in interviews. **You will** see them in production code, library internals, and the occasional research paper. Knowing they exist is the difference between "I always reach for binary search" and "I pick the right tool."
+
+## 1. Jump Search — for when comparisons are cheap but seeks are expensive
+
+**Idea.** Instead of halving the search space each step, **jump forward by a fixed step size** until you overshoot the target, then linearly walk back through the last block.
+
+- **Optimal step size:** √n. With this step, total comparisons ≈ √n + √n = 2√n.
+- **Time:** O(√n).
+- **Space:** O(1).
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    import math
+
+    def jump_search(arr, target):
+        n = len(arr)
+        step = int(math.sqrt(n))
+        prev = 0
+
+        # Jump forward until we overshoot
+        while prev < n and arr[min(step, n) - 1] < target:
+            prev = step
+            step += int(math.sqrt(n))
+            if prev >= n:
+                return -1
+
+        # Linear walk back in the last block
+        for i in range(prev, min(step, n)):
+            if arr[i] == target:
+                return i
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int jumpSearch(const vector<int>& arr, int target) {
+        int n = arr.size();
+        int step = (int)sqrt(n);
+        int prev = 0;
+
+        while (prev < n && arr[min(step, n) - 1] < target) {
+            prev = step;
+            step += (int)sqrt(n);
+            if (prev >= n) return -1;
+        }
+        for (int i = prev; i < min(step, n); i++) {
+            if (arr[i] == target) return i;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int jumpSearch(int[] arr, int target) {
+        int n = arr.length;
+        int step = (int) Math.sqrt(n);
+        int prev = 0;
+
+        while (prev < n && arr[Math.min(step, n) - 1] < target) {
+            prev = step;
+            step += (int) Math.sqrt(n);
+            if (prev >= n) return -1;
+        }
+        for (int i = prev; i < Math.min(step, n); i++) {
+            if (arr[i] == target) return i;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Where it wins:** when **seeking** to a random position is expensive but **reading** sequentially is cheap. Think: a sorted array on disk where each seek is a head movement. Jump search minimizes seeks; binary search needs more seeks but does fewer overall reads. Mostly a curiosity in modern systems — RAM/SSD have made the trade-off moot.
+
+## 2. Interpolation Search — for uniformly distributed data
+
+**Idea.** Binary search always picks the *middle*. **Interpolation search** picks where it *guesses* the target is, based on the value distribution.
+
+If you're looking for `25` in `[10, 20, 30, 40, ..., 100]`, the middle (50) is way off. But linear interpolation says `25` should be ~1/6 of the way through — pick that index instead.
+
+```text
+pos = lo + ((target - arr[lo]) * (hi - lo)) / (arr[hi] - arr[lo])
+```
+
+- **Time:** **O(log log n)** on uniformly distributed data — much faster than binary search.
+- **Time:** **O(n)** worst case on skewed data.
+- **Space:** O(1).
+
+<Tabs items={['Python', 'C++']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def interpolation_search(arr, target):
+        lo, hi = 0, len(arr) - 1
+        while lo <= hi and arr[lo] <= target <= arr[hi]:
+            if lo == hi:
+                return lo if arr[lo] == target else -1
+            # Estimated position
+            pos = lo + ((target - arr[lo]) * (hi - lo)) // (arr[hi] - arr[lo])
+            if arr[pos] == target:
+                return pos
+            if arr[pos] < target:
+                lo = pos + 1
+            else:
+                hi = pos - 1
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int interpolationSearch(const vector<int>& arr, int target) {
+        int lo = 0, hi = arr.size() - 1;
+        while (lo <= hi && target >= arr[lo] && target <= arr[hi]) {
+            if (lo == hi) return arr[lo] == target ? lo : -1;
+            int pos = lo + ((long long)(target - arr[lo]) * (hi - lo)) / (arr[hi] - arr[lo]);
+            if (arr[pos] == target) return pos;
+            if (arr[pos] < target) lo = pos + 1;
+            else                   hi = pos - 1;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Where it wins:** **phone-book-like data** — keys roughly uniformly distributed. Database systems with statistics on key distributions sometimes use this for index lookups.
+
+**Where it loses:** non-uniform data (most real-world keys), or duplicate values that cause `arr[hi] - arr[lo] = 0` (must guard against division by zero).
+
+<Callout type="warning">
+    The math here can overflow if `(target - arr[lo]) * (hi - lo)` exceeds INT_MAX. In C++ / Java, cast to `long` / `long long` for the multiplication.
+</Callout>
+
+## 3. Exponential Search — for unbounded or unknown-size sorted data
+
+**Idea.** First, find the *range* where the target could be by doubling: check `arr[1], arr[2], arr[4], arr[8], arr[16], ...` until you overshoot. Then run binary search inside the bracketed range.
+
+- **Time:** O(log n) — same as binary, but doesn't need to know `n` upfront.
+- **Space:** O(1).
+
+```python copy
+def exponential_search(arr, target):
+    n = len(arr)
+    if arr[0] == target: return 0
+
+    # Phase 1: find range by doubling
+    i = 1
+    while i < n and arr[i] < target:
+        i *= 2
+
+    # Phase 2: binary search in [i // 2, min(i, n) - 1]
+    lo, hi = i // 2, min(i, n) - 1
+    while lo <= hi:
+        mid = lo + (hi - lo) // 2
+        if arr[mid] == target: return mid
+        if arr[mid] < target: lo = mid + 1
+        else:                 hi = mid - 1
+    return -1
+```
+
+**Where it wins:**
+
+- **Infinite or unbounded data** — searching in an infinite sorted stream where you don't know the size.
+- **Target near the beginning** — phase 1 finds the bracketing range fast.
+- **Sorted-but-no-length API** — like searching for an element in a stream where you can only ask "what's the i-th element?"
+
+This is what Python's `bisect` module and Go's `sort.Search` lean on under the hood for sorted slices of unknown size.
+
+## 4. Fibonacci Search — when division is expensive
+
+**Idea.** Instead of dividing the range in half (requires `/ 2`), divide it using **Fibonacci numbers** (only requires subtraction).
+
+- **Time:** O(log n).
+- **Space:** O(1).
+- **Comparisons:** very similar to binary search.
+
+<Callout type="info">
+    On modern hardware, division is essentially free, so Fibonacci search is mostly a historical curiosity. It mattered when division operations were measured in dozens of clock cycles or when running on resource-constrained processors that didn't have a hardware divider.
+</Callout>
+
+```python copy
+def fibonacci_search(arr, target):
+    n = len(arr)
+    fib2, fib1 = 0, 1
+    fib = fib2 + fib1
+    while fib < n:
+        fib2, fib1 = fib1, fib
+        fib = fib2 + fib1
+
+    offset = -1
+    while fib > 1:
+        i = min(offset + fib2, n - 1)
+        if arr[i] < target:
+            fib, fib1 = fib1, fib2
+            fib2 = fib - fib1
+            offset = i
+        elif arr[i] > target:
+            fib, fib1 = fib2, fib1 - fib2
+            fib2 = fib - fib1
+        else:
+            return i
+    if fib1 == 1 and offset + 1 < n and arr[offset + 1] == target:
+        return offset + 1
+    return -1
+```
+
+Try it as an exercise. The main reason to include it here: it's the **bridge between the recurrence-relation thinking from Day 5** (Fibonacci recurrence) and concrete divide-and-conquer.
+
+## 5. Ternary Search — for unimodal functions
+
+**Idea.** Binary search assumes the data is **sorted** (monotonic). Ternary search assumes it's **unimodal** — strictly increasing then strictly decreasing (or vice versa). Splits into three parts and discards either the leftmost or rightmost third.
+
+```python copy
+def ternary_search(lo, hi, f, eps=1e-9):
+    """Find x in [lo, hi] that maximizes the unimodal function f."""
+    while hi - lo > eps:
+        m1 = lo + (hi - lo) / 3
+        m2 = hi - (hi - lo) / 3
+        if f(m1) < f(m2):
+            lo = m1
+        else:
+            hi = m2
+    return (lo + hi) / 2
+```
+
+- **Time:** O(log_{3/2} n) ≈ O(log n) — slightly more comparisons than binary search.
+- **Space:** O(1).
+
+**Where it wins:** continuous optimization on unimodal functions — finding the peak of a parabola, the minimum of a convex function. Used in numerical optimization libraries.
+
+**Interview relevance:** Find Peak Element ([practice problem](/day13/practice_questions/find_peak_element)) is a discrete cousin — though you usually solve it with plain binary search.
+
+## A side-by-side comparison
+
+| Algorithm                | Best Use Case                                     | Time         |
+| :----------------------- | :------------------------------------------------ | :----------- |
+| **Linear Search**        | Unsorted, small, or one-shot                       | O(n)         |
+| **Binary Search**        | Sorted, default choice                             | O(log n)     |
+| **Jump Search**          | Sequential access cheap, random access expensive   | O(√n)        |
+| **Interpolation Search** | Uniformly distributed sorted data                  | O(log log n) average |
+| **Exponential Search**   | Unbounded / unknown-size sorted data               | O(log n)     |
+| **Fibonacci Search**     | When division is expensive (historical)            | O(log n)     |
+| **Ternary Search**       | Unimodal functions, continuous optimization        | O(log n)     |
+
+## What about hash tables?
+
+If you can give up the "sorted" requirement entirely — **hash tables get you O(1) average lookup**, with no comparisons at all. That's the topic of [Day 8](/day8). The trade-off: hash tables don't support range queries, ordered iteration, or finding next-greater / next-smaller. Pick based on what queries you need.
+
+## The mental ranking for interviews
+
+For 99% of interview problems:
+
+1. **Binary search** (or the [unified template](/day13/binary_search_template)) is the answer.
+2. **Linear search** if the data isn't sorted and there's no time to sort.
+3. **Hash table** if you don't need order.
+
+Reach for the variants only when a specific constraint demands it. Otherwise, master the template on the previous page and you've covered the entire chapter's interview surface.
+
+Next: **applications** — where searching is the silent infrastructure of real systems.

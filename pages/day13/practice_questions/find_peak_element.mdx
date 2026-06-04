@@ -1,0 +1,137 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find Peak Element <DifficultyBadge level="medium" />
+
+#### Description
+
+A **peak element** is an element that is strictly greater than its neighbors. Given a `0`-indexed integer array `nums`, find a peak element and return its index. **You may assume that `nums[-1] = nums[n] = -∞`** (i.e., elements at the boundaries always count as "greater than the imaginary out-of-bounds neighbor").
+
+You must write an algorithm that runs in **O(log n)** time.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 2, 3, 1]
+    Output: 2          # nums[2] = 3 is a peak
+
+> Case 2:
+    nums = [1, 2, 1, 3, 5, 6, 4]
+    Output: 1 or 5     # both nums[1] = 2 AND nums[5] = 6 are peaks
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 1000`
+- `-2^31 <= nums[i] <= 2^31 - 1`
+- `nums[i] != nums[i + 1]` for all valid `i`.
+
+#### Why binary search works on an unsorted array
+
+The array isn't sorted — yet binary search still works. The trick: **the "slope" gives us a direction**.
+
+Look at `nums[mid]` and `nums[mid + 1]`:
+
+- If `nums[mid] < nums[mid + 1]` — the array is **rising** at this point. A peak must exist **to the right** (we'll either keep rising forever — but the boundary acts as `-∞` so we eventually peak — or hit a peak somewhere).
+- If `nums[mid] > nums[mid + 1]` — the array is **falling**. A peak must exist **to the left or at mid itself** (we're past a peak now).
+
+Because **the boundaries are treated as `-∞`**, a peak is guaranteed to exist. Binary search converges on it.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int findPeakElement(vector<int>& nums) {
+        int lo = 0, hi = nums.size() - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] < nums[mid + 1]) lo = mid + 1;   // ascending — peak on the right
+            else                            hi = mid;       // descending — peak at mid or on the left
+        }
+        return lo;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_peak_element(nums):
+        lo, hi = 0, len(nums) - 1
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if nums[mid] < nums[mid + 1]:
+                lo = mid + 1                 # ascending — peak on the right
+            else:
+                hi = mid                      # descending — peak at mid or on the left
+        return lo
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findPeakElement(int[] nums) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] < nums[mid + 1]) lo = mid + 1;
+            else                            hi = mid;
+        }
+        return lo;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The predicate is "we're past the peak"** — true when `nums[mid] > nums[mid + 1]`. That predicate IS monotonic once you spot it: before the peak it's false, after the peak it stays true. Binary search finds the boundary, which is exactly the peak.
+
+    This is a beautiful example of binary search working on an unsorted array — what matters isn't sortedness but **monotonicity of a derived predicate**.
+</Callout>
+
+#### Why we don't check `nums[mid - 1]` too
+
+You might think we need to compare BOTH sides — `nums[mid - 1] < nums[mid] > nums[mid + 1]`. We don't, because:
+
+- The binary search range `[lo, hi]` always contains at least one peak.
+- The slope comparison narrows that range correctly.
+- When `lo == hi`, the converged-on index IS a peak.
+
+Trust the invariant — one comparison per iteration is enough.
+
+#### Trace on `[1, 2, 1, 3, 5, 6, 4]`
+
+```text
+Step 1: lo=0, hi=6, mid=3, nums[3]=3, nums[4]=5. 3 < 5 → lo = 4.
+Step 2: lo=4, hi=6, mid=5, nums[5]=6, nums[6]=4. 6 > 4 → hi = 5.
+Step 3: lo=4, hi=5, mid=4, nums[4]=5, nums[5]=6. 5 < 6 → lo = 5.
+End: lo == hi == 5. Return 5.
+
+(The other valid answer was 1; we converged on the one in the right half.)
+```
+
+#### The "any valid answer" subtlety
+
+This problem accepts **any** peak as a valid answer. That's why the convergence works regardless of which side we go — the loop is guaranteed to land *on* a peak, not necessarily the first peak.
+
+If the problem asked for "the global maximum" (a different question), this binary search approach wouldn't work — you'd need to scan all elements in O(n).
+
+#### Iterative thought: why this is O(log n)
+
+Each iteration halves the search space. Standard binary-search reasoning gives O(log n). The fact that the array isn't sorted doesn't change this — the slope predicate is what matters.
+
+#### Related problems
+
+| Problem                                | What changes                                          |
+| :------------------------------------- | :---------------------------------------------------- |
+| **Peak Index in a Mountain Array**     | Mountain shape guaranteed (rising then falling)       |
+| **Find a Local Minimum**               | Same logic with `<` flipped                           |
+| **Bitonic Search**                     | Find peak first, then binary-search each half          |
+| **Ternary Search for unimodal max**    | Same idea, but continuous (real-valued)               |
+
+The pattern transfers anywhere you have a "rises then falls" structure.
+
+#### Analysis
+
+- **Time:** **O(log n)** — binary search.
+- **Space:** **O(1)**.

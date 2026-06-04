@@ -1,0 +1,167 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find Minimum in Rotated Sorted Array <DifficultyBadge level="medium" />
+
+#### Description
+
+A sorted array `nums` of **distinct** integers has been **rotated** at some unknown pivot. Find the minimum element. Your algorithm must run in **O(log n)** time.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [3, 4, 5, 1, 2]      → 1   (original sorted, rotated 3 positions)
+
+> Case 2:
+    nums = [4, 5, 6, 7, 0, 1, 2] → 0   (rotated 4 positions)
+
+> Case 3:
+    nums = [11, 13, 15, 17]      → 11  (not rotated; or rotated 0 / n positions)
+```
+
+#### Constraints
+
+- `n == nums.length`
+- `1 <= n <= 5000`
+- `-5000 <= nums[i] <= 5000`
+- All integers in `nums` are unique.
+- `nums` is sorted and then rotated 0 to n times.
+
+#### The shape of a rotated sorted array
+
+A rotated sorted array always looks like **two ascending runs**:
+
+```text
+        ●
+       ●●
+      ●●●
+     ●●●●        ← end of "right" run
+    ●            ← start of "left" run
+   ●
+  ●
+```
+
+Or, if no rotation happened, just one ascending run.
+
+The **minimum** is at the **boundary** between the two runs — the first element of the second (left) run. Binary search finds boundaries; this is its job.
+
+#### The key comparison: `nums[mid]` vs `nums[hi]`
+
+We compare `nums[mid]` against `nums[hi]` (the rightmost element):
+
+- If `nums[mid] > nums[hi]` — `mid` is in the **higher run** (the right run). The minimum must be **strictly to the right** of mid.
+- If `nums[mid] <= nums[hi]` — `mid` is in the **lower run** (or at the boundary itself). The minimum is at mid **or to its left**.
+
+That gives us a monotonic predicate: `nums[i] <= nums[hi]` is false on the right run, true on the left run. The first true index is the minimum.
+
+<Callout type="info">
+    **Why compare against `nums[hi]`, not `nums[lo]`?** Using `nums[hi]` (which sits in the lower run if the array is rotated, or at the maximum if not) gives a clean monotonic predicate. Comparing against `nums[lo]` works too but has more edge cases — try it as an exercise.
+</Callout>
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int findMin(vector<int>& nums) {
+        int lo = 0, hi = nums.size() - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] > nums[hi]) lo = mid + 1;     // mid is in the higher (right) run
+            else                       hi = mid;         // mid is in the lower (left) run, or AT the boundary
+        }
+        return nums[lo];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_min(nums):
+        lo, hi = 0, len(nums) - 1
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if nums[mid] > nums[hi]:
+                lo = mid + 1                # mid is in the higher (right) run
+            else:
+                hi = mid                     # mid is in the lower (left) run, or AT the boundary
+        return nums[lo]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findMin(int[] nums) {
+        int lo = 0, hi = nums.length - 1;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (nums[mid] > nums[hi]) lo = mid + 1;
+            else                       hi = mid;
+        }
+        return nums[lo];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Trace on `[4, 5, 6, 7, 0, 1, 2]`
+
+```text
+Step 1: lo=0, hi=6, mid=3, nums[3]=7, nums[6]=2. 7 > 2 → lo = 4.
+Step 2: lo=4, hi=6, mid=5, nums[5]=1, nums[6]=2. 1 < 2 → hi = 5.
+Step 3: lo=4, hi=5, mid=4, nums[4]=0, nums[5]=1. 0 < 1 → hi = 4.
+End: lo == hi == 4. Return nums[4] = 0.
+```
+
+Three iterations to find the minimum in a 7-element array — that's the O(log n) win.
+
+#### The non-rotated case
+
+What if the array isn't rotated at all? `[1, 2, 3, 4, 5]`:
+
+```text
+Step 1: lo=0, hi=4, mid=2, nums[2]=3, nums[4]=5. 3 < 5 → hi = 2.
+Step 2: lo=0, hi=2, mid=1, nums[1]=2, nums[2]=3. 2 < 3 → hi = 1.
+Step 3: lo=0, hi=1, mid=0, nums[0]=1, nums[1]=2. 1 < 2 → hi = 0.
+End: lo == hi == 0. Return nums[0] = 1.
+```
+
+Works correctly. The algorithm handles "no rotation" as a degenerate case — the "left run" is the whole array, the minimum is at index 0.
+
+#### Variant: duplicates allowed
+
+LeetCode 154 — *Find Minimum in Rotated Sorted Array II* — allows duplicates. The algorithm needs one tweak:
+
+```python copy
+def find_min_with_dupes(nums):
+    lo, hi = 0, len(nums) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if nums[mid] > nums[hi]:
+            lo = mid + 1
+        elif nums[mid] < nums[hi]:
+            hi = mid
+        else:
+            hi -= 1                       # can't decide; shrink hi conservatively
+    return nums[lo]
+```
+
+When `nums[mid] == nums[hi]`, we can't tell which run `mid` is in — both interpretations are valid. The safe move is to shrink `hi` by 1 and try again. **Worst case becomes O(n)** (consider `[2, 2, 2, 2, 2, 0, 2]`), but average is still O(log n).
+
+#### The pattern: "find the boundary in a piecewise-monotonic array"
+
+This shape generalizes to:
+
+| Problem                                        | Boundary to find                              |
+| :--------------------------------------------- | :-------------------------------------------- |
+| **Find Min in Rotated Sorted Array** (this one) | Start of the left run                        |
+| **Search in Rotated Sorted Array**             | First find the rotation point, then search    |
+| **Find Peak Element**                          | The "turning point" of rise→fall              |
+| **Find K-th Smallest in Rotated Sorted Array** | Combination: locate min, then index into runs |
+
+The trick is always **finding the monotonic predicate** that separates the two halves.
+
+#### Analysis
+
+- **Time:** **O(log n)** — binary search.
+- **Space:** **O(1)**.

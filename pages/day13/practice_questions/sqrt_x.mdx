@@ -1,0 +1,143 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sqrt(x) <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a non-negative integer `x`, compute and return the **integer square root** of `x`. The result should be **truncated** — `floor(sqrt(x))`.
+
+You **may not** use a built-in exponent or square-root function.
+
+#### Examples
+
+```py
+> Case 1:  x = 4    Output: 2
+> Case 2:  x = 8    Output: 2       # floor(sqrt(8)) = floor(2.828) = 2
+> Case 3:  x = 0    Output: 0
+> Case 4:  x = 2147395599  Output: 46339
+```
+
+#### Constraints
+
+- `0 <= x <= 2^31 - 1`
+
+#### Binary search on the answer
+
+This is the introductory **"binary search on the answer"** problem. The clever realization: we don't have an array to search — we have a **range of candidate answers** `[0, x]`, and the predicate `s² > x` is monotonic over that range.
+
+```text
+s         : 0  1  2  3  4  5  6  ...
+s² > 8    : F  F  F  T  T  T  T  ...
+```
+
+The first `s` where `s² > x` is **one past** the integer square root. Subtract 1 to get the answer.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int mySqrt(int x) {
+        long lo = 0, hi = (long)x + 1;
+        while (lo < hi) {
+            long mid = lo + (hi - lo) / 2;
+            if (mid * mid > x) hi = mid;
+            else               lo = mid + 1;
+        }
+        return (int)(lo - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def my_sqrt(x):
+        lo, hi = 0, x + 1
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if mid * mid > x: hi = mid
+            else:             lo = mid + 1
+        return lo - 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int mySqrt(int x) {
+        long lo = 0, hi = (long) x + 1;
+        while (lo < hi) {
+            long mid = lo + (hi - lo) / 2;
+            if (mid * mid > x) hi = mid;
+            else               lo = mid + 1;
+        }
+        return (int)(lo - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Use `long` (or `long long`) for `mid` in C++ / Java.** When `x = 2^31 - 1`, `mid` can be as large as `2^31 / 2 ≈ 46340`, and `mid * mid` exceeds the 32-bit `int` max. Python's unbounded ints don't have this problem.
+</Callout>
+
+#### Why `hi = x + 1` and not `hi = x`?
+
+The first `s` where `s² > x` could be `x + 1` itself for tiny x. With `hi = x` exclusive, we exclude `s = x` as a candidate — but for `x = 0`, the answer is `0`, and we'd never visit it. By setting `hi = x + 1`, we make the range inclusive of every valid `s`.
+
+Concrete example: `x = 0`. `lo = 0, hi = 1`. Iteration: `mid = 0`, `0 * 0 = 0 > 0` is false, so `lo = 1`. Loop exits with `lo = 1`. Return `lo - 1 = 0`. ✓
+
+#### Approach 2: Newton's method
+
+The non-binary-search approach. Newton's iteration converges quadratically:
+
+```python copy
+def my_sqrt_newton(x):
+    if x == 0: return 0
+    s = x
+    while s * s > x:
+        s = (s + x // s) // 2
+    return s
+```
+
+- **Time:** **O(log log x)** — quadratic convergence beats binary's linear.
+- **Space:** O(1).
+
+Newton's method is what languages' `sqrt()` actually uses (with floating-point math and seed values from a lookup table). Binary search is more intuitive and easier to write correctly under interview pressure.
+
+#### Approach 3: Bit manipulation
+
+A purist's solution that uses only bit shifts:
+
+```python copy
+def my_sqrt_bits(x):
+    if x == 0: return 0
+    result = 0
+    bit = 1 << 15                          # highest bit we care about (for 32-bit x)
+    while bit > 0:
+        if (result + bit) ** 2 <= x:
+            result += bit
+        bit >>= 1
+    return result
+```
+
+Same O(log x) cost as binary search; cute but not interview-clearer.
+
+#### The broader pattern
+
+"Binary search on the answer" is the **single most powerful application** of binary search beyond the textbook. Sqrt(x) is the gateway. Other interview problems with the same shape:
+
+| Problem                                        | Answer space          | Predicate                            |
+| :--------------------------------------------- | :-------------------- | :----------------------------------- |
+| **Sqrt(x)** (this one)                         | `[0, x]`              | `s² > x`                             |
+| **Capacity to Ship Packages in D Days**        | `[max(w), sum(w)]`    | `can ship in D days at capacity c`   |
+| **Koko Eating Bananas**                        | `[1, max(pile)]`      | `can finish in H hours at speed k`   |
+| **Split Array Largest Sum**                    | `[max, sum]`          | `can split with max-sum ≤ x in K parts` |
+| **Minimum Speed to Arrive on Time**            | `[1, big]`            | `arrival time at speed s ≤ deadline` |
+| **Find K-th Smallest Pair Distance**           | `[0, max - min]`      | `count of pairs with distance ≤ x ≥ K` |
+
+If your answer is "an integer in some range" and there's a monotonic check, **binary-search the integer range**. The pattern saves dozens of lines of clever logic.
+
+#### Analysis
+
+- **Time:** **O(log x)** for binary search; O(log log x) for Newton.
+- **Space:** **O(1)**.

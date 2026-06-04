@@ -1,0 +1,275 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# The Unified Binary Search Template
+
+If you've ever spent 30 minutes debugging an off-by-one error in binary search, this page is for you.
+
+The core idea: **almost every binary-search problem reduces to "find the first index where some condition is true."** Once you can express the problem that way, the same 8-line template solves it. No `<= vs <`, no `mid + 1 vs mid`, no head-scratching.
+
+## The mental shift
+
+Stop thinking of binary search as "find the target." Think of it as **"find the boundary."**
+
+Imagine a sorted array transformed into a boolean array:
+
+```text
+arr     = [1, 3, 5, 7, 9, 11, 13, 15]
+target  = 7
+boolean = [F, F, F, T, T,  T,  T,  T]    ← "is arr[i] >= 7?"
+```
+
+The boolean array is **monotonic** — `F`s on the left, `T`s on the right. Binary search **finds the first `T`**. That's the index where the answer lives (in this case, 3 — pointing at `7`).
+
+This reframing works for *every* binary-search problem.
+
+## The template
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def find_first_true(lo, hi, condition):
+        """
+        Returns the smallest x in [lo, hi] where condition(x) is True.
+        Assumes condition is monotonic: False...False True...True.
+        Returns hi + 1 if no such x exists.
+        """
+        while lo < hi:
+            mid = (lo + hi) // 2
+            if condition(mid):
+                hi = mid                # keep mid as a candidate
+            else:
+                lo = mid + 1            # mid is too small
+        return lo
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int findFirstTrue(int lo, int hi, function<bool(int)> condition) {
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (condition(mid)) {
+                hi = mid;                // keep mid as a candidate
+            } else {
+                lo = mid + 1;            // mid is too small
+            }
+        }
+        return lo;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int findFirstTrue(int lo, int hi, IntPredicate condition) {
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (condition.test(mid)) {
+                hi = mid;                // keep mid as a candidate
+            } else {
+                lo = mid + 1;            // mid is too small
+            }
+        }
+        return lo;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**That's it.** Memorize these 8 lines and you can solve every binary-search problem. The work is **expressing your problem as a `condition(x)` function** — the template handles the rest.
+
+## Why the template is bulletproof
+
+Three properties make this template robust:
+
+1. **`lo < hi`** (not `lo <= hi`) — the loop ends when `lo == hi`, with `lo` pointing at the answer. No "did I find it?" check needed.
+2. **`hi = mid`** (not `mid - 1`) — when `condition(mid)` is true, `mid` *might* be the answer, so we keep it in the candidate range.
+3. **`lo = mid + 1`** — when `condition(mid)` is false, `mid` definitely isn't the answer, so we exclude it.
+
+These three choices interlock. Change one and the others have to change too — that's where bugs come from. **Use them all together and you can't go wrong.**
+
+## Applying the template
+
+The strategy: **identify the monotonic predicate.** Then the answer is "find the first index where the predicate is true."
+
+### Example 1 — classic binary search
+
+> Find the index of `target` in a sorted array, or -1 if not present.
+
+```python copy
+def search(arr, target):
+    pos = find_first_true(0, len(arr), lambda i: arr[i] >= target)
+    if pos < len(arr) and arr[pos] == target:
+        return pos
+    return -1
+```
+
+The predicate: `arr[i] >= target`. It's false on `arr` elements smaller than target, true on the rest. First true = leftmost occurrence of target (or the insertion point if not present).
+
+We pass `hi = len(arr)` (one past the end) so that "not found" comes out as `len(arr)`, which we detect with the bounds check after.
+
+### Example 2 — Lower Bound / Upper Bound
+
+> **Lower bound:** first index where `arr[i] >= target`.
+> **Upper bound:** first index where `arr[i] > target`.
+
+```python copy
+def lower_bound(arr, target):
+    return find_first_true(0, len(arr), lambda i: arr[i] >= target)
+
+def upper_bound(arr, target):
+    return find_first_true(0, len(arr), lambda i: arr[i] > target)
+```
+
+These are the C++ STL functions `std::lower_bound` and `std::upper_bound`. The two together give you the range `[lower, upper)` of all occurrences of `target`.
+
+### Example 3 — First Bad Version
+
+> You have versions 1..n. Some version is "bad" and all subsequent versions are bad too. Find the first bad version using the API `isBadVersion(int)`.
+
+```python copy
+def first_bad_version(n):
+    return find_first_true(1, n, lambda v: isBadVersion(v))
+```
+
+That's the entire solution. The predicate is the API call itself.
+
+### Example 4 — Search Insert Position
+
+> Find the index where `target` should be inserted in a sorted array.
+
+```python copy
+def search_insert(arr, target):
+    return find_first_true(0, len(arr), lambda i: arr[i] >= target)
+```
+
+Same predicate as classic binary search, just don't do the "not found" check — return the position regardless.
+
+### Example 5 — Find First and Last Position
+
+> Given a sorted array with possibly-repeated values, find the leftmost and rightmost index where `target` appears.
+
+```python copy
+def search_range(arr, target):
+    left  = find_first_true(0, len(arr), lambda i: arr[i] >= target)
+    right = find_first_true(0, len(arr), lambda i: arr[i] >  target) - 1
+    if left == len(arr) or arr[left] != target:
+        return [-1, -1]
+    return [left, right]
+```
+
+Lower bound gives the left edge; upper bound minus one gives the right edge. Two calls to the same template.
+
+## Binary search on the answer
+
+This is the killer pattern that promotes binary search from "library function" to "interview superpower."
+
+Many problems look like:
+
+> Find the **minimum/maximum value of X** such that some condition holds.
+
+If the condition is **monotonic in X** — i.e., once it's true for some X, it's true for all larger (or smaller) X — you can **binary-search over the space of X itself**, not the input array.
+
+### Example 6 — Sqrt(x)
+
+> Compute the integer square root of `x` (largest `s` with `s² <= x`).
+
+The candidate answers range from `0` to `x`. The predicate "is `s² > x`" is monotonic — false for small s, true for large. Use the template to find the boundary.
+
+```python copy
+def my_sqrt(x):
+    # find smallest s with s*s > x; answer is s - 1
+    return find_first_true(0, x + 1, lambda s: s * s > x) - 1
+```
+
+That's it. **The "array" is the conceptual range 0..x**, never materialized.
+
+### Example 7 — Capacity to Ship Packages
+
+> Given an array of package weights and `D` days, find the minimum capacity such that you can ship all packages in `D` days.
+
+```python copy
+def ship_within_days(weights, days):
+    def can_finish(capacity):
+        d, cur = 1, 0
+        for w in weights:
+            if cur + w > capacity:
+                d += 1
+                cur = 0
+            cur += w
+        return d <= days
+
+    return find_first_true(max(weights), sum(weights), can_finish)
+```
+
+The candidate capacities range from `max(weights)` (you must fit the heaviest package) to `sum(weights)` (one giant ship). The predicate "can we finish in `days` days with this capacity?" is monotonic — bigger capacity always means fewer days. **Find the smallest capacity that works.**
+
+This same shape solves: Koko Eating Bananas, Split Array Largest Sum, Minimum Speed to Arrive on Time, and a dozen others.
+
+## When the template doesn't directly apply
+
+Some problems need the template flipped — "find the LAST index where condition is true." That's just a flipped predicate:
+
+```python copy
+def find_last_true(lo, hi, condition):
+    return find_first_true(lo, hi, lambda x: not condition(x)) - 1
+```
+
+Or, if you prefer to write it directly:
+
+```python copy
+def find_last_true(lo, hi, condition):
+    while lo < hi:
+        mid = (lo + hi + 1) // 2          # round UP to avoid infinite loop
+        if condition(mid):
+            lo = mid
+        else:
+            hi = mid - 1
+    return lo
+```
+
+The crucial line is `mid = (lo + hi + 1) // 2` — round **up** so `mid` never equals `lo` when `lo + 1 == hi`, avoiding infinite loops.
+
+In practice, I almost always use the "first true" template and adapt the predicate.
+
+## A general recipe
+
+When you see a problem that smells like binary search:
+
+1. **What's the answer space?** Indices `0..n-1`? Integers `1..k`? Real numbers in `[0, max]`?
+2. **What's the monotonic predicate?** "Is `arr[i] >= target`?" "Can we ship within D days at capacity x?" "Is `s² > x`?"
+3. **Do I want the first `true` or the last `true`?** First true → use `find_first_true`. Last true → flip predicate or use the variant.
+4. **What's `lo` and `hi`?** Make sure `hi` is at least one past the largest valid answer (so "not found" returns out of range).
+5. **Plug into the template.** Done.
+
+If you can answer the four questions, the code writes itself.
+
+## Common bugs the template eliminates
+
+| Old-style bug                          | Why the template avoids it                          |
+| :------------------------------------- | :-------------------------------------------------- |
+| `while (lo <= hi)` infinite loop       | Template uses `lo < hi` — guaranteed to terminate.  |
+| `mid + 1` vs `mid` confusion           | Template's rules are mechanical: `hi = mid` (keep) or `lo = mid + 1` (exclude). |
+| Wrong return value if target not present | Template returns `hi + 1` (or `lo` at termination) — one bounds check covers all cases. |
+| Off-by-one on the upper bound          | Pass `hi = n` (not `n - 1`); the template handles it. |
+| `(lo + hi) / 2` overflow               | Use `lo + (hi - lo) / 2` everywhere.                |
+
+## Try it: the pattern in action
+
+| Problem                                    | Predicate                                          |
+| :----------------------------------------- | :------------------------------------------------- |
+| Classic Binary Search                      | `arr[i] >= target`                                 |
+| First Bad Version                          | `isBadVersion(v)`                                  |
+| Search Insert Position                     | `arr[i] >= target`                                 |
+| Find First / Last Position of Element      | `arr[i] >= target` and `arr[i] > target`           |
+| Sqrt(x)                                    | `s * s > x` (then subtract 1)                      |
+| Capacity to Ship Packages                  | `can_finish(capacity, days)`                       |
+| Koko Eating Bananas                        | `hours_needed(speed) <= H`                         |
+| Split Array Largest Sum                    | `can_split(max_sum, k)`                            |
+| Minimum Speed to Arrive on Time            | `arrival_time(speed) <= deadline`                  |
+| Find Peak Element                          | `arr[i] > arr[i + 1]`                              |
+| Minimum in Rotated Sorted Array            | `arr[i] <= arr[hi]`                                |
+| Median of Two Sorted Arrays                | `is_valid_partition(i)` (the hardest of the bunch) |
+
+Twelve interview classics, one template. The whole skill of binary search is **expressing your problem as a monotonic boolean**.
+
+Next: **search variants** — jump, interpolation, exponential, and Fibonacci search, when each one beats binary.

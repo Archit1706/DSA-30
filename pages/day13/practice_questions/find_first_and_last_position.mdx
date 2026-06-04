@@ -1,0 +1,174 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find First and Last Position of Element in Sorted Array <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a sorted array of integers `nums` and a `target`, find the **starting and ending position** of the target. Return `[-1, -1]` if the target is not in the array.
+
+Required complexity: **O(log n)**.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [5, 7, 7, 8, 8, 10],  target = 8
+    Output: [3, 4]
+
+> Case 2:
+    nums = [5, 7, 7, 8, 8, 10],  target = 6
+    Output: [-1, -1]
+
+> Case 3:
+    nums = [],  target = 0
+    Output: [-1, -1]
+```
+
+#### Constraints
+
+- `0 <= nums.length <= 10^5`
+- `-10^9 <= nums[i], target <= 10^9`
+- `nums` is sorted in non-decreasing order.
+
+#### The two-search trick
+
+Use the [template](/day13/binary_search_template) **twice** with two slightly different predicates:
+
+- **First position:** find the first index where `nums[i] >= target`. If it points at `target`, that's the left edge.
+- **Last position:** find the first index where `nums[i] > target`. Subtract 1 — that's the right edge.
+
+This is **lower bound** and **upper bound − 1**, the C++ STL pair that every binary-search-aware programmer knows.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int findFirstTrue(vector<int>& nums, function<bool(int)> cond) {
+        int lo = 0, hi = nums.size();
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (cond(mid)) hi = mid;
+            else           lo = mid + 1;
+        }
+        return lo;
+    }
+
+    vector<int> searchRange(vector<int>& nums, int target) {
+        int left  = findFirstTrue(nums, [&](int i) { return nums[i] >= target; });
+        int right = findFirstTrue(nums, [&](int i) { return nums[i] >  target; }) - 1;
+        if (left == (int)nums.size() || nums[left] != target) return {-1, -1};
+        return {left, right};
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def search_range(nums, target):
+        def find_first_true(cond):
+            lo, hi = 0, len(nums)
+            while lo < hi:
+                mid = (lo + hi) // 2
+                if cond(mid): hi = mid
+                else:         lo = mid + 1
+            return lo
+
+        left  = find_first_true(lambda i: nums[i] >= target)
+        right = find_first_true(lambda i: nums[i] >  target) - 1
+
+        if left == len(nums) or nums[left] != target:
+            return [-1, -1]
+        return [left, right]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] searchRange(int[] nums, int target) {
+        int left  = findFirstTrue(nums, i -> nums[i] >= target);
+        int right = findFirstTrue(nums, i -> nums[i] >  target) - 1;
+        if (left == nums.length || nums[left] != target) return new int[]{-1, -1};
+        return new int[]{left, right};
+    }
+
+    private int findFirstTrue(int[] nums, java.util.function.IntPredicate cond) {
+        int lo = 0, hi = nums.length;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (cond.test(mid)) hi = mid;
+            else                lo = mid + 1;
+        }
+        return lo;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Notice the duality.** `>= target` finds the LEFT edge of the target run. `> target` finds the position JUST PAST the right edge. Subtract one from the latter and you get the right edge. **The whole problem is two template calls plus a final bounds check.**
+</Callout>
+
+#### The non-template version (more code, same idea)
+
+If you want to do it without a helper function:
+
+```python copy
+def search_range(nums, target):
+    if not nums: return [-1, -1]
+
+    # Find leftmost
+    lo, hi = 0, len(nums) - 1
+    left = -1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if nums[mid] >= target:
+            if nums[mid] == target: left = mid
+            hi = mid - 1
+        else:
+            lo = mid + 1
+
+    if left == -1: return [-1, -1]
+
+    # Find rightmost
+    lo, hi = left, len(nums) - 1
+    right = left
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if nums[mid] <= target:
+            if nums[mid] == target: right = mid
+            lo = mid + 1
+        else:
+            hi = mid - 1
+
+    return [left, right]
+```
+
+Works but more brittle — three off-by-ones waiting to bite. **Prefer the template version.**
+
+#### Why two searches, not one?
+
+You might wonder: "can't I find the left edge then linear-scan right?" Yes — but if the target appears `k` times, that's O(log n + k). If `k = n/2`, that's O(n). Two binary searches keep it strictly **O(log n)**.
+
+#### Edge cases the template handles automatically
+
+- **Empty array:** `find_first_true` returns 0, the bounds check catches it.
+- **Target larger than max:** `find_first_true` returns `len(nums)`, bounds check returns `[-1, -1]`.
+- **Target smaller than min:** `find_first_true` returns 0, `nums[0] != target`, bounds check returns `[-1, -1]`.
+- **Target appears once:** lower bound = upper bound − 1, so left == right.
+
+#### The bigger pattern: lower / upper bound
+
+Even outside this problem, the lower-bound / upper-bound primitives are useful for:
+
+- **Counting occurrences:** `upper(t) - lower(t)`.
+- **Counting elements in a range `[a, b]`:** `upper(b) - lower(a)`.
+- **Removing duplicates:** combined with `unique()` in C++.
+- **Range queries on a sorted log file:** find all entries between two timestamps.
+
+Both ship as `std::lower_bound` / `std::upper_bound` in C++, `bisect_left` / `bisect_right` in Python, and `Arrays.binarySearch` (returns insertion point if not found) in Java.
+
+#### Analysis
+
+- **Time:** **O(log n)** — two binary searches.
+- **Space:** **O(1)**.

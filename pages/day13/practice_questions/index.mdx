@@ -1,5 +1,45 @@
-### Problem List
+import { Callout } from "nextra/components";
 
-|        Problem         | Dificulty |                          Link                           |
-| :--------------------: | :-------: | :-----------------------------------------------------: |
-| Search Insert Position |   Easy    | [Link](./practice_questions/search_insert_position.mdx) |
+# Searching Practice Questions
+
+Eight interview classics. Every one is a direct application of the [unified binary-search template](/day13/binary_search_template) — once you can spot the monotonic predicate, the code writes itself.
+
+<Callout type="info">
+    For each problem, before reading the solution, ask:
+    - **What's the answer space?** Array indices? Integers? Real numbers?
+    - **What's the monotonic predicate?** "Is arr[i] ≥ target?" "Can we ship in D days at capacity c?"
+    - **First true or last true?** First → use the template directly. Last → flip the predicate.
+
+    Three questions, three lines of work, one template. That's the whole chapter.
+</Callout>
+
+## Easy
+
+| Problem                                                                                  | Pattern                                  | Status     |
+| :--------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Binary Search](/day13/practice_questions/binary_search)                                  | Canonical template                       | Available  |
+| [Search Insert Position](/day13/practice_questions/search_insert_position)               | Lower bound (template, no found-check)    | Available  |
+| [First Bad Version](/day13/practice_questions/first_bad_version)                         | Boundary-finding via API call            | Available  |
+| [Sqrt(x)](/day13/practice_questions/sqrt_x)                                              | Binary search on the answer              | Available  |
+
+## Medium
+
+| Problem                                                                                  | Pattern                                  | Status     |
+| :--------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Find First and Last Position of Element](/day13/practice_questions/find_first_and_last_position) | Lower bound + upper bound − 1     | Available  |
+| [Find Peak Element](/day13/practice_questions/find_peak_element)                         | Binary search on the slope               | Available  |
+| [Find Min in Rotated Sorted Array](/day13/practice_questions/find_min_in_rotated_sorted_array) | Compare with `arr[hi]`             | Available  |
+| [Search in Rotated Sorted Array](/day13/practice_questions/search_in_rotated_sorted_array) | Decide which half is sorted              | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                            | Status        |
+| :------------------------------------- | :--------------------------------- | :------------ |
+| Koko Eating Bananas                    | Binary search on speed             | Coming Soon   |
+| Capacity to Ship Packages in D Days    | Binary search on capacity          | Coming Soon   |
+| Split Array Largest Sum                | Binary search on max sum           | Coming Soon   |
+| Find K Closest Elements                | Binary search + two-pointer        | Coming Soon   |
+| Median of Two Sorted Arrays            | Two-array binary search partition  | Coming Soon   |
+| Search 2D Matrix                       | Treat 2D as 1D, then binary search | Coming Soon   |
+| Find K-th Smallest Pair Distance       | Binary search on distance          | Coming Soon   |
+| Aggressive Cows / Place K markers      | Binary search on minimum gap       | Coming Soon   |
