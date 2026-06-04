@@ -2,15 +2,32 @@ import { Callout } from "nextra/components";
 
 # Day 15 — Greedy Algorithms
 
+Greedy is the algorithmic philosophy that says: **"at every step, take the move that looks best right now — and don't look back."** When it works, it's the simplest, fastest, and most elegant kind of solution you can write. When it *doesn't* work, it returns confident garbage.
+
+Today is about both — recognizing when greedy is the right answer, and proving it's not just *probably* right but *provably* right.
+
+## What you'll learn today
+
+- **The greedy mindset** — make the locally optimal choice and never reconsider.
+- **The two properties** every greedy problem must have: **greedy choice property** and **optimal substructure**. Without both, your greedy approach is wrong, even if it looks right on test cases.
+- **The proof techniques** — exchange argument, induction, contradiction — that turn "this looks right" into "this *is* right." Interviewers love this.
+- **The canonical problems** — activity selection, fractional knapsack, Huffman coding, interval scheduling — and the templates they each produce.
+- **Greedy vs DP** — the most common decision point. We'll do it on concrete examples (coin change US vs arbitrary, jump game variants) so you can tell at a glance.
+- **Real-world greedy** — where it powers scheduling, networking, compression, load balancing, and more.
+- **Eight interview problems** covering every greedy shape you'll see: sort-and-pick, interval merging, two pointers on sorted input, prefix tracking.
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    If [Day 14 — Dynamic Programming](/day14) is *"try every option, remember the best,"* greedy is *"just take the best-looking move right now."* Greedy is much faster — when it's correct. The interview skill is knowing **which problems are which.**
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- The **greedy choice property** — why "always pick the locally best option" sometimes works (and sometimes doesn't)
-- Classic problems: **activity selection, fractional knapsack, Huffman coding, interval scheduling**
-- How to **prove** a greedy algorithm is correct (exchange argument, induction)
-- **Greedy vs DP** — recognizing when each applies, and the cost of getting it wrong
+1. **[Introduction](/day15/introduction)** — what greedy is, the two essential properties, why "obvious" greedy attempts fail.
+2. **[Proving Correctness](/day15/proving_correctness)** — the exchange argument, inductive proofs, and how to make a greedy claim bulletproof.
+3. **[Classic Problems](/day15/classic_problems)** — survey of the canonical greedy templates: activity selection, fractional knapsack, Huffman coding, scheduling, MST preview.
+4. **[Greedy vs DP](/day15/greedy_vs_dp)** — the decision guide. When each applies, how to spot which one a problem wants.
+5. **[Applications](/day15/applications)** — real-world greedy systems: schedulers, network routing, compression, load balancing, video streaming.
+6. **[Basic Questions](/day15/basic_questions)** — warm-up exercises with show/hide solutions.
+7. **[Practice Questions](/day15/practice_questions)** — eight interview classics.
 
-If [Day 14 — Dynamic Programming](/day14) is "try every option and pick the best," greedy is "just take the best-looking move right now." Much faster when it works.
+Up next on **Day 16 — Backtracking**, the other side of the coin: when greedy *doesn't* work and you actually do need to try everything.

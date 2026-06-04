@@ -1,0 +1,274 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Classic Greedy Problems
+
+A guided tour of the greedy problems every algorithms textbook covers — and the templates they produce that show up over and over in interviews. Once you've seen these, half the LeetCode "medium greedy" tag falls into one of these shapes.
+
+## 1. Activity Selection
+
+> Given `n` activities with start and end times, select the maximum number that don't overlap.
+
+**Greedy:** sort by **earliest end time**. Iterate, picking each activity whose start time is `≥` the previous end time.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def activity_selection(activities):
+        # activities = [(start, end), ...]
+        activities.sort(key=lambda a: a[1])           # sort by end time
+        result = []
+        last_end = 0
+        for start, end in activities:
+            if start >= last_end:
+                result.append((start, end))
+                last_end = end
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    vector<pair<int,int>> activitySelection(vector<pair<int,int>> activities) {
+        sort(activities.begin(), activities.end(),
+             [](auto& a, auto& b) { return a.second < b.second; });
+        vector<pair<int,int>> result;
+        int lastEnd = 0;
+        for (auto& [start, end] : activities) {
+            if (start >= lastEnd) {
+                result.push_back({start, end});
+                lastEnd = end;
+            }
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public List<int[]> activitySelection(int[][] activities) {
+        Arrays.sort(activities, (a, b) -> a[1] - b[1]);
+        List<int[]> result = new ArrayList<>();
+        int lastEnd = 0;
+        for (int[] act : activities) {
+            if (act[0] >= lastEnd) {
+                result.add(act);
+                lastEnd = act[1];
+            }
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n log n) for the sort. **Space:** O(1) extra.
+
+We proved this correct via the exchange argument on the [previous page](/day15/proving_correctness#worked-example-activity-selection).
+
+**Template-mates:** Non-overlapping Intervals, Minimum Number of Arrows to Burst Balloons, Erase Overlap Intervals, Meeting Rooms — all sort-by-end-time problems.
+
+## 2. Fractional Knapsack
+
+> You have items with weights and values, and a knapsack with capacity `W`. You can take *fractions* of items (cut them into smaller pieces). Maximize total value.
+
+(Note: this is the **fractional** version. The 0/1 version — take-or-leave whole items — is DP, not greedy.)
+
+**Greedy:** sort by **value-per-weight ratio (descending)**. Take items whole until you can't fit any more whole; then take a fraction of the next.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def fractional_knapsack(items, capacity):
+        # items = [(weight, value), ...]
+        items.sort(key=lambda it: it[1] / it[0], reverse=True)  # best ratio first
+        total = 0.0
+        for w, v in items:
+            if capacity >= w:
+                total += v
+                capacity -= w
+            else:
+                total += v * (capacity / w)                     # take fraction
+                break
+        return total
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    double fractionalKnapsack(vector<pair<int,int>>& items, int capacity) {
+        sort(items.begin(), items.end(),
+             [](auto& a, auto& b) {
+                 return (double)a.second / a.first > (double)b.second / b.first;
+             });
+        double total = 0.0;
+        for (auto& [w, v] : items) {
+            if (capacity >= w) {
+                total += v;
+                capacity -= w;
+            } else {
+                total += v * ((double)capacity / w);
+                break;
+            }
+        }
+        return total;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public double fractionalKnapsack(int[][] items, int capacity) {
+        Arrays.sort(items, (a, b) ->
+            Double.compare((double)b[1]/b[0], (double)a[1]/a[0])
+        );
+        double total = 0.0;
+        for (int[] it : items) {
+            if (capacity >= it[0]) {
+                total += it[1];
+                capacity -= it[0];
+            } else {
+                total += it[1] * ((double) capacity / it[0]);
+                break;
+            }
+        }
+        return total;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n log n). **Space:** O(1).
+
+**Why it works (exchange argument):** suppose an optimal solution skips an item with the best ratio and takes one with a worse ratio instead. Replace that worse item with an equivalent weight of the better-ratio one — total value goes up. So optimal must include the best-ratio item first.
+
+<Callout type="warning">
+    **The fractional version is greedy. The 0/1 version is DP.** This is a famous distinction. With fractions allowed, the greedy ratio argument works because you can always "fill the remaining capacity perfectly." Without fractions, you might be forced to skip the highest-ratio item if it doesn't fit, and then greedy can give a suboptimal answer.
+</Callout>
+
+## 3. Huffman Coding
+
+> Given character frequencies, design a binary prefix code such that the **total encoded length** is minimized.
+
+**Greedy:** repeatedly merge the two least-frequent characters/trees into a new internal node. The resulting tree is the optimal prefix code.
+
+```python copy
+import heapq
+
+def huffman_codes(frequencies):
+    # frequencies = {char: freq}
+    heap = [[freq, char] for char, freq in frequencies.items()]
+    heapq.heapify(heap)
+    while len(heap) > 1:
+        lo = heapq.heappop(heap)            # two smallest
+        hi = heapq.heappop(heap)
+        # Merge — assign '0' to the left subtree, '1' to the right
+        for pair in lo[1:]: pair[1] = '0' + pair[1] if isinstance(pair, list) else pair
+        for pair in hi[1:]: pair[1] = '1' + pair[1] if isinstance(pair, list) else pair
+        heapq.heappush(heap, [lo[0] + hi[0]] + lo[1:] + hi[1:])
+    return heap[0]
+```
+
+**Time:** O(n log n) — n heap operations of O(log n) each. **Space:** O(n).
+
+**Why it works (exchange argument):** in any optimal prefix tree, the two deepest leaves must be the two least-frequent characters. (Otherwise we could swap them with deeper characters that have higher frequencies and reduce the total length.) So merging the two smallest first is always part of an optimal solution.
+
+This is the foundation of DEFLATE (gzip), JPEG, MP3, and dozens of compression formats. We covered it briefly in [Day 7 — Heap Applications](/day7/applications#3-huffman-coding---optimal-prefix-codes).
+
+## 4. Interval Scheduling Maximization
+
+> Same shape as activity selection — given intervals, pick the maximum non-overlapping subset.
+
+This is literally activity selection in disguise. **Same greedy: sort by end time, pick the next one that fits.**
+
+Variations:
+
+- **Minimum Number of Arrows to Burst All Balloons** — sort by end coordinate, count "arrow shots" needed where each shot ends where the current overlap ends.
+- **Non-overlapping Intervals** — count how many to *remove* to leave a non-overlapping set. Equivalently, n minus the activity-selection answer.
+- **Erase Overlap Intervals** — same as Non-overlapping.
+
+All four problems use the same code with tiny adjustments. Pattern: **sort by end, sweep, count.**
+
+## 5. Job Sequencing with Deadlines
+
+> You have `n` jobs, each with a profit and a deadline. Each job takes 1 unit of time. You can do one job at a time. Maximize total profit by choosing which jobs to do and in what order.
+
+**Greedy:** sort by **profit (descending)**. For each job, schedule it in the latest possible time slot before its deadline that's still free.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def job_sequencing(jobs):
+        # jobs = [(id, deadline, profit), ...]
+        jobs.sort(key=lambda j: -j[2])             # by profit descending
+        max_deadline = max(j[1] for j in jobs)
+        slots = [None] * max_deadline             # time-slot occupancy
+        total = 0
+        for job_id, deadline, profit in jobs:
+            for t in range(min(deadline, max_deadline) - 1, -1, -1):
+                if slots[t] is None:
+                    slots[t] = job_id
+                    total += profit
+                    break
+        return slots, total
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n²) for the simple version (O(n log n) with a Disjoint Set Union for slot allocation). **Space:** O(d) where `d` is the max deadline.
+
+**Why it works:** if we sort by profit and place each job in the latest available slot, we maximize the chance later (less profitable) jobs can still be scheduled in earlier slots.
+
+## 6. Minimum Spanning Trees — preview
+
+The MST problem (find a minimum-weight tree connecting all vertices in a weighted graph) has **two greedy algorithms**:
+
+- **Kruskal's algorithm:** sort edges by weight ascending. Add each edge if it doesn't create a cycle. Stop when you have `V − 1` edges.
+- **Prim's algorithm:** start from any vertex. Grow the tree one vertex at a time, always adding the cheapest edge that connects a new vertex.
+
+Both work. Both are O(E log V). Both have rigorous correctness proofs via exchange arguments on edge weights (the **cut property** and the **cycle property** of MSTs).
+
+We cover these in detail on **Day 22 — Minimum Spanning Trees**. For now, just know: **MST is greedy, and there are two equally valid ways to be greedy about it.**
+
+## 7. Dijkstra's Shortest Path — preview
+
+> Find the shortest path from a source vertex to every other vertex in a weighted graph (with non-negative weights).
+
+**Greedy:** repeatedly pick the unvisited vertex with the smallest tentative distance. Relax its outgoing edges. Mark visited. Repeat.
+
+Dijkstra is a *priority-queue-driven* greedy algorithm. Each iteration commits to the closest unvisited vertex — and never reconsiders that decision. This works precisely because edge weights are non-negative; with negative weights, the greedy commitment can be wrong, and you need Bellman-Ford instead.
+
+Full coverage on **Day 21 — Shortest Paths**.
+
+## The unifying pattern
+
+Notice the shape that recurs:
+
+```text
+1. SORT by some criterion (the greedy ordering).
+2. ITERATE through the sorted items.
+3. For each item, COMMIT or SKIP based on a simple rule.
+4. RETURN the accumulated answer.
+```
+
+The whole skill of greedy is **finding the right sort criterion**. That's the insight. Once you have it, the code is mechanical.
+
+Common sort criteria:
+
+| Problem family                      | Sort by                                    |
+| :---------------------------------- | :----------------------------------------- |
+| Interval scheduling / overlap        | **Earliest end time**                      |
+| Fractional knapsack / packing        | **Value-per-weight (descending)**          |
+| Job sequencing with deadlines        | **Profit (descending)**                    |
+| Huffman coding                       | **Lowest two frequencies (via heap)**      |
+| MST (Kruskal)                        | **Edge weight (ascending)**                |
+| Dijkstra                             | **Tentative distance (via min-heap)**      |
+| Minimum platforms / meeting rooms    | **Start time (then end time as secondary)** |
+| Patching arrays / coin change canonical | **Largest denomination ≤ remaining**    |
+
+If you see a problem that smells greedy, the first question is always: **"what's the right sort order?"**
+
+Next: how to know whether you're in greedy territory or DP territory.

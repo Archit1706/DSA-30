@@ -1,0 +1,166 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Proving Greedy Algorithms Correct
+
+A greedy algorithm that *looks* right is worth nothing. A greedy algorithm with a **proof** is worth everything — both in interviews (where the proof *is* the deliverable) and in production (where a silently-wrong greedy can run for years before someone notices).
+
+This page covers the three standard proof techniques and works through them on concrete problems.
+
+## The three techniques
+
+| Technique                     | One-line summary                                              | Best for                                                |
+| :---------------------------- | :------------------------------------------------------------ | :------------------------------------------------------ |
+| **Exchange argument**         | "Any optimal can be modified to use the greedy choice — without getting worse." | Most greedy problems       |
+| **Greedy stays ahead**        | "At every step, greedy's partial answer is at least as good as any other strategy's." | Activity-selection-style problems |
+| **Inductive proof**           | "Assume greedy works on n items; prove it works on n+1."      | Structural problems on sequences                       |
+
+The exchange argument is by far the most useful — it's the one to learn first.
+
+## 1. The exchange argument
+
+> **Take any optimal solution. Show that you can replace one of its choices with the greedy choice without making the solution worse. Repeat.**
+
+If you can do that, then the greedy choices form *an* optimal solution (possibly different from the one you started with, but equally good).
+
+### Worked example: Activity Selection
+
+> Given `n` activities with start and end times, select the maximum number that don't overlap.
+
+**Greedy strategy:** sort by **earliest end time**, then iterate. Pick the first activity. Then pick the next one whose start time is `≥` the last selected end time. Repeat.
+
+**Claim:** this produces a maximum-size set.
+
+**Proof (exchange argument):**
+
+Let `G = g₁, g₂, …, gₖ` be the activities greedy picks, ordered by end time. Let `O = o₁, o₂, …, oₘ` be any optimal solution, also ordered by end time. We want to show `k = m`.
+
+<Steps>
+
+### Set up the exchange
+
+By definition of greedy, `g₁` has the **earliest end time among all activities**. So `end(g₁) ≤ end(o₁)`.
+
+That means: replacing `o₁` with `g₁` in the optimal solution **doesn't break it** — `g₁` ends at or before `o₁`, and the remaining activities `o₂, o₃, …, oₘ` all start at or after `end(o₁) ≥ end(g₁)`.
+
+So `g₁, o₂, o₃, …, oₘ` is also a valid solution of size `m`.
+
+### Repeat for every step
+
+By the same argument applied to the remaining subproblem (activities ending after `end(g₁)`), we have `end(g₂) ≤ end(o₂)`, and we can swap `o₂` for `g₂`. Then `end(g₃) ≤ end(o₃)`, and so on.
+
+After at most `k` exchanges, we've replaced the first `k` activities of `O` with the greedy choices. The remaining activities of `O` (if any) all start at or after `end(gₖ)`.
+
+### Reach contradiction
+
+Suppose `m > k`. Then there's an activity `o_{k+1}` in `O` that starts after `end(gₖ)`. But greedy didn't pick anything after `gₖ` — meaning the greedy algorithm thought there was nothing left to pick.
+
+But `o_{k+1}` was available (it starts after `end(gₖ)`). So greedy *would have* picked it. Contradiction.
+
+Therefore `m = k`. Greedy is optimal. ∎
+
+</Steps>
+
+That's the structure of every exchange-argument proof. **Take any optimum, swap items one at a time to match the greedy choices, show the swap doesn't hurt, conclude greedy is at least as good.**
+
+## 2. "Greedy stays ahead"
+
+Variant of the same idea, used when comparing the *positions* greedy reaches vs the optimal's positions.
+
+> **Show that after `i` steps of greedy, the partial solution is at least as good (by some measurable property) as any other strategy's first `i` steps.**
+
+### Worked example: Activity Selection (again)
+
+Same problem, slightly different proof framing. Let `g₁, …, gₖ` be greedy's picks, `o₁, …, oₘ` be optimal's.
+
+**Inductive claim:** for all `i ≤ k`, `end(gᵢ) ≤ end(oᵢ)`.
+
+**Base case:** `i = 1`. Greedy picks the activity with the earliest end time overall, so `end(g₁) ≤ end(o₁)`. ✓
+
+**Inductive step:** assume `end(gᵢ₋₁) ≤ end(oᵢ₋₁)`. Then `oᵢ` is available to greedy (since `start(oᵢ) ≥ end(oᵢ₋₁) ≥ end(gᵢ₋₁)`). Greedy picks the activity with the earliest end time among available ones, so `end(gᵢ) ≤ end(oᵢ)`.
+
+**Conclusion:** at every step, greedy is "at least as far ahead" as optimal. So if optimal could pick `m` activities, greedy can pick at least `m` activities too — meaning `k ≥ m`. But `k ≤ m` because `m` is the optimum. So `k = m`. ∎
+
+Both proofs work; they're really the same insight from different angles. **Pick whichever shape your problem fits more naturally.**
+
+## 3. Inductive proof
+
+For structural problems (where the input has a natural "size" and the greedy choice removes one element), straightforward induction often works.
+
+> **Show that the greedy algorithm is correct on input of size 1. Assume it's correct on size n. Show it's correct on size n+1.**
+
+### Worked example: Coin Change with US Denominations
+
+**Claim:** for coin set `{1, 5, 10, 25}` and any target `n ≥ 0`, the greedy algorithm (always pick the largest coin ≤ remaining) gives the minimum number of coins.
+
+The proof is more involved than activity selection because the structure of the coin set matters. But the **shape** is induction on `n`:
+
+**Base case:** `n = 0` requires 0 coins. ✓
+
+**Inductive step:** assume greedy is optimal for all `m < n`. Show it's optimal for `n`.
+
+Suppose greedy picks coin `c` and recursively solves for `n − c`. By induction, the recursive solution is optimal: `OPT(n − c)` coins. So greedy uses `1 + OPT(n − c)` coins total.
+
+To show this is optimal, you'd need to prove that no other first coin choice leads to a strictly better solution — and *that's* where the structure of US coins becomes essential. (For arbitrary coin sets the proof fails, because there IS a better first choice in some cases.)
+
+Inductive proofs for greedy can get hairy. **The exchange argument is usually cleaner.**
+
+## A common mistake: "it works on test cases"
+
+Beginners sometimes think they've proved their greedy is correct because it works on 10 examples. This is **not a proof**.
+
+Counter-example from earlier:
+
+```python
+coins = [1, 3, 4],  target = 6
+greedy answer: 4 + 1 + 1 = 3 coins
+optimal: 3 + 3 = 2 coins
+```
+
+If your "proof" is "I tried it on a bunch of inputs," your algorithm is **probably wrong on some input you haven't tried.** Always either:
+
+- Construct an actual exchange argument or induction, OR
+- Find a counter-example.
+
+There's no in-between. "Probably right" is a euphemism for "wrong on some input."
+
+## When you can't prove it — DP to the rescue
+
+Sometimes you can't construct the exchange argument because the greedy is genuinely wrong. The fallback is **dynamic programming**: try every choice at every step and memoize.
+
+DP is strictly more general than greedy (anything greedy can solve, DP can solve too), but it's slower — typically O(n²) or O(n·k) instead of O(n log n).
+
+We cover the greedy-vs-DP decision in detail on the [next page](/day15/greedy_vs_dp).
+
+## Practical advice for interviews
+
+In an interview setting, you typically don't write out a full proof. But you *should*:
+
+1. **State the greedy strategy clearly.** "I'll sort by X, then iterate and pick Y."
+2. **Justify the sort criterion.** "Sorting by end time means each pick leaves the maximum room for the rest."
+3. **Sketch the exchange argument verbally.** "Any optimal solution could replace its first pick with my greedy choice without getting worse — same end time or earlier."
+4. **Offer a counter-example for alternative strategies you considered and rejected.** "I tried sorting by duration — counter-example: a 1-hour activity that overlaps with two 2-hour activities."
+
+Interviewers love when you show you considered other approaches and rejected them with concrete reasons. That signals you understand greedy as a technique, not just a memorized solution.
+
+## The exchange argument as a debugging tool
+
+Even outside formal proofs, the exchange argument is a great **sanity check** while solving a problem:
+
+> "If I take an optimal solution and modify it to use my greedy choice first — does the result get worse, stay the same, or sometimes get better?"
+
+If it sometimes gets worse, your greedy is wrong. Stop and rethink.
+
+If it always stays the same or gets better, your greedy is *probably* right — and you have the start of an exchange argument when you need to write the proof.
+
+## Summary
+
+| Step | What to do                                                                                              |
+| :--- | :------------------------------------------------------------------------------------------------------ |
+| 1    | Identify a candidate greedy strategy (usually a sort criterion + a per-item rule).                       |
+| 2    | Try the exchange argument: *take any optimal, swap to match greedy, show it doesn't hurt.*               |
+| 3    | If the argument holds, your greedy is correct.                                                           |
+| 4    | If you can construct a counter-example, your greedy is wrong — try a different criterion or fall back to DP. |
+| 5    | If you can't do either (no proof, no counter-example), keep trying — one of them is true.                |
+
+With the exchange argument in your toolkit, you can verify greedy solutions confidently. Next: the **classic problems** where this technique pays off.

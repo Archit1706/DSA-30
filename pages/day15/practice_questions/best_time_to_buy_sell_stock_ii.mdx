@@ -1,0 +1,130 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Best Time to Buy and Sell Stock II <DifficultyBadge level="medium" />
+
+#### Description
+
+You have an array `prices` where `prices[i]` is the price of a stock on day `i`. On each day, you can:
+
+- **Buy** one share,
+- **Sell** one share,
+- Or do nothing.
+
+You can hold **at most one share at a time**. Find the **maximum profit** you can achieve.
+
+#### Examples
+
+```py
+> Case 1:
+    prices = [7, 1, 5, 3, 6, 4]
+    Output: 7
+    # Buy on day 1 (price 1), sell on day 2 (price 5)  →  +4
+    # Buy on day 3 (price 3), sell on day 4 (price 6)  →  +3
+    # Total profit: 7
+
+> Case 2:
+    prices = [1, 2, 3, 4, 5]
+    Output: 4
+    # One transaction: buy at 1, sell at 5  →  +4
+
+> Case 3:
+    prices = [7, 6, 4, 3, 1]
+    Output: 0
+    # Never buy — prices only decrease.
+```
+
+#### Constraints
+
+- `1 <= prices.length <= 3 · 10^4`
+- `0 <= prices[i] <= 10^4`
+
+#### The slick insight
+
+This problem looks like it should need DP — "should I sell today or hold?" feels like a stateful decision. But there's a magic shortcut:
+
+> **The total profit from any optimal strategy equals the sum of all positive day-over-day price changes.**
+
+Why? Because a "buy-sell" pair `(p_a, p_b)` with `b > a` contributes profit `p_b − p_a`. This telescopes into `Σ (p_{i+1} − p_i)` for every step in the buy-to-sell run. And `(p_{i+1} − p_i)` is positive precisely when the price went up on that day.
+
+So: **sum all `max(0, prices[i] − prices[i-1])`**. That's the answer.
+
+#### Why this is greedy
+
+The greedy strategy is: **"capture every uptick, no matter how small."** A 1-cent rise today is just as valuable per cent as a 10-dollar rise next week. So you greedily lock in every positive day.
+
+Exchange argument: any optimal solution that *skips* an uptick (holding through a dip) could be modified to sell before the dip and re-buy after. That gives strictly more profit (you capture the uptick AND avoid the dip). So any optimum is equivalent to "capture every uptick."
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxProfit(vector<int>& prices) {
+        int profit = 0;
+        for (int i = 1; i < (int)prices.size(); i++) {
+            if (prices[i] > prices[i - 1]) {
+                profit += prices[i] - prices[i - 1];
+            }
+        }
+        return profit;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_profit(prices):
+        profit = 0
+        for i in range(1, len(prices)):
+            if prices[i] > prices[i - 1]:
+                profit += prices[i] - prices[i - 1]
+        return profit
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxProfit(int[] prices) {
+        int profit = 0;
+        for (int i = 1; i < prices.length; i++) {
+            if (prices[i] > prices[i - 1]) {
+                profit += prices[i] - prices[i - 1];
+            }
+        }
+        return profit;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The "telescoping" trick.** Picking the optimal buy-sell pairs is hard. But noticing that the **sum of pair profits = sum of daily positive changes** lets you ignore the pair structure entirely. Three lines of code, O(n) time, O(1) space.
+</Callout>
+
+#### Compare with the harder variants
+
+This problem family has many flavors:
+
+| Problem                                  | Constraint                              | Approach                          |
+| :--------------------------------------- | :-------------------------------------- | :-------------------------------- |
+| **Stock I**                              | At most ONE transaction                 | Track min so far, one pass        |
+| **Stock II** (this one)                  | Unlimited transactions, hold ≤ 1 share  | Sum positive deltas (greedy)      |
+| **Stock III**                            | At most TWO transactions                | DP with state                     |
+| **Stock IV**                             | At most K transactions                  | DP with O(n·k) states             |
+| **Stock with Cooldown**                  | Must wait 1 day after selling           | DP                                |
+| **Stock with Transaction Fee**           | Pay fee per transaction                 | DP or modified greedy             |
+
+Stock II is the *only* one that's pure greedy. Most others need DP because the "transaction count" or "cooldown" constraint breaks the greedy choice property.
+
+#### A common wrong intuition
+
+You might think: "find the lowest valley and the highest peak after it." That works for **Stock I** (one transaction), but it's *wrong* for Stock II — you'd miss intermediate buy-sell opportunities.
+
+Example: `[1, 5, 3, 7]`. Lowest-to-highest gives 1 → 7 = 6 profit. But the greedy (1→5, 3→7) gives 4 + 4 = 8.
+
+The greedy captures **every** rise, not just the global one.
+
+#### Analysis
+
+- **Time:** **O(n)** — single pass.
+- **Space:** **O(1)** — just an accumulator.

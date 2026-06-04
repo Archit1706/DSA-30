@@ -1,0 +1,123 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Jump Game <DifficultyBadge level="medium" />
+
+#### Description
+
+You're given an integer array `nums`. You start at index `0`, and `nums[i]` is the **maximum jump length** from position `i`. Return `true` if you can reach the last index, `false` otherwise.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [2, 3, 1, 1, 4]
+    Output: true
+    # From 0 (value 2) → jump to index 1 (value 3) → jump to index 4. Done.
+
+> Case 2:
+    nums = [3, 2, 1, 0, 4]
+    Output: false
+    # Reach index 3 max. Value there is 0, so we're stuck.
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^4`
+- `0 <= nums[i] <= 10^5`
+
+#### The greedy insight
+
+You don't need to **plan a jump sequence**. You just need to know: **as I scan left-to-right, what's the furthest index I can possibly reach so far?**
+
+Maintain a `max_reach` variable. At each position `i`:
+
+- If `i > max_reach`, we're stuck — can't get here. Return `false`.
+- Otherwise, update `max_reach = max(max_reach, i + nums[i])`.
+
+If we ever have `max_reach >= n - 1`, we can reach the end. Return `true`.
+
+This is the **"prefix-tracking greedy"** — a single scan, O(1) state.
+
+#### Exchange argument
+
+You might worry: "what if jumping to an earlier index gives a higher max reach than jumping farther?" Doesn't matter. The point is `max_reach` is the **best across all reachable indices** — we don't have to commit to a specific path, just know if **anyone** could reach this far.
+
+If any reachable index has `i + nums[i] ≥ n - 1`, the answer is yes. The greedy is exhaustive about possibilities without enumerating paths.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool canJump(vector<int>& nums) {
+        int maxReach = 0;
+        for (int i = 0; i < (int)nums.size(); i++) {
+            if (i > maxReach) return false;             // can't reach here
+            maxReach = max(maxReach, i + nums[i]);
+            if (maxReach >= (int)nums.size() - 1) return true;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def can_jump(nums):
+        max_reach = 0
+        for i in range(len(nums)):
+            if i > max_reach:
+                return False                            # stuck
+            max_reach = max(max_reach, i + nums[i])
+            if max_reach >= len(nums) - 1:
+                return True
+        return True
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean canJump(int[] nums) {
+        int maxReach = 0;
+        for (int i = 0; i < nums.length; i++) {
+            if (i > maxReach) return false;
+            maxReach = Math.max(maxReach, i + nums[i]);
+            if (maxReach >= nums.length - 1) return true;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **You don't actually need a jump path** — only the ability to reach the end. The greedy collapses an exponential search ("try every jump from every position") into a single linear scan by tracking the *best-so-far* reach.
+</Callout>
+
+#### Why the naive DP is wasteful
+
+A DP solution would do `dp[i] = true if any reachable `j < i` has `j + nums[j] >= i`. That's O(n²): for each `i`, check all earlier `j`. The greedy achieves the same result by accumulating the max reach as it goes — O(n).
+
+#### Counter-example for "smallest-jump-first" greedy
+
+A bad alternative: "from each position, always jump the maximum distance." This *happens* to work for this problem (because we only care about reachability), but for [Jump Game II](/day15/practice_questions/jump_game_ii) (minimize jumps), the "always max" strategy is wrong — and an entirely different greedy is needed.
+
+#### Reverse direction trick
+
+You can solve it from the right too: start at the last index. Walk left. Mark a "good" position as one from which we can reach a good position. The leftmost good position is `0` iff the answer is `true`.
+
+```python copy
+def can_jump_reverse(nums):
+    last_good = len(nums) - 1
+    for i in range(len(nums) - 2, -1, -1):
+        if i + nums[i] >= last_good:
+            last_good = i
+    return last_good == 0
+```
+
+Same O(n), different angle. Some interviewers prefer this version because the invariant ("last_good is the leftmost provably-reaches-end position") is cleaner to state.
+
+#### Analysis
+
+- **Time:** **O(n)** — single pass, early exit on success.
+- **Space:** **O(1)**.

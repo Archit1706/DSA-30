@@ -1,0 +1,117 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Assign Cookies <DifficultyBadge level="easy" />
+
+#### Description
+
+You have `n` children and `m` cookies. Each child `i` has a **greed factor** `g[i]` — the minimum cookie size they'll accept. Each cookie `j` has a size `s[j]`. You can give at most one cookie to each child, and each cookie can go to at most one child. **Maximize the number of content children.**
+
+#### Examples
+
+```py
+> Case 1:
+    g = [1, 2, 3],  s = [1, 1]
+    Output: 1
+    # Only one cookie of size 1 satisfies the child with greed 1.
+    # Greed-2 and greed-3 children can't be satisfied by remaining size-1 cookie.
+
+> Case 2:
+    g = [1, 2],  s = [1, 2, 3]
+    Output: 2
+    # Both children can be satisfied (size-1 for greed-1, size-2 or 3 for greed-2).
+```
+
+#### Constraints
+
+- `1 <= g.length <= 3 · 10^4`
+- `0 <= s.length <= 3 · 10^4`
+- `1 <= g[i], s[j] <= 2^31 - 1`
+
+#### Intuition
+
+This is the canonical **"sort both, two pointers"** greedy. The key insight: **match the smallest unsatisfied child with the smallest cookie that satisfies them**.
+
+Why? Because giving a bigger cookie to a less-greedy child wastes capacity. A child with greed 1 is just as happy with a size-1 cookie as with a size-99 cookie — but the size-99 cookie is the only thing that might satisfy the greed-99 child.
+
+Exchange argument: in any optimal assignment, if a small-greed child got a big cookie, you could swap that cookie with a smaller one (going to no child or a less-greedy child) without making things worse. Apply this repeatedly; you end up with the "smallest cookie that fits" assignment.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <algorithm>
+    using namespace std;
+
+    int findContentChildren(vector<int>& g, vector<int>& s) {
+        sort(g.begin(), g.end());
+        sort(s.begin(), s.end());
+        int i = 0, j = 0;
+        while (i < (int)g.size() && j < (int)s.size()) {
+            if (s[j] >= g[i]) i++;             // this child gets a cookie
+            j++;                                // either way, this cookie is used or discarded
+        }
+        return i;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_content_children(g, s):
+        g.sort()
+        s.sort()
+        i = j = 0
+        while i < len(g) and j < len(s):
+            if s[j] >= g[i]:
+                i += 1
+            j += 1
+        return i
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findContentChildren(int[] g, int[] s) {
+        Arrays.sort(g);
+        Arrays.sort(s);
+        int i = 0, j = 0;
+        while (i < g.length && j < s.length) {
+            if (s[j] >= g[i]) i++;
+            j++;
+        }
+        return i;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    Notice `j++` always happens regardless of whether the child got the cookie. The smallest cookie either satisfies the smallest unsatisfied child (good, give it to them) or it's too small for anyone (discard, move on). Either way, we advance the cookie pointer.
+</Callout>
+
+#### Why "smallest first" not "biggest first"?
+
+You might think "match the most-demanding child first" works. It also works — but you have to sort *descending* and iterate from the biggest cookie. Same template, mirrored direction.
+
+The smallest-first version is slightly cleaner because **we never need to backtrack on a child** — once we skip them with a too-small cookie, no future cookie was supposed to go to them anyway.
+
+#### The family
+
+Sort + two-pointer greedy shows up in:
+
+| Problem                       | What gets sorted, what gets matched              |
+| :---------------------------- | :----------------------------------------------- |
+| **Assign Cookies**            | Sort kids + cookies, match smallest-satisfies     |
+| **Boats to Save People**      | Sort by weight, pair lightest with heaviest        |
+| **Two Sum II (sorted input)** | Two pointers from both ends                       |
+| **3 Sum**                     | Sort + nested two-pointer                         |
+| **Container With Most Water** | Two pointers, shrink the shorter side              |
+
+The recurring shape: **sort both inputs (or fix one), then sweep two pointers** based on a per-step decision rule.
+
+#### Analysis
+
+- **Time:** **O(n log n + m log m)** — dominated by the two sorts.
+- **Space:** **O(1)** extra (in-place sorts, two pointers).

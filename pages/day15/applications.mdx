@@ -1,0 +1,132 @@
+import { Callout, Tabs } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Where Greedy Algorithms Power Real Systems
+
+Greedy isn't just an interview prop — it's the engine behind a surprising amount of production infrastructure. Knowing where greedy shows up gives you the pattern recognition to spot it in your own work *outside* textbook problems.
+
+## 1. Operating-system schedulers
+
+CPU schedulers make a greedy decision on **every clock tick**: which runnable process gets the next time slice?
+
+- **Linux's CFS (Completely Fair Scheduler)** picks the process with the smallest "virtual runtime" — the one that's been treated least fairly so far. That's a greedy choice driven by a red-black tree of processes ordered by virtual time.
+- **EEVDF (Earliest Eligible Virtual Deadline First)** — Linux's newer scheduler — picks the process with the earliest deadline. Pure greedy.
+- **Windows NT scheduler** uses priority-based greedy: highest priority runnable process wins.
+
+Every context switch is a greedy decision, and there are millions per second on a busy machine.
+
+## 2. Network routing protocols
+
+- **OSPF (Open Shortest Path First)**, used in nearly every enterprise network, runs **Dijkstra's algorithm** to compute the shortest path tree from each router to every destination. Greedy "always relax the closest unvisited" works because edge weights (link metrics) are non-negative.
+- **BGP (Border Gateway Protocol)** uses path attributes greedily — pick the route with the highest local preference, shortest AS path, lowest MED, in order.
+- **TCP congestion control** (cubic, BBR) greedily increases sending rate until packet loss, then backs off.
+
+Every packet you send touches multiple greedy routing decisions.
+
+## 3. File compression
+
+- **Huffman coding** (DEFLATE, gzip, PNG, JPEG, MP3) greedily merges the two least-frequent symbols at each step to build the optimal prefix code. We covered this in [Day 7 — Heap Applications](/day7/applications) and [Classic Problems](/day15/classic_problems).
+- **LZ77 / LZ78** (the family behind gzip, zip, lz4, zstd) greedily picks the longest matching prefix from a sliding window.
+- **Arithmetic coding** uses greedy interval splitting, though the math is more involved than Huffman.
+
+The world's compressed data is mostly compressed by greedy algorithms.
+
+## 4. Job and task scheduling
+
+- **Apache Airflow / Prefect / Dagster** — workflow orchestrators with greedy priority-based scheduling: pull the highest-priority ready task.
+- **Kubernetes pod scheduling** — for each pending pod, greedily score every node by fit (resource availability, affinity rules, anti-affinity penalties) and pick the highest-scoring node.
+- **Hadoop / Spark task assignment** — distribute tasks to the executor with the most local data first (data-locality greedy).
+- **Build systems (Bazel, Make with parallelism)** — schedule tasks as soon as their dependencies are met, greedily filling available cores.
+
+If a system has to assign work to resources, greedy is almost certainly involved.
+
+## 5. Load balancing
+
+- **Round-robin** is the simplest greedy strategy: always pick the next backend in order.
+- **Least-connections** load balancers greedily route to the backend with the fewest open connections.
+- **Weighted random** isn't pure greedy, but **deterministic hashing with weight-based shard sizing** is.
+- **Cloudflare's load balancer** uses a more sophisticated "join the shortest queue with d random choices" — randomly sample 2 backends and greedily pick the less-loaded one.
+
+The "least loaded" decision is greedy: do what looks best right now.
+
+## 6. Caching policies
+
+- **LRU (Least Recently Used)** evicts greedily based on access recency.
+- **LFU (Least Frequently Used)** evicts greedily based on access count.
+- **ARC (Adaptive Replacement Cache)** combines both with a greedy weighting.
+- **TLB and CPU-cache replacement** — hardware caches use greedy replacement policies (pseudo-LRU, random) because they're cheap to implement in silicon.
+
+Caching is mostly "what to evict?" and the answer is mostly greedy.
+
+## 7. Video streaming and adaptive bitrate
+
+When you watch YouTube or Netflix, the player makes a **greedy decision every few seconds**: what bitrate to request for the next chunk?
+
+The greedy rule is something like: *"pick the highest bitrate that recent bandwidth measurements suggest we can sustain, with a small buffer for spikes."* Specific algorithms (BOLA, BBA) are variations on this theme.
+
+If the player tried to globally optimize over the whole video, you'd never start playing. Greedy is the only way to deliver smooth playback in real time.
+
+## 8. Database query optimization
+
+When PostgreSQL or MySQL plans a multi-table JOIN, the **query optimizer** uses dynamic programming for small queries (≤ ~12 tables) and **greedy join ordering** for larger ones.
+
+The greedy heuristic: at each step, pick the join that produces the smallest intermediate result. It's not always optimal, but it's tractable for queries with 20+ tables where pure DP would explode.
+
+PostgreSQL even has a `geqo` (genetic query optimizer) that mixes greedy with randomized search for huge queries.
+
+## 9. Memory allocation
+
+- **malloc/free** — most allocator implementations use greedy strategies: first-fit, best-fit, or next-fit. The classic "pick the smallest free block that fits" is greedy.
+- **Garbage collector compaction** — sweep through heap, greedily move live objects toward the front.
+- **Buddy allocator** (Linux kernel page allocator) — greedily split blocks into halves until you have the right size.
+
+Greedy is what makes allocators fast. The cost is fragmentation, which is the price you pay for greedy decisions.
+
+## 10. Cryptocurrency and blockchain
+
+- **Bitcoin block selection** — miners greedily pick transactions with the **highest fee-per-byte** to include in their block. This is exactly fractional knapsack with the byte budget as the constraint.
+- **Ethereum gas auctions** (pre-EIP-1559) were greedy: nodes built blocks by picking the highest-gas-price pending transactions.
+
+Every block on every blockchain is built greedy.
+
+## 11. Real-time systems and avionics
+
+- **Earliest Deadline First (EDF)** scheduling — greedily run the task with the nearest deadline. Used in robotics, avionics, automotive ECUs.
+- **Rate Monotonic Scheduling (RMS)** — greedy by priority (which is set inversely to period).
+
+These greedy choices are why your car's anti-lock brakes respond in milliseconds.
+
+## 12. Distributed systems consensus and leader election
+
+- **Bully algorithm** — the highest-ID alive node greedily claims leadership.
+- **Raft leader election** — the first node to time out greedily campaigns; first to get a majority wins.
+- **Spanning tree protocol** (Ethernet STP) — switches greedily build a loop-free topology by always preferring the shorter path to the root bridge.
+
+Decentralized greedy decisions add up to global consensus.
+
+## A pattern-recognition cheat sheet
+
+If you see any of these phrases in a problem statement, **try greedy first**:
+
+| Phrase                                              | Likely greedy strategy                   |
+| :-------------------------------------------------- | :--------------------------------------- |
+| "Maximum non-overlapping intervals"                  | Sort by end time                         |
+| "Minimum cost to connect everything"                 | MST (Kruskal / Prim)                     |
+| "Shortest path with non-negative weights"            | Dijkstra (greedy with min-heap)          |
+| "Most profitable subset under capacity (fractional)" | Sort by value/weight                     |
+| "Earliest deadline / nearest expiration"             | EDF-style greedy                         |
+| "Minimum number of `<X>` to cover all `<Y>`"         | Often interval-cover greedy              |
+| "Optimal prefix code / compression tree"             | Huffman (heap-based greedy)              |
+| "Online / streaming optimization"                    | Greedy with bounded state                |
+
+When you see *any* of these, the next question is the [Day 15 standard one](/day15/greedy_vs_dp): **try the exchange argument, hunt for a counter-example.**
+
+## The deeper lesson
+
+Greedy is essentially saying: **"I trust that local optima compose into a global optimum."** This trust is sometimes well-founded (network routing on positive weights) and sometimes a fatal mistake (0/1 knapsack, arbitrary coin change).
+
+What makes someone good at recognizing greedy is **not memorizing problem-solution pairs**, but developing the intuition for *when the trust is justified*. The exchange argument is the formal version of that intuition.
+
+Once you have that intuition, you'll start spotting greedy opportunities in your own code — and you'll start questioning them with appropriate paranoia.
+
+Next: warm-up exercises to drill the patterns.

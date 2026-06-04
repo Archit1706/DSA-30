@@ -1,0 +1,196 @@
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+export const Tab = Tabs.Tab;
+
+# Introduction to Greedy Algorithms
+
+A **greedy algorithm** solves a problem by making the **locally optimal choice** at every step, hoping that those local choices add up to a globally optimal solution.
+
+That's the entire idea. The interesting question is: **when does it work?**
+
+## The greedy mindset, in one sentence
+
+> At every step, do the best thing **right now**. Don't look ahead, don't look back, don't reconsider.
+
+It's almost suspiciously simple. And surprisingly often, it's the right answer.
+
+## A motivating example — making change
+
+You want to give someone **41 cents** in change using US coins: `{25, 10, 5, 1}`. What's the fewest coins?
+
+A greedy human-style approach:
+
+1. Largest coin that fits ≤ 41? → **25**. Remaining: 16.
+2. Largest coin that fits ≤ 16? → **10**. Remaining: 6.
+3. Largest coin that fits ≤ 6? → **5**. Remaining: 1.
+4. Largest coin that fits ≤ 1? → **1**. Remaining: 0.
+
+Total: **4 coins** (25 + 10 + 5 + 1). And that's optimal — no way to make 41 with fewer US coins.
+
+The greedy rule "always pick the largest coin that fits" gives the optimal answer for US currency. That's not luck — it's a property of the specific coin denominations.
+
+## When the same approach fails
+
+Now suppose the coins are `{1, 3, 4}` and you want to make **6**.
+
+Greedy:
+
+1. Largest coin ≤ 6? → **4**. Remaining: 2.
+2. Largest coin ≤ 2? → **1**. Remaining: 1.
+3. Largest coin ≤ 1? → **1**. Remaining: 0.
+
+Total: **3 coins** (4 + 1 + 1).
+
+But the **optimal** answer is **2 coins** (3 + 3).
+
+Same greedy rule, different coin set, different answer. Greedy *failed*.
+
+<Callout type="warning">
+    **Greedy is not a general-purpose hammer.** It works on some problems and silently produces wrong answers on others. The skill is knowing — and *proving* — which is which.
+</Callout>
+
+## The two properties that determine "greedy works"
+
+A problem is solvable by greedy iff it has **both**:
+
+### 1. The greedy choice property
+
+There exists a "locally optimal choice" at every step that is **part of some globally optimal solution**.
+
+In other words: after making the greedy choice, you can still reach an optimal answer from the remaining subproblem. You don't have to backtrack.
+
+### 2. Optimal substructure
+
+The optimal solution to the whole problem **contains** optimal solutions to the subproblems left after the greedy choice.
+
+(This is the same property that makes [Day 14 — DP](/day14) work. Greedy and DP both require it.)
+
+Greedy needs **both**. DP only needs the second one — that's why DP is more general, just slower.
+
+## Applying the test to coin change
+
+**US coins `{25, 10, 5, 1}`, target 41.**
+
+- **Greedy choice property:** is "pick the largest coin" always extendable to an optimal solution? **Yes**, provably — US denominations form a "canonical" system where this works. (The proof: every smaller denomination's value is a divisor or multiple of the next, in a way that prevents the greedy choice from forcing extra coins later.)
+- **Optimal substructure:** after picking a 25, the optimal way to make 16 with the remaining coins is the same subproblem with smaller target. ✓
+
+Both hold → greedy works.
+
+**Arbitrary coins `{1, 3, 4}`, target 6.**
+
+- **Greedy choice property:** picking 4 forces us to use `{1, 1}` for the remaining 2. But the optimal `{3, 3}` doesn't use 4 at all. So the greedy choice (pick 4) is **not** part of any optimal solution. ✗
+
+The greedy choice property fails → greedy gives a wrong answer.
+
+## A small but important insight
+
+**The two properties depend on the inputs, not just the algorithm.** Coin change with US denominations is greedy. Coin change with arbitrary denominations is DP (or even NP-hard in some variants).
+
+This is why "prove your greedy is correct" matters. *Sometimes* the obvious greedy is right, sometimes it isn't — and the boundary often hides in details that look irrelevant.
+
+## A second example — the activity selection problem
+
+You have `n` activities, each with a start time `s[i]` and end time `e[i]`. You can attend at most one activity at a time. **Maximize the number of activities you can attend.**
+
+Six candidate greedy strategies:
+
+| Strategy                                       | Works? |
+| :--------------------------------------------- | :----: |
+| Pick the **shortest** activity first           | ❌     |
+| Pick the **earliest start time** first         | ❌     |
+| Pick the **latest start time** first           | ❌     |
+| Pick the activity with **fewest conflicts** first | ❌  |
+| Pick the **latest end time** first             | ❌     |
+| **Pick the earliest end time first**           | ✅     |
+
+Only one of these greedy rules is correct, and it's not the most obvious one. Picking by **earliest end time** works because it leaves the maximum amount of time for the remaining activities.
+
+We prove this on the [Proving Correctness page](/day15/proving_correctness) using the **exchange argument** — the canonical proof technique for greedy algorithms.
+
+## The general template
+
+Most greedy algorithms follow the same shape:
+
+```text
+1. Sort the input by some criterion (the "greedy ordering").
+2. Walk through the sorted items.
+3. For each item, either commit to it or skip it based on a simple rule.
+4. Return the accumulated answer.
+```
+
+The whole skill is **identifying the right sorting criterion** for your problem. That's often the entire insight.
+
+Some examples we'll meet:
+
+| Problem                                  | Sort by                                          |
+| :--------------------------------------- | :----------------------------------------------- |
+| Activity selection                       | Earliest end time                                |
+| Fractional knapsack                      | Value-per-weight ratio (descending)              |
+| Job sequencing with deadlines            | Profit (descending)                              |
+| Minimum platforms / meeting rooms        | Start time (with a separate scan for end times)  |
+| Huffman coding                           | Lowest two frequencies (via min-heap)            |
+| Interval scheduling / overlap problems   | Earliest end time                                |
+
+If you don't know the right sorting criterion, you don't have a greedy solution. **The "aha" moment is finding it.**
+
+## The cost of being wrong
+
+If your greedy is correct, it usually runs in **O(n log n)** (the cost of sorting plus a linear scan). That's hard to beat.
+
+If your greedy is incorrect, you'll get answers that *look right* on small test cases and *fail* on bigger ones. Greedy bugs are particularly nasty because the algorithm doesn't crash — it produces a confident, polished, wrong answer.
+
+This is why **proving correctness matters**. You don't want to find out your greedy is wrong from a production bug or an interview rejection.
+
+## When to try greedy
+
+Three signals that a problem might be greedy:
+
+1. **You're maximizing or minimizing something** (count, sum, length, cost).
+2. **There's a natural "best move right now"** — earliest end time, highest ratio, smallest first.
+3. **Greedy intuition matches a small worked example.**
+
+If all three are true, *attempt* a greedy solution. Then:
+
+4. **Try to prove it correct** with the exchange argument.
+5. **If you can't, suspect DP** instead.
+
+## Quick check
+
+<QuizBox
+    question="Which TWO properties must a problem have for greedy to be guaranteed correct?"
+    options={[
+        "Greedy choice property AND overlapping subproblems",
+        "Greedy choice property AND optimal substructure",
+        "Optimal substructure AND polynomial time",
+        "Sorted input AND constant-time operations"
+    ]}
+    correctIndex={1}
+    explanation="Greedy needs BOTH: (1) the greedy choice property — there's a locally optimal choice that extends to a global optimum, and (2) optimal substructure — the optimal solution contains optimal sub-solutions. The first is what distinguishes greedy from DP; the second is shared with DP. Overlapping subproblems is what makes a DP solution efficient, but it's not required for greedy."
+/>
+
+<QuizBox
+    question="For coin change with denominations {25, 10, 5, 1} and target 41, the greedy approach gives 4 coins. For coins {1, 3, 4} and target 6, greedy gives 3 coins but optimal is 2. What does this tell us?"
+    options={[
+        "Greedy is always wrong for coin change",
+        "Greedy is always right for coin change",
+        "Whether greedy works depends on the specific coin set, not the algorithm",
+        "We need to use a hash table"
+    ]}
+    correctIndex={2}
+    explanation="The same algorithm — 'pick the largest coin that fits' — works for US-like coin sets but fails for arbitrary ones. This is a deep lesson: greedy's correctness can depend on the input structure, not just the problem statement. US coins form a 'canonical' set where greedy works; arbitrary sets do not."
+/>
+
+<QuizBox
+    question="You sort jobs by their deadline (earliest first) and schedule as many as possible. This is greedy with the sorting criterion = deadline. What's a problem this template solves?"
+    options={[
+        "Activity selection",
+        "Fractional knapsack",
+        "Job sequencing with deadlines",
+        "All of the above use 'sort + scan' template"
+    ]}
+    correctIndex={3}
+    explanation="The 'sort by some criterion, then walk through deciding what to keep' template is the universal greedy shape. Activity selection sorts by end time; fractional knapsack sorts by value/weight ratio; job sequencing sorts by profit or deadline depending on the variant. Different sort key, same template."
+/>
+
+Next: the **proof techniques** that make a greedy algorithm bulletproof.

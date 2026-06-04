@@ -1,0 +1,173 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Partition Labels <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given a string `s`. We want to partition it into as **many parts as possible** so that **each letter appears in at most one part**. Return a list of integers representing the size of each part.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "ababcbacadefegdehijhklij"
+    Output: [9, 7, 8]
+    # Parts: "ababcbaca", "defegde", "hijhklij".
+    # Each letter appears in only one part.
+
+> Case 2:
+    s = "eccbbbbdec"
+    Output: [10]
+    # 'c' first appears at index 1 and last at index 9 → forces one big part.
+```
+
+#### Constraints
+
+- `1 <= s.length <= 500`
+- `s` consists of lowercase English letters.
+
+#### The insight
+
+For each character in the string, find the **last position it appears**. A partition can end no earlier than the **maximum last-position of any character it contains**.
+
+Walk left-to-right. Track the **furthest "must include" index** based on all characters seen so far. When `current_index == furthest`, we've reached the end of a valid partition — close it off and start the next one.
+
+#### Algorithm
+
+```text
+1. Precompute last[c] = last index where character c appears, for all c.
+2. Walk through s. Maintain:
+     - start = beginning of current partition
+     - end = furthest must-include index of current partition
+3. For each i:
+     - end = max(end, last[s[i]])
+     - if i == end:
+         record partition size (end - start + 1)
+         start = i + 1
+         (implicitly: reset end for the next partition)
+```
+
+This is a **two-pass greedy**: one pass to build the last-occurrence map, one to sweep and partition.
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def partition_labels(s):
+        # Pass 1: last occurrence of each character.
+        last = {c: i for i, c in enumerate(s)}
+
+        # Pass 2: sweep and partition.
+        result = []
+        start = end = 0
+        for i, c in enumerate(s):
+            end = max(end, last[c])
+            if i == end:
+                result.append(end - start + 1)
+                start = i + 1
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    vector<int> partitionLabels(string s) {
+        int last[26] = {0};
+        for (int i = 0; i < (int)s.size(); i++) {
+            last[s[i] - 'a'] = i;
+        }
+        vector<int> result;
+        int start = 0, end = 0;
+        for (int i = 0; i < (int)s.size(); i++) {
+            end = max(end, last[s[i] - 'a']);
+            if (i == end) {
+                result.push_back(end - start + 1);
+                start = i + 1;
+            }
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> partitionLabels(String s) {
+        int[] last = new int[26];
+        for (int i = 0; i < s.length(); i++) {
+            last[s.charAt(i) - 'a'] = i;
+        }
+        List<Integer> result = new ArrayList<>();
+        int start = 0, end = 0;
+        for (int i = 0; i < s.length(); i++) {
+            end = Math.max(end, last[s.charAt(i) - 'a']);
+            if (i == end) {
+                result.add(end - start + 1);
+                start = i + 1;
+            }
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The trick is the last-occurrence precompute.** Without it, you'd need O(n) per position to find each character's last occurrence — O(n²) total. The 26-entry array gives you the answer in O(1) per character.
+</Callout>
+
+#### Trace on `"ababcbacadefegdehijhklij"`
+
+```text
+last = {a:8, b:5, c:7, d:14, e:15, f:11, g:13, h:19, i:22, j:23, k:20, l:21}
+
+i=0 ('a'): end = max(0, 8) = 8.
+i=1 ('b'): end = max(8, 5) = 8.
+i=2 ('a'): end = max(8, 8) = 8.
+i=3 ('b'): end = max(8, 5) = 8.
+i=4 ('c'): end = max(8, 7) = 8.
+i=5 ('b'): end = max(8, 5) = 8.
+i=6 ('a'): end = max(8, 8) = 8.
+i=7 ('c'): end = max(8, 7) = 8.
+i=8 ('a'): end = max(8, 8) = 8.
+i == end!  →  partition size = 8 - 0 + 1 = 9. start = 9.
+
+i=9 ('d'): end = max(0, 14) = 14.
+i=10 ('e'): end = max(14, 15) = 15.
+i=11 ('f'): end = max(15, 11) = 15.
+i=12 ('e'): end = max(15, 15) = 15.
+i=13 ('g'): end = max(15, 13) = 15.
+i=14 ('d'): end = max(15, 14) = 15.
+i=15 ('e'): end = max(15, 15) = 15.
+i == end!  →  partition size = 15 - 9 + 1 = 7. start = 16.
+
+... (third partition similarly closes at i=23 with size 8)
+
+Result: [9, 7, 8]  ✓
+```
+
+#### Why this is greedy
+
+We're maximizing the **count** of partitions. At each step, **we close the partition the moment we're allowed to** (when the running `end` equals the current position). That's the locally optimal choice — closing early can never hurt and might allow a future char to start a new partition.
+
+Exchange argument: any optimal partitioning that closes a partition later than the greedy could be modified to close at the greedy boundary instead. The remaining characters form an equivalent or larger subset for the next partition. Repeat.
+
+#### The "last occurrence" pattern
+
+The precompute + sweep trick shows up in lots of string and array problems:
+
+| Problem                                        | What "last occurrence" tracks                    |
+| :--------------------------------------------- | :----------------------------------------------- |
+| **Partition Labels** (this one)                | Last position each character appears             |
+| **Shortest Subarray Containing All Chars**     | Last position relative to a window               |
+| **First Unique Character** ([Day 8](/day8/practice_questions/first_unique_character)) | First occurrence; symmetric |
+| **Longest Substring Without Repeating Chars**  | Last position of each character (for window slide) |
+| **License Key Formatting**                     | Last positions of separators                      |
+
+Pre-computing positional metadata in O(n) then sweeping in O(n) is a recurring template.
+
+#### Analysis
+
+- **Time:** **O(n)** — two passes through the string.
+- **Space:** **O(1)** — at most 26 entries (lowercase English).

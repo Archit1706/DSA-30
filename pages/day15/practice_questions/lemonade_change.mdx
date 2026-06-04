@@ -1,0 +1,142 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Lemonade Change <DifficultyBadge level="easy" />
+
+#### Description
+
+You're selling lemonade for **$5 per cup**. Customers line up and pay with a **$5, $10, or $20** bill. You start with **no change**. You must give the customer correct change (their bill − $5). Return `true` if you can serve every customer in order, `false` otherwise.
+
+#### Examples
+
+```py
+> Case 1:
+    bills = [5, 5, 5, 10, 20]
+    Output: true
+    # Receive 5, 5, 5 → no change needed.
+    # Receive 10 → give back one 5. Stock: two 5s, one 10.
+    # Receive 20 → give back 10 + 5. Stock: one 5.  ✓
+
+> Case 2:
+    bills = [5, 5, 10, 10, 20]
+    Output: false
+    # After processing first 10, stock: one 5, one 10.
+    # Second 10 needs change of 5 — okay. Stock: zero 5s, two 10s.
+    # 20 needs change of 15. Can't make 15 from two 10s. ✗
+```
+
+#### Constraints
+
+- `1 <= bills.length <= 10^5`
+- `bills[i] ∈ {5, 10, 20}`
+
+#### The greedy insight
+
+The trick is **when making change for $20, prefer giving back a $10 + $5 over three $5s**. Why? Because **$10 bills can only be used for one purpose** (change for $20), while **$5 bills are useful for both $10 and $20 changes**.
+
+Conserving $5 bills greedily — using them only when no $10 is available — is provably optimal.
+
+This is a great example of greedy where the "rule" isn't a sort — it's a **preference order at decision time**.
+
+#### Exchange argument
+
+Suppose at some point we make change for a $20 by giving three $5s, but we *could* have given a $10 + $5. Then a later $10 customer might fail when we have no $5 left.
+
+If we'd given $10 + $5 instead, the later $10 customer can still be served (we'd have one more $5 in stock). So the "three 5s" choice is never better than "10 + 5" when both are options. ∎
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool lemonadeChange(vector<int>& bills) {
+        int fives = 0, tens = 0;            // we never need to count 20s — can't give them as change
+        for (int b : bills) {
+            if (b == 5) {
+                fives++;
+            } else if (b == 10) {
+                if (fives == 0) return false;
+                fives--; tens++;
+            } else {  // b == 20
+                if (tens > 0 && fives > 0) {       // prefer 10 + 5
+                    tens--; fives--;
+                } else if (fives >= 3) {            // fall back to 5 + 5 + 5
+                    fives -= 3;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def lemonade_change(bills):
+        fives = tens = 0
+        for b in bills:
+            if b == 5:
+                fives += 1
+            elif b == 10:
+                if fives == 0: return False
+                fives -= 1
+                tens += 1
+            else:                                   # b == 20
+                if tens > 0 and fives > 0:          # prefer 10 + 5
+                    tens -= 1
+                    fives -= 1
+                elif fives >= 3:                    # fall back to 5 + 5 + 5
+                    fives -= 3
+                else:
+                    return False
+        return True
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean lemonadeChange(int[] bills) {
+        int fives = 0, tens = 0;
+        for (int b : bills) {
+            if (b == 5) {
+                fives++;
+            } else if (b == 10) {
+                if (fives == 0) return false;
+                fives--;
+                tens++;
+            } else {
+                if (tens > 0 && fives > 0) {
+                    tens--;
+                    fives--;
+                } else if (fives >= 3) {
+                    fives -= 3;
+                } else {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **We don't track $20 bills at all.** Why? You can never give a $20 as change (the customer just gave you one, and we don't break bills). $20s are just income — useless for the algorithm's decisions.
+</Callout>
+
+#### Why this is "greedy" and not just simulation
+
+It looks like simulation, but the **greedy decision is the order in which we try change combinations** for the $20 case. The wrong order (try 5+5+5 first) would fail on inputs the right order succeeds on. The right order — *prefer 10+5 over 5+5+5* — is the greedy insight.
+
+#### Edge cases worth thinking about
+
+- **First customer pays with $10 or $20.** No $5 in stock → return `false` immediately.
+- **All customers pay with $5.** Always returns `true`.
+- **Many $20s in a row.** Each one consumes either (one $10 + one $5) or three $5s. The simulation handles this naturally.
+
+#### Analysis
+
+- **Time:** **O(n)** — one pass through bills.
+- **Space:** **O(1)** — just two counters.

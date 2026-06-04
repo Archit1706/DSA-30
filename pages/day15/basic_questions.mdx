@@ -1,0 +1,265 @@
+import { Tabs, Steps, Callout } from "nextra/components";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic Greedy Questions
+
+Six warm-up exercises to lock in the greedy mindset. Each one drills the **"sort by some criterion, then sweep"** template that powers most greedy solutions. By the end, you should be able to spot the right sort key in the first 30 seconds of reading a problem.
+
+<Steps>
+
+### 1. Maximum activities you can attend
+
+**Problem.** You have `n` activities, each with a start and end time. You can attend one at a time. Find the **maximum number** you can attend.
+
+**Activities:** `[(1, 4), (3, 5), (0, 6), (5, 7), (3, 9), (5, 9), (6, 10), (8, 11), (8, 12), (2, 14), (12, 16)]`
+
+What's the right sort criterion? What's the answer?
+
+<ShowHideSolution>
+
+**Sort by earliest end time.** Sweep and pick activities whose start time is `>=` the last picked end time.
+
+```python copy
+def max_activities(activities):
+    activities.sort(key=lambda a: a[1])
+    count, last_end = 0, 0
+    for start, end in activities:
+        if start >= last_end:
+            count += 1
+            last_end = end
+    return count
+
+# max_activities([(1,4),(3,5),(0,6),(5,7),(3,9),(5,9),(6,10),(8,11),(8,12),(2,14),(12,16)])
+# → 4   (e.g., (1,4), (5,7), (8,11), (12,16))
+```
+
+**Why earliest end time?** Picking the activity that ends soonest leaves the maximum amount of time for the rest. Counter-intuitively, "shortest duration" doesn't work — a 1-hour activity that overlaps with two non-overlapping 2-hour activities would be picked instead of the pair.
+
+This is the **canonical "interval scheduling" greedy**. We covered the proof on the [Proving Correctness page](/day15/proving_correctness).
+
+</ShowHideSolution>
+
+### 2. Coin change with US denominations
+
+**Problem.** You have unlimited coins of values `{1, 5, 10, 25}`. What's the minimum number of coins needed to make **87 cents**?
+
+<ShowHideSolution>
+
+**Greedy: always pick the largest coin that fits.**
+
+```text
+87 → take 25 (62 left) → take 25 (37) → take 25 (12) →
+take 10 (2) → take 1 (1) → take 1 (0)
+
+Coins: 25, 25, 25, 10, 1, 1 = 6 coins
+```
+
+Total: **6 coins**.
+
+```python copy
+def min_coins(coins, target):
+    coins.sort(reverse=True)
+    count = 0
+    for c in coins:
+        while target >= c:
+            target -= c
+            count += 1
+    return count
+
+# min_coins([1, 5, 10, 25], 87)  →  6
+```
+
+**Why does this work for US coins?** The denominations are designed such that the greedy choice is always part of some optimum. **For arbitrary coin sets, this would NOT work** — see the [introduction](/day15/introduction#when-the-same-approach-fails) for the `{1, 3, 4}` counter-example.
+
+</ShowHideSolution>
+
+### 3. Fractional knapsack
+
+**Problem.** A knapsack has capacity 50 kg. Items: `[(weight=10, value=60), (20, 100), (30, 120)]`. You can take **fractions** of any item. Maximize value.
+
+<ShowHideSolution>
+
+**Greedy: sort by value-per-weight ratio (descending), take in order.**
+
+```text
+Ratios:
+  Item 1: 60/10 = 6.0
+  Item 2: 100/20 = 5.0
+  Item 3: 120/30 = 4.0
+
+Take item 1 whole:   +60 value, 40 kg left.
+Take item 2 whole:   +100 value, 20 kg left.
+Take 2/3 of item 3:  +120 * (20/30) = +80 value, 0 kg left.
+
+Total: 60 + 100 + 80 = 240
+```
+
+```python copy
+def fractional_knapsack(items, cap):
+    items.sort(key=lambda it: it[1] / it[0], reverse=True)
+    total = 0.0
+    for w, v in items:
+        if cap >= w:
+            total += v
+            cap -= w
+        else:
+            total += v * (cap / w)
+            break
+    return total
+
+# fractional_knapsack([(10,60), (20,100), (30,120)], 50)  →  240.0
+```
+
+<Callout type="warning">
+    **0/1 knapsack (no fractions allowed) would NOT work with this greedy.** The same items with capacity 50 give: greedy = 60 + 100 = 160 (can't fit item 3). But optimal = 100 + 120 = 220 (skip item 1). 0/1 knapsack is a DP problem — see [Day 14](/day14).
+</Callout>
+
+</ShowHideSolution>
+
+### 4. Minimum number of platforms
+
+**Problem.** A train station serves trains with arrival and departure times. Find the **minimum number of platforms** needed so no train ever has to wait.
+
+**Trains:** arrivals `[900, 940, 950, 1100, 1500, 1800]`, departures `[910, 1200, 1120, 1130, 1900, 2000]`.
+
+<ShowHideSolution>
+
+**Greedy: separate sorted arrivals + sorted departures, sweep both pointers.**
+
+```python copy
+def min_platforms(arrivals, departures):
+    arrivals.sort()
+    departures.sort()
+    i = j = 0
+    platforms = peak = 0
+    while i < len(arrivals):
+        if arrivals[i] <= departures[j]:
+            platforms += 1                        # a new train arrived
+            peak = max(peak, platforms)
+            i += 1
+        else:
+            platforms -= 1                        # one departed
+            j += 1
+    return peak
+
+# min_platforms([900, 940, 950, 1100, 1500, 1800],
+#               [910, 1200, 1120, 1130, 1900, 2000])
+# → 3
+```
+
+The peak number of platforms in use simultaneously is the answer.
+
+**Why does this work?** At any moment, the platforms needed = (arrivals so far) − (departures so far). We process events in time order; the peak of this count is what we need.
+
+This is also called the **"merging sorted streams"** pattern — used heavily in event processing and interval problems.
+
+</ShowHideSolution>
+
+### 5. The greedy proof challenge
+
+**Problem.** Someone claims this greedy works for **0/1 knapsack** (take-or-leave whole items): *"Sort by value-per-weight ratio descending. Take each item if it fits."*
+
+Find a counter-example.
+
+<ShowHideSolution>
+
+The classic counter-example:
+
+```text
+Items: (weight=10, value=60), (20, 100), (30, 120)
+Capacity: 50
+
+Greedy by ratio:
+  - Take item 1 (ratio 6.0): 60 value, 40 cap left.
+  - Take item 2 (ratio 5.0): 100 value, 20 cap left.
+  - Skip item 3 (doesn't fit: weight 30 > cap 20).
+  Total: 160.
+
+Optimal:
+  - Skip item 1.
+  - Take items 2 and 3: 100 + 120 = 220 value (weight 50, fits exactly).
+
+Greedy is wrong by 60.
+```
+
+**Lesson:** the **all-or-nothing** constraint in 0/1 knapsack breaks the greedy choice property. With fractions allowed, we could always "top off" with a portion of the next item — that's why fractional knapsack IS greedy and 0/1 is not.
+
+This is the textbook example interviewers cite. Memorize it.
+
+</ShowHideSolution>
+
+### 6. Assign cookies
+
+**Problem.** You have `n` children with greed factors `g[i]` (the minimum cookie size each child wants). You have `m` cookies with sizes `s[j]`. Each child gets at most one cookie. Maximize the number of content children.
+
+**g = [1, 2, 3], s = [1, 1]**
+
+<ShowHideSolution>
+
+**Greedy: sort both, two pointers — match smallest child with smallest cookie that satisfies them.**
+
+```python copy
+def find_content_children(g, s):
+    g.sort(); s.sort()
+    i = j = 0
+    while i < len(g) and j < len(s):
+        if s[j] >= g[i]:
+            i += 1                      # this child got a cookie
+        j += 1
+    return i
+
+# find_content_children([1, 2, 3], [1, 1])  →  1
+# (Child of greed 1 gets a size-1 cookie; the other size-1 cookie can't satisfy greed-2 child.)
+```
+
+**Why does this work?** Matching the **smallest unsatisfied child with the smallest cookie that can satisfy them** leaves the bigger cookies available for the more demanding children. Any swap (giving a bigger cookie to a less-demanding child) is wasteful.
+
+**Time:** O((n + m) log (n + m)) — dominated by the two sorts. **Space:** O(1) extra.
+
+This is the cleanest example of the **"sort both sides, two pointers"** greedy template — also used in [Day 25 Two Pointers](/day25).
+
+</ShowHideSolution>
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="For the activity-selection problem, which sort criterion is provably correct?"
+    options={[
+        "Shortest duration first",
+        "Earliest start time first",
+        "Earliest end time first",
+        "Latest end time first"
+    ]}
+    correctIndex={2}
+    explanation="Sorting by earliest END time is the proven-correct strategy. Shortest duration fails on the example: one short activity overlapping two non-overlapping longer ones. Earliest start time fails for similar reasons (a long early-starting activity blocks many short later ones). Only earliest end time has a clean exchange-argument proof."
+/>
+
+<QuizBox
+    question="Greedy works for FRACTIONAL knapsack but not 0/1 knapsack. Why?"
+    options={[
+        "Fractional knapsack has fewer items",
+        "Fractional allows 'topping off' capacity with a partial item, so the greedy choice never leaves wasted capacity",
+        "0/1 knapsack is NP-hard so nothing works",
+        "Both work; the article is wrong"
+    ]}
+    correctIndex={1}
+    explanation="The key difference is the 'all-or-nothing' constraint. In fractional knapsack, you can always fill remaining capacity perfectly using a fraction of the next-best-ratio item. In 0/1, refusing to break an item means the greedy choice can lock out a better combination. (Both ratios are O(n log n) to sort, but 0/1 requires O(n*W) DP to be correct.)"
+/>
+
+<QuizBox
+    question="You're given a problem. You write a greedy solution. It passes 90% of test cases but fails the others. What should you do?"
+    options={[
+        "Add more test cases until they all pass",
+        "Optimize the greedy code",
+        "Recognize the greedy is wrong; switch to DP",
+        "Submit anyway and hope"
+    ]}
+    correctIndex={2}
+    explanation="If your greedy fails ANY valid test case, the ALGORITHM is wrong — not the code. No amount of optimization or test-case wrangling will fix it. Switch to DP, which is more general (and slower) but provably correct when greedy isn't. The 'works on most cases' trap is the #1 greedy mistake."
+/>
+
+Ready for the interview classics? Head to **Practice Questions** — eight problems covering every greedy shape you'll see.

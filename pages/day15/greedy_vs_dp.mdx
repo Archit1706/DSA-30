@@ -1,0 +1,214 @@
+import { Tabs, Callout } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# Greedy vs Dynamic Programming
+
+The most common interview-trap moment with greedy is: **you write a greedy solution, the test cases all pass, you submit, and you get Wrong Answer on a test case you'd never have thought of**. The fix is almost always to switch to DP.
+
+This page is the decision guide. When to trust your greedy, when to suspect it's wrong, and how to spot DP problems in disguise.
+
+## The fundamental relationship
+
+> **Every greedy problem has both** the greedy choice property AND optimal substructure.
+> **Every DP problem has** optimal substructure (but **not** the greedy choice property).
+
+That means:
+
+- **DP is strictly more general than greedy.** Anything greedy can solve, DP can solve too — just slower.
+- **Greedy is faster when it works.** Typical greedy: O(n log n). Typical DP: O(n²) or O(n·k).
+
+If you have a problem with optimal substructure, greedy is *worth trying* — but only DP is *guaranteed* to work.
+
+## Side-by-side: Coin Change
+
+The textbook example of the same problem being greedy or DP depending on inputs.
+
+### Variant A — US Coins `{1, 5, 10, 25}`, target 41
+
+**Greedy works.** Always pick the largest coin ≤ remaining. Gives 4 coins (25 + 10 + 5 + 1).
+
+```python copy
+def min_coins_greedy(coins, target):
+    coins.sort(reverse=True)
+    count = 0
+    for c in coins:
+        while target >= c:
+            target -= c
+            count += 1
+    return count
+```
+
+**Time:** O(target). **Space:** O(1).
+
+### Variant B — Arbitrary Coins `{1, 3, 4}`, target 6
+
+**Greedy fails.** Greedy gives 4 + 1 + 1 = 3 coins. Optimal is 3 + 3 = 2 coins.
+
+You **must** use DP:
+
+```python copy
+def min_coins_dp(coins, target):
+    dp = [float('inf')] * (target + 1)
+    dp[0] = 0
+    for i in range(1, target + 1):
+        for c in coins:
+            if c <= i:
+                dp[i] = min(dp[i], dp[i - c] + 1)
+    return dp[target] if dp[target] != float('inf') else -1
+```
+
+**Time:** O(target · coins). **Space:** O(target).
+
+DP is **slower** than the (incorrect) greedy — but correct.
+
+<Callout type="warning">
+    **The cost of getting it wrong:** if you submit the greedy solution to a "coin change with arbitrary coins" problem, it passes the simple test cases (US-coin-like inputs) and fails on the tricky ones. **The bug is the algorithm, not the code.** No amount of debugging the implementation will fix it.
+</Callout>
+
+## Side-by-side: Knapsack
+
+### Fractional Knapsack — greedy works
+
+You can take fractions of items. Sort by value/weight ratio (descending), take items in order. O(n log n).
+
+### 0/1 Knapsack — greedy fails
+
+You must take an item whole or not at all. Greedy gives wrong answer:
+
+```text
+Items: (weight, value) = [(10, 60), (20, 100), (30, 120)]
+Capacity: 50
+
+Greedy by ratio (descending):
+  Item 1: 60/10 = 6.0
+  Item 2: 100/20 = 5.0
+  Item 3: 120/30 = 4.0
+
+Take item 1 (w=10, v=60). Capacity: 40.
+Take item 2 (w=20, v=100). Capacity: 20.
+Can't fit item 3 (w=30). Total value: 160.
+
+Optimal: take items 2 and 3 (w=50, v=220). Greedy is wrong by 60!
+```
+
+0/1 Knapsack requires DP: `dp[i][w] = max(dp[i-1][w], dp[i-1][w - weight[i]] + value[i])`. **O(n·W) time and space.**
+
+## The intuition
+
+Greedy fails when:
+
+> **Making the "best" choice now FORCES a bad outcome later.**
+
+In 0/1 knapsack: taking the best-ratio item *locks out* the optimal combination of larger items.
+In arbitrary coin change: taking the largest coin *forces* you to use more small coins than necessary.
+
+DP works in both cases because it **doesn't commit prematurely** — it tries every option at each step and remembers the best.
+
+## How to spot whether your problem is greedy or DP
+
+Five tests to run before committing to greedy:
+
+<Tabs items={['Test 1', 'Test 2', 'Test 3', 'Test 4', 'Test 5']} defaultIndex="0">
+    <Tab>
+    **Counter-example hunt.**
+
+    Spend 30 seconds trying to construct an input where your greedy gives the wrong answer. If you find one, your greedy is wrong. **This is the highest-leverage test.**
+
+    For coin change, `[1, 3, 4]` with target 6 is the classic counter-example. For 0/1 knapsack, the (10,60), (20,100), (30,120) example above is the classic.
+    </Tab>
+
+    <Tab>
+    **Can you write the exchange argument?**
+
+    If you can prove "any optimal can be modified to include my greedy choice without getting worse," your greedy is correct.
+
+    If the argument breaks somewhere (e.g., "wait, what if optimal doesn't include this item at all?"), your greedy might be wrong.
+    </Tab>
+
+    <Tab>
+    **Are there constraints that allow "partial" choices?**
+
+    Fractional knapsack: you can take half an item. Greedy works.
+    0/1 knapsack: all-or-nothing. Greedy might fail.
+
+    Generally: if the problem forces discrete, all-or-nothing decisions, suspect DP.
+    </Tab>
+
+    <Tab>
+    **Does the "best move now" force tradeoffs later?**
+
+    If picking item X now means you might miss out on a better combination later (without DP-style memo), greedy is likely wrong.
+
+    Activity selection — picking earliest end time doesn't preclude anything later. Greedy works.
+    0/1 knapsack — picking the best ratio can preclude the optimal combo. Greedy fails.
+    </Tab>
+
+    <Tab>
+    **Does the problem reduce to a known greedy template?**
+
+    If you can map your problem to "sort + sweep" with a known sort criterion, lean greedy.
+    If it's "make a decision at each position, considering all future possibilities," lean DP.
+    </Tab>
+</Tabs>
+
+## Hybrid: greedy *inside* DP
+
+Sometimes the right answer is **DP overall, greedy on each step.**
+
+Example: **Minimum Number of Refueling Stops** (LeetCode 871). You're driving from city A to city B with limited fuel. Refueling stations have different amounts of fuel. Minimize stops.
+
+Naive DP: try every combination of stations to stop at. O(2^n).
+
+Hybrid: at each step, **greedily** drive as far as you can. When you run out, **DP-style** consider all reachable stations and pick the one that gives the most fuel (max-heap). Total: O(n log n).
+
+This pattern — "greedy strategy backed by a heap that lets us reconsider later" — shows up in:
+
+- **IPO / Maximum Capital** (use a heap to greedily pick the most profitable affordable project)
+- **Furthest Building You Can Reach** (greedy until forced to use a "ladder")
+- **Minimum Number of Refueling Stops** (greedy reach, reconsider via heap)
+
+Don't get locked into "greedy or DP, pick one." Sometimes the best solution is **greedy decisions with a backtrackable structure**.
+
+## The grand comparison table
+
+| Aspect                       | Greedy                                        | DP                                                  |
+| :--------------------------- | :-------------------------------------------- | :-------------------------------------------------- |
+| **Optimal substructure**     | Required                                      | Required                                            |
+| **Greedy choice property**   | Required                                      | Not required                                        |
+| **Overlapping subproblems**  | Not required                                  | Required for efficiency (else just recursion)        |
+| **Typical time**             | O(n log n)                                    | O(n²) or O(n·k)                                     |
+| **Typical space**            | O(1) or O(n)                                  | O(n) or O(n²)                                       |
+| **When wrong**               | Silently produces wrong answer                | Either right or doesn't apply                       |
+| **Proof of correctness**     | Exchange argument                             | Optimality of recurrence (usually obvious)          |
+| **Examples**                 | Activity selection, fractional knapsack, MST  | 0/1 knapsack, coin change, edit distance            |
+
+## The 5-second mental checklist
+
+When facing a "maximize / minimize" problem:
+
+1. **Try greedy first** (it's faster if correct).
+2. **Hunt for a counter-example** for 30 seconds.
+3. **Found one?** Switch to DP.
+4. **Didn't find one?** Try the exchange argument verbally.
+5. **Argument works?** Greedy is probably correct.
+6. **Argument breaks?** DP.
+
+If steps 4–6 are inconclusive, **default to DP**. It's slower but it's right.
+
+## When in doubt: DP
+
+For interview problems, when you're not sure:
+
+- DP is safer.
+- DP is slower but interviewers care about correctness first, speed second.
+- If you have time after a DP solution, you can mention "I think this might also be solvable greedily by sorting by X — let me verify."
+
+The opposite is risky: writing greedy, being wrong, and not having time to switch.
+
+## Summary
+
+> **Greedy is a special case of DP where the "try all options" step collapses to "try one option."**
+
+The art is knowing **when that collapse is safe**. With the exchange argument, the counter-example hunt, and the patterns from the [classic problems page](/day15/classic_problems), you'll get the right call more often than not.
+
+Next: where greedy algorithms power real-world systems.

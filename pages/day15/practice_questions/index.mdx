@@ -1,0 +1,47 @@
+import { Callout } from "nextra/components";
+
+# Greedy Practice Questions
+
+Eight interview classics covering every greedy shape you're likely to see: **sort-and-pick, two pointers on sorted input, prefix tracking, interval merging, and bounded simulation**. Each one is the [unified greedy template](/day15/classic_problems#the-unifying-pattern) with a different sort key or scan rule.
+
+<Callout type="info">
+    Before reading the solution, ask:
+    - **What's the greedy strategy?** (Often: a sort criterion + a per-item rule.)
+    - **Can I sketch an exchange-argument proof?**
+    - **Can I construct a counter-example?** If yes, the greedy is wrong — switch to DP.
+
+    Three questions, one template, eight problems.
+</Callout>
+
+## Easy
+
+| Problem                                                                                  | Pattern                              | Status     |
+| :--------------------------------------------------------------------------------------- | :----------------------------------- | :--------- |
+| [Assign Cookies](/day15/practice_questions/assign_cookies)                                | Sort both + two pointers             | Available  |
+| [Lemonade Change](/day15/practice_questions/lemonade_change)                              | Bounded simulation with greedy bills | Available  |
+| [Best Time to Buy and Sell Stock II](/day15/practice_questions/best_time_to_buy_sell_stock_ii) | Sum positive deltas              | Available  |
+
+## Medium
+
+| Problem                                                                              | Pattern                              | Status     |
+| :----------------------------------------------------------------------------------- | :----------------------------------- | :--------- |
+| [Jump Game](/day15/practice_questions/jump_game)                                      | Max-reach prefix scan                | Available  |
+| [Jump Game II](/day15/practice_questions/jump_game_ii)                                | BFS-flavored greedy intervals        | Available  |
+| [Gas Station](/day15/practice_questions/gas_station)                                  | Reset on negative running tank       | Available  |
+| [Non-overlapping Intervals](/day15/practice_questions/non_overlapping_intervals)      | Sort by end + count keepers          | Available  |
+| [Partition Labels](/day15/practice_questions/partition_labels)                        | Last-occurrence prefix scan          | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                            | Status        |
+| :------------------------------------- | :--------------------------------- | :------------ |
+| Minimum Number of Arrows to Burst Balloons | Sort by end + sweep            | Coming Soon   |
+| Task Scheduler                         | Max-heap by frequency              | Already on [Day 7](/day7/practice_questions/task_scheduler) |
+| Reorganize String                      | Max-heap by frequency              | Already on [Day 7](/day7/practice_questions/reorganize_string) |
+| Queue Reconstruction by Height         | Sort then insert                   | Coming Soon   |
+| Candy                                  | Two-pass left-right scan           | Coming Soon   |
+| Boats to Save People                   | Sort + two pointers                | Coming Soon   |
+| Minimum Number of Refueling Stops      | Greedy with max-heap (hybrid)      | Coming Soon   |
+| IPO / Maximum Capital                  | Two-heap greedy                    | Coming Soon   |
+| Furthest Building You Can Reach        | Min-heap of ladder costs           | Coming Soon   |
+| Wiggle Subsequence                     | Sign-change scan                   | Coming Soon   |
