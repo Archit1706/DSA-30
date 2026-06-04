@@ -1,0 +1,181 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Pacific Atlantic Water Flow <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given an `m x n` integer matrix `heights` representing the height of each unit cell in a continent. The **Pacific Ocean** touches the left and top edges; the **Atlantic Ocean** touches the right and bottom edges. Rain water can flow from a cell to a neighboring cell (4-directionally adjacent) **if the neighbor's height is less than or equal to** the cell's height.
+
+Return a list of all grid coordinates `(r, c)` from which water can flow to **both** oceans.
+
+#### Examples
+
+```py
+> Case 1:
+    heights = [
+        [1, 2, 2, 3, 5],
+        [3, 2, 3, 4, 4],
+        [2, 4, 5, 3, 1],
+        [6, 7, 1, 4, 5],
+        [5, 1, 1, 2, 4]
+    ]
+    Output: [[0,4], [1,3], [1,4], [2,2], [3,0], [3,1], [4,0]]
+
+> Case 2:
+    heights = [[1]]
+    Output: [[0, 0]]      # the single cell touches both oceans
+```
+
+#### Constraints
+
+- `1 <= m, n <= 200`
+- `0 <= heights[i][j] <= 10^5`
+
+#### The naive approach (slow)
+
+For every cell, run BFS / DFS and check whether it can reach the Pacific AND the Atlantic. That's **O(m·n · m·n) = O((mn)²)** — for a 200×200 grid, that's 1.6 billion operations. Will TLE.
+
+#### The reverse-flood trick
+
+Flip the problem on its head. Instead of asking **"can water flow from cell X to the ocean,"** ask **"which cells can the ocean reach if we flow water uphill from it?"**
+
+If we start from every Pacific-edge cell and "flow uphill" (visiting neighbors that are ≥ current height), we mark every cell that drains into the Pacific. Do the same for the Atlantic. The answer is the **intersection** — cells reachable from both.
+
+Reverse-flooding is just **multi-source BFS / DFS** with the inequality flipped.
+
+#### Algorithm
+
+```text
+1. Initialize two visited sets: pacific = {}, atlantic = {}
+2. From every Pacific-edge cell (top row + left column),
+   DFS with "uphill" rule (heights[neighbor] >= heights[current]).
+   Add all visited cells to pacific.
+3. Same for Atlantic-edge cells (bottom row + right column) → atlantic.
+4. Return the intersection: cells in both pacific and atlantic.
+```
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def pacific_atlantic(heights):
+        if not heights: return []
+        rows, cols = len(heights), len(heights[0])
+        pacific, atlantic = set(), set()
+
+        def dfs(r, c, visited):
+            visited.add((r, c))
+            for dr, dc in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                nr, nc = r + dr, c + dc
+                if (0 <= nr < rows and 0 <= nc < cols
+                    and (nr, nc) not in visited
+                    and heights[nr][nc] >= heights[r][c]):       # uphill or equal
+                    dfs(nr, nc, visited)
+
+        # Start from Pacific edges (top + left)
+        for c in range(cols): dfs(0, c, pacific)
+        for r in range(rows): dfs(r, 0, pacific)
+
+        # Start from Atlantic edges (bottom + right)
+        for c in range(cols): dfs(rows - 1, c, atlantic)
+        for r in range(rows): dfs(r, cols - 1, atlantic)
+
+        return [list(cell) for cell in pacific & atlantic]
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    vector<vector<int>> pacificAtlantic(vector<vector<int>>& heights) {
+        int rows = heights.size(), cols = heights[0].size();
+        vector<vector<bool>> pacific(rows, vector<bool>(cols, false));
+        vector<vector<bool>> atlantic(rows, vector<bool>(cols, false));
+
+        function<void(int, int, vector<vector<bool>>&)> dfs = [&](int r, int c, vector<vector<bool>>& visited) {
+            visited[r][c] = true;
+            for (auto [dr, dc] : vector<pair<int,int>>{{1,0},{-1,0},{0,1},{0,-1}}) {
+                int nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols
+                    && !visited[nr][nc] && heights[nr][nc] >= heights[r][c]) {
+                    dfs(nr, nc, visited);
+                }
+            }
+        };
+
+        for (int c = 0; c < cols; c++) { dfs(0, c, pacific); dfs(rows - 1, c, atlantic); }
+        for (int r = 0; r < rows; r++) { dfs(r, 0, pacific); dfs(r, cols - 1, atlantic); }
+
+        vector<vector<int>> result;
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                if (pacific[r][c] && atlantic[r][c]) result.push_back({r, c});
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<List<Integer>> pacificAtlantic(int[][] heights) {
+        int rows = heights.length, cols = heights[0].length;
+        boolean[][] pacific = new boolean[rows][cols];
+        boolean[][] atlantic = new boolean[rows][cols];
+
+        for (int c = 0; c < cols; c++) {
+            dfs(heights, 0, c, pacific);
+            dfs(heights, rows - 1, c, atlantic);
+        }
+        for (int r = 0; r < rows; r++) {
+            dfs(heights, r, 0, pacific);
+            dfs(heights, r, cols - 1, atlantic);
+        }
+
+        List<List<Integer>> result = new ArrayList<>();
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                if (pacific[r][c] && atlantic[r][c])
+                    result.add(List.of(r, c));
+        return result;
+    }
+
+    private void dfs(int[][] heights, int r, int c, boolean[][] visited) {
+        visited[r][c] = true;
+        int[][] dirs = {{1,0}, {-1,0}, {0,1}, {0,-1}};
+        for (int[] d : dirs) {
+            int nr = r + d[0], nc = c + d[1];
+            if (nr >= 0 && nr < heights.length && nc >= 0 && nc < heights[0].length
+                && !visited[nr][nc] && heights[nr][nc] >= heights[r][c]) {
+                dfs(heights, nr, nc, visited);
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The "reverse-flood from the boundary" trick** is one of the most reusable grid-graph patterns. The same idea solves [Surrounded Regions](/day10/practice_questions/surrounded_regions) (anchor from the boundary) and "Number of Closed Islands" (don't count islands touching the boundary).
+
+    Mental model: when the question is **"which cells satisfy a global reachability property"**, ask whether it's easier to flood *from* the property-satisfier and mark everything it touches.
+</Callout>
+
+#### Why it's O(m·n) total
+
+Each cell is visited at most **twice** — once in the Pacific DFS, once in the Atlantic DFS. Each visit looks at 4 neighbors. Total work: **O(m·n)**. The reverse-flood collapses the naive O((mn)²) into linear.
+
+#### Variants
+
+| Problem                       | Twist                                                  |
+| :---------------------------- | :----------------------------------------------------- |
+| **Surrounded Regions**        | Anchor from the boundary, mark all "safe" Os.          |
+| **Number of Closed Islands**  | Same anchor-from-boundary trick.                       |
+| **Number of Enclaves**        | Count cells unreachable from the boundary.             |
+| **As Far From Land as Possible** | Multi-source BFS from all land cells.               |
+
+The boundary is your friend — when you have an "edge effect" condition, start there.
+
+#### Analysis
+
+- **Time:** **O(m · n)** — each cell visited at most twice.
+- **Space:** **O(m · n)** for the two visited matrices + recursion stack.

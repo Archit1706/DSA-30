@@ -2,7 +2,7 @@ import { Callout } from "nextra/components";
 
 # Graph Practice Questions
 
-Three warm-up problems that exercise the **representation** — building a graph, counting edges, identifying components — *without* any heavyweight traversal yet. The traversal-heavy classics (Number of Islands, Course Schedule, Clone Graph, etc.) are on [Day 10](/day10/practice_questions).
+Six warm-up problems that exercise the **representation** — building a graph, counting edges, identifying components, modeling problems — *without* any heavyweight traversal yet. The traversal-heavy classics (Number of Islands, Course Schedule, Clone Graph, etc.) are on [Day 10](/day10/practice_questions).
 
 <Callout type="info">
     Think of today as boot camp for the graph model. By the end you should feel comfortable taking an edge list, picking the right representation, and answering basic structural questions in O(V + E).
@@ -13,23 +13,26 @@ Three warm-up problems that exercise the **representation** — building a graph
 | Problem                                                                              | Pattern                            | Status     |
 | :----------------------------------------------------------------------------------- | :--------------------------------- | :--------- |
 | [Find Center of Star Graph](/day9/practice_questions/find_center_of_star_graph)      | Degree counting                    | Available  |
+| [Find the Town Judge](/day9/practice_questions/find_the_town_judge)                  | In/out degree counting             | Available  |
 | [Find if Path Exists in a Graph](/day9/practice_questions/find_if_path_exists)       | DFS / BFS / Union-Find             | Available  |
 
 ## Medium
 
-| Problem                                                                                          | Pattern                                  | Status     |
-| :----------------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
-| [Number of Connected Components in an Undirected Graph](/day9/practice_questions/count_connected_components) | DFS sweep / Union-Find        | Available  |
+| Problem                                                                                                          | Pattern                                  | Status     |
+| :----------------------------------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Number of Connected Components in an Undirected Graph](/day9/practice_questions/count_connected_components)       | DFS sweep / Union-Find                   | Available  |
+| [Keys and Rooms](/day9/practice_questions/keys_and_rooms)                                                          | Reachability via DFS/BFS                 | Available  |
+| [Min Vertices to Reach All Nodes in a DAG](/day9/practice_questions/min_vertices_to_reach_all)                     | In-degree counting                       | Available  |
 
-## More Practice (Coming Soon)
+## More Practice (Coming Soon — Day 10)
 
 These problems use BFS / DFS heavily — you'll meet them on **[Day 10](/day10)** once we've covered the traversal algorithms properly.
 
 | Problem                                | Pattern                            | Status        |
 | :------------------------------------- | :--------------------------------- | :------------ |
-| Number of Islands                      | DFS / BFS over a grid              | Coming Soon (Day 10) |
-| Clone Graph                            | DFS with hash-map memo             | Coming Soon (Day 10) |
-| Course Schedule                        | Cycle detection in directed graph  | Coming Soon (Day 10) |
-| Pacific Atlantic Water Flow            | Multi-source DFS                   | Coming Soon (Day 10) |
-| Word Ladder                            | BFS on word transformations        | Coming Soon (Day 10) |
-| Rotting Oranges                        | Multi-source BFS                   | Already on [Day 4](/day4/queues/practice_questions/rotting_oranges) |
+| Number of Islands                      | DFS / BFS over a grid              | Available on [Day 10](/day10/practice_questions/number_of_islands) |
+| Clone Graph                            | DFS with hash-map memo             | Available on [Day 10](/day10/practice_questions/clone_graph) |
+| Course Schedule                        | Cycle detection in directed graph  | Available on [Day 10](/day10/practice_questions/course_schedule) |
+| Word Ladder                            | BFS on word transformations        | Available on [Day 10](/day10/practice_questions/word_ladder) |
+| Max Area of Island                     | DFS area accumulation              | Available on [Day 10](/day10/practice_questions/max_area_of_island) |
+| Rotting Oranges                        | Multi-source BFS                   | Available on [Day 4](/day4/queues/practice_questions/rotting_oranges) |

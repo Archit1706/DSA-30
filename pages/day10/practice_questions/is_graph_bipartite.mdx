@@ -1,0 +1,191 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Is Graph Bipartite? <DifficultyBadge level="medium" />
+
+#### Description
+
+There is an undirected graph with `n` nodes numbered `0..n-1`, given as an array `graph` where `graph[u]` is a list of `u`'s neighbors. Return `true` if the graph is **bipartite**.
+
+A graph is **bipartite** if you can split its vertices into two disjoint sets `A` and `B` such that **every edge connects a vertex in `A` to a vertex in `B`** — never within the same set.
+
+#### Examples
+
+```py
+> Case 1:
+    graph = [[1,2,3], [0,2], [0,1,3], [0,2]]
+    Output: false       # node 1 connects to node 2 — but both would need different colors
+
+> Case 2:
+    graph = [[1,3], [0,2], [1,3], [0,2]]
+    Output: true        # Split: {0, 2} and {1, 3}.
+```
+
+#### Constraints
+
+- `1 <= graph.length <= 100`
+- `0 <= graph[u].length < graph.length`
+- The graph **may** be disconnected.
+
+#### The 2-coloring idea
+
+The defining property: bipartite ⇔ **2-colorable** ⇔ **no odd-length cycles**.
+
+So the check becomes: try to color the graph with two colors such that no edge connects two same-colored nodes. If you ever fail, the graph is not bipartite.
+
+The algorithm is BFS (or DFS) with one extra piece of state — the color:
+
+1. Start a node with color `0`.
+2. Color every neighbor with the **opposite color** of the current node.
+3. If a neighbor is already colored and **disagrees** with what we'd assign, the graph is not bipartite.
+
+#### Why does that work?
+
+A bipartite graph **has no odd cycles**. As BFS expands, alternating colors layer by layer, an odd cycle would force two nodes in the cycle to receive the **same** color — contradicting bipartiteness.
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def is_bipartite(graph):
+        n = len(graph)
+        color = [-1] * n          # -1 = unvisited, 0 / 1 = colors
+
+        for start in range(n):
+            if color[start] != -1:
+                continue
+            color[start] = 0
+            queue = deque([start])
+            while queue:
+                u = queue.popleft()
+                for v in graph[u]:
+                    if color[v] == -1:
+                        color[v] = 1 - color[u]
+                        queue.append(v)
+                    elif color[v] == color[u]:
+                        return False                   # same-color neighbors → odd cycle
+        return True
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    bool isBipartite(vector<vector<int>>& graph) {
+        int n = graph.size();
+        vector<int> color(n, -1);
+        for (int start = 0; start < n; start++) {
+            if (color[start] != -1) continue;
+            color[start] = 0;
+            queue<int> q;
+            q.push(start);
+            while (!q.empty()) {
+                int u = q.front(); q.pop();
+                for (int v : graph[u]) {
+                    if (color[v] == -1) {
+                        color[v] = 1 - color[u];
+                        q.push(v);
+                    } else if (color[v] == color[u]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public boolean isBipartite(int[][] graph) {
+        int n = graph.length;
+        int[] color = new int[n];
+        Arrays.fill(color, -1);
+        for (int start = 0; start < n; start++) {
+            if (color[start] != -1) continue;
+            color[start] = 0;
+            Queue<Integer> queue = new ArrayDeque<>();
+            queue.offer(start);
+            while (!queue.isEmpty()) {
+                int u = queue.poll();
+                for (int v : graph[u]) {
+                    if (color[v] == -1) {
+                        color[v] = 1 - color[u];
+                        queue.offer(v);
+                    } else if (color[v] == color[u]) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The outer `for start in range(n)` loop is necessary** because the graph might be disconnected. Each connected component needs its own BFS — but the coloring is independent across components, so we can start each one fresh with color 0.
+</Callout>
+
+#### DFS variant
+
+Equivalent — just replace the queue with recursion:
+
+```python copy
+def is_bipartite_dfs(graph):
+    n = len(graph)
+    color = [-1] * n
+
+    def dfs(u, c):
+        color[u] = c
+        for v in graph[u]:
+            if color[v] == -1:
+                if not dfs(v, 1 - c): return False
+            elif color[v] == c:
+                return False
+        return True
+
+    for start in range(n):
+        if color[start] == -1 and not dfs(start, 0):
+            return False
+    return True
+```
+
+Both versions are O(V + E). DFS is slightly shorter; BFS uses less stack depth on long thin graphs.
+
+#### Trace on the bipartite example
+
+```text
+graph = [[1,3], [0,2], [1,3], [0,2]]
+
+Start at 0, color[0] = 0. Queue = [0].
+  Pop 0. Neighbors {1, 3} uncolored → color[1] = 1, color[3] = 1. Queue = [1, 3].
+  Pop 1. Neighbor 0 already color 0 (OK, different from 1). Neighbor 2 uncolored → color[2] = 0. Queue = [3, 2].
+  Pop 3. Neighbor 0 already 0 (OK), neighbor 2 already 0 (OK, different from 3's color 1).
+  Pop 2. Neighbor 1 already 1 (OK), neighbor 3 already 1 (OK).
+
+All consistent — return true. Split: {0, 2} (color 0) and {1, 3} (color 1).
+```
+
+#### Where bipartite checks show up in the real world
+
+- **Matching jobs to workers** — workers and jobs are vertices, edges represent "worker can do job." A bipartite graph means the matching is clean.
+- **Compiler register allocation** — two variables that conflict need different registers; the conflict graph being bipartite means 2 colors (registers) suffice.
+- **Stable-marriage / dating apps** — the underlying preference structure is bipartite.
+- **Scheduling exams to time slots** — exams and slots are the two sides.
+
+If a problem has **two distinct kinds of things and edges only between kinds**, you've got a bipartite graph.
+
+#### Analysis
+
+- **Time:** **O(V + E)** — standard BFS/DFS bound.
+- **Space:** **O(V)** for the color array + queue.

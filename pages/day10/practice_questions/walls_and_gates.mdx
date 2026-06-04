@@ -1,0 +1,169 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Walls and Gates <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given an `m x n` grid `rooms` where:
+
+- `-1` represents a **wall** or an obstacle.
+- `0` represents a **gate**.
+- `INF` (use `2^31 - 1` as a sentinel) represents an **empty room**.
+
+Fill each empty room with the distance to its **nearest gate**. If it is impossible to reach a gate, leave the value as `INF`.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:                            Output:
+    INF -1   0  INF                     3 -1  0  1
+    INF INF INF -1                      2  2  1 -1
+    INF -1  INF -1                      1 -1  2 -1
+     0  -1  INF INF                     0 -1  3  4
+```
+
+#### Constraints
+
+- `m == rooms.length`
+- `n == rooms[i].length`
+- `1 <= m, n <= 250`
+
+#### The naive approach (slow)
+
+For every empty room, run BFS to find the nearest gate. With `K` empty rooms and `G` gates, that's `O(K · m · n)` in the worst case — too slow for large grids.
+
+#### The multi-source BFS trick
+
+Flip the problem: start BFS from **all gates simultaneously**, expanding outward layer by layer. Every cell's distance-to-nearest-gate equals the BFS layer it gets reached in.
+
+Why this works: BFS from a single source assigns the **minimum** distance to each cell. With multiple sources, each cell still gets its minimum distance — to **the nearest source**.
+
+```text
+Start: queue = all gates (distance 0)
+
+Layer 1: every empty cell adjacent to a gate becomes 1
+Layer 2: every unvisited empty cell adjacent to a Layer-1 cell becomes 2
+...
+
+Walls (-1) are never enqueued — they block expansion.
+Unreachable cells stay at INF.
+```
+
+This collapses the O(K · m · n) naive bound to **O(m · n)** total.
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    INF = 2**31 - 1
+
+    def walls_and_gates(rooms):
+        if not rooms: return
+        rows, cols = len(rooms), len(rooms[0])
+
+        # Seed the queue with every gate at distance 0
+        queue = deque()
+        for r in range(rows):
+            for c in range(cols):
+                if rooms[r][c] == 0:
+                    queue.append((r, c))
+
+        while queue:
+            r, c = queue.popleft()
+            for dr, dc in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+                nr, nc = r + dr, c + dc
+                if (0 <= nr < rows and 0 <= nc < cols
+                    and rooms[nr][nc] == INF):       # only unvisited empty rooms
+                    rooms[nr][nc] = rooms[r][c] + 1
+                    queue.append((nr, nc))
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <climits>
+    using namespace std;
+
+    void wallsAndGates(vector<vector<int>>& rooms) {
+        int rows = rooms.size(), cols = rooms[0].size();
+        const int INF = INT_MAX;
+        queue<pair<int,int>> q;
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                if (rooms[r][c] == 0) q.push({r, c});
+
+        vector<pair<int,int>> dirs = {{1,0},{-1,0},{0,1},{0,-1}};
+        while (!q.empty()) {
+            auto [r, c] = q.front(); q.pop();
+            for (auto [dr, dc] : dirs) {
+                int nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols
+                    && rooms[nr][nc] == INF) {
+                    rooms[nr][nc] = rooms[r][c] + 1;
+                    q.push({nr, nc});
+                }
+            }
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void wallsAndGates(int[][] rooms) {
+        int rows = rooms.length, cols = rooms[0].length;
+        int INF = Integer.MAX_VALUE;
+        Queue<int[]> queue = new ArrayDeque<>();
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                if (rooms[r][c] == 0) queue.offer(new int[]{r, c});
+
+        int[][] dirs = {{1,0}, {-1,0}, {0,1}, {0,-1}};
+        while (!queue.isEmpty()) {
+            int[] cell = queue.poll();
+            for (int[] d : dirs) {
+                int nr = cell[0] + d[0], nc = cell[1] + d[1];
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols
+                    && rooms[nr][nc] == INF) {
+                    rooms[nr][nc] = rooms[cell[0]][cell[1]] + 1;
+                    queue.offer(new int[]{nr, nc});
+                }
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The `rooms[nr][nc] == INF` check serves double duty:** it skips walls (which are -1), it skips already-visited cells (which now have a finite distance), and it skips gates (which have distance 0). One condition covers all three.
+</Callout>
+
+#### Why we don't need a separate visited set
+
+The grid **is** the visited set. Once a cell is filled with a distance, we never revisit it. This is a common space-saving trick in multi-source BFS on grids — mutate the grid in place.
+
+#### The same template, three problems
+
+| Problem                  | What the "source" is              | What gets filled in                       |
+| :----------------------- | :-------------------------------- | :---------------------------------------- |
+| **Walls and Gates**      | Gates (0s)                        | Distance to nearest gate                  |
+| **Rotting Oranges**      | Initially-rotten cells (2s)       | Time until each cell rots                 |
+| **01 Matrix**            | All 0 cells                       | Distance to nearest 0                     |
+| **As Far From Land as Possible** | Land cells                | Distance from each water cell to nearest land |
+
+Every one of these is *literally* the same code with different inputs and outputs. **Multi-source BFS is one of the highest-leverage patterns in the graph chapter** — recognize it once and you've unlocked a family.
+
+#### Why not DFS?
+
+DFS would assign whatever distance comes from the first path it explores — not the minimum. To get the minimum via DFS you'd need to revisit cells whenever you find a shorter path → potential blow-up to **O(2^(m+n))** in pathological cases. BFS is the right tool because it visits cells in non-decreasing distance order.
+
+#### Analysis
+
+- **Time:** **O(m · n)** — every cell enqueued at most once.
+- **Space:** **O(m · n)** for the queue in the worst case.

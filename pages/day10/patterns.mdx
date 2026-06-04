@@ -1,0 +1,302 @@
+import { Callout, Tabs } from "nextra/components";
+export const Tab = Tabs.Tab;
+
+# The DFS / BFS Pattern Family
+
+DFS and BFS are not just two algorithms — they're **two templates** that get customized to solve a whole catalog of problems. This page is that catalog. Once you've seen these patterns, every "new" graph problem starts to feel like a variation of something you've already solved.
+
+Read this once end-to-end, then come back when a problem says "this looks like a graph thing" — and find your template.
+
+## 1. Connected components
+
+> "How many disconnected groups of nodes are in this graph?"
+
+Walk every vertex. When you encounter one you haven't visited, **start a new DFS / BFS** from it — that whole search marks an entire component. Count the starts.
+
+```python copy
+def count_components(graph):
+    visited = set()
+    count = 0
+    def dfs(node):
+        visited.add(node)
+        for nb in graph[node]:
+            if nb not in visited: dfs(nb)
+    for node in graph:
+        if node not in visited:
+            count += 1
+            dfs(node)
+    return count
+```
+
+**Variations:** Number of Connected Components in Graph, Number of Islands, Max Area of Island, Number of Provinces, Friend Circles.
+
+**Time:** O(V + E). **Space:** O(V) for the visited set.
+
+## 2. Flood fill — grid DFS/BFS
+
+> "Color all 4-connected (or 8-connected) cells that touch this one."
+
+Recursive DFS, four (or eight) directions per cell. The same template solves an enormous fraction of "grid as graph" problems.
+
+```python copy
+def flood_fill(grid, r, c, new_color, old_color=None):
+    if old_color is None: old_color = grid[r][c]
+    if (r < 0 or r >= len(grid) or c < 0 or c >= len(grid[0])
+        or grid[r][c] != old_color or grid[r][c] == new_color):
+        return
+    grid[r][c] = new_color
+    flood_fill(grid, r+1, c, new_color, old_color)
+    flood_fill(grid, r-1, c, new_color, old_color)
+    flood_fill(grid, r, c+1, new_color, old_color)
+    flood_fill(grid, r, c-1, new_color, old_color)
+```
+
+**Variations:** Flood Fill (the namesake), Number of Islands, Max Area of Island, Surrounded Regions, Battleships in a Board, Pacific Atlantic Water Flow, Coloring a Border.
+
+The "mutate-the-grid-as-the-visited-set" trick is key — saves O(rows·cols) extra space.
+
+## 3. Cycle detection in a directed graph
+
+> "Does this directed graph have a cycle?"
+
+Use DFS with **three colors** (or visited states):
+
+- **White (0)** — not yet visited.
+- **Gray (1)** — currently in the recursion stack.
+- **Black (2)** — fully processed.
+
+A back-edge (gray-to-gray) is a cycle.
+
+```python copy
+WHITE, GRAY, BLACK = 0, 1, 2
+
+def has_cycle(graph):
+    color = {v: WHITE for v in graph}
+    def dfs(v):
+        color[v] = GRAY
+        for nb in graph[v]:
+            if color[nb] == GRAY: return True       # back-edge — cycle!
+            if color[nb] == WHITE and dfs(nb): return True
+        color[v] = BLACK
+        return False
+    return any(color[v] == WHITE and dfs(v) for v in graph)
+```
+
+**Variations:** Course Schedule (`canFinish`), Course Schedule II (with the order), Detect Cycle in Directed Graph.
+
+For **undirected** graphs the trick is slightly different: pass the parent down, and a visit-to-non-parent-already-visited node is a cycle.
+
+## 4. Topological sort
+
+> "Order these nodes such that every directed edge goes from earlier to later."
+
+Two equivalent approaches:
+
+### Kahn's algorithm (BFS-flavored)
+
+Repeatedly process **in-degree-0** vertices:
+
+```python copy
+from collections import deque
+
+def topological_sort(graph, n):
+    in_deg = [0] * n
+    for u in graph:
+        for v in graph[u]:
+            in_deg[v] += 1
+    queue = deque(u for u in range(n) if in_deg[u] == 0)
+    order = []
+    while queue:
+        u = queue.popleft()
+        order.append(u)
+        for v in graph[u]:
+            in_deg[v] -= 1
+            if in_deg[v] == 0:
+                queue.append(v)
+    return order if len(order) == n else []          # empty if there's a cycle
+```
+
+### DFS post-order (Tarjan-style)
+
+```python copy
+def topological_sort_dfs(graph, n):
+    visited, order = set(), []
+    def dfs(u):
+        visited.add(u)
+        for v in graph[u]:
+            if v not in visited:
+                dfs(v)
+        order.append(u)                              # POST-order push
+    for u in range(n):
+        if u not in visited: dfs(u)
+    return order[::-1]                               # reverse for top order
+```
+
+**Variations:** Course Schedule II, Alien Dictionary, Build Order, Sequence Reconstruction, Minimum Height Trees.
+
+We cover topological sort in full on **[Day 23](/day23)**.
+
+## 5. Bipartite check / 2-coloring
+
+> "Can the nodes be split into two groups such that every edge crosses groups?"
+
+BFS with two colors. Start a node with color 0, color its neighbors color 1, and so on. If you ever try to color a node with two different colors, **not bipartite**.
+
+```python copy
+from collections import deque
+
+def is_bipartite(graph):
+    color = {}
+    for start in graph:
+        if start in color: continue
+        color[start] = 0
+        queue = deque([start])
+        while queue:
+            u = queue.popleft()
+            for v in graph[u]:
+                if v not in color:
+                    color[v] = 1 - color[u]
+                    queue.append(v)
+                elif color[v] == color[u]:
+                    return False
+    return True
+```
+
+**Variations:** Is Graph Bipartite, Possible Bipartition.
+
+A graph is bipartite iff it contains **no odd-length cycles** — that's the underlying theorem.
+
+## 6. Multi-source BFS
+
+> "All these starting cells fire at the same time. How long until everything is covered?"
+
+Same as BFS, but **seed the queue with multiple sources at distance 0**. Each layer expands all fronts simultaneously.
+
+```python copy
+from collections import deque
+
+def multi_source_bfs(grid, sources):
+    queue = deque(sources)
+    visited = set(sources)
+    layers = 0
+    while queue:
+        for _ in range(len(queue)):
+            r, c = queue.popleft()
+            for dr, dc in [(1,0), (-1,0), (0,1), (0,-1)]:
+                nr, nc = r+dr, c+dc
+                if (0 <= nr < len(grid) and 0 <= nc < len(grid[0])
+                    and (nr, nc) not in visited and grid[nr][nc] != 'wall'):
+                    visited.add((nr, nc))
+                    queue.append((nr, nc))
+        layers += 1
+    return layers - 1
+```
+
+**Variations:** Rotting Oranges (the classic), Walls and Gates, As Far from Land as Possible, 01 Matrix, Map of Highest Peak, Shortest Path with Alternating Colors.
+
+The killer use case: when you want the *minimum* distance to the *nearest* source from every cell. Computing it one-source-at-a-time would be O(N²); multi-source BFS does it in O(N) total.
+
+## 7. Backtracking on a graph
+
+> "Find all paths / all valid colorings / all configurations that satisfy a constraint."
+
+DFS where we **undo our choice on the way back up**. Same template as Day 5's backtracking, applied to graph edges.
+
+```python copy
+def all_paths(graph, src, dst):
+    paths = []
+    def dfs(u, path):
+        if u == dst:
+            paths.append(path[:])
+            return
+        for v in graph[u]:
+            path.append(v)
+            dfs(v, path)
+            path.pop()                                # undo
+    dfs(src, [src])
+    return paths
+```
+
+**Variations:** All Paths From Source to Target, Path with Maximum Gold, N-Queens (when modeled as graph coloring), Word Search.
+
+## 8. Shortest path on weighted graph: 0-1 BFS preview
+
+> "Shortest path on a graph where edge weights are only 0 or 1."
+
+A clever twist on BFS: use a **deque** instead of a queue. Weight-0 edges push to the **front** (process first, no distance penalty); weight-1 edges push to the **back** (one more layer).
+
+```python copy
+from collections import deque
+
+def zero_one_bfs(graph, src):
+    dist = {v: float('inf') for v in graph}
+    dist[src] = 0
+    dq = deque([src])
+    while dq:
+        u = dq.popleft()
+        for v, w in graph[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if w == 0: dq.appendleft(v)
+                else:      dq.append(v)
+    return dist
+```
+
+This runs in **O(V + E)** — same as plain BFS, way faster than Dijkstra when weights are 0/1.
+
+**Variations:** Minimum Obstacle Removal, Minimum Sideways Moves, problems where one move is "free" and another costs 1.
+
+For arbitrary positive weights you need **Dijkstra** ([Day 21](/day21)). For graphs with negative weights, **Bellman-Ford**. 0-1 BFS sits in the sweet spot for the special 0/1-weight case.
+
+## 9. Bidirectional BFS
+
+> "Shortest path between two specific nodes in a giant graph."
+
+Run BFS from **both** ends simultaneously. When the two frontiers meet, the path is the concatenation of their two halves. Halves the search depth, often quadratically faster.
+
+```text
+Forward BFS frontier ←──────┐
+                            ┊
+                        meeting point
+                            ┊
+Backward BFS frontier ──────┘
+```
+
+Used for **Word Ladder II**, social-network "degrees of separation" queries, and Pokémon-style "shortest route from this Pokémon to that one."
+
+Implementation is fiddlier than vanilla BFS (alternate which frontier to expand, the smaller one), but the win is dramatic on large graphs.
+
+## 10. Connected components on directed graphs (SCC preview)
+
+> "Find groups of nodes that all mutually reach each other in a directed graph."
+
+A **strongly connected component (SCC)** is a maximal set of vertices where every pair has a path in both directions. Found via **Kosaraju's** or **Tarjan's** algorithm — both use DFS, but with extra bookkeeping (low-link values, finish times, two passes).
+
+This is heavier territory — we'll touch on it briefly in Day 21/22. The pattern shows up in:
+
+- Detecting cycles in big systems.
+- Identifying "talkative groups" in social networks.
+- Finding deadlock cycles in databases.
+- Compiler optimizations (loop detection).
+
+## The cheat sheet
+
+| If the question is about…                              | Use…                                    |
+| :----------------------------------------------------- | :-------------------------------------- |
+| Number of components / islands / provinces             | Component DFS sweep                     |
+| Color regions in a grid                                | Flood fill                              |
+| Shortest path on unweighted graph                      | BFS                                     |
+| Cycle detection in directed graph                      | DFS with WHITE/GRAY/BLACK               |
+| Cycle detection in undirected graph                    | DFS with parent tracking                |
+| Ordering tasks with dependencies                       | Topological sort (Kahn's or DFS post)   |
+| Bipartite / 2-colorable                                | BFS with two colors                     |
+| "How many steps from every cell to the nearest X"      | Multi-source BFS                        |
+| All paths from A to B                                  | Backtracking DFS                        |
+| Shortest path with weights 0 or 1                      | 0-1 BFS (deque)                         |
+| Shortest path with arbitrary positive weights          | Dijkstra (Day 21)                       |
+| Shortest path between two specific nodes (large graph) | Bidirectional BFS                       |
+| Find mutually reachable groups in a digraph            | SCCs (Kosaraju / Tarjan)                |
+
+This table covers ~80% of graph interview problems. The other 20% are variations on these themes with extra constraints.
+
+Next up: the **practice problems** to lock these in.

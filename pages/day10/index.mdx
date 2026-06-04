@@ -12,7 +12,9 @@ If [Day 9](/day9) was about the *model*, today is about the *motion*. We give th
 - **BFS** — explore layer by layer using a queue. The natural fit for "shortest path on an unweighted graph."
 - The **visited set** pattern that turns infinite loops into termination on graphs with cycles.
 - The mental rule for picking **DFS vs BFS** based on the question.
-- Five interview classics: Number of Islands, Clone Graph, Course Schedule, Pacific Atlantic, Word Ladder.
+- **The pattern family** — connected components, flood fill, cycle detection, bipartite check, multi-source BFS, topological sort, 0-1 BFS — all variations on the same two algorithms.
+- **Warm-up exercises** that drill the templates before the harder problems.
+- **Ten interview classics**: Number of Islands, Clone Graph, Course Schedule, Max Area of Island, Word Ladder, Pacific Atlantic Water Flow, Walls and Gates, Surrounded Regions, Is Graph Bipartite, Shortest Path in Binary Matrix.
 
 ## You've already seen both — in disguise
 
@@ -26,7 +28,9 @@ Today is the moment those two concepts get their proper names and become the bui
 1. **[DFS](/day10/dfs)** — recursive and iterative templates, visited tracking, on grids vs adjacency lists, two complete walkthroughs.
 2. **[BFS](/day10/bfs)** — queue-based template, level-by-level processing, shortest-path-on-unweighted-graphs trick.
 3. **[DFS vs BFS](/day10/when_to_use)** — the decision guide: which to reach for given the question.
-4. **[Practice Questions](/day10/practice_questions)** — five interview classics covering both algorithms across grid, graph, and word problems.
+4. **[Patterns](/day10/patterns)** — the family of DFS/BFS variations: connected components, flood fill, cycle detection, bipartite check, multi-source BFS, topological sort, 0-1 BFS.
+5. **[Basic Questions](/day10/basic_questions)** — warm-up exercises: implement DFS from scratch, trace BFS layers, identify the right algorithm for a given prompt.
+6. **[Practice Questions](/day10/practice_questions)** — ten interview classics covering both algorithms across grid, graph, and word problems.
 
 <Callout type="info">
     A single observation makes the rest of graph algorithms feel easy: **DFS and BFS visit every node and every edge once, in O(V + E) total**. Both. Always. Whatever fancy thing you're computing — components, distances, ordering — you're doing it inside that O(V + E) walk. Everything else is just *what you store* during the walk.

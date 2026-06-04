@@ -1,0 +1,168 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Keys and Rooms <DifficultyBadge level="medium" />
+
+#### Description
+
+There are `n` rooms, labeled `0` to `n - 1`. All rooms are locked except room `0`. Each room contains a list of keys, and each key unlocks exactly one other room.
+
+Given `rooms` — an array where `rooms[i]` is the list of keys found in room `i` — return `true` if you can visit **all the rooms**, and `false` otherwise. You start in room `0`.
+
+#### Examples
+
+```py
+> Case 1:
+    rooms = [[1], [2], [3], []]
+    Output: true
+    # Start in 0 → key to 1. Open 1 → key to 2. Open 2 → key to 3. Done.
+
+> Case 2:
+    rooms = [[1, 3], [3, 0, 1], [2], [0]]
+    Output: false
+    # Can reach 0, 1, 3 but never 2 (no key to 2 exists anywhere we can reach).
+```
+
+#### Constraints
+
+- `2 <= n <= 1000`
+- `0 <= rooms[i].length <= 1000`
+- Keys are room labels in `[0, n)`.
+
+#### Recognizing the graph
+
+Each room is a **vertex**. Each key in room `i` pointing to room `j` is a **directed edge** `i → j`. The question becomes:
+
+> **Starting at vertex 0, can we reach every other vertex?**
+
+That's a **reachability** question — exactly what BFS or DFS answers. Visit all vertices reachable from 0, then check if you've visited all `n`.
+
+#### Approach 1: Iterative DFS with a stack
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def can_visit_all_rooms(rooms):
+        visited = {0}
+        stack = [0]
+        while stack:
+            room = stack.pop()
+            for key in rooms[room]:
+                if key not in visited:
+                    visited.add(key)
+                    stack.append(key)
+        return len(visited) == len(rooms)
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <vector>
+    #include <unordered_set>
+    using namespace std;
+
+    bool canVisitAllRooms(vector<vector<int>>& rooms) {
+        unordered_set<int> visited = {0};
+        vector<int> stack = {0};
+        while (!stack.empty()) {
+            int room = stack.back(); stack.pop_back();
+            for (int key : rooms[room]) {
+                if (!visited.count(key)) {
+                    visited.insert(key);
+                    stack.push_back(key);
+                }
+            }
+        }
+        return (int)visited.size() == (int)rooms.size();
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    import java.util.*;
+
+    public boolean canVisitAllRooms(List<List<Integer>> rooms) {
+        Set<Integer> visited = new HashSet<>();
+        visited.add(0);
+        Deque<Integer> stack = new ArrayDeque<>();
+        stack.push(0);
+        while (!stack.isEmpty()) {
+            int room = stack.pop();
+            for (int key : rooms.get(room)) {
+                if (visited.add(key)) {
+                    stack.push(key);
+                }
+            }
+        }
+        return visited.size() == rooms.size();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(N + K) where N = rooms, K = total keys. **Space:** O(N) for the visited set + stack.
+
+#### Approach 2: Recursive DFS
+
+The same logic in recursive form — sometimes cleaner:
+
+```python copy
+def can_visit_all_rooms(rooms):
+    visited = set()
+    def dfs(room):
+        visited.add(room)
+        for key in rooms[room]:
+            if key not in visited:
+                dfs(key)
+    dfs(0)
+    return len(visited) == len(rooms)
+```
+
+#### Approach 3: BFS
+
+Equivalent — just replace the stack with a queue:
+
+```python copy
+from collections import deque
+
+def can_visit_all_rooms(rooms):
+    visited = {0}
+    queue = deque([0])
+    while queue:
+        room = queue.popleft()
+        for key in rooms[room]:
+            if key not in visited:
+                visited.add(key)
+                queue.append(key)
+    return len(visited) == len(rooms)
+```
+
+For this problem (just reachability, no shortest-path requirement) DFS and BFS are interchangeable. **DFS is slightly cheaper in cache locality**; BFS gives you the BFS layer order if you needed it.
+
+<Callout type="info">
+    **Why does the `visited` set matter?** Without it, a graph with cycles (e.g., room 0 has a key to room 1, room 1 has a key to room 0) would loop forever. The visited set is the **defining difference** between graph traversal and tree traversal — we covered this on the [DFS page](/day10/dfs).
+</Callout>
+
+#### Edge cases
+
+- `rooms = [[]]` → only one room, trivially visited. Return `true`. (n=1 not allowed by constraints but the logic handles it.)
+- `rooms = [[1], []]` → start at 0, get key to 1, visit 1. All visited. `true`.
+- `rooms = [[], [0]]` → start at 0 with no keys. Room 1 unreachable. `false`.
+- Self-loops (room 0 has a key to room 0) are fine — they're filtered by the visited check.
+
+#### The pattern: "can I reach all nodes from a given start?"
+
+Keys and Rooms is the **pure reachability template** — DFS/BFS from a starting vertex, count visited at the end. The same shape solves:
+
+- **Find if Path Exists** — reachability between two specific vertices.
+- **Number of Connected Components** — DFS from every unvisited vertex; the number of times you start a new search = the number of components.
+- **All Paths from Source to Target** — like reachability but record paths.
+- **Possible Bipartition** — reachability with two-coloring.
+- **Is the Graph Connected?** — DFS from any one vertex and check all are visited.
+
+This is also the simplest possible graph algorithm pattern — and the gateway to everything heavier on [Day 10](/day10).
+
+#### Analysis
+
+- **Time:** **O(N + K)** — every room visited once, every key examined at most once.
+- **Space:** **O(N)** — visited set holds at most all rooms.

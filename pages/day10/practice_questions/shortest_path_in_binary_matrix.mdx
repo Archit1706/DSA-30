@@ -1,0 +1,201 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Shortest Path in Binary Matrix <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an `n x n` binary matrix `grid` (0s and 1s), return the **length of the shortest clear path** from the top-left to the bottom-right. Return `-1` if no such path exists.
+
+A **clear path** has these rules:
+
+- All cells on the path are `0`.
+- Consecutive cells on the path are **8-directionally adjacent** — neighbors include the 4 cardinal directions PLUS the 4 diagonals.
+- The path's length is the number of cells visited.
+
+#### Examples
+
+```py
+> Case 1:
+    grid = [[0, 1],
+            [1, 0]]
+    Output: 2       # (0,0) → (1,1) diagonally — 2 cells visited
+
+> Case 2:
+    grid = [[0, 0, 0],
+            [1, 1, 0],
+            [1, 1, 0]]
+    Output: 4       # (0,0) → (0,1) → (0,2) → (1,2) → (2,2)
+
+> Case 3:
+    grid = [[1, 0, 0],
+            [1, 1, 0],
+            [1, 1, 0]]
+    Output: -1      # start cell (0,0) is blocked
+```
+
+#### Constraints
+
+- `n == grid.length == grid[i].length`
+- `1 <= n <= 100`
+- `grid[i][j]` is `0` or `1`.
+
+#### Why BFS — and why 8 directions
+
+"Shortest path on unweighted graph" → **BFS**. That's the immediate cue.
+
+The twist: each cell has **up to 8 neighbors** (not 4). The diagonals count as a single move, exactly like the cardinal directions. So we expand 8 neighbors instead of 4 — every other detail of the template is unchanged.
+
+#### Algorithm
+
+```text
+If grid[0][0] != 0 or grid[n-1][n-1] != 0: return -1
+
+queue = [(0, 0, distance=1)]
+visited = {(0, 0)}
+
+while queue:
+    r, c, d = queue.popleft()
+    if (r, c) == (n-1, n-1): return d
+    for each of the 8 neighbors (nr, nc):
+        if in bounds and grid[nr][nc] == 0 and (nr, nc) not in visited:
+            visited.add((nr, nc))
+            queue.append((nr, nc, d + 1))
+
+return -1   # exhausted queue, never reached the target
+```
+
+#### Code
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def shortest_path_binary_matrix(grid):
+        n = len(grid)
+        if grid[0][0] != 0 or grid[n-1][n-1] != 0:
+            return -1
+        if n == 1:
+            return 1
+
+        DIRS = [(1,0), (-1,0), (0,1), (0,-1),
+                (1,1), (1,-1), (-1,1), (-1,-1)]
+
+        visited = {(0, 0)}
+        queue = deque([(0, 0, 1)])
+
+        while queue:
+            r, c, dist = queue.popleft()
+            for dr, dc in DIRS:
+                nr, nc = r + dr, c + dc
+                if (0 <= nr < n and 0 <= nc < n
+                    and grid[nr][nc] == 0
+                    and (nr, nc) not in visited):
+                    if (nr, nc) == (n - 1, n - 1):
+                        return dist + 1
+                    visited.add((nr, nc))
+                    queue.append((nr, nc, dist + 1))
+
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    #include <queue>
+    #include <vector>
+    using namespace std;
+
+    int shortestPathBinaryMatrix(vector<vector<int>>& grid) {
+        int n = grid.size();
+        if (grid[0][0] != 0 || grid[n-1][n-1] != 0) return -1;
+        if (n == 1) return 1;
+
+        vector<pair<int,int>> dirs = {
+            {1,0}, {-1,0}, {0,1}, {0,-1},
+            {1,1}, {1,-1}, {-1,1}, {-1,-1}
+        };
+        vector<vector<bool>> visited(n, vector<bool>(n, false));
+        queue<tuple<int,int,int>> q;
+        q.push({0, 0, 1});
+        visited[0][0] = true;
+
+        while (!q.empty()) {
+            auto [r, c, dist] = q.front(); q.pop();
+            for (auto [dr, dc] : dirs) {
+                int nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < n && nc >= 0 && nc < n
+                    && grid[nr][nc] == 0 && !visited[nr][nc]) {
+                    if (nr == n - 1 && nc == n - 1) return dist + 1;
+                    visited[nr][nc] = true;
+                    q.push({nr, nc, dist + 1});
+                }
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int shortestPathBinaryMatrix(int[][] grid) {
+        int n = grid.length;
+        if (grid[0][0] != 0 || grid[n-1][n-1] != 0) return -1;
+        if (n == 1) return 1;
+
+        int[][] dirs = {{1,0},{-1,0},{0,1},{0,-1},{1,1},{1,-1},{-1,1},{-1,-1}};
+        boolean[][] visited = new boolean[n][n];
+        Queue<int[]> queue = new ArrayDeque<>();
+        queue.offer(new int[]{0, 0, 1});
+        visited[0][0] = true;
+
+        while (!queue.isEmpty()) {
+            int[] cur = queue.poll();
+            int r = cur[0], c = cur[1], dist = cur[2];
+            for (int[] d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr >= 0 && nr < n && nc >= 0 && nc < n
+                    && grid[nr][nc] == 0 && !visited[nr][nc]) {
+                    if (nr == n - 1 && nc == n - 1) return dist + 1;
+                    visited[nr][nc] = true;
+                    queue.offer(new int[]{nr, nc, dist + 1});
+                }
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The early-return-on-arrival is essential for performance.** Without it, you'd keep exploring nodes equal-distance from the goal and waste time. Standard BFS finds the optimum at first discovery — return as soon as you queue the target cell.
+
+    Also: **check the start AND end cells are clear** before even starting BFS. Easy miss; common off-by-one bug.
+</Callout>
+
+#### Why the visited set rules out reprocessing
+
+Once a cell is visited in BFS, any future encounter of it would be via a **longer or equal** path. There's no benefit to revisiting — so we skip. The visited check goes **at enqueue time**, not dequeue, to avoid same-cell duplicates piling up in the queue.
+
+#### What changes from 4-dir to 8-dir?
+
+Just the `DIRS` array. The rest of the algorithm is identical. This is why "Number of Islands" (4-dir) and this problem (8-dir) feel so similar — they share the template.
+
+#### Variants
+
+| Problem                                          | Twist                                                       |
+| :----------------------------------------------- | :---------------------------------------------------------- |
+| **Shortest Path in a Grid with Obstacle Elimination** | BFS state is (r, c, obstacles_used)                    |
+| **As Far From Land as Possible**                 | Multi-source BFS from all land cells                        |
+| **Minimum Moves to Equal Array Elements II**     | Find median (not a BFS, surprisingly)                       |
+| **Sliding Puzzle**                               | BFS on board-states as nodes                                |
+| **Word Ladder**                                  | BFS where neighbors are "differ by one letter"              |
+
+The unifying lesson: **BFS isn't about grids — it's about any space where you can model "neighbor" cheaply and want minimum hops.**
+
+#### Analysis
+
+- **Time:** **O(n²)** — each cell visited once.
+- **Space:** **O(n²)** for the visited matrix + the queue in the worst case.

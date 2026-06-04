@@ -1,0 +1,126 @@
+import { Callout } from "nextra/components";
+
+# Where Graphs Power Real Systems
+
+Graphs aren't an abstract math toy. Once you can spot the graph hiding in a problem, you discover that an enormous fraction of real-world software is *literally* a graph algorithm in a trench coat. This page surveys the systems where graphs do the work — knowing them is the difference between "I solve LeetCode graph problems" and "I see graphs everywhere."
+
+## 1. Social networks — the obvious one
+
+Facebook, Twitter/X, Instagram, LinkedIn, TikTok — all giant graphs.
+
+- **Vertices** = users.
+- **Edges** = follows, friendships, likes, mentions, retweets.
+- **Directed?** Twitter follows are directed; Facebook friends are undirected.
+- **Weighted?** Often yes — interaction strength, recency, mutual friends.
+
+The "**People You May Know**" feature is graph traversal: find friends-of-friends (2-hop neighbors), rank by mutual-friend count, exclude already-connected.
+
+LinkedIn's "**1st, 2nd, 3rd degree connection**" label is literally BFS distance — Day 10's territory.
+
+## 2. The web — the original killer app
+
+The World Wide Web is a directed graph: web pages are vertices, hyperlinks are directed edges. Search engines exploit this in three legendary ways:
+
+- **Crawling** — BFS from seed URLs, following outgoing links to discover new pages.
+- **PageRank** (Google's original ranking algorithm) — a node's importance is the sum of fractions of its inbound neighbors' importance. Solved via iterated matrix multiplication on the graph's adjacency matrix.
+- **Backlink analysis** — "who links to me?" is a graph traversal in reverse.
+
+If you've ever Googled anything, a graph algorithm gave you the answer.
+
+## 3. Dependency graphs — package managers, build systems, compilers
+
+Every modern software stack is a giant dependency graph.
+
+- **npm / pip / cargo / maven** — packages depend on other packages. Vertices = packages, edges = "X depends on Y." Cycle in this graph = unsolvable dependency. The "version solver" in npm/pip is a **constraint-satisfaction problem on a DAG**.
+- **Make / Bazel / Gradle** — build targets depend on other targets. Determining build order = **topological sort** (Day 23).
+- **Compilers** — within a single function, basic blocks form a **control-flow graph (CFG)** used for register allocation, dead code elimination, optimization passes. Every Clang / GCC / LLVM optimization is a graph algorithm on the CFG.
+
+The infamous "diamond dependency" problem (A depends on B and C; both depend on different versions of D) is a graph-theoretic disaster every package manager has spent millions of engineer-hours fighting.
+
+## 4. Navigation — Google Maps, Waze, Apple Maps
+
+Roads form a graph: intersections are vertices, road segments are weighted edges (weight = travel time).
+
+- **Shortest path** = Dijkstra or A* (Day 21).
+- **Real-time re-routing** = re-run shortest path when traffic conditions change.
+- **Multi-stop routing** = traveling salesman / vehicle routing — hard in general, but solvable for small N.
+
+Every navigation app on Earth boils down to "shortest path on a weighted graph, where the weights are constantly changing." The infrastructure to update edge weights for millions of road segments in real time is the actual hard part.
+
+## 5. Recommendation systems
+
+Netflix, Spotify, YouTube, Amazon — all model their data as **bipartite graphs**:
+
+- One side: users.
+- Other side: items (movies, songs, products).
+- Edges: "user rated item" or "user purchased item" (often weighted by rating or recency).
+
+The classic algorithm: **collaborative filtering** = "find users similar to you (close in the graph), recommend what they liked." More modern systems use **graph neural networks** that learn embeddings for vertices.
+
+Spotify's "Discover Weekly" runs on a graph of song-to-song co-occurrence. YouTube's recommendation system maintains a graph of "users who watched A also watched B."
+
+## 6. Biology and chemistry
+
+- **Protein-protein interaction networks** — vertices = proteins, edges = "these two interact." Finding densely-connected subgraphs reveals functional modules in cells.
+- **Metabolic pathways** — vertices = molecules, edges = reactions. Used to model how bacteria metabolize a sugar, or how a drug might affect cellular processes.
+- **Phylogenetic trees** — evolutionary relationships. A specific kind of graph (a tree, actually).
+- **Molecular structures** — atoms are vertices, bonds are edges. AlphaFold's models internally compute over molecular graphs.
+
+Pharmaceutical companies run massive graph algorithms to find candidate drug molecules.
+
+## 7. Knowledge graphs and semantic search
+
+- **Google Knowledge Graph** — the box that pops up when you search a famous person. Vertices = entities (people, places, concepts), edges = relationships (`bornIn`, `directedBy`, `partOf`).
+- **Wikidata** — a publicly-editable knowledge graph with ~100 million entities.
+- **Enterprise knowledge graphs** (Microsoft, IBM, Bloomberg) — internal company data structured as a graph for unified querying.
+
+Knowledge graphs power **semantic search** — "movies directed by women born in France" — by traversing relationship edges.
+
+## 8. Distributed systems and consensus
+
+- **Distributed databases** model **replication topology** as a graph: which nodes replicate to which, with edges representing the connection.
+- **Service meshes** (Istio, Linkerd) — microservices form a directed graph; the mesh routes requests along edges.
+- **Gossip protocols** propagate updates via random edge traversal — the graph topology determines convergence speed.
+- **Blockchain consensus** like Bitcoin treats the chain of blocks as a graph (sometimes a tree when forks happen — the longest chain wins).
+
+## 9. Game development
+
+- **Pathfinding** — every NPC that moves in a video game uses A* on the level's navigation mesh (a graph of walkable areas).
+- **Game state graphs** — for AI opponents in chess/Go, the **game tree** is a graph of board states, and the AI runs minimax / Monte Carlo Tree Search on it.
+- **Dialog systems** — branching conversations are explicit directed graphs.
+- **Skill trees** (RPGs) — literal trees, a kind of graph.
+
+## 10. Code itself
+
+- **Function call graphs** — vertices = functions, edges = "X calls Y." Used by linters, profilers, and dead-code elimination.
+- **Dependency injection** containers (Spring, Angular, Dagger) maintain a graph of "object X needs object Y" and resolve construction order via topological sort.
+- **Reactive frameworks** (React, RxJS, Vue) — UI components form a dependency graph; the framework decides what to re-render based on graph propagation.
+- **GraphQL** is, charmingly, named after this — every query is itself a graph traversal of the data schema.
+
+## 11. Recommender / matching / fraud detection
+
+- **Tinder / dating apps** — user preferences form a bipartite graph; matching is a graph algorithm.
+- **Ride-sharing** (Uber, Lyft) — driver/rider matching is bipartite matching with time and distance constraints.
+- **Ad auctions** — advertiser-impression bipartite matching, solved by min-cost flow on a graph.
+- **Fraud detection** — banks build transaction graphs and look for suspicious **dense subgraphs** (rings of accounts moving money in circles), **unusual paths**, or **anomalous centrality**.
+
+## A pattern-recognition cheat sheet
+
+If a problem statement looks like any of these phrases, **model it as a graph** first:
+
+| Phrase                                              | Graph model                                |
+| :-------------------------------------------------- | :----------------------------------------- |
+| "Can I go from A to B?"                              | Reachability — BFS/DFS                     |
+| "What's the shortest sequence of transformations?"   | Shortest path on an unweighted graph — BFS |
+| "Minimum cost to connect everything"                 | Minimum Spanning Tree (Day 22)             |
+| "Best route given travel times"                      | Shortest path on weighted graph — Dijkstra |
+| "Order to do tasks with dependencies"                | Topological sort on a DAG (Day 23)         |
+| "Can two groups be separated cleanly?"               | Bipartite check                            |
+| "Find tightly-connected groups"                      | Strongly connected components / community detection |
+| "Match items between two groups"                     | Bipartite matching                         |
+| "Detect a cycle / loop"                              | Cycle detection via DFS                    |
+| "Detect duplicate work in a build / dependency"      | Cycle detection on a DAG                   |
+
+The graph is half the problem. The traversal is the other half. **Today** is for spotting the graph; **Day 10** is for traversing it.
+
+Next: the **basic questions** to drill graph modeling and adjacency-list construction.

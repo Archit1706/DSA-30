@@ -1,0 +1,155 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Minimum Number of Vertices to Reach All Nodes <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a **directed acyclic graph (DAG)** with `n` vertices labeled `0..n-1` and an array `edges` where `edges[i] = [from, to]` represents a directed edge, find the **smallest set of vertices** from which all other nodes in the graph are reachable.
+
+A valid answer always exists and is unique.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 6,   edges = [[0,1], [0,2], [2,5], [3,4], [4,2]]
+    Output: [0, 3]
+    # From 0 you can reach 1, 2, 5. From 3 you can reach 4 (and from 4 → 2 → 5).
+    # No other vertex is reachable from "outside" the set {0, 3}.
+
+> Case 2:
+    n = 5,   edges = [[0,1], [2,1], [3,1], [1,4], [2,4]]
+    Output: [0, 2, 3]
+    # 1 and 4 have incoming edges; 0, 2, 3 don't.
+```
+
+#### Constraints
+
+- `2 <= n <= 10^5`
+- `1 <= edges.length <= min(10^5, n * (n - 1) / 2)`
+- Graph is a DAG (no cycles).
+
+#### The key insight
+
+Forget DFS, BFS, or any traversal for a moment. Think about **which vertices can possibly be the "source" of a covering set**.
+
+A vertex with **in-degree > 0** is reachable from at least one other vertex — so any set covering "its parent" also covers it. We don't need to include it.
+
+A vertex with **in-degree = 0** is reachable from **no other vertex**. The only way to reach it is to start there. So it **must** be in the answer.
+
+In a DAG, the answer is **exactly the set of vertices with in-degree 0** — no more, no less.
+
+#### Why "no more"?
+
+Because every other vertex (in-degree > 0) is reachable from some chain of in-degree-0 sources upstream. We've already covered them.
+
+#### Why "no less"?
+
+Because removing an in-degree-0 vertex from our set makes it unreachable from any of the remaining vertices.
+
+#### Code (one pass over edges + one pass over vertices)
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def find_smallest_set_of_vertices(n, edges):
+        has_incoming = [False] * n
+        for _, b in edges:
+            has_incoming[b] = True
+        return [i for i in range(n) if not has_incoming[i]]
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    vector<int> findSmallestSetOfVertices(int n, vector<vector<int>>& edges) {
+        vector<bool> hasIncoming(n, false);
+        for (auto& e : edges) hasIncoming[e[1]] = true;
+        vector<int> result;
+        for (int i = 0; i < n; i++) {
+            if (!hasIncoming[i]) result.push_back(i);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> findSmallestSetOfVertices(int n, List<List<Integer>> edges) {
+        boolean[] hasIncoming = new boolean[n];
+        for (var e : edges) hasIncoming[e.get(1)] = true;
+        List<Integer> result = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            if (!hasIncoming[i]) result.add(i);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**That's the whole solution.** No traversal needed.
+
+<Callout type="info">
+    **The lesson:** before reaching for DFS/BFS, ask whether the structure already tells you the answer. Degree counting solves a surprising number of "graph" problems in linear time without ever traversing — Find the Town Judge, Center of Star Graph, and this one all fall to the same trick.
+</Callout>
+
+#### Why the DAG assumption matters
+
+If the graph had **cycles**, this logic would break. Consider:
+
+```text
+0 → 1
+1 → 2
+2 → 0
+```
+
+Every vertex has in-degree 1. The above code would return `[]`, claiming there's nothing in the cover set — but you still need *some* vertex to start from. The actual answer would be **any single vertex** (since all three are mutually reachable).
+
+For cyclic graphs you'd need to:
+1. Find **strongly connected components (SCCs)** — groups of vertices that all reach each other.
+2. **Contract** each SCC into a single vertex (the result is a DAG).
+3. Apply the in-degree-0 trick to the contracted DAG.
+
+The contracted DAG has one component-vertex per cycle, so the answer is the set of components with no incoming edges from other components. This is **Kosaraju's** or **Tarjan's SCC algorithm** — advanced material we'll touch on later. For now, the DAG-only version covers the most common case.
+
+#### Visualizing it
+
+```text
+Case 1: n=6, edges = [[0,1],[0,2],[2,5],[3,4],[4,2]]
+
+         0           3
+        / \          |
+       1   2         4
+           |        /
+           5 ◄─────┘    (note: 4 → 2 also)
+
+In-degrees:  0→0, 1→1, 2→2, 3→0, 4→1, 5→1
+Vertices with in-degree 0: {0, 3}
+Answer: [0, 3]  ✓
+```
+
+Walk through it. From 0 you reach 1, 2, 5 (since 2 → 5). From 3 you reach 4, which reaches 2, which reaches 5. **Together {0, 3} cover everything.**
+
+Could you drop 3? No — then 4 has no way to be reached (its only incoming edge is from 3).
+Could you drop 0? No — then 1 has no way to be reached.
+
+#### The family of "DAG + degree-counting" problems
+
+| Problem                                           | Trick                                             |
+| :------------------------------------------------ | :------------------------------------------------ |
+| **Min Vertices to Reach All Nodes**               | Count in-degree-0 vertices                        |
+| **Topological Sort (Kahn's algorithm)**           | Repeatedly remove in-degree-0 vertices            |
+| **Course Schedule** (cycle detection)             | If topological sort fails to cover all, cycle exists |
+| **All Ancestors of a Node in a DAG**              | Reverse traversal from each node                  |
+| **Build Order**                                   | Topological sort of dependency DAG                |
+
+All of them lean on the structural fact that in a DAG, **information flows in one direction** — and that direction is set by the in-degree.
+
+#### Analysis
+
+- **Time:** **O(V + E)** — one pass over edges, one pass over vertices.
+- **Space:** **O(V)** for the `has_incoming` array.
+
+This is one of the few "graph" problems where the answer is a one-liner: `[v for v in range(n) if in_degree(v) == 0]`. Recognize the in-degree trick and you'll save yourself a lot of work.

@@ -1,0 +1,214 @@
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+export const Tab = Tabs.Tab;
+
+# Basic Graph Questions
+
+Six warm-up exercises to build graph-modeling muscle before the traversal day. Each one tests a different reflex: counting from the handshake lemma, converting between representations, modeling a problem as a graph, hand-tracing the structure.
+
+These don't need DFS or BFS yet — they're about **seeing** the graph clearly.
+
+<Steps>
+
+### 1. The handshake lemma
+
+In an **undirected** graph with vertices V and edges E, what's the sum of all degrees? Why?
+
+<ShowHideSolution>
+
+**Sum of degrees = 2|E|.**
+
+Every edge contributes `+1` to the degree of each of its two endpoints. So the total degree count is exactly **twice the number of edges**.
+
+```text
+Vertices: 4    Edges: {(0,1), (0,2), (1,3)}
+Degrees: 0→2, 1→2, 2→1, 3→1   Sum = 6 = 2·3 ✓
+```
+
+A famous corollary (the **handshake lemma**): in any undirected graph, the number of vertices with **odd degree** is always **even**. This is why you can't have a party where every guest shakes hands with an odd number of other guests *unless* the number of guests is itself even.
+
+In **directed** graphs the analogous statement is: `sum of in-degrees = sum of out-degrees = |E|`.
+
+</ShowHideSolution>
+
+### 2. Convert representations
+
+Given this edge list, build both the adjacency list and the adjacency matrix:
+
+```text
+Edges:  [(0,1), (0,2), (1,2), (2,3)]      (undirected, 4 vertices)
+```
+
+<ShowHideSolution>
+
+**Adjacency list** (each vertex → list of neighbors):
+
+```text
+0 → [1, 2]
+1 → [0, 2]
+2 → [0, 1, 3]
+3 → [2]
+```
+
+**Adjacency matrix** (1 if edge exists, 0 otherwise):
+
+```text
+      0  1  2  3
+   ┌─────────────
+ 0 │  0  1  1  0
+ 1 │  1  0  1  0
+ 2 │  1  1  0  1
+ 3 │  0  0  1  0
+```
+
+Notice:
+
+- The matrix is **symmetric** because the graph is undirected.
+- Adjacency list space: `O(V + E)` (here 4 + 4·2 = 12 entries).
+- Adjacency matrix space: `O(V²)` (here 16 entries — already more, and gets worse fast).
+
+For 4 vertices the difference is trivial. For 1000 vertices, the matrix needs 1M entries while a sparse list might need only 5000.
+
+</ShowHideSolution>
+
+### 3. Model this problem as a graph
+
+You're given a list of **flights** as tuples `(from_city, to_city, cost)`. What's the graph?
+
+<ShowHideSolution>
+
+- **Vertices** = cities.
+- **Edges** = flights — **directed** (a flight from A to B doesn't mean a flight from B to A).
+- **Weighted** = yes, by cost.
+
+The most natural representation: an adjacency list where each entry is `(neighbor, cost)`:
+
+```python
+graph = {
+  "NYC": [("LAX", 350), ("ORD", 120)],
+  "LAX": [("SFO", 80)],
+  "ORD": [("LAX", 200), ("SEA", 180)],
+  ...
+}
+```
+
+Once you have the graph, *cheapest itinerary from A to B* becomes **shortest path in a weighted graph** — exactly what Dijkstra ([Day 21](/day21)) solves.
+
+The whole skill is **noticing that "flights between cities" IS a graph**. Once you do, the algorithm is immediate.
+
+</ShowHideSolution>
+
+### 4. Spot the cycle
+
+Is the following directed graph a DAG (directed acyclic graph)?
+
+```text
+Edges: [(A→B), (B→C), (C→D), (D→B)]
+```
+
+<ShowHideSolution>
+
+**No — there's a cycle: B → C → D → B.**
+
+To check by inspection:
+
+1. Draw the graph.
+2. Try to find any sequence of directed edges that returns to its starting vertex.
+
+`B → C → D → B` does exactly that. So this is **not** a DAG.
+
+Why it matters: many algorithms (topological sort, dependency resolution, course scheduling) **require** the graph to be a DAG. If you call them on a cyclic graph, you get either a runtime error or nonsense output.
+
+Cycle detection in a DAG is a classic interview problem — we'll do it via DFS color-marking on [Day 10](/day10) and again in [Course Schedule](/day10/practice_questions/course_schedule).
+
+</ShowHideSolution>
+
+### 5. Bipartite by inspection
+
+Is this graph bipartite? Can you split the vertices into two groups such that every edge connects a vertex in one group to a vertex in the other?
+
+```text
+Vertices: {1, 2, 3, 4, 5, 6}
+Edges:    {(1,4), (1,5), (2,4), (2,6), (3,5), (3,6)}
+```
+
+<ShowHideSolution>
+
+**Yes — it's bipartite. Split: {1, 2, 3} and {4, 5, 6}.**
+
+Every edge in the list goes between a number in `{1,2,3}` and a number in `{4,5,6}`. No edge connects two numbers within either group.
+
+The algorithmic test (covered on [Day 10](/day10) as the bipartite-check problem): **2-color the graph via BFS or DFS**. Start a node with color 0, color all neighbors color 1, color their neighbors color 0, and so on. If you ever try to color a node with two different colors, the graph is **not** bipartite.
+
+This problem (LeetCode 785, *Is Graph Bipartite?*) is in your [Day 10 practice list](/day10/practice_questions/is_graph_bipartite).
+
+Bipartite graphs underpin recommendation systems, scheduling, matching, and stable-marriage algorithms.
+
+</ShowHideSolution>
+
+### 6. Count connected components
+
+This adjacency list represents an undirected graph. How many connected components does it have?
+
+```text
+0 → [1]
+1 → [0]
+2 → [3]
+3 → [2]
+4 → []
+5 → [6]
+6 → [5]
+```
+
+<ShowHideSolution>
+
+**Four components:** `{0, 1}`, `{2, 3}`, `{4}`, `{5, 6}`.
+
+A connected component is a maximal set of vertices where every pair is connected by some path. Walking the adjacency list:
+
+- `0` connects to `1` (and back). One component: `{0, 1}`.
+- `2` connects to `3`. Another: `{2, 3}`.
+- `4` has no edges — a lone vertex. One-vertex component: `{4}`.
+- `5` connects to `6`. Last one: `{5, 6}`.
+
+Algorithmically, you find components by **running DFS or BFS from every unvisited vertex**. Each "start a new search" = one new component. We solve this as a practice problem in [Count Connected Components](/day9/practice_questions/count_connected_components).
+
+</ShowHideSolution>
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="A directed graph has 100 edges. The sum of all in-degrees is:"
+    options={[
+        "Always 100",
+        "Always 200",
+        "Depends on the graph — could be anything",
+        "Always equal to the number of vertices"
+    ]}
+    correctIndex={0}
+    explanation="In a directed graph, each edge contributes EXACTLY 1 to its target vertex's in-degree. So the sum of in-degrees always equals |E|. Same for out-degrees. (Contrast this with undirected: each edge contributes 2 to the total degree, so sum-of-degrees = 2|E|.)"
+/>
+
+<QuizBox
+    question="For a graph with 10,000 vertices and ~50,000 edges, which representation is dramatically better?"
+    options={[
+        "Adjacency matrix — denser is better",
+        "Adjacency list — sparse graphs favor this by a huge margin",
+        "Edge list — best of both worlds",
+        "Doesn't matter — same complexity"
+    ]}
+    correctIndex={1}
+    explanation="Adjacency list space = O(V + E) = 10K + 50K = 60K entries. Adjacency matrix space = O(V²) = 100 million entries. For sparse graphs (where E << V²), the list saves ~1000x memory. The matrix only wins for very dense graphs (E close to V²) or when you need O(1) edge-existence queries."
+/>
+
+<QuizBox
+    question="You have a tree with N nodes. How many edges does it have?"
+    options={["N-1", "N", "N+1", "Up to N(N-1)/2"]}
+    correctIndex={0}
+    explanation="A tree is defined as a connected, undirected, acyclic graph. The exact-edge-count fact: any tree with N nodes has EXACTLY N-1 edges. Add one more edge and you must create a cycle (it would no longer be a tree). Remove one and you disconnect it (also no longer a tree)."
+/>
+
+Ready for the model-only practice problems? Head to **Practice Questions** — six problems that exercise graph thinking before we add DFS/BFS on Day 10.

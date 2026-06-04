@@ -1,0 +1,278 @@
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { ShowHideSolution } from "../../components/ShowHideSolution";
+export const Tab = Tabs.Tab;
+
+# Basic DFS / BFS Questions
+
+Six warm-up drills to lock in the traversal templates before the interview classics. Each one builds on the previous: implement the template, trace by hand, spot the algorithm, then start customizing.
+
+If you can do these without looking up the templates, the practice problems will feel mechanical.
+
+<Steps>
+
+### 1. Implement DFS from scratch
+
+Given an adjacency list and a starting vertex, return the list of vertices visited in DFS order.
+
+```python
+graph = {
+    0: [1, 2],
+    1: [0, 3],
+    2: [0, 4],
+    3: [1],
+    4: [2],
+}
+start = 0
+```
+
+<ShowHideSolution>
+
+**Recursive version:**
+
+```python copy
+def dfs(graph, start):
+    visited = set()
+    order = []
+    def go(node):
+        visited.add(node)
+        order.append(node)
+        for nb in graph[node]:
+            if nb not in visited:
+                go(nb)
+    go(start)
+    return order
+
+# dfs(graph, 0)  →  [0, 1, 3, 2, 4]
+```
+
+**Iterative version (with explicit stack):**
+
+```python copy
+def dfs_iter(graph, start):
+    visited = {start}
+    order = []
+    stack = [start]
+    while stack:
+        node = stack.pop()
+        order.append(node)
+        for nb in graph[node]:
+            if nb not in visited:
+                visited.add(nb)
+                stack.append(nb)
+    return order
+```
+
+Two things to notice:
+
+- **The order can differ** depending on how the adjacency lists are sorted, and recursion vs iteration. Both are valid DFS orderings.
+- **The visited set is checked BEFORE pushing**, not after popping. Pushing a node into the stack already commits it to be visited.
+
+</ShowHideSolution>
+
+### 2. Implement BFS from scratch
+
+Same graph, same starting vertex — return the **layer-by-layer** order.
+
+<ShowHideSolution>
+
+```python copy
+from collections import deque
+
+def bfs(graph, start):
+    visited = {start}
+    order = []
+    queue = deque([start])
+    while queue:
+        node = queue.popleft()
+        order.append(node)
+        for nb in graph[node]:
+            if nb not in visited:
+                visited.add(nb)
+                queue.append(nb)
+    return order
+
+# bfs(graph, 0) →  [0, 1, 2, 3, 4]
+```
+
+The only differences from iterative DFS are:
+
+1. `queue.popleft()` (FIFO) instead of `stack.pop()` (LIFO).
+2. The resulting order processes all depth-`d` nodes before any depth-`d+1` node.
+
+That single change — popleft instead of pop — turns DFS into BFS. **Same structure, different traversal order.**
+
+</ShowHideSolution>
+
+### 3. Find the shortest distance from a source
+
+Given an unweighted adjacency list, return the BFS distance (number of edges) from `start` to every other vertex. Use `-1` for unreachable.
+
+<ShowHideSolution>
+
+```python copy
+from collections import deque
+
+def shortest_distances(graph, start):
+    dist = {node: -1 for node in graph}
+    dist[start] = 0
+    queue = deque([start])
+    while queue:
+        node = queue.popleft()
+        for nb in graph[node]:
+            if dist[nb] == -1:                   # not visited
+                dist[nb] = dist[node] + 1
+                queue.append(nb)
+    return dist
+```
+
+Why this works: **BFS visits nodes in non-decreasing order of distance from start.** The first time we discover a node, the path that brought us there is the shortest one. On unweighted graphs, BFS = shortest-path algorithm.
+
+This is **why BFS is the right tool for "shortest path" problems** — Word Ladder, Shortest Path in Binary Matrix, Open the Lock all use exactly this pattern.
+
+</ShowHideSolution>
+
+### 4. Trace BFS layers by hand
+
+For the graph below, what is the BFS layer order starting from `A`?
+
+```text
+A — B — D
+|       |
+C — E — F
+```
+
+<ShowHideSolution>
+
+```text
+Layer 0 (distance 0):  [A]
+Layer 1 (distance 1):  [B, C]      (A's neighbors)
+Layer 2 (distance 2):  [D, E]      (B's neighbor D, C's neighbor E)
+Layer 3 (distance 3):  [F]         (D's neighbor F, E's neighbor F — but F enters via whichever is processed first)
+```
+
+BFS order (full): `A, B, C, D, E, F`.
+
+If we'd done DFS recursively starting at A and visiting neighbors alphabetically:
+- `A → B → D → F → E → C` (one valid DFS order)
+
+DFS plunges deep; BFS ripples outward. Same starting point, **fundamentally different exploration**.
+
+</ShowHideSolution>
+
+### 5. Spot the right algorithm
+
+For each problem, would you reach for DFS, BFS, or "either works"?
+
+a) Find the **shortest sequence** of word transformations from `"cat"` to `"dog"`.
+b) Determine if there's **any path** from city A to city B.
+c) Find **all cycles** in a directed graph.
+d) Count the number of **islands** in a grid.
+e) Find the **minimum number of steps** to escape a maze.
+f) Generate a **topological ordering** of tasks with dependencies.
+
+<ShowHideSolution>
+
+a) **BFS** — "shortest sequence" on an unweighted graph means BFS is the natural fit. (Word Ladder problem)
+
+b) **Either.** Just want to know whether a path exists — both DFS and BFS answer "reachability" equally well.
+
+c) **DFS.** Cycle detection uses DFS's recursion stack to detect back-edges. (BFS can also do it, but DFS is the standard idiom.)
+
+d) **Either.** Flood-fill on a grid — DFS is simpler to write recursively; BFS avoids stack-overflow on huge grids.
+
+e) **BFS** — "minimum number of steps" = shortest path = BFS on unweighted graph.
+
+f) **DFS** with post-order push (Tarjan's), or **BFS** with Kahn's algorithm using in-degrees. Both are standard topological sort.
+
+The rule: **shortest path → BFS, cycle detection / topological → DFS, anything else → both work.** We'll formalize this on the [DFS vs BFS page](/day10/when_to_use).
+
+</ShowHideSolution>
+
+### 6. Count islands in a grid (mini-version)
+
+Given a 4×4 grid where `1` is land and `0` is water, how many islands? An island is a group of `1`s connected horizontally or vertically.
+
+```text
+1 1 0 0
+1 0 0 1
+0 0 1 1
+1 0 0 0
+```
+
+<ShowHideSolution>
+
+**Three islands.** Visually:
+
+```text
+A A . .
+A . . B
+. . B B
+C . . .
+```
+
+Algorithmically: walk every cell. When you hit a `1` you haven't visited, **DFS to mark the entire island as visited**, then increment a counter. Every "new search" = one new island.
+
+```python copy
+def num_islands(grid):
+    if not grid: return 0
+    rows, cols = len(grid), len(grid[0])
+    count = 0
+
+    def dfs(r, c):
+        if r < 0 or r >= rows or c < 0 or c >= cols: return
+        if grid[r][c] != '1': return
+        grid[r][c] = '0'                     # mark as visited (in-place)
+        dfs(r + 1, c); dfs(r - 1, c)
+        dfs(r, c + 1); dfs(r, c - 1)
+
+    for r in range(rows):
+        for c in range(cols):
+            if grid[r][c] == '1':
+                count += 1
+                dfs(r, c)
+    return count
+```
+
+This is the **flood-fill template** — one of the most reused patterns in graph DFS. We solve the full problem in [Number of Islands](/day10/practice_questions/number_of_islands).
+
+The key trick is **mutating the grid as the visited set** instead of using a separate set — saves O(rows · cols) extra space.
+
+</ShowHideSolution>
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="The only essential difference between iterative DFS and BFS is:"
+    options={[
+        "DFS uses recursion, BFS uses iteration",
+        "DFS is faster",
+        "Stack vs queue — DFS uses LIFO (pop()), BFS uses FIFO (popleft())",
+        "BFS uses a visited set, DFS doesn't"
+    ]}
+    correctIndex={2}
+    explanation="Both are O(V + E) — same speed. Both need a visited set on graphs with cycles. Both can be written recursively OR iteratively. The ONLY essential structural difference is the data structure: stack (LIFO) for DFS, queue (FIFO) for BFS. Change one to the other and the algorithm changes."
+/>
+
+<QuizBox
+    question="If the graph has 10,000 nodes and 50,000 edges, how many times does BFS visit each node?"
+    options={["Once", "Up to 5 times (avg degree)", "Up to 10,000 times", "Depends on the graph"]}
+    correctIndex={0}
+    explanation="Each node is added to the queue AT MOST once (the visited set prevents re-addition). So each node is visited exactly once. The total cost of edge traversals is O(E) since we touch each edge twice in an undirected graph (once from each endpoint), once in a directed one. Combined: O(V + E)."
+/>
+
+<QuizBox
+    question="You want to find the SHORTEST path from node A to node B in an unweighted graph. Which approach is correct?"
+    options={[
+        "DFS — start at A, the first path you find to B is shortest",
+        "BFS — start at A, the first time you discover B, the path is shortest",
+        "Either — both find shortest paths",
+        "Neither — you need Dijkstra"
+    ]}
+    correctIndex={1}
+    explanation="BFS visits nodes in non-decreasing order of distance from A. The first time it discovers B, the BFS layer it's in equals the shortest-path distance. DFS does NOT have this property — it might find a long detour before the short path. For UNWEIGHTED graphs, BFS gives shortest path; for WEIGHTED graphs, you need Dijkstra (Day 21)."
+/>
+
+Ready for the pattern catalog and interview classics? Head to **Patterns** or jump straight to **Practice Questions**.

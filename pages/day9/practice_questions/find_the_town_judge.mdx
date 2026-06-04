@@ -1,0 +1,181 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find the Town Judge <DifficultyBadge level="easy" />
+
+#### Description
+
+In a town of `n` people labeled `1..n`, one person is rumored to be the **town judge**. If they exist, the judge satisfies *both* of these properties:
+
+1. The judge **trusts nobody**.
+2. **Everybody else** (the other `n-1` people) trusts the judge.
+
+You are given `trust`, an array of pairs `(a, b)` meaning "person `a` trusts person `b`." Return the label of the judge, or `-1` if no such person exists.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 2,   trust = [[1, 2]]
+    Output: 2       # 1 trusts 2; 2 trusts nobody; everyone else (just 1) trusts 2. ✓
+
+> Case 2:
+    n = 3,   trust = [[1, 3], [2, 3]]
+    Output: 3       # both 1 and 2 trust 3; 3 trusts nobody
+
+> Case 3:
+    n = 3,   trust = [[1, 3], [2, 3], [3, 1]]
+    Output: -1      # 3 trusts 1 — violates "judge trusts nobody"
+```
+
+#### Constraints
+
+- `1 <= n <= 1000`
+- `0 <= trust.length <= 10^4`
+- All pairs are unique.
+
+#### Why this is a graph problem in disguise
+
+Each "person trusts person" pair is a **directed edge** in a graph where people are vertices. The judge is a vertex with:
+
+- **In-degree** `n - 1` (everybody else has an edge pointing at them).
+- **Out-degree** `0` (no edges leaving them).
+
+That's the entire problem: **find the vertex with in-degree n-1 AND out-degree 0**. The graph never needs to be explicitly built — just count.
+
+#### Approach 1: Two arrays — in-degree and out-degree
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def find_judge(n, trust):
+        in_degree  = [0] * (n + 1)
+        out_degree = [0] * (n + 1)
+        for a, b in trust:
+            out_degree[a] += 1
+            in_degree[b]  += 1
+        for p in range(1, n + 1):
+            if in_degree[p] == n - 1 and out_degree[p] == 0:
+                return p
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int findJudge(int n, vector<vector<int>>& trust) {
+        vector<int> in_deg(n + 1, 0), out_deg(n + 1, 0);
+        for (auto& e : trust) {
+            out_deg[e[0]]++;
+            in_deg[e[1]]++;
+        }
+        for (int p = 1; p <= n; p++) {
+            if (in_deg[p] == n - 1 && out_deg[p] == 0) return p;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findJudge(int n, int[][] trust) {
+        int[] inDeg  = new int[n + 1];
+        int[] outDeg = new int[n + 1];
+        for (int[] e : trust) {
+            outDeg[e[0]]++;
+            inDeg[e[1]]++;
+        }
+        for (int p = 1; p <= n; p++) {
+            if (inDeg[p] == n - 1 && outDeg[p] == 0) return p;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n + |trust|). **Space:** O(n) for the two arrays.
+
+#### Approach 2: Single score array — the slick one
+
+If a person trusts someone, they're definitely **not** the judge. If a person is trusted by someone, they're a candidate.
+
+Use a single array where `score[i] = in_degree(i) - out_degree(i)`. The judge has `score = n - 1` (everyone trusts them, they trust nobody). No one else has this score.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def find_judge(n, trust):
+        score = [0] * (n + 1)
+        for a, b in trust:
+            score[a] -= 1                # outgoing — penalize
+            score[b] += 1                # incoming — reward
+        for p in range(1, n + 1):
+            if score[p] == n - 1:
+                return p
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    int findJudge(int n, vector<vector<int>>& trust) {
+        vector<int> score(n + 1, 0);
+        for (auto& e : trust) {
+            score[e[0]]--;
+            score[e[1]]++;
+        }
+        for (int p = 1; p <= n; p++) {
+            if (score[p] == n - 1) return p;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findJudge(int n, int[][] trust) {
+        int[] score = new int[n + 1];
+        for (int[] e : trust) {
+            score[e[0]]--;
+            score[e[1]]++;
+        }
+        for (int p = 1; p <= n; p++) {
+            if (score[p] == n - 1) return p;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Two arrays compressed into one — same O(n) but half the memory. The interview-winning version.
+
+<Callout type="info">
+    **Why does `score == n - 1` uniquely identify the judge?** A non-judge person either trusts someone (score loses 1 per outgoing edge) or doesn't have everyone trusting them (score gains < n-1 from incoming). The only person who can achieve exactly n-1 is one who has **n-1 incoming and 0 outgoing** — exactly the judge.
+</Callout>
+
+#### Edge cases
+
+- `n = 1`, `trust = []` → the only person trusts nobody, and `n - 1 = 0` people trust them. **Output: 1.** The judge is the only person. The score array gives `score[1] = 0 = n - 1 = 0` ✓.
+- `n = 3`, `trust = []` → nobody trusts anybody. No judge. **Output: -1.**
+- `n = 2`, `trust = [[1, 2], [2, 1]]` → mutual trust. Neither is a judge (both trust someone). **Output: -1.**
+
+#### The bigger pattern
+
+**Degree counting** solves more problems than you'd think:
+
+| Problem                          | What you count                                |
+| :------------------------------- | :-------------------------------------------- |
+| **Find the Town Judge**          | in - out = n - 1                              |
+| **Min vertices to reach all**    | All vertices with in-degree 0                 |
+| **Center of Star Graph**         | The vertex with degree n - 1                  |
+| **Topological sort (Kahn's)**    | Repeatedly process in-degree-0 vertices       |
+| **Eulerian path exists?**        | Exactly 0 or 2 vertices have odd degree       |
+| **Detect Source of Influence**   | Highest out-degree, lowest in-degree          |
+
+Whenever the answer depends on *how connected* something is, count degrees first.
+
+#### Analysis
+
+- **Time:** **O(n + |trust|)** — one pass over the trust list, one pass over `[1, n]`.
+- **Space:** **O(n)** for the score array.

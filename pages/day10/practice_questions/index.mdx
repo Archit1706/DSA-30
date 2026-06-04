@@ -2,7 +2,7 @@ import { Callout } from "nextra/components";
 
 # DFS & BFS Practice Questions
 
-Five interview classics. Each one is "DFS or BFS plus a small twist." Recognizing which algorithm to use is half the work.
+Ten interview classics. Each one is "DFS or BFS plus a small twist." Recognizing which algorithm to use is half the work.
 
 <Callout type="info">
     For each problem, before peeking at the solution, ask:
@@ -15,12 +15,17 @@ Five interview classics. Each one is "DFS or BFS plus a small twist." Recognizin
 
 ## Medium
 
-| Problem                                                                              | Pattern                                  | Status     |
-| :----------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
-| [Number of Islands](/day10/practice_questions/number_of_islands)                     | Grid DFS — count component starts        | Available  |
-| [Max Area of Island](/day10/practice_questions/max_area_of_island)                   | Grid DFS — aggregate during traversal    | Available  |
-| [Clone Graph](/day10/practice_questions/clone_graph)                                  | DFS / BFS + hash-map memo                | Available  |
-| [Course Schedule](/day10/practice_questions/course_schedule)                          | Directed cycle detection (DFS or BFS)    | Available  |
+| Problem                                                                                              | Pattern                                  | Status     |
+| :--------------------------------------------------------------------------------------------------- | :--------------------------------------- | :--------- |
+| [Number of Islands](/day10/practice_questions/number_of_islands)                                     | Grid DFS — count component starts        | Available  |
+| [Max Area of Island](/day10/practice_questions/max_area_of_island)                                   | Grid DFS — aggregate during traversal    | Available  |
+| [Clone Graph](/day10/practice_questions/clone_graph)                                                  | DFS / BFS + hash-map memo                | Available  |
+| [Course Schedule](/day10/practice_questions/course_schedule)                                          | Directed cycle detection (DFS or BFS)    | Available  |
+| [Is Graph Bipartite?](/day10/practice_questions/is_graph_bipartite)                                  | BFS 2-coloring                           | Available  |
+| [Surrounded Regions](/day10/practice_questions/surrounded_regions)                                   | Border-anchored DFS                      | Available  |
+| [Pacific Atlantic Water Flow](/day10/practice_questions/pacific_atlantic)                            | Multi-source DFS (reverse-flood)         | Available  |
+| [Walls and Gates](/day10/practice_questions/walls_and_gates)                                          | Multi-source BFS                         | Available  |
+| [Shortest Path in Binary Matrix](/day10/practice_questions/shortest_path_in_binary_matrix)            | BFS with 8 directions                    | Available  |
 
 ## Hard
 
@@ -32,10 +37,11 @@ Five interview classics. Each one is "DFS or BFS plus a small twist." Recognizin
 
 | Problem                                | Pattern                            | Status        |
 | :------------------------------------- | :--------------------------------- | :------------ |
-| Pacific Atlantic Water Flow            | Multi-source DFS / BFS             | Coming Soon   |
 | Course Schedule II                     | Topological sort (Kahn's)          | Coming Soon   |
-| Surrounded Regions                     | Border-anchored DFS                | Coming Soon   |
-| Walls and Gates                        | Multi-source BFS                   | Coming Soon   |
-| Is Graph Bipartite?                    | BFS coloring                       | Coming Soon   |
-| Shortest Path in Binary Matrix         | BFS with 8-directional moves       | Coming Soon   |
 | Open the Lock                          | BFS on state space                 | Coming Soon   |
+| Word Ladder II                         | BFS + path reconstruction          | Coming Soon   |
+| Minimum Number of Days to Make Bouquets | Binary search + BFS                | Coming Soon   |
+| 01 Matrix                              | Multi-source BFS                   | Coming Soon   |
+| Shortest Bridge                        | DFS to find one island + BFS       | Coming Soon   |
+| Cheapest Flights Within K Stops        | Modified BFS / Bellman-Ford        | Coming Soon   |
+| Redundant Connection                   | Union-Find                         | Coming Soon   |

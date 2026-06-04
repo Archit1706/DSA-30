@@ -1,0 +1,204 @@
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Surrounded Regions <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an `m x n` matrix `board` containing `'X'` and `'O'`, **capture all regions that are 4-directionally surrounded by `'X'`** by flipping all `'O'`s in those regions to `'X'`.
+
+A region is **surrounded** if it is **entirely enclosed by `'X'`** and **does not touch the border** of the board.
+
+Modify the board **in place**.
+
+#### Examples
+
+```py
+> Case 1:
+    Input:                              Output:
+    X X X X                              X X X X
+    X O O X                              X X X X
+    X X O X                              X X X X
+    X O X X                              X O X X
+
+> Case 2:
+    Input: [["X"]]
+    Output: [["X"]]
+```
+
+The bottom-left `O` in case 1 stays because it's on the border. The interior `O`s flip because they're trapped by `X`s.
+
+#### Constraints
+
+- `1 <= m, n <= 200`
+- `board[i][j]` is `'X'` or `'O'`.
+
+#### The reverse-flood insight
+
+You could try to detect each surrounded region: pick an `O`, DFS through connected `O`s, check if any touches the border, and flip if not. **That's two passes per region — and gets messy when regions branch.**
+
+The cleaner trick: **flip the question.** Instead of asking "which Os are surrounded," ask "which Os are **safe** (not surrounded)?" — exactly the ones reachable from the **border**.
+
+```text
+1. Mark every O that touches the border as SAFE (DFS / BFS from border).
+2. Walk every cell:
+     - SAFE O → revert to O.
+     - Any other O → flip to X.       (surrounded)
+3. Done.
+```
+
+This is the **same anchor-from-the-boundary trick** as [Pacific Atlantic Water Flow](/day10/practice_questions/pacific_atlantic) — start from where the property is *obviously true* and propagate inward.
+
+#### Code
+
+We use a temporary marker `'#'` to flag safe `O`s during the first pass.
+
+<Tabs items={['Python', 'C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def solve(board):
+        if not board or not board[0]: return
+        rows, cols = len(board), len(board[0])
+
+        def dfs(r, c):
+            if r < 0 or r >= rows or c < 0 or c >= cols: return
+            if board[r][c] != 'O': return
+            board[r][c] = '#'                            # mark as SAFE
+            dfs(r + 1, c); dfs(r - 1, c)
+            dfs(r, c + 1); dfs(r, c - 1)
+
+        # Anchor from every border 'O'
+        for r in range(rows):
+            dfs(r, 0); dfs(r, cols - 1)
+        for c in range(cols):
+            dfs(0, c); dfs(rows - 1, c)
+
+        # Final sweep: '#' → 'O' (safe), 'O' → 'X' (surrounded)
+        for r in range(rows):
+            for c in range(cols):
+                if   board[r][c] == 'O': board[r][c] = 'X'
+                elif board[r][c] == '#': board[r][c] = 'O'
+    ```
+    </Tab>
+    <Tab>
+    ```cpp copy
+    class Solution {
+        int rows, cols;
+        vector<vector<char>>* board_ptr;
+        void dfs(int r, int c) {
+            auto& board = *board_ptr;
+            if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+            if (board[r][c] != 'O') return;
+            board[r][c] = '#';
+            dfs(r+1, c); dfs(r-1, c); dfs(r, c+1); dfs(r, c-1);
+        }
+    public:
+        void solve(vector<vector<char>>& board) {
+            rows = board.size(); cols = board[0].size();
+            board_ptr = &board;
+            for (int r = 0; r < rows; r++) { dfs(r, 0); dfs(r, cols - 1); }
+            for (int c = 0; c < cols; c++) { dfs(0, c); dfs(rows - 1, c); }
+            for (int r = 0; r < rows; r++)
+                for (int c = 0; c < cols; c++) {
+                    if      (board[r][c] == 'O') board[r][c] = 'X';
+                    else if (board[r][c] == '#') board[r][c] = 'O';
+                }
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void solve(char[][] board) {
+        int rows = board.length, cols = board[0].length;
+        for (int r = 0; r < rows; r++) { dfs(board, r, 0); dfs(board, r, cols - 1); }
+        for (int c = 0; c < cols; c++) { dfs(board, 0, c); dfs(board, rows - 1, c); }
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++) {
+                if      (board[r][c] == 'O') board[r][c] = 'X';
+                else if (board[r][c] == '#') board[r][c] = 'O';
+            }
+    }
+    private void dfs(char[][] board, int r, int c) {
+        if (r < 0 || r >= board.length || c < 0 || c >= board[0].length) return;
+        if (board[r][c] != 'O') return;
+        board[r][c] = '#';
+        dfs(board, r+1, c); dfs(board, r-1, c);
+        dfs(board, r, c+1); dfs(board, r, c-1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The temporary marker `'#'` is essential.** Without it, the second sweep can't distinguish "border-reachable O" from "surrounded O" — they both look like `'O'`. The marker is a tiny piece of state encoded in the cell itself, saving an O(m·n) visited matrix.
+</Callout>
+
+#### Trace on the example
+
+```text
+Initial:           After DFS from border Os:    Final:
+X X X X             X X X X                      X X X X
+X O O X             X O O X      ← these were   X X X X
+X X O X             X X O X        surrounded   X X X X
+X O X X             X # X X      ← border O     X O X X
+                                   marked
+```
+
+The border-reachable `O` at `(3, 1)` got marked `'#'`, while the three interior `O`s stayed `'O'`. The final sweep flipped the interior to `'X'` and reverted `'#'` to `'O'`.
+
+#### BFS version
+
+Replace the recursive DFS with iterative BFS using a queue — same logic, no stack overflow risk on huge grids:
+
+```python copy
+from collections import deque
+
+def solve_bfs(board):
+    if not board or not board[0]: return
+    rows, cols = len(board), len(board[0])
+    queue = deque()
+
+    # Seed: every border 'O'
+    for r in range(rows):
+        for c in [0, cols - 1]:
+            if board[r][c] == 'O':
+                board[r][c] = '#'
+                queue.append((r, c))
+    for c in range(cols):
+        for r in [0, rows - 1]:
+            if board[r][c] == 'O':
+                board[r][c] = '#'
+                queue.append((r, c))
+
+    while queue:
+        r, c = queue.popleft()
+        for dr, dc in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and board[nr][nc] == 'O':
+                board[nr][nc] = '#'
+                queue.append((nr, nc))
+
+    for r in range(rows):
+        for c in range(cols):
+            if   board[r][c] == 'O': board[r][c] = 'X'
+            elif board[r][c] == '#': board[r][c] = 'O'
+```
+
+#### The family of "anchor from the boundary" problems
+
+| Problem                          | Anchor                                 | What you compute                                |
+| :------------------------------- | :------------------------------------- | :---------------------------------------------- |
+| **Surrounded Regions**           | Border `O`s                            | Which interior `O`s are trapped                 |
+| **Pacific Atlantic Water Flow**  | Both ocean edges                       | Cells reachable from both                       |
+| **Number of Closed Islands**     | Border land cells                      | Land *not* connected to the boundary            |
+| **Number of Enclaves**           | Border land cells                      | Count of cells unreachable from the boundary    |
+| **Walls and Gates**              | All gates                              | Distance to nearest gate                        |
+
+Boundary anchoring is a top-3 pattern for grid problems — train your eye to spot "the answer involves what does *not* touch the edge."
+
+#### Analysis
+
+- **Time:** **O(m · n)** — every cell visited at most twice (border DFS + final sweep).
+- **Space:** **O(m · n)** in the worst case for the recursion stack (or BFS queue).
