@@ -18,33 +18,85 @@ The goal: make DSA feel less like a textbook chore and more like something you a
 - **Interactive components on every page** — visualizers for arrays, stacks, queues, linked lists, heaps, hash tables, trees, graphs, sorting, bits, and more, plus step-throughs for recursion, traversal, and algorithm runs.
 - **Multi-language solutions** — every practice problem includes **C++, Python, and Java** in side-by-side tabs.
 - **Difficulty badges** on every practice problem (Easy / Medium / Hard).
-- **Pattern-first writing** — solutions emphasize the *template* (hash-map + complement, fused traversal, sliding window) over rote memorization, with cross-references to the same shape in other problems.
+- **Pattern-first writing** — solutions emphasize the *template* (hash-map + complement, fused traversal, sliding window, at-most-K trick) over rote memorization, with cross-references to the same shape in other problems via "Same skin" lists.
 - **No signup, no paywall** — open the page, read it, close the tab. Bookmark a problem, skip a day.
 
 ## Curriculum (current state)
 
+### Phase 1 — Fundamentals
+
 | Day | Topic | Status |
-| --- | --- | --- |
+| :-: | :--- | :--- |
 | 1 | Introduction to DSA & Big O | ✅ Available |
 | 2 | Arrays & Strings | ✅ Available |
 | 3 | Linked Lists (all four variants) | ✅ Available |
 | 4 | Stacks & Queues | ✅ Available |
 | 5 | Recursion (+ memoization) | ✅ Available |
+
+### Phase 2 — Trees & Hashing
+
+| Day | Topic | Status |
+| :-: | :--- | :--- |
 | 6 | Binary Trees & BSTs | ✅ Available |
 | 7 | Heaps & Priority Queues | ✅ Available |
 | 8 | Hash Tables & Hash Functions | ✅ Available |
+
+### Phase 3 — Graphs
+
+| Day | Topic | Status |
+| :-: | :--- | :--- |
 | 9 | Graphs (Basics) | ✅ Available |
 | 10 | Graph Traversal (DFS & BFS) | ✅ Available |
+
+### Phase 4 — Sorting & Searching
+
+| Day | Topic | Status |
+| :-: | :--- | :--- |
 | 11 | Sorting Algorithms I | ✅ Available |
 | 12 | Sorting Algorithms II | ✅ Available |
-| 13 | Searching Algorithms | 🚧 In progress |
+| 13 | Searching Algorithms | ✅ Available |
+
+### Phase 5 — Algorithmic Patterns
+
+| Day | Topic | Status |
+| :-: | :--- | :--- |
+| 14 | Dynamic Programming | ✅ Available |
+| 15 | Greedy Algorithms | ✅ Available |
+| 16 | Backtracking | ✅ Available |
 | 17 | Bit Manipulation | ✅ Available |
-| 14, 15, 16, 18–30 | DP, Greedy, Backtracking, Tries, Segment Trees, Union-Find, Shortest Paths, MST, Topological Sort, Sliding Window, Two Pointers, Divide & Conquer, Strings Advanced, System Design 101, Mock Interview, Victory Lap | 📋 Placeholders with topic preview |
+
+### Phase 6 — Specialized Structures
+
+| Day | Topic | Status |
+| :-: | :--- | :--- |
+| 18 | Tries | 📋 Coming soon |
+| 19 | Segment Trees | 📋 Coming soon |
+| 20 | Union Find | 📋 Coming soon |
+| 21 | Shortest Paths | 📋 Coming soon |
+| 22 | Minimum Spanning Trees | 📋 Coming soon |
+| 23 | Topological Sort | 📋 Coming soon |
+
+### Phase 7 — Interview Techniques
+
+| Day | Topic | Status |
+| :-: | :--- | :--- |
+| 24 | Sliding Window | ✅ Available |
+| 25 | Two Pointers | 📋 Coming soon |
+| 26 | Divide & Conquer | 📋 Coming soon |
+| 27 | Advanced Strings | 📋 Coming soon |
+
+### Phase 8 — Synthesis
+
+| Day | Topic | Status |
+| :-: | :--- | :--- |
+| 28 | System Design 101 | 📋 Coming soon |
+| 29 | Mock Interview | 📋 Coming soon |
+| 30 | Victory Lap | 📋 Coming soon |
 
 ## Tech Stack
 
-- **Next.js 14** (Pages Router) + **Nextra 3** docs theme
-- **React 18** + **Tailwind CSS 3**
+- **Next.js 15** (Pages Router) + **Nextra 3** docs theme
+- **React 19** + **Tailwind CSS 3**
 - All content authored in **MDX** with custom React components for interactivity
 - Static export — deployable to any static host (currently on Vercel)
 
@@ -88,8 +140,8 @@ This project is licensed under the MIT License — see [LICENSE.md](LICENSE.md) 
 ## Acknowledgments
 
 - Curriculum draws on standard references including LeetCode, GeeksforGeeks, and Striver's cheat sheet.
-- Icons via [FontAwesome](https://fontawesome.com/).
+- Icons via [react-icons](https://react-icons.github.io/react-icons/) (Lucide, Font Awesome, Tabler, Ionicons packs).
 
 ---
 
-Start your journey to becoming a DSA expert with DSA-30 today. **Happy Learning!** 🚀
+Start your journey to becoming a DSA expert with DSA-30 today. **Happy learning!**

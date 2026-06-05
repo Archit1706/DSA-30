@@ -1,43 +1,66 @@
 # User Guide
 
-Welcome to "DSA-30," your comprehensive platform for learning Data Structures and Algorithms (DSA) in a structured and engaging manner. This guide will help you make the most out of your learning experience.
+Welcome to **DSA-30** — your platform for learning Data Structures and Algorithms in a structured and engaging way. This guide will help you make the most out of your time on the site.
 
 ## 1. 30-Day Learning Program
 
-"dsa30" offers a 30-day self-paced DSA learning program. Each day, you'll find a new chapter with DSA concepts, challenges, and interactive content. Follow these chapters in order to build a strong foundation in DSA.
+DSA-30 is a self-paced 30-day curriculum. Each day is one topic, designed to fit a single sit-down. Follow the days in order to build a strong foundation, or jump directly to whichever pattern you're rusty on.
 
-## 2. Fun Learning Experience
+The curriculum is grouped into eight phases, visible in the sidebar:
 
-We believe learning should be fun! Enjoy fun facts and hilarious GIFs at the beginning of each chapter. It's not just about learning; it's about enjoying the journey.
+- **Phase 1 — Fundamentals** (Big O, Arrays & Strings, Linked Lists, Stacks & Queues, Recursion)
+- **Phase 2 — Trees & Hashing** (Binary Trees & BSTs, Heaps, Hash Tables)
+- **Phase 3 — Graphs** (Basics, Traversal)
+- **Phase 4 — Sorting & Searching**
+- **Phase 5 — Algorithmic Patterns** (DP, Greedy, Backtracking, Bit Manipulation)
+- **Phase 6 — Specialized Structures** (Tries, Segment Trees, Union Find, Shortest Paths, MST, Topological Sort)
+- **Phase 7 — Interview Techniques** (Sliding Window, Two Pointers, Divide & Conquer, Advanced Strings)
+- **Phase 8 — Synthesis** (System Design 101, Mock Interview, Victory Lap)
 
-## 3. Comprehensive Content
+## 2. Interactive Visualizations
 
-Our platform consolidates DSA materials from various reputable sources, including LeetCode, GeeksforGeeks, and Striver's cheat sheet. You'll find a wide range of problems, solutions, and explanations.
+Every concept page mixes prose with **live React components** — array visualizers you can push and pop into, recursion trees you can expand, graphs you can run DFS or BFS on, sorts you can step through one swap at a time. Click around, type in different inputs, break things. That's the point.
 
-## 4. Multiple Coding Approaches
+Look for these:
 
-For every problem, we provide solutions in both C++ and Python, allowing you to practice coding in your preferred language. Explore multiple approaches to problem-solving.
+- **`Visualizer` blocks** — static diagrams of a specific configuration.
+- **`Interactive*` blocks** — the same diagram with controls. Push, pop, insert, search.
+- **Steppers** — Prev / Next / Reset controls that walk you through an algorithm one move at a time.
 
-## 5. Difficulty Levels
+## 3. Multi-Language Solutions
 
-Problems are categorized by difficulty levels, from easy to advanced. Start with the basics and gradually challenge yourself with more complex problems.
+For every practice problem, you get solutions in **C++, Python, and Java** in side-by-side tabs. Pick the language you're interviewing in.
 
-## 6. Homework Challenges
+Code blocks have a copy button on hover.
 
-Test your knowledge and skills with our homework challenges. Solutions are provided for self-assessment, helping you gauge your progress.
+## 4. Difficulty Badges
 
-## 7. Contributions Welcome
+Problems are labeled **Easy / Medium / Hard**. Start with the basics and gradually challenge yourself. The practice-question index for each day groups problems by difficulty.
 
-We welcome contributions from the community! Whether you want to fix a bug, add new features, or improve documentation, your help is valuable. Check out our [Contribution Guidelines](CONTRIBUTING.md) to get started.
+## 5. The "Same Skin" Pattern
 
-## 8. License
+The end of every practice problem has a **Same skin** list — other problems that share the same template or trick. This is how to build pattern recognition: when you spot that a new problem is the same shape as one you've already solved, the solution is basically free.
 
-"dsa30" is open-source software licensed under the MIT License. Refer to the [LICENSE.md](../LICENSE.md) file for details.
+## 6. Quizzes and Self-Check
 
-## 9. Get Started
+Most concept pages end with one or two `QuizBox` questions. Try them before reading the explanation. They're calibrated to catch the most common conceptual slip-ups, not to trick you.
 
-Ready to start your DSA learning journey with "dsa30"? Follow the installation and usage instructions in our [Installation Guide](installation.md).
+## 7. Warm-ups and Practice
 
-If you have any questions or encounter issues, feel free to reach out to our community or open a GitHub issue. We're here to help you succeed!
+Each day with a `basic_questions.mdx` page has a stepped warm-up (`<Steps>` block) to lock in the day's template before you face the harder interview problems. Don't skip them on days where the technique is unfamiliar.
+
+## 8. Contributing
+
+Spot a typo? Want to add a problem or finish a Coming-Soon chapter? See the [Contribution Guidelines](../CONTRIBUTING.md).
+
+## 9. License
+
+DSA-30 is open-source under the [MIT License](../LICENSE.md).
+
+## 10. Get Started
+
+Ready? Open [Day 1 — Big O Basics](https://dsa30.vercel.app/day1) and start clicking.
+
+For local setup, see the [Installation Guide](installation.md).
 
 Happy learning!
