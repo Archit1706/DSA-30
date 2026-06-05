@@ -1,0 +1,271 @@
+---
+title: "Pruning"
+description: "How pruning turns brute force into smart search — feasibility checks, sort-then-prune, ordering tricks, and the killer optimizations that cut search space by orders of magnitude."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Pruning — making backtracking actually fast
+
+Without pruning, backtracking is brute force. **With** pruning, it's a search algorithm that solves Sudoku in microseconds and N-Queens to size 25.
+
+The whole game: **detect that a partial solution can't possibly extend to a valid full solution**, and bail out of that subtree before exploring any further. The earlier (higher in the tree) you bail, the bigger the subtree you skip.
+
+This page catalogs the five most useful pruning techniques. Stack two or three of them on a problem and watch the runtime collapse.
+
+## 1. Feasibility pruning — the basic check
+
+The simplest pruning: **before recursing**, check whether the candidate move is allowed by the problem's constraints. If not, skip it.
+
+For **Combination Sum** ("find all combinations of `candidates` summing to `target`, with each candidate reusable"):
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void backtrack(vector<int>& cand, int start, int remaining, vector<int>& path, vector<vector<int>>& out) {
+        if (remaining == 0) { out.push_back(path); return; }
+        if (remaining < 0) return;                              // feasibility: overshot
+        for (int i = start; i < (int)cand.size(); i++) {
+            path.push_back(cand[i]);
+            backtrack(cand, i, remaining - cand[i], path, out);
+            path.pop_back();
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def combination_sum(candidates, target):
+        out, path = [], []
+        def bt(start, remaining):
+            if remaining == 0:
+                out.append(path[:])
+                return
+            if remaining < 0:                                   # feasibility: overshot
+                return
+            for i in range(start, len(candidates)):
+                path.append(candidates[i])
+                bt(i, remaining - candidates[i])
+                path.pop()
+        bt(0, target)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void backtrack(int[] cand, int start, int remaining, List<Integer> path, List<List<Integer>> out) {
+        if (remaining == 0) { out.add(new ArrayList<>(path)); return; }
+        if (remaining < 0) return;                              // feasibility: overshot
+        for (int i = start; i < cand.length; i++) {
+            path.add(cand[i]);
+            backtrack(cand, i, remaining - cand[i], path, out);
+            path.remove(path.size() - 1);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The `if (remaining < 0) return;` line is a tiny check, but it amputates an entire subtree the moment we overshoot.
+
+## 2. Sort-then-prune — kill whole branches by ordering
+
+If you can **sort** the inputs, the feasibility check above gets much stronger: **`if (remaining < cand[i]) break;`** stops the entire loop, not just one branch. Once one candidate is too big, every later one is too.
+
+```python
+candidates.sort()                                # sort once, prune forever
+def bt(start, remaining):
+    if remaining == 0:
+        out.append(path[:])
+        return
+    for i in range(start, len(candidates)):
+        if candidates[i] > remaining:            # killer prune
+            break
+        path.append(candidates[i])
+        bt(i, remaining - candidates[i])
+        path.pop()
+```
+
+The `break` (vs `continue`) is the difference between "skip this one" and "skip this one and every one after it." On any problem where the candidates have an order — sums, weights, lengths, lexicographic — sorting first is almost always the right move.
+
+<Callout type="info">
+    **Sort once, prune on every recursive call.** The `O(n log n)` cost up front is paid back trillions of times over by the pruning it enables. This is the single highest-impact backtracking optimization for "pick a subset that sums to X"-style problems.
+</Callout>
+
+## 3. Duplicate-handling pruning — skip identical siblings
+
+Problems with duplicate inputs blow up if you don't deduplicate. For **Subsets II** (`nums` has duplicates, return only unique subsets):
+
+The fix: sort the input, and when picking the next element to add, **skip an index whose value equals the previous index's value, if the previous index wasn't included in this branch**:
+
+```python
+def subsets_with_dup(nums):
+    nums.sort()
+    out, path = [], []
+    def bt(start):
+        out.append(path[:])
+        for i in range(start, len(nums)):
+            if i > start and nums[i] == nums[i - 1]:       # skip duplicate at this level
+                continue
+            path.append(nums[i])
+            bt(i + 1)
+            path.pop()
+    bt(0)
+    return out
+```
+
+The `i > start` guard is critical — it means "we already tried this value at this position once; don't try it again." Different positions in the path are *allowed* to take the same value; it's only sibling-level repetition that gets pruned.
+
+The same trick deduplicates **Permutations II**, **Combination Sum II**, **Subsets II**, and every other "duplicates in input" enumeration problem.
+
+## 4. Constraint propagation — track derived facts
+
+For constraint-satisfaction problems (N-Queens, Sudoku, graph coloring), maintain extra **data structures that record what's still legal**. Then "is this move legal?" becomes `O(1)` instead of "scan the board for conflicts."
+
+For **N-Queens**, instead of re-scanning the board for every placement, maintain three boolean sets:
+
+- `cols[]` — which columns are occupied
+- `diag1[]` — which `/`-diagonals are occupied (indexed by `row + col`)
+- `diag2[]` — which `\`-diagonals are occupied (indexed by `row - col + n`)
+
+A placement at `(r, c)` is legal iff `!cols[c] && !diag1[r + c] && !diag2[r - c + n]`. **One O(1) check.**
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void solve(int n, int r, vector<bool>& cols, vector<bool>& d1, vector<bool>& d2,
+               vector<int>& queens, vector<vector<int>>& out) {
+        if (r == n) { out.push_back(queens); return; }
+        for (int c = 0; c < n; c++) {
+            if (cols[c] || d1[r + c] || d2[r - c + n]) continue;
+            cols[c] = d1[r + c] = d2[r - c + n] = true;
+            queens.push_back(c);
+            solve(n, r + 1, cols, d1, d2, queens, out);
+            queens.pop_back();
+            cols[c] = d1[r + c] = d2[r - c + n] = false;
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def solve_n_queens(n):
+        out, queens = [], []
+        cols, d1, d2 = set(), set(), set()
+        def bt(r):
+            if r == n:
+                out.append(queens[:])
+                return
+            for c in range(n):
+                if c in cols or (r + c) in d1 or (r - c) in d2:
+                    continue
+                cols.add(c); d1.add(r + c); d2.add(r - c)
+                queens.append(c)
+                bt(r + 1)
+                queens.pop()
+                cols.remove(c); d1.remove(r + c); d2.remove(r - c)
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void solve(int n, int r, boolean[] cols, boolean[] d1, boolean[] d2,
+               int[] queens, List<int[]> out) {
+        if (r == n) { out.add(queens.clone()); return; }
+        for (int c = 0; c < n; c++) {
+            if (cols[c] || d1[r + c] || d2[r - c + n]) continue;
+            cols[c] = d1[r + c] = d2[r - c + n] = true;
+            queens[r] = c;
+            solve(n, r + 1, cols, d1, d2, queens, out);
+            cols[c] = d1[r + c] = d2[r - c + n] = false;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Without those three sets, the legality check is `O(n)` per placement. With them, it's `O(1)`. Multiplied across millions of recursive calls, this is huge.
+
+This same idea — **maintain incremental state that makes the legality check cheap** — powers Sudoku (row/column/box sets), graph coloring (per-vertex forbidden-color set), and most assignment problems.
+
+## 5. Ordering heuristics — try the most constrained move first
+
+When the order of candidate moves is up to you, **try the most constrained option first**. The faster you fail, the more subtree you skip.
+
+For **Sudoku**, instead of filling cells left-to-right top-to-bottom, find **the empty cell with the fewest legal candidates** and fill it next. (This is the "Most Constrained Variable" heuristic.) For typical Sudoku puzzles this can speed the solver up by 10-100x.
+
+For **graph coloring**, color the vertex with the fewest available colors next.
+
+For **N-Queens**, place the queen in the row with the fewest legal columns (rarely worth it for N-Queens — symmetric enough that the natural order is fine).
+
+The cost is a slightly more complex per-step computation; the gain is dramatically fewer total steps. On hard instances it's worth it.
+
+## A worked comparison — Combination Sum
+
+To see how much pruning matters, here's Combination Sum II solved with and without sort-and-prune. Target `27`, candidates `[10, 1, 2, 7, 6, 1, 5]`:
+
+| Version                         | Recursive calls | Time  |
+| :------------------------------ | :-------------- | :---- |
+| No sort, only `remaining < 0`   | ~3000           | ~5ms  |
+| Sorted, prune with `break`      | ~80             | <1ms  |
+| Sorted + skip duplicate values  | ~30             | <1ms  |
+
+Same problem, same correctness, ~100x fewer recursive calls. **Pruning isn't a nice-to-have. On harder problems it's the difference between accepted and time-limit-exceeded.**
+
+## A pruning checklist for any new problem
+
+Before submitting any backtracking solution, run through this:
+
+<Callout type="info">
+    1. **Did I sort the input?** Free pruning on any "sum / weight / length" problem.
+    2. **Is my feasibility check INSIDE the loop, before the recursive call?** Checking after recursion wastes the entire recursive descent.
+    3. **Can I `break` out of the loop instead of `continue`-ing?** Often the difference between O(n!) and O(n × 2^n).
+    4. **Are duplicate values in the input causing duplicate output?** Sort, then `if i > start and val[i] == val[i-1]: continue`.
+    5. **Can I maintain a derived state (sets, counts, masks) that makes the legality check O(1)?** Almost always worth it for constraint-satisfaction problems.
+    6. **Is there an obvious "most constrained next" heuristic?** Used for Sudoku and similar puzzle solvers.
+</Callout>
+
+A solution that runs in 10 seconds on a hard input and a solution that runs in 10 milliseconds usually share the same template — they differ only in pruning.
+
+## Quick check
+
+<QuizBox
+    question="In sorted Combination Sum, why is `break` (not `continue`) the killer prune?"
+    options={[
+        "`break` is faster than `continue` in most languages",
+        "Because once candidates[i] > remaining and candidates are sorted, every LATER candidate is also too big — there's no point checking them",
+        "`continue` doesn't undo the path",
+        "They're equivalent here"
+    ]}
+    correctIndex={1}
+    explanation="Sort guarantees that if candidates[i] is too big, so is every candidates[j] for j > i. `continue` would still iterate through all of them; `break` skips them all in one step. This is the single most effective backtracking prune on sum-style problems."
+/>
+
+<QuizBox
+    question="For N-Queens, what's the speedup from maintaining the cols/diag1/diag2 sets vs scanning the board for conflicts?"
+    options={[
+        "Constant factor only",
+        "O(n) per placement check becomes O(1) — across millions of placements, that's roughly an n-fold speedup",
+        "Makes the algorithm O(log n)",
+        "No measurable difference"
+    ]}
+    correctIndex={1}
+    explanation="Scanning the board to check conflicts is O(n) per placement (one row + one column + two diagonals to check). With incremental state, it's O(1). Multiplied across the millions of placements explored in the search tree, the speedup is roughly n-fold — which is the difference between solving N-Queens for n=12 and n=24."
+/>
+
+<QuizBox
+    question="You're getting duplicate combinations in your output for a problem where the input has duplicate elements. What's the standard fix?"
+    options={[
+        "Use a set instead of a list",
+        "Sort the input, then in your for-loop skip nums[i] if i > start AND nums[i] == nums[i-1]",
+        "Add a hash check at every leaf",
+        "Backtracking can't handle duplicates"
+    ]}
+    correctIndex={1}
+    explanation="Sort the input so duplicates are adjacent. The condition `i > start && nums[i] == nums[i-1]` skips only the duplicates at the SAME LEVEL of recursion — different recursion levels can still use the same value, which preserves multi-pick scenarios. This is the standard deduplication pattern for Subsets II, Permutations II, and Combination Sum II."
+/>
+
+Next: **advanced patterns** — grid DFS with in-place marking, bitmask state-space search, and memoized backtracking for the hardest problems.

@@ -1,0 +1,139 @@
+---
+title: "Letter Combinations of a Phone Number"
+description: "Fixed-depth, fixed-branching enumeration — the classic 'cartesian product' backtracking warm-up."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Letter Combinations of a Phone Number <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a string `digits` containing digits from `2-9`, return all possible **letter combinations** that the number could represent. Return the answer in any order. The mapping is the standard old-school phone keypad:
+
+```
+2 → abc      3 → def      4 → ghi      5 → jkl
+6 → mno      7 → pqrs     8 → tuv      9 → wxyz
+```
+
+#### Examples
+
+```py
+> Case 1:
+    digits = "23"
+    Output: ["ad","ae","af","bd","be","bf","cd","ce","cf"]
+
+> Case 2:
+    digits = ""
+    Output: []
+
+> Case 3:
+    digits = "2"
+    Output: ["a","b","c"]
+```
+
+#### Constraints
+
+- `0 <= digits.length <= 4`
+- `digits[i]` is a digit in the range `2-9`.
+
+#### State design
+
+This is a **cartesian product** in disguise — for each digit, pick one of its 3 or 4 letters; the result is a fixed-length string.
+
+1. **Partial solution?** `path` — the letters picked so far.
+2. **Complete?** When `len(path) == len(digits)`.
+3. **Choices?** The 3 or 4 letters mapped to `digits[i]`.
+4. **Legality?** None.
+5. **Undo?** Pop after recursing.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int i, const string& digits, const vector<string>& M, string& path, vector<string>& out) {
+        if (i == (int)digits.size()) { out.push_back(path); return; }
+        for (char c : M[digits[i] - '0']) {
+            path.push_back(c);
+            bt(i + 1, digits, M, path, out);
+            path.pop_back();
+        }
+    }
+    vector<string> letterCombinations(string digits) {
+        if (digits.empty()) return {};
+        vector<string> M = {"", "", "abc", "def", "ghi", "jkl",
+                            "mno", "pqrs", "tuv", "wxyz"};
+        vector<string> out; string path;
+        bt(0, digits, M, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def letter_combinations(digits):
+        if not digits: return []
+        M = ["", "", "abc", "def", "ghi", "jkl",
+             "mno", "pqrs", "tuv", "wxyz"]
+        out, path = [], []
+        def bt(i):
+            if i == len(digits):
+                out.append("".join(path))
+                return
+            for c in M[int(digits[i])]:
+                path.append(c); bt(i + 1); path.pop()
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    static String[] M = {"", "", "abc", "def", "ghi", "jkl",
+                         "mno", "pqrs", "tuv", "wxyz"};
+    void bt(int i, String digits, StringBuilder path, List<String> out) {
+        if (i == digits.length()) { out.add(path.toString()); return; }
+        for (char c : M[digits.charAt(i) - '0'].toCharArray()) {
+            path.append(c);
+            bt(i + 1, digits, path, out);
+            path.deleteCharAt(path.length() - 1);
+        }
+    }
+    public List<String> letterCombinations(String digits) {
+        List<String> out = new ArrayList<>();
+        if (digits.isEmpty()) return out;
+        bt(0, digits, new StringBuilder(), out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Iterative BFS-style alternative
+
+You can build the answer by "expanding the frontier" instead of recursing. Start with `[""]`; for each digit, replace every prefix in the frontier with `prefix + c` for every letter `c` of that digit.
+
+```python
+def letter_combinations(digits):
+    if not digits: return []
+    M = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"]
+    frontier = [""]
+    for d in digits:
+        frontier = [prefix + c for prefix in frontier for c in M[int(d)]]
+    return frontier
+```
+
+Three lines, no recursion. Same `O(3^a × 4^b)` complexity, slightly more memory because it materializes intermediate frontiers.
+
+#### Analysis
+
+- **Time:** `O(3^a × 4^b × n)` — `a` digits map to 3 letters, `b` to 4; `n = len(digits)` for joining each result string.
+- **Space:** `O(n)` recursion + the output.
+
+#### Same skin
+
+- Any **cartesian-product enumeration** — generate all strings of length `n` from an alphabet, all dice rolls of `n` dice, all login passwords matching a template like `[A-Z][a-z][0-9]`.
+- **Binary Watch** — pick `k` LEDs from a fixed set.
+- **Restore IP Addresses** (next problem) — picks a *partition* point instead of a value, but the recursion shape is identical.

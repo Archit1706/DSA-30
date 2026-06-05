@@ -1,0 +1,227 @@
+---
+title: "Introduction to Backtracking"
+description: "What makes a problem a backtracking problem — the decision tree, partial solutions, and why backtracking is brute force with a brain."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { RecursionTreeVisualizer } from "../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Introduction to Backtracking
+
+Backtracking is the algorithm pattern you use when there's **no clever recurrence**, **no greedy swap**, **no DP table** — when the only way forward is to actually try the possibilities, but in a way that doesn't take forever.
+
+Concretely: you grow a **partial solution** one step at a time. At each step you have a small set of legal choices. You pick one, recurse, and either reach a complete solution (success!) or hit a dead end. When you hit a dead end, you **undo the last choice** and try the next legal one. That undo step — the "back" in backtracking — is the whole game.
+
+## The decision tree
+
+Every backtracking problem implicitly defines a **tree of partial solutions**. The root is the empty solution. Each child is one more choice on top of its parent. The leaves are either complete solutions or dead ends.
+
+Take **generating all subsets** of `[1, 2, 3]`. At every element, we choose to **include** it or **skip** it:
+
+<RecursionTreeVisualizer
+    root={"[]"}
+    expand={(s) => {
+        const depth = (s.match(/[+-]/g) || []).length;
+        if (depth >= 3) return null;
+        const next = depth + 1;
+        return [s + `+${next}`, s + `-${next}`];
+    }}
+    label={(s) => s || "[]"}
+    maxDepth={4}
+    title="Subset decision tree for [1, 2, 3] — '+k' = include, '-k' = skip"
+/>
+
+Eight leaves, eight subsets. The "tree" exists only in the call stack — you don't materialize it, you walk it.
+
+This is the universal shape. **Backtracking is depth-first walking of a decision tree, with an `undo` between siblings.**
+
+## Brute force vs backtracking — the difference
+
+Both try every possibility. The difference is *when* they detect that a partial solution is doomed.
+
+- **Brute force** builds a *complete* candidate, *then* checks if it's valid. For an `8 × 8` board, that's `64⁸ ≈ 280 trillion` complete configurations to check for N-Queens. Hopeless.
+- **Backtracking** checks validity **as it builds**. The moment a partial solution can't possibly extend to a valid full solution, it bails out and tries something else. For N-Queens, this trims the search from trillions to **fewer than 2000 nodes**.
+
+The technical name for this trick is **pruning**, and we'll spend an entire page on it. But the intuition is: **fail fast, fail high in the tree, never explore a subtree you can prove is dead.**
+
+<Callout type="info">
+    Without pruning, backtracking is just slow brute force with a fancy name. **With** pruning, it's one of the most powerful general-purpose search techniques in your toolbox — solving puzzles in microseconds that brute force can't finish in a millennium.
+</Callout>
+
+## When to reach for backtracking
+
+The tell-tale signs:
+
+- **"Find all ..."** — all subsets, all permutations, all valid combinations, all paths. The output is itself a list of solutions, so you have to enumerate them.
+- **"Does there exist ..."** — does there exist a valid Sudoku completion? A way to color the graph? A path through the maze? The state space is too irregular for DP, but the partial-state check is cheap.
+- **"Smallest / largest valid configuration ..."** — N-Queens with the minimum number of pieces, the shortest word ladder, the smallest Sudoku puzzle with a unique solution.
+- **Constraints are local** — "no two queens on the same diagonal," "no repeated character," "every box of nine cells contains 1–9." Local constraints make pruning cheap and effective.
+- **`n` is small** — usually `n <= 20` for unrestricted problems, sometimes `n <= 100` for problems with heavy pruning. If `n` is large, the only DP, greedy, or polynomial-time algorithm will work.
+
+If two or three of these match, reach for the template.
+
+## Backtracking vs DP vs greedy — pick the right hammer
+
+A common point of confusion. Here's the disambiguation:
+
+| Technique     | When subproblems repeat | When optimal substructure | When you need ALL solutions |
+| :------------ | :---------------------- | :------------------------ | :-------------------------- |
+| **DP**        | Yes — caching pays off  | Yes — combine subanswers  | Awkward — DP returns ONE answer or a count |
+| **Greedy**    | Doesn't matter — never reconsiders | Yes, plus exchange argument | No — commits early    |
+| **Backtracking** | **No** — every branch is distinct | Not required — just feasibility | **Yes — its natural output** |
+
+DP and backtracking are not enemies. **Memoized backtracking** is just DP written top-down with extra branching — when subproblems repeat *and* you want one optimum, lean toward DP. When they don't repeat *or* you need every valid solution, lean toward backtracking.
+
+## A worked example end-to-end: generate all subsets
+
+> Given a set of distinct integers `nums`, return all possible **subsets** (the power set).
+
+Five questions to set up any backtracking problem:
+
+<Steps>
+
+### What's the partial solution?
+
+A list of the elements picked so far — call it `path`. Starts empty.
+
+### What's a complete solution?
+
+Once we've made a decision about every element of `nums`, `path` is one valid subset. We record a *copy* of it.
+
+### What are the choices at each step?
+
+At index `i`, we have two choices: **include** `nums[i]` in `path`, or **skip** it.
+
+### What's the "is this legal?" check?
+
+Trivial — there are no constraints on subsets, every choice is legal. Pruning won't help here.
+
+### What's the un-do?
+
+After recursing with `nums[i]` included, **pop** it off `path` to restore state before trying the skip branch.
+
+</Steps>
+
+The code transcribes the answers:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void backtrack(vector<int>& nums, int i, vector<int>& path, vector<vector<int>>& out) {
+        if (i == (int)nums.size()) { out.push_back(path); return; }
+        // choose: include nums[i]
+        path.push_back(nums[i]);
+        backtrack(nums, i + 1, path, out);
+        path.pop_back();                                 // un-choose
+        // choose: skip nums[i]
+        backtrack(nums, i + 1, path, out);
+    }
+    vector<vector<int>> subsets(vector<int>& nums) {
+        vector<vector<int>> out;
+        vector<int> path;
+        backtrack(nums, 0, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def subsets(nums):
+        out, path = [], []
+        def backtrack(i):
+            if i == len(nums):
+                out.append(path[:])           # snapshot
+                return
+            # choose: include
+            path.append(nums[i])
+            backtrack(i + 1)
+            path.pop()                        # un-choose
+            # choose: skip
+            backtrack(i + 1)
+        backtrack(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void backtrack(int[] nums, int i, List<Integer> path, List<List<Integer>> out) {
+        if (i == nums.length) { out.add(new ArrayList<>(path)); return; }
+        // choose: include
+        path.add(nums[i]);
+        backtrack(nums, i + 1, path, out);
+        path.remove(path.size() - 1);                    // un-choose
+        // choose: skip
+        backtrack(nums, i + 1, path, out);
+    }
+    public List<List<Integer>> subsets(int[] nums) {
+        List<List<Integer>> out = new ArrayList<>();
+        backtrack(nums, 0, new ArrayList<>(), out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(2^n × n)` — there are `2^n` subsets and copying each one takes `O(n)`.
+**Space:** `O(n)` recursion stack plus `O(2^n × n)` for the output.
+
+That's the whole template. The next page formalizes it into the three-line skeleton you can drop into every problem on this page.
+
+## The two outputs: "all of them" vs "the best one"
+
+Backtracking problems split into two flavors:
+
+- **Enumerate:** return *all* valid solutions. Code reaches a leaf, records a copy of `path`, returns up the tree to find more. Subsets, permutations, combinations, generate-parentheses.
+- **Search:** return *one* solution (or the optimum), then stop. Code returns `true` upward through the call stack as soon as a leaf works. N-Queens with a single solution, Sudoku, word-ladder reachability.
+
+The template is the same for both — what changes is what happens at the leaf:
+
+```text
+on success:
+   enumerate flavor → record path, keep searching
+   search flavor    → return true up the stack, stop exploring
+```
+
+Knowing which flavor a problem asks for tells you whether to return early or keep going. Read the problem statement carefully.
+
+## Quick check
+
+<QuizBox
+    question="What's the defining step that distinguishes backtracking from pure brute force?"
+    options={[
+        "Backtracking uses recursion; brute force doesn't",
+        "Backtracking prunes — it checks validity DURING construction and abandons doomed branches immediately",
+        "Backtracking is always faster — by a constant factor",
+        "Backtracking can only enumerate, never search"
+    ]}
+    correctIndex={1}
+    explanation="Pure brute force builds the entire candidate, then checks. Backtracking checks at every step and aborts the moment the partial solution can't possibly extend to a valid full one. That early-abort (pruning) is the whole reason backtracking is tractable on problems where brute force is hopeless."
+/>
+
+<QuizBox
+    question="You see: 'return all valid placements of 8 queens on an 8x8 chessboard such that none attack each other.' Which technique fits?"
+    options={[
+        "DP — the optimal solution at row k depends on the optimal at row k-1",
+        "Backtracking — local constraints (no two on a row / column / diagonal) and 'all valid' enumeration",
+        "Greedy — place each queen in the leftmost legal column",
+        "Binary search — search the space of placements"
+    ]}
+    correctIndex={1}
+    explanation="The constraint is purely local (queen pairs), the request is 'all valid,' and n is small (8). Three of the five backtracking tells in one problem. Greedy fails because a locally-legal placement can lead to no completion. DP has no overlap (each partial placement is distinct)."
+/>
+
+<QuizBox
+    question="A subset of n elements has 2^n possibilities; a permutation has n!. Which one explodes faster?"
+    options={[
+        "2^n grows faster",
+        "n! grows much faster — n! > 2^n for n >= 4, and the gap widens fast",
+        "They grow the same",
+        "It depends on the elements"
+    ]}
+    correctIndex={1}
+    explanation="n! grows much faster: 4! = 24 vs 2^4 = 16; 10! ≈ 3.6 million vs 2^10 = 1024; 15! ≈ 1.3 trillion vs 2^15 ≈ 32000. That's why permutation problems usually cap n around 10-12 while subset problems can stretch to n = 20 or higher."
+/>
+
+Next: **the template** — the three-line skeleton, plus the four canonical shapes (subsets, permutations, combinations, partitions) built on top of it.

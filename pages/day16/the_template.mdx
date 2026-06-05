@@ -1,0 +1,397 @@
+---
+title: "The Backtracking Template"
+description: "The choose/recurse/un-choose skeleton and the four canonical shapes built on it — subsets, permutations, combinations, and partitions."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# The Backtracking Template
+
+Every backtracking problem fits the same skeleton. Once you can write the skeleton from memory, the work on any new problem is filling in three blanks:
+
+1. **What's a "complete" partial solution?** (When do we record an answer?)
+2. **What are the candidate choices at each step?**
+3. **Which candidates are legal?** (The pruning predicate.)
+
+That's it. Internalize the skeleton and you'll never have to re-derive how to enumerate things from scratch.
+
+## The skeleton
+
+```text
+def backtrack(state):
+    if is_complete(state):
+        record(state)
+        return
+    for choice in candidates(state):
+        if is_legal(choice, state):
+            apply(choice, state)            # choose
+            backtrack(state)                # recurse
+            undo(choice, state)             # un-choose
+```
+
+Four lines do the work. The "choose → recurse → un-choose" sandwich is the heart of the algorithm. Skipping the undo is the single most common backtracking bug — you'll leak state from one branch into the next and get phantom answers.
+
+<Callout type="warning">
+    **The "snapshot" rule.** When you record a solution at a leaf, you must record a **copy** of `path`, not a reference to it. The same `path` object will be mutated on the next iteration — if you stored a reference, all your "saved" answers will end up identical. In Python: `out.append(path[:])`. In Java: `new ArrayList<>(path)`. In C++ the assignment `out.push_back(path)` already copies a `vector<int>`.
+</Callout>
+
+## Four canonical shapes
+
+These four templates cover the majority of enumeration problems. Memorize the structure of each, and notice the **tiny differences** between them — that's where the interview gotchas live.
+
+### Shape 1 — Subsets (2^n)
+
+> Given `nums`, generate all subsets.
+
+At each index, choose to include or skip.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void backtrack(int i, vector<int>& nums, vector<int>& path, vector<vector<int>>& out) {
+        if (i == (int)nums.size()) { out.push_back(path); return; }
+        // include
+        path.push_back(nums[i]);
+        backtrack(i + 1, nums, path, out);
+        path.pop_back();
+        // skip
+        backtrack(i + 1, nums, path, out);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def subsets(nums):
+        out, path = [], []
+        def bt(i):
+            if i == len(nums):
+                out.append(path[:])
+                return
+            path.append(nums[i])
+            bt(i + 1)
+            path.pop()
+            bt(i + 1)
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void backtrack(int i, int[] nums, List<Integer> path, List<List<Integer>> out) {
+        if (i == nums.length) { out.add(new ArrayList<>(path)); return; }
+        path.add(nums[i]);
+        backtrack(i + 1, nums, path, out);
+        path.remove(path.size() - 1);
+        backtrack(i + 1, nums, path, out);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(2^n × n)`. The tree has `2^n` leaves; each costs `O(n)` to record.
+
+#### Alternative "iterate-over-remaining" form
+
+There's a second way to enumerate subsets that's slightly cleaner for many follow-ups (subsets with duplicates, k-sized combinations, etc.):
+
+```python
+def subsets(nums):
+    out, path = [], []
+    def bt(start):
+        out.append(path[:])                   # every prefix IS a subset
+        for i in range(start, len(nums)):
+            path.append(nums[i])
+            bt(i + 1)
+            path.pop()
+    bt(0)
+    return out
+```
+
+Here every node of the recursion tree is itself a subset (not just the leaves), and the loop generates "next element to add" rather than "include/skip the current element." Same `2^n` count of subsets, different tree shape. Both styles are correct; pick the one whose pruning is easier for the specific problem.
+
+### Shape 2 — Permutations (n!)
+
+> Given distinct `nums`, generate all orderings.
+
+At each step, pick the next unused element. Track usage with a `used[]` boolean array.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void backtrack(vector<int>& nums, vector<bool>& used, vector<int>& path, vector<vector<int>>& out) {
+        if (path.size() == nums.size()) { out.push_back(path); return; }
+        for (int i = 0; i < (int)nums.size(); i++) {
+            if (used[i]) continue;
+            used[i] = true;
+            path.push_back(nums[i]);
+            backtrack(nums, used, path, out);
+            path.pop_back();
+            used[i] = false;
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def permute(nums):
+        out, path = [], []
+        used = [False] * len(nums)
+        def bt():
+            if len(path) == len(nums):
+                out.append(path[:])
+                return
+            for i in range(len(nums)):
+                if used[i]: continue
+                used[i] = True
+                path.append(nums[i])
+                bt()
+                path.pop()
+                used[i] = False
+        bt()
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void backtrack(int[] nums, boolean[] used, List<Integer> path, List<List<Integer>> out) {
+        if (path.size() == nums.length) { out.add(new ArrayList<>(path)); return; }
+        for (int i = 0; i < nums.length; i++) {
+            if (used[i]) continue;
+            used[i] = true;
+            path.add(nums[i]);
+            backtrack(nums, used, path, out);
+            path.remove(path.size() - 1);
+            used[i] = false;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n! × n)`. There are `n!` permutations; each costs `O(n)` to copy.
+
+#### In-place swap variant
+
+You can also generate permutations by **swapping in place**, no `used` array:
+
+```python
+def permute(nums):
+    out = []
+    def bt(start):
+        if start == len(nums):
+            out.append(nums[:])
+            return
+        for i in range(start, len(nums)):
+            nums[start], nums[i] = nums[i], nums[start]
+            bt(start + 1)
+            nums[start], nums[i] = nums[i], nums[start]      # undo swap
+    bt(0)
+    return out
+```
+
+`O(1)` extra space (besides the output). The trade-off: handling duplicates is harder — you'd need an explicit "have we already tried this value at this position?" set per recursive call.
+
+### Shape 3 — Combinations (C(n, k))
+
+> Given `n` and `k`, return all `k`-sized subsets of `[1..n]`.
+
+A subset enumerator with two stopping conditions: stop at `k` picks (success) or when we've run out (fail). Use the "iterate-over-remaining" form because we need a `start` index to enforce ordering.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void backtrack(int start, int n, int k, vector<int>& path, vector<vector<int>>& out) {
+        if ((int)path.size() == k) { out.push_back(path); return; }
+        // prune: not enough remaining numbers to fill the rest of path
+        int need = k - path.size();
+        for (int i = start; i <= n - need + 1; i++) {
+            path.push_back(i);
+            backtrack(i + 1, n, k, path, out);
+            path.pop_back();
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def combine(n, k):
+        out, path = [], []
+        def bt(start):
+            if len(path) == k:
+                out.append(path[:])
+                return
+            need = k - len(path)
+            for i in range(start, n - need + 2):
+                path.append(i)
+                bt(i + 1)
+                path.pop()
+        bt(1)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void backtrack(int start, int n, int k, List<Integer> path, List<List<Integer>> out) {
+        if (path.size() == k) { out.add(new ArrayList<>(path)); return; }
+        int need = k - path.size();
+        for (int i = start; i <= n - need + 1; i++) {
+            path.add(i);
+            backtrack(i + 1, n, k, path, out);
+            path.remove(path.size() - 1);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(C(n, k) × k)`.
+
+The `n - need + 1` upper bound is a free pruning win: if we'd need 3 more numbers and there are only 2 left, don't even start the iteration.
+
+### Shape 4 — Partitions
+
+> Given a string, partition it into pieces (each piece satisfying some property).
+
+At each step, choose where the next cut goes. The candidates are "cut after position `i`" for `i` in `[start + 1 .. n]`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void backtrack(const string& s, int start, vector<string>& path, vector<vector<string>>& out) {
+        if (start == (int)s.size()) { out.push_back(path); return; }
+        for (int end = start + 1; end <= (int)s.size(); end++) {
+            string piece = s.substr(start, end - start);
+            if (isValid(piece)) {                           // problem-specific
+                path.push_back(piece);
+                backtrack(s, end, path, out);
+                path.pop_back();
+            }
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def partition(s):
+        out, path = [], []
+        def bt(start):
+            if start == len(s):
+                out.append(path[:])
+                return
+            for end in range(start + 1, len(s) + 1):
+                piece = s[start:end]
+                if is_valid(piece):
+                    path.append(piece)
+                    bt(end)
+                    path.pop()
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void backtrack(String s, int start, List<String> path, List<List<String>> out) {
+        if (start == s.length()) { out.add(new ArrayList<>(path)); return; }
+        for (int end = start + 1; end <= s.length(); end++) {
+            String piece = s.substring(start, end);
+            if (isValid(piece)) {
+                path.add(piece);
+                backtrack(s, end, path, out);
+                path.remove(path.size() - 1);
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This is the shape behind **Palindrome Partitioning**, **Restore IP Addresses**, **Word Break II**, and most "split a string into valid pieces" problems. The candidate generator (where to cut) and validator (is the piece OK?) are the only problem-specific parts.
+
+## The recipe — putting it all together
+
+When you see a new problem and suspect backtracking, run this:
+
+<Steps>
+
+### Pick a template
+
+Subsets? Permutations? Combinations? Partitions? Grid DFS (next page)? Constraint placement (next page)? **There are five of them; one of them fits.**
+
+### Define the state
+
+Usually `path` (the current partial solution) plus an index/start/used-array to know what's still available.
+
+### Write the base case
+
+When is `path` a complete solution? When do we record it?
+
+### Write the candidate loop
+
+What are the choices at this step?
+
+### Write the legality check
+
+When is a candidate allowed? This is the pruning — even a cheap O(1) check (no duplicates, in bounds, doesn't break a constraint) is enough to cut the search by orders of magnitude.
+
+### Write the undo
+
+Whatever `apply(choice)` did, `undo(choice)` reverses it. Forget this and your branches will leak.
+
+</Steps>
+
+If the template is wrong, the answers are wrong. If the template is right, **the rest is mechanical**.
+
+## A summary table
+
+| Shape       | Tree size      | Choice at each step          | Stopping condition           |
+| :---------- | :------------- | :--------------------------- | :--------------------------- |
+| Subsets     | `2^n` leaves   | Include / skip `nums[i]`     | `i == n`                     |
+| Permutations | `n!` leaves   | Pick next unused element     | `path.length == n`           |
+| Combinations | `C(n, k)`     | Pick next ordered element    | `path.length == k`           |
+| Partitions  | varies         | Pick a cut position          | `start == n`                 |
+| Grid DFS    | up to `4^(r×c)` | Move in one of 4 directions | Target found / bounds hit    |
+| Constraint placement | varies | Pick a value at this slot   | All slots filled / no candidate left |
+
+The last two shapes get their own page (next: pruning, then advanced).
+
+## Quick check
+
+<QuizBox
+    question="In the recursion `path.append(x); bt(); path.pop()`, what happens if you forget the `path.pop()`?"
+    options={[
+        "Nothing — the recursion still finds all solutions",
+        "State leaks into sibling branches — you'll get incorrect (too long, mixed) partial solutions",
+        "The code crashes with a stack overflow",
+        "It still works but doubles the runtime"
+    ]}
+    correctIndex={1}
+    explanation="The whole point of backtracking is undoing each choice before trying the next. Skip the pop and `path` keeps the element when you try the next sibling — so siblings see a polluted state. You'll get wrong (and growing) partial solutions, often with no error message, just bad answers."
+/>
+
+<QuizBox
+    question="Why is the 'iterate over remaining' subset variant often preferred for combinations and combination-sum problems?"
+    options={[
+        "It's faster",
+        "It naturally enforces ordering (start index) so you avoid duplicate subsets like [1,2] and [2,1]",
+        "It uses less memory",
+        "It's the only correct form"
+    ]}
+    correctIndex={1}
+    explanation="The 'start index' parameter forces every recursive choice to come AFTER the previous one in array order. That prevents the same combination from being generated in different orders. The include/skip variant doesn't generate duplicates either, but adding ordering constraints (like 'sum = target') is much cleaner with the start-index variant."
+/>
+
+<QuizBox
+    question="You're enumerating permutations and the output looks correct, but the SAME permutation appears twice. What's the likely cause?"
+    options={[
+        "The recursion depth is too deep",
+        "The input contains duplicate elements; without an explicit 'don't pick the same value at the same level' guard, identical permutations are generated multiple times",
+        "Missing undo step",
+        "Tail recursion not optimized"
+    ]}
+    correctIndex={1}
+    explanation="With duplicate values like [1, 1, 2], swapping the two 1s at the same recursion level produces the same permutation twice. The standard fix is to sort the input and skip nums[i] if nums[i] == nums[i-1] and !used[i-1] — meaning the previous identical value hasn't been picked at this level."
+/>
+
+Next: **pruning** — the single highest-leverage thing you can do to take a TLE-ing backtracking solution to a sub-millisecond one.

@@ -1,0 +1,156 @@
+---
+title: "Word Search"
+description: "Grid DFS with in-place marking — the canonical 2D backtracking problem with neighbor expansion and backtrack-restore."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Word Search <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an `m x n` grid of characters `board` and a string `word`, return `true` if `word` exists in the grid.
+
+The word can be constructed from letters of sequentially adjacent cells, where adjacent cells are horizontally or vertically neighboring. The **same letter cell may not be used more than once**.
+
+#### Examples
+
+```py
+> Case 1:
+    board = [["A","B","C","E"],
+             ["S","F","C","S"],
+             ["A","D","E","E"]]
+    word  = "ABCCED"
+    Output: true
+
+> Case 2:
+    board = [["A","B","C","E"],
+             ["S","F","C","S"],
+             ["A","D","E","E"]]
+    word  = "SEE"
+    Output: true
+
+> Case 3:
+    board = [["A","B","C","E"],
+             ["S","F","C","S"],
+             ["A","D","E","E"]]
+    word  = "ABCB"
+    Output: false
+```
+
+#### Constraints
+
+- `m == board.length`
+- `n == board[i].length`
+- `1 <= m, n <= 6`
+- `1 <= word.length <= 15`
+
+#### State design
+
+1. **Partial solution?** The current `(r, c)` cell and the index `i` of how many characters of `word` we've already matched.
+2. **Complete?** When `i == len(word)` — every character matched.
+3. **Choices?** Move to one of the four neighbors.
+4. **Legality?** In bounds, not yet visited, and matches `word[i]`.
+5. **Undo?** Restore the cell on the way back up.
+
+The "not yet visited" check is done by **mutating the cell to a sentinel char** (`'#'`) while we're recursing through it, then restoring on return. No separate `visited` set needed.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool dfs(vector<vector<char>>& board, int r, int c, const string& w, int i) {
+        if (i == (int)w.size()) return true;
+        if (r < 0 || r >= (int)board.size() || c < 0 || c >= (int)board[0].size())
+            return false;
+        if (board[r][c] != w[i]) return false;
+        char save = board[r][c];
+        board[r][c] = '#';                                       // mark visited
+        bool found = dfs(board, r + 1, c, w, i + 1)
+                  || dfs(board, r - 1, c, w, i + 1)
+                  || dfs(board, r, c + 1, w, i + 1)
+                  || dfs(board, r, c - 1, w, i + 1);
+        board[r][c] = save;                                       // restore
+        return found;
+    }
+    bool exist(vector<vector<char>>& board, string word) {
+        for (int r = 0; r < (int)board.size(); r++)
+            for (int c = 0; c < (int)board[0].size(); c++)
+                if (dfs(board, r, c, word, 0)) return true;
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def exist(board, word):
+        R, C = len(board), len(board[0])
+        def dfs(r, c, i):
+            if i == len(word): return True
+            if r < 0 or r >= R or c < 0 or c >= C: return False
+            if board[r][c] != word[i]: return False
+            save = board[r][c]
+            board[r][c] = '#'
+            found = (dfs(r + 1, c, i + 1) or dfs(r - 1, c, i + 1)
+                  or dfs(r, c + 1, i + 1) or dfs(r, c - 1, i + 1))
+            board[r][c] = save
+            return found
+        for r in range(R):
+            for c in range(C):
+                if dfs(r, c, 0): return True
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean dfs(char[][] board, int r, int c, String w, int i) {
+        if (i == w.length()) return true;
+        if (r < 0 || r >= board.length || c < 0 || c >= board[0].length) return false;
+        if (board[r][c] != w.charAt(i)) return false;
+        char save = board[r][c];
+        board[r][c] = '#';
+        boolean found = dfs(board, r + 1, c, w, i + 1)
+                     || dfs(board, r - 1, c, w, i + 1)
+                     || dfs(board, r, c + 1, w, i + 1)
+                     || dfs(board, r, c - 1, w, i + 1);
+        board[r][c] = save;
+        return found;
+    }
+    public boolean exist(char[][] board, String word) {
+        for (int r = 0; r < board.length; r++)
+            for (int c = 0; c < board[0].length; c++)
+                if (dfs(board, r, c, word, 0)) return true;
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Always restore the cell on every return path.** A common bug: returning `true` early without restoring leaves the cell marked `'#'`, polluting later searches. The pattern above stores the answer in `found`, restores, and returns — guaranteeing the cell is always reset.
+</Callout>
+
+#### Pruning ideas (worth knowing)
+
+For interview follow-ups, here are three pruning ideas that can dramatically speed Word Search up:
+
+1. **Character-frequency precheck** — count letters in the board and `word`. If `word` needs 5 `'A'`s and the board only has 4, return `false` immediately.
+2. **Reverse search if word is longer at the end** — if `word`'s rare characters appear at the end, try matching `word` reversed (so we start from rare letters first).
+3. **Word Search II** (multiple words to find) — use a **Trie** of all target words; at each cell, walk the trie one character at a time and report any "word ends here" node hit.
+
+Pattern 3 is a classic interview follow-up; combining backtracking with a Trie is one of the more elegant algorithm combos.
+
+#### Analysis
+
+- **Time:** `O(m × n × 4^L)` worst case, where `L = len(word)`. Each DFS visits at most 4 neighbors `L` deep, and we start from every cell. Pruning makes this dramatically tighter in practice.
+- **Space:** `O(L)` recursion stack (in addition to the `O(m × n)` board which we mutate in place).
+
+#### Same skin
+
+- **Number of Islands** — count connected components via DFS from every unvisited land cell.
+- **Surrounded Regions** — DFS inward from the border; flip everything else.
+- **Rat in a Maze** — find a path from start to end.
+- **Unique Paths III** — count paths visiting every walkable cell exactly once.

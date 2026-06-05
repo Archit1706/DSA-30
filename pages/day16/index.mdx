@@ -1,21 +1,41 @@
 ---
 title: "Day 16 — Backtracking"
-description: "Backtracking from first principles — the decision tree, pruning, and the templates that solve subsets, permutations, N-Queens, and Sudoku."
+description: "Backtracking from first principles — the choose/recurse/un-choose template, pruning that turns brute force into smart search, and the templates that solve subsets, permutations, N-Queens, Sudoku, Word Search, and Combination Sum."
 ---
 
 import { Callout } from "nextra/components";
 
 # Day 16 — Backtracking
 
+Some problems don't reduce. There's no clever recurrence, no greedy swap, no DP table. You just have to **try every possibility** — but try them in a way that doesn't take eternity.
+
+That's **backtracking**: a disciplined depth-first search through the space of partial solutions. At every step you make a **choice**, recurse into the world where that choice was made, and then **un-make it** before trying the next one. The trick that makes it tractable is **pruning** — abandoning a partial solution the moment you can prove it can't lead anywhere good.
+
+Yesterday's greedy was about *committing*. The day before, DP was about *remembering*. Backtracking is about **exploring with a flashlight** — peering down every branch, but only as far as the light goes before turning around.
+
+## What you'll learn today
+
+- The **choose → recurse → un-choose** template that defines every backtracking algorithm
+- **Pruning**: the difference between brute force and the same brute force that finishes in seconds
+- The three classical shapes: **subsets**, **permutations**, **combinations** — and the small tweaks that turn one into another
+- **Constraint satisfaction** — N-Queens, Sudoku, and the "is this placement legal?" check that defines this whole problem family
+- **Grid backtracking** — Word Search, paths in a maze, islands counted with DFS
+- **Bitmask state-space search** for problems with up to ~20 elements where the obvious approach is exponential
+- **Ten interview problems** that drill every shape into muscle memory
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The unspoken truth of backtracking: **almost every problem reduces to one of five templates**. Subsets, permutations, combinations, grid DFS, and constraint placement. Learn the templates once, then 90% of the work on any new problem is picking which template applies and what the "is this choice legal?" check looks like.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- The **choose → recurse → un-choose** template that defines backtracking
-- **Pruning** — the difference between brute force and "smart brute force"
-- Heavyweight problems: **N-Queens, Sudoku Solver, Word Search, Combination Sum, Letter Combinations**
-- **Bitmask state-space search** for problems with up to 20 elements
+1. **[Introduction](/day16/introduction)** — what makes a problem a backtracking problem, the decision tree, and why pure brute force isn't the same thing.
+2. **[The Template](/day16/the_template)** — the three-line skeleton (`choose / recurse / un-choose`) and the four canonical shapes built on top of it: subsets, permutations, combinations, partitions.
+3. **[Pruning](/day16/pruning)** — feasibility checks, ordering tricks, sorting for early termination. The single biggest determinant of whether your solution times out or breezes through.
+4. **[Advanced Patterns](/day16/advanced)** — grid DFS with in-place marking, constraint propagation (N-Queens diagonals, Sudoku boxes), bitmask state spaces, memoized backtracking.
+5. **[Basic Questions](/day16/basic_questions)** — warm-ups: generate subsets, generate permutations, generate all parentheses, phone-letter combinations.
+6. **[Practice Questions](/day16/practice_questions)** — ten interview classics, every template covered, with the pruning that turns each from "TLE" into "accepted in 4ms."
 
-Recursion's [Subsets](/day5/practice_questions/subsets) and [Permutations](/day5/practice_questions/permutations) were the warm-up. This chapter is where backtracking really earns its keep.
+Recursion already gave you the call-stack toolbox; DP taught you what to remember. Backtracking is where the **un-do** step joins the party — and once it clicks, an entire family of "looks impossible" problems becomes routine.
+
+Coming up next: **Day 17 — Bit Manipulation**, the lowest-level toolkit in the chapter sequence — and a frequent power-up for backtracking problems with small `n`.

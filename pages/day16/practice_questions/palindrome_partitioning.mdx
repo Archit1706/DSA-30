@@ -1,0 +1,163 @@
+---
+title: "Palindrome Partitioning"
+description: "String partition backtracking — split a string into palindromic substrings using the partition template with an O(1) palindrome check via DP preprocessing."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Palindrome Partitioning <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s`, partition `s` such that every substring of the partition is a palindrome. Return **all possible palindrome partitionings** of `s`.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "aab"
+    Output: [["a","a","b"], ["aa","b"]]
+
+> Case 2:
+    s = "a"
+    Output: [["a"]]
+
+> Case 3:
+    s = "abba"
+    Output: [["a","b","b","a"], ["a","bb","a"], ["abba"]]
+```
+
+#### Constraints
+
+- `1 <= s.length <= 16`
+- `s` contains only lowercase English letters.
+
+#### State design
+
+This is the **partition shape** of backtracking. At every position, we decide where to put the next cut.
+
+1. **Partial solution?** `path` — the palindromic pieces picked so far. Plus a `start` index.
+2. **Complete?** When `start == len(s)` — record `path`.
+3. **Choices?** Every `end` in `[start + 1, len(s)]`.
+4. **Legality?** `s[start..end)` must be a palindrome.
+5. **Undo?** Pop the piece after recursing.
+
+#### Code — basic version (palindrome check inside the loop)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isPalindrome(const string& s, int l, int r) {
+        while (l < r) if (s[l++] != s[r--]) return false;
+        return true;
+    }
+    void bt(int start, const string& s, vector<string>& path, vector<vector<string>>& out) {
+        if (start == (int)s.size()) { out.push_back(path); return; }
+        for (int end = start + 1; end <= (int)s.size(); end++) {
+            if (!isPalindrome(s, start, end - 1)) continue;
+            path.push_back(s.substr(start, end - start));
+            bt(end, s, path, out);
+            path.pop_back();
+        }
+    }
+    vector<vector<string>> partition(string s) {
+        vector<vector<string>> out; vector<string> path;
+        bt(0, s, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def partition(s):
+        out, path = [], []
+        def is_pal(l, r):
+            while l < r:
+                if s[l] != s[r]: return False
+                l += 1; r -= 1
+            return True
+        def bt(start):
+            if start == len(s):
+                out.append(path[:])
+                return
+            for end in range(start + 1, len(s) + 1):
+                if is_pal(start, end - 1):
+                    path.append(s[start:end])
+                    bt(end)
+                    path.pop()
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean isPal(String s, int l, int r) {
+        while (l < r) if (s.charAt(l++) != s.charAt(r--)) return false;
+        return true;
+    }
+    void bt(int start, String s, List<String> path, List<List<String>> out) {
+        if (start == s.length()) { out.add(new ArrayList<>(path)); return; }
+        for (int end = start + 1; end <= s.length(); end++) {
+            if (!isPal(s, start, end - 1)) continue;
+            path.add(s.substring(start, end));
+            bt(end, s, path, out);
+            path.remove(path.size() - 1);
+        }
+    }
+    public List<List<String>> partition(String s) {
+        List<List<String>> out = new ArrayList<>();
+        bt(0, s, new ArrayList<>(), out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Optimization — precompute palindrome table
+
+`isPalindrome(s, l, r)` is `O(r - l)`. Called inside backtracking, the total work can balloon. **Precompute a 2D table** `isPal[l][r]` in `O(n²)` once, then check in `O(1)`.
+
+The DP is the same expand-from-center recurrence: `isPal[l][r] = (s[l] == s[r]) AND (r - l < 2 OR isPal[l + 1][r - 1])`. Fill in order of increasing length.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def partition(s):
+        n = len(s)
+        is_pal = [[False] * n for _ in range(n)]
+        for length in range(1, n + 1):
+            for l in range(n - length + 1):
+                r = l + length - 1
+                if s[l] == s[r] and (length <= 2 or is_pal[l + 1][r - 1]):
+                    is_pal[l][r] = True
+        out, path = [], []
+        def bt(start):
+            if start == n:
+                out.append(path[:])
+                return
+            for end in range(start + 1, n + 1):
+                if is_pal[start][end - 1]:
+                    path.append(s[start:end])
+                    bt(end)
+                    path.pop()
+        bt(0)
+        return out
+    ```
+    </Tab>
+</Tabs>
+
+The `O(n²)` precompute is a one-time cost; the backtracking step then runs at maximum speed.
+
+#### Analysis
+
+- **Time:** `O(n × 2^n)` — there can be exponentially many partitionings, each `O(n)` to record.
+- **Space:** `O(n²)` for the precomputed palindrome table, `O(n)` for recursion.
+
+#### Same skin
+
+- **Palindrome Partitioning II** — minimum cuts (not all partitions). Becomes 1D DP because the answer is a single number, not a list.
+- **Restore IP Addresses** (next problem) — partition into exactly 4 pieces, each a valid octet.
+- **Word Break II** — partition into pieces that are all dictionary words.
+- **Decode Ways II** — count decodings; partition with conditional piece validity (`'1'`-`'26'`, plus wildcards).

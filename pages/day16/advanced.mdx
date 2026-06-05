@@ -1,0 +1,272 @@
+---
+title: "Advanced Backtracking Patterns"
+description: "Grid DFS with in-place marking, bitmask state-space search, memoized backtracking, and iterative-deepening — the techniques behind the hardest interview problems."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Advanced Backtracking Patterns
+
+The four templates from the previous page (subsets, permutations, combinations, partitions) carry most interview problems. The five techniques on this page show up in the harder ones — grid puzzles, constraint problems, search problems with `n` around 20, and the "now make it actually fast" follow-ups.
+
+## 1. Grid DFS with in-place marking
+
+A whole sub-family of backtracking problems lives on a grid: search a word in a board, find paths in a maze, count distinct islands. The skeleton is the same — DFS from a starting cell, try the four directions, mark cells visited.
+
+The trick that makes it efficient: **mutate the grid itself** to mark "visited", then restore on the way back up. Saves the cost (and memory) of a separate `visited[][]` set.
+
+### Canonical: Word Search
+
+> Given a 2D board and a word, return whether the word can be constructed from adjacent cells (horizontally / vertically). The same cell may not be used more than once.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool dfs(vector<vector<char>>& board, int r, int c, const string& w, int i) {
+        if (i == (int)w.size()) return true;
+        if (r < 0 || r >= (int)board.size() || c < 0 || c >= (int)board[0].size())
+            return false;
+        if (board[r][c] != w[i]) return false;
+        char save = board[r][c];
+        board[r][c] = '#';                                    // mark visited
+        bool found = dfs(board, r + 1, c, w, i + 1)
+                  || dfs(board, r - 1, c, w, i + 1)
+                  || dfs(board, r, c + 1, w, i + 1)
+                  || dfs(board, r, c - 1, w, i + 1);
+        board[r][c] = save;                                    // restore on backtrack
+        return found;
+    }
+    bool exist(vector<vector<char>>& board, string word) {
+        for (int r = 0; r < (int)board.size(); r++)
+            for (int c = 0; c < (int)board[0].size(); c++)
+                if (dfs(board, r, c, word, 0)) return true;
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def exist(board, word):
+        R, C = len(board), len(board[0])
+        def dfs(r, c, i):
+            if i == len(word): return True
+            if r < 0 or r >= R or c < 0 or c >= C: return False
+            if board[r][c] != word[i]: return False
+            save = board[r][c]
+            board[r][c] = '#'                                 # mark
+            found = (dfs(r + 1, c, i + 1) or dfs(r - 1, c, i + 1)
+                  or dfs(r, c + 1, i + 1) or dfs(r, c - 1, i + 1))
+            board[r][c] = save                                 # restore
+            return found
+        for r in range(R):
+            for c in range(C):
+                if dfs(r, c, 0): return True
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean dfs(char[][] board, int r, int c, String w, int i) {
+        if (i == w.length()) return true;
+        if (r < 0 || r >= board.length || c < 0 || c >= board[0].length) return false;
+        if (board[r][c] != w.charAt(i)) return false;
+        char save = board[r][c];
+        board[r][c] = '#';
+        boolean found = dfs(board, r + 1, c, w, i + 1)
+                     || dfs(board, r - 1, c, w, i + 1)
+                     || dfs(board, r, c + 1, w, i + 1)
+                     || dfs(board, r, c - 1, w, i + 1);
+        board[r][c] = save;
+        return found;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The in-place marking is the elegant part: while we're exploring through this cell, it can't be revisited. The moment we backtrack out, it's available for other paths.
+
+<Callout type="warning">
+    **Restore the cell before returning.** A common bug: returning early on success without restoring. The cell stays marked `'#'`, polluting future searches. Always restore on every exit path, even success.
+</Callout>
+
+### Same skin
+
+- **Number of Islands** — DFS from every land cell, mark visited as you go.
+- **Pacific Atlantic Water Flow** — BFS/DFS from each ocean inward.
+- **Rat in a Maze / Unique Paths III** — count paths visiting every walkable cell.
+- **Surrounded Regions** — mark cells reachable from border, then flip everything else.
+
+## 2. Bitmask state-space search
+
+When `n <= ~20`, you can encode "which elements have I used" as the bits of an integer. The recursion's state then becomes `(mask, ...other_dims)`, and you can memoize on it — the **bridge between backtracking and DP**.
+
+### Canonical: Can I Win
+
+> Two players take turns picking numbers from `1..maxChoosable`. First to push the running total past `desiredTotal` wins. Return whether player 1 can force a win.
+
+State: the set of unpicked numbers (encoded as a bitmask). Transition: try every legal pick; if at least one leads to opponent's loss, current player wins.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from functools import lru_cache
+
+    def can_i_win(max_choosable, desired_total):
+        if (1 + max_choosable) * max_choosable // 2 < desired_total: return False
+        @lru_cache(maxsize=None)
+        def win(mask, remaining):
+            for i in range(1, max_choosable + 1):
+                if mask & (1 << i): continue                   # already used
+                if i >= remaining: return True                 # pick i and win
+                if not win(mask | (1 << i), remaining - i):    # opponent loses
+                    return True
+            return False
+        return win(0, desired_total)
+    ```
+    </Tab>
+</Tabs>
+
+`O(2^n)` states, each visited once thanks to memoization. Without memoization this is `O(n!)` — intractable for `n = 20`. With memoization it runs in milliseconds.
+
+### Same skin
+
+- **Partition to K Equal Sum Subsets** — `dp[mask]` = "best subset assignment using elements in `mask`."
+- **Number of Ways to Wear Different Hats** — bitmask over people.
+- **Smallest Sufficient Team** — bitmask over skills, pick a min-cost team that covers all of them.
+- **Shortest Path Visiting All Nodes** — `(mask, node)` BFS state, also bitmask DP territory.
+
+The `n <= ~20` constraint is the dead giveaway. If you see it, ask yourself: can I encode the "what's left to do" set as the bits of an integer?
+
+## 3. Memoized backtracking — when subproblems repeat
+
+Plain backtracking visits every distinct state once. **Memoized** backtracking caches results so repeated states are answered in `O(1)`.
+
+The catch: it only helps when the same state really does come up multiple times. Pure enumeration problems (subsets, permutations) never revisit states — caching only wastes memory. Search problems where different paths reach the same partial state (counting paths in a DAG, "can we reach the target with this remaining budget?") benefit enormously.
+
+### Word Break — backtracking + memo
+
+Plain backtracking on Word Break is exponential because different splits lead to the same suffix being re-validated. Adding a memo on "is suffix from index `i` segmentable?" drops it to `O(n²)`:
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def word_break(s, word_dict):
+        words = set(word_dict)
+        memo = {}
+        def can(i):
+            if i == len(s): return True
+            if i in memo: return memo[i]
+            for j in range(i + 1, len(s) + 1):
+                if s[i:j] in words and can(j):
+                    memo[i] = True
+                    return True
+            memo[i] = False
+            return False
+        return can(0)
+    ```
+    </Tab>
+</Tabs>
+
+This is the **bridge between backtracking and DP**: once subproblems repeat, memoize, and you have top-down DP.
+
+## 4. Iterative deepening — when depth is the dimension
+
+Pure DFS goes deep first; on infinite or huge trees it can dive into a hopeless branch forever. **Iterative deepening DFS (IDDFS)** runs depth-limited DFS with increasing depth limits — 1, 2, 3, ... — until a solution is found.
+
+Surprisingly cheap: the total work is dominated by the deepest level, so IDDFS is only a constant factor slower than BFS while using DFS's `O(depth)` memory instead of BFS's `O(width)`. Used in chess engines, theorem provers, and the "shortest sequence of moves to reach state X" problems.
+
+```python
+def iddfs(start, is_goal, expand):
+    for depth in range(1, MAX_DEPTH):
+        result = dls(start, depth, is_goal, expand)
+        if result is not None: return result
+    return None
+
+def dls(state, depth, is_goal, expand):
+    if is_goal(state): return state
+    if depth == 0: return None
+    for next_state in expand(state):
+        r = dls(next_state, depth - 1, is_goal, expand)
+        if r is not None: return r
+    return None
+```
+
+Niche but elegant. The kind of trick that lets you solve "shortest sequence" problems without paying for BFS's frontier memory.
+
+## 5. Branch-and-bound — backtracking for optimization
+
+When the goal isn't "find any valid solution" but "find the **best** valid solution", you can prune even more aggressively: track the **best solution found so far** as a global, and abandon any branch whose **best possible completion** is worse.
+
+For Traveling Salesman:
+
+- Track `best_cost` so far.
+- At each partial tour, compute a **lower bound** on the cost of completing it (sum of distances so far + minimum-spanning-tree of unvisited cities, for example).
+- If `partial + lower_bound >= best_cost`, prune.
+
+```python
+best = float('inf')
+def bt(visited, current, cost):
+    nonlocal best
+    if all_visited(visited):
+        best = min(best, cost + dist(current, start))
+        return
+    bound = lower_bound(visited, current)
+    if cost + bound >= best: return                       # branch-and-bound prune
+    for next_city in unvisited(visited):
+        bt(visited | {next_city}, next_city, cost + dist(current, next_city))
+```
+
+The tighter the bound, the more pruning. This is the basis of practical TSP solvers, knapsack-with-fractional-LP bounds, and the cutting-plane algorithms inside commercial integer-programming software.
+
+## Choosing the right tool
+
+| Symptom                                       | Reach for                                  |
+| :-------------------------------------------- | :----------------------------------------- |
+| Grid + "search for path / word / island"      | Grid DFS with in-place marking             |
+| `n <= 20` + "subset / assignment / cover"     | Bitmask state-space search                 |
+| Same partial state reachable via many paths   | Memoized backtracking (= top-down DP)      |
+| Infinite tree + "shortest move sequence"      | Iterative deepening                        |
+| Optimization + computable lower bound         | Branch-and-bound                           |
+| Constraints with row/column/diagonal/box      | Constraint propagation (incremental sets)  |
+
+## Quick check
+
+<QuizBox
+    question="What's the main cost of restoring the cell in Word Search after DFS?"
+    options={[
+        "It's O(n) per restore",
+        "Just one assignment per cell visit — but skipping it pollutes the board for sibling DFS branches",
+        "It doubles the memory usage",
+        "Restoration is unnecessary if we copy the board"
+    ]}
+    correctIndex={1}
+    explanation="The restore is O(1) — a single character assignment. The reason it's mandatory is correctness: without it, the cell stays marked as '#' and breaks any sibling path that needs to walk through it. Restoring is what makes 'visit this cell during this branch but free it afterwards' work without a separate visited set."
+/>
+
+<QuizBox
+    question="The constraint n ≤ 20 in a 'pick a subset to satisfy some condition' problem most strongly suggests:"
+    options={[
+        "Brute force",
+        "Bitmask DP / bitmask backtracking with state encoded as the bits of a 2^n integer",
+        "Linear DP",
+        "Binary search"
+    ]}
+    correctIndex={1}
+    explanation="n ≤ 20 means 2^n is at most a million — small enough to be a state space. Bitmask DP packs which elements have been chosen into the bits of an int, making 'have I picked subset S' a constant-time lookup. Almost any DP shape with that tiny n constraint is a bitmask problem."
+/>
+
+<QuizBox
+    question="In branch-and-bound, the lower-bound function returns a value LESS than or equal to the optimum for any completion. Why does that direction of inequality matter for pruning?"
+    options={[
+        "It doesn't — any approximation works",
+        "Because we prune when cost + lower_bound ≥ best_so_far — we want to be sure that even the best possible completion can't beat our current best. Overestimating would prune valid branches.",
+        "It's just a convention",
+        "Upper bounds are used; lower bounds are wrong"
+    ]}
+    correctIndex={1}
+    explanation="The pruning rule is: 'if even the most optimistic completion can't beat what we have, abandon this branch.' For minimization, 'optimistic' = lowest possible cost, hence a LOWER bound. If we overestimated (used an upper bound), we'd prune branches that might actually be optimal — incorrect results."
+/>
+
+Next: **basic warm-up questions** — generate subsets, generate permutations, generate parentheses, phone-letter combinations.

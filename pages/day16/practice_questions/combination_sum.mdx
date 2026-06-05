@@ -1,0 +1,129 @@
+---
+title: "Combination Sum"
+description: "Backtracking with sort-and-prune — pick from a candidate list (with repetition) to hit a target sum, with the classic O(n log n) pruning sort."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Combination Sum <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array of **distinct** integers `candidates` and a target integer `target`, return a list of all **unique combinations** of `candidates` where the chosen numbers sum to `target`. The **same number may be chosen unlimited times**. Two combinations are unique if the frequency of any of the chosen numbers is different.
+
+#### Examples
+
+```py
+> Case 1:
+    candidates = [2, 3, 6, 7],  target = 7
+    Output: [[2, 2, 3], [7]]
+
+> Case 2:
+    candidates = [2, 3, 5],  target = 8
+    Output: [[2, 2, 2, 2], [2, 3, 3], [3, 5]]
+
+> Case 3:
+    candidates = [2],  target = 1
+    Output: []
+```
+
+#### Constraints
+
+- `1 <= candidates.length <= 30`
+- `2 <= candidates[i] <= 40`
+- All elements of `candidates` are **distinct**.
+- `1 <= target <= 40`
+
+#### State design
+
+1. **Partial solution?** `path` (the picks so far) + `remaining` (target minus picks so far).
+2. **Complete?** When `remaining == 0` — record `path`.
+3. **Choices?** Any candidate `>= start` (to avoid generating `[2,3]` and `[3,2]` separately). Reusable because of unbounded picks.
+4. **Legality?** `candidate <= remaining` — would otherwise overshoot.
+5. **Undo?** Pop the pick after recursing.
+
+The **sort the candidates and `break` early** trick is the killer optimization.
+
+#### Code with sort-and-prune
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(vector<int>& cand, int start, int remaining, vector<int>& path, vector<vector<int>>& out) {
+        if (remaining == 0) { out.push_back(path); return; }
+        for (int i = start; i < (int)cand.size(); i++) {
+            if (cand[i] > remaining) break;                        // killer prune
+            path.push_back(cand[i]);
+            bt(cand, i, remaining - cand[i], path, out);            // pass i (not i+1) for reuse
+            path.pop_back();
+        }
+    }
+    vector<vector<int>> combinationSum(vector<int>& candidates, int target) {
+        sort(candidates.begin(), candidates.end());
+        vector<vector<int>> out; vector<int> path;
+        bt(candidates, 0, target, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def combination_sum(candidates, target):
+        candidates.sort()
+        out, path = [], []
+        def bt(start, remaining):
+            if remaining == 0:
+                out.append(path[:])
+                return
+            for i in range(start, len(candidates)):
+                if candidates[i] > remaining:               # killer prune
+                    break
+                path.append(candidates[i])
+                bt(i, remaining - candidates[i])             # i, not i+1: reuse allowed
+                path.pop()
+        bt(0, target)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int[] cand, int start, int remaining, List<Integer> path, List<List<Integer>> out) {
+        if (remaining == 0) { out.add(new ArrayList<>(path)); return; }
+        for (int i = start; i < cand.length; i++) {
+            if (cand[i] > remaining) break;
+            path.add(cand[i]);
+            bt(cand, i, remaining - cand[i], path, out);
+            path.remove(path.size() - 1);
+        }
+    }
+    public List<List<Integer>> combinationSum(int[] candidates, int target) {
+        Arrays.sort(candidates);
+        List<List<Integer>> out = new ArrayList<>();
+        bt(candidates, 0, target, new ArrayList<>(), out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Two subtle gotchas in three lines of code:**
+    1. **Pass `i` (not `i + 1`) into the recursive call** — that's what allows the same candidate to be reused.
+    2. **`break` (not `continue`) when the candidate exceeds `remaining`** — sorted order guarantees every later candidate is also too big.
+
+    Mess up either one and your code is still 10 lines of backtracking, but it's solving a different problem.
+</Callout>
+
+#### Analysis
+
+- **Time:** Roughly `O(N^(T/M))` where `N` = candidates, `T` = target, `M` = smallest candidate. Hard to characterize cleanly because pruning depends on the input distribution.
+- **Space:** `O(T / M)` recursion depth, plus the output.
+
+#### Same skin
+
+- **Combination Sum II** — each candidate usable **once**; pass `i + 1` instead of `i`, sort, and add `if i > start && cand[i] == cand[i-1] continue` to avoid duplicate output.
+- **Combination Sum III** — fixed length `k`, candidates `[1..9]`; add `if path.size() > k return`.
+- **Combination Sum IV** — *count* the combinations (note: it's actually permutations by convention); this becomes a 1D DP, not backtracking.
+- **Coin Change II** — same shape as the count variant, solved iteratively as unbounded knapsack DP.

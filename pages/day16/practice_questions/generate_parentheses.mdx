@@ -1,0 +1,151 @@
+---
+title: "Generate Parentheses"
+description: "Backtracking with the constraint baked into the candidate generator — generate all well-formed parentheses without ever building an invalid one."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Generate Parentheses <DifficultyBadge level="medium" />
+
+#### Description
+
+Given `n` pairs of parentheses, write a function to generate all combinations of **well-formed parentheses**.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 3
+    Output: ["((()))","(()())","(())()","()(())","()()()"]
+
+> Case 2:
+    n = 1
+    Output: ["()"]
+```
+
+#### Constraints
+
+- `1 <= n <= 8`
+
+#### State design
+
+The classic example of **pruning by construction** — instead of generating every `2^(2n)` string and filtering for validity, we **only generate valid strings** by enforcing two invariants at every step:
+
+1. Never use more than `n` opening parens.
+2. Never close more parens than we've opened.
+
+So at any partial state `(open, close)` where `open` is opens used and `close` is closes used:
+
+- **Add `(`** if `open < n`.
+- **Add `)`** if `close < open`.
+- **Record** when `len(path) == 2n`.
+
+No leaf-level validator needed. The constraint IS the candidate generator.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int n, int open, int close, string& path, vector<string>& out) {
+        if ((int)path.size() == 2 * n) { out.push_back(path); return; }
+        if (open < n) {
+            path.push_back('(');
+            bt(n, open + 1, close, path, out);
+            path.pop_back();
+        }
+        if (close < open) {
+            path.push_back(')');
+            bt(n, open, close + 1, path, out);
+            path.pop_back();
+        }
+    }
+    vector<string> generateParenthesis(int n) {
+        vector<string> out; string path;
+        bt(n, 0, 0, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def generate_parenthesis(n):
+        out, path = [], []
+        def bt(open_, close):
+            if len(path) == 2 * n:
+                out.append("".join(path))
+                return
+            if open_ < n:
+                path.append('(')
+                bt(open_ + 1, close)
+                path.pop()
+            if close < open_:
+                path.append(')')
+                bt(open_, close + 1)
+                path.pop()
+        bt(0, 0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int n, int open, int close, StringBuilder path, List<String> out) {
+        if (path.length() == 2 * n) { out.add(path.toString()); return; }
+        if (open < n) {
+            path.append('(');
+            bt(n, open + 1, close, path, out);
+            path.deleteCharAt(path.length() - 1);
+        }
+        if (close < open) {
+            path.append(')');
+            bt(n, open, close + 1, path, out);
+            path.deleteCharAt(path.length() - 1);
+        }
+    }
+    public List<String> generateParenthesis(int n) {
+        List<String> out = new ArrayList<>();
+        bt(n, 0, 0, new StringBuilder(), out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The number of valid parentheses strings of length `2n` is the `n`-th **Catalan number** `C(n) = (2n)! / (n! × (n + 1)!)`. For `n = 8`, that's 1430 strings — and brute-forcing every length-16 string would generate `2^16 = 65536` candidates, most of them invalid. Pruning by construction skips them all.
+</Callout>
+
+#### Why this is a great backtracking exemplar
+
+Compare against a "generate-then-filter" approach:
+
+```python
+def generate_parenthesis_brute(n):
+    out = []
+    def is_valid(s):
+        depth = 0
+        for c in s:
+            depth += 1 if c == '(' else -1
+            if depth < 0: return False
+        return depth == 0
+    for mask in range(1 << (2 * n)):
+        s = "".join("()"[(mask >> i) & 1] for i in range(2 * n))
+        if is_valid(s): out.append(s)
+    return out
+```
+
+Works, but visits `2^(2n)` candidates. The backtracking version visits only `C(n)` — for `n = 8`, **roughly 50x fewer**. And the constant factor per visit is lower because there's no validity scan. **This is what pruning buys you.**
+
+#### Analysis
+
+- **Time:** `O(C(n) × n)` — Catalan-many valid strings, each `O(n)` to copy.
+- **Space:** `O(n)` recursion.
+
+#### Same skin
+
+- **Valid Parentheses (the check, not the generation)** — `O(n)` stack-based validation.
+- **Remove Invalid Parentheses** — BFS to find min removals; backtracking over which to remove.
+- **Different Ways to Add Parentheses** — split string into pairs, recurse, combine.
+- **Catalan-number problems in general** — count BSTs, count valid mountain arrays, etc.

@@ -1,0 +1,355 @@
+---
+title: "Basic Backtracking Questions"
+description: "Warm-up problems for the backtracking template — subsets, permutations, generate parentheses, letter combinations."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic Backtracking Questions
+
+Six warm-ups to lock the template into muscle memory. Each one is a direct hit of one of the [four canonical shapes](/day16/the_template). By the end you should be able to write the structure without looking it up.
+
+For each one, write down your own answer to the five questions — "what's a complete state? what choices? what's legal? what's the un-do? what's the base case?" — before peeking.
+
+<Steps>
+
+### 1. Generate all subsets
+
+`nums = [1, 2, 3]` → `[[], [1], [2], [3], [1,2], [1,3], [2,3], [1,2,3]]`.
+
+Two choices at each index: include or skip.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int i, vector<int>& nums, vector<int>& path, vector<vector<int>>& out) {
+        if (i == (int)nums.size()) { out.push_back(path); return; }
+        path.push_back(nums[i]);
+        bt(i + 1, nums, path, out);
+        path.pop_back();
+        bt(i + 1, nums, path, out);
+    }
+    vector<vector<int>> subsets(vector<int>& nums) {
+        vector<vector<int>> out; vector<int> path;
+        bt(0, nums, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def subsets(nums):
+        out, path = [], []
+        def bt(i):
+            if i == len(nums):
+                out.append(path[:])
+                return
+            path.append(nums[i]); bt(i + 1); path.pop()
+            bt(i + 1)
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int i, int[] nums, List<Integer> path, List<List<Integer>> out) {
+        if (i == nums.length) { out.add(new ArrayList<>(path)); return; }
+        path.add(nums[i]);
+        bt(i + 1, nums, path, out);
+        path.remove(path.size() - 1);
+        bt(i + 1, nums, path, out);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(2^n × n)`. **Space:** `O(n)` recursion.
+
+### 2. Generate all permutations
+
+`nums = [1, 2, 3]` → 6 orderings. Use a `used[]` array; at each step, pick the next unused element.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(vector<int>& nums, vector<bool>& used, vector<int>& path, vector<vector<int>>& out) {
+        if (path.size() == nums.size()) { out.push_back(path); return; }
+        for (int i = 0; i < (int)nums.size(); i++) {
+            if (used[i]) continue;
+            used[i] = true; path.push_back(nums[i]);
+            bt(nums, used, path, out);
+            path.pop_back(); used[i] = false;
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def permute(nums):
+        out, path = [], []
+        used = [False] * len(nums)
+        def bt():
+            if len(path) == len(nums):
+                out.append(path[:])
+                return
+            for i, x in enumerate(nums):
+                if used[i]: continue
+                used[i] = True; path.append(x)
+                bt()
+                path.pop(); used[i] = False
+        bt()
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int[] nums, boolean[] used, List<Integer> path, List<List<Integer>> out) {
+        if (path.size() == nums.length) { out.add(new ArrayList<>(path)); return; }
+        for (int i = 0; i < nums.length; i++) {
+            if (used[i]) continue;
+            used[i] = true; path.add(nums[i]);
+            bt(nums, used, path, out);
+            path.remove(path.size() - 1); used[i] = false;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n! × n)`. **Space:** `O(n)`.
+
+### 3. Generate all combinations (n choose k)
+
+`n = 4, k = 2` → `[[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]]`. Use a `start` index to enforce ordering.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int start, int n, int k, vector<int>& path, vector<vector<int>>& out) {
+        if ((int)path.size() == k) { out.push_back(path); return; }
+        int need = k - path.size();
+        for (int i = start; i <= n - need + 1; i++) {
+            path.push_back(i);
+            bt(i + 1, n, k, path, out);
+            path.pop_back();
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def combine(n, k):
+        out, path = [], []
+        def bt(start):
+            if len(path) == k:
+                out.append(path[:])
+                return
+            need = k - len(path)
+            for i in range(start, n - need + 2):
+                path.append(i); bt(i + 1); path.pop()
+        bt(1)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int start, int n, int k, List<Integer> path, List<List<Integer>> out) {
+        if (path.size() == k) { out.add(new ArrayList<>(path)); return; }
+        int need = k - path.size();
+        for (int i = start; i <= n - need + 1; i++) {
+            path.add(i);
+            bt(i + 1, n, k, path, out);
+            path.remove(path.size() - 1);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The `n - need + 1` upper bound is a free pruning — if we need 3 more numbers and only 2 are left, stop now.
+
+### 4. Generate parentheses
+
+Generate all well-formed parenthesis strings of length `2n`. Example `n = 3` → `["((()))","(()())","(())()","()(())","()()()"]`.
+
+State: count of open and close parentheses used so far. Legality: never close more than opened, never exceed `n` of each.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int n, int open, int close, string& path, vector<string>& out) {
+        if ((int)path.size() == 2 * n) { out.push_back(path); return; }
+        if (open < n)       { path.push_back('('); bt(n, open + 1, close, path, out); path.pop_back(); }
+        if (close < open)   { path.push_back(')'); bt(n, open, close + 1, path, out); path.pop_back(); }
+    }
+    vector<string> generateParenthesis(int n) {
+        vector<string> out; string path;
+        bt(n, 0, 0, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def generate_parenthesis(n):
+        out, path = [], []
+        def bt(open_, close):
+            if len(path) == 2 * n:
+                out.append("".join(path)); return
+            if open_ < n:
+                path.append('('); bt(open_ + 1, close); path.pop()
+            if close < open_:
+                path.append(')'); bt(open_, close + 1); path.pop()
+        bt(0, 0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int n, int open, int close, StringBuilder path, List<String> out) {
+        if (path.length() == 2 * n) { out.add(path.toString()); return; }
+        if (open < n) {
+            path.append('(');
+            bt(n, open + 1, close, path, out);
+            path.deleteCharAt(path.length() - 1);
+        }
+        if (close < open) {
+            path.append(')');
+            bt(n, open, close + 1, path, out);
+            path.deleteCharAt(path.length() - 1);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The legality checks `open < n` and `close < open` are pruning baked directly into the candidate generator — no need for a separate validator at the leaf.
+
+**Time:** `O(C(n))` where `C(n)` is the `n`-th Catalan number. **Space:** `O(n)` recursion.
+
+### 5. Letter Combinations of a Phone Number
+
+Given a digit string like `"23"`, return every letter combination (`["ad","ae","af","bd","be","bf","cd","ce","cf"]`).
+
+Tree depth = digit string length. Branching factor = letters per digit (usually 3 or 4).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int i, const string& digits, const vector<string>& map, string& path, vector<string>& out) {
+        if (i == (int)digits.size()) { out.push_back(path); return; }
+        for (char c : map[digits[i] - '0']) {
+            path.push_back(c);
+            bt(i + 1, digits, map, path, out);
+            path.pop_back();
+        }
+    }
+    vector<string> letterCombinations(string digits) {
+        if (digits.empty()) return {};
+        vector<string> map = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+        vector<string> out; string path;
+        bt(0, digits, map, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def letter_combinations(digits):
+        if not digits: return []
+        m = ["", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"]
+        out, path = [], []
+        def bt(i):
+            if i == len(digits):
+                out.append("".join(path)); return
+            for c in m[int(digits[i])]:
+                path.append(c); bt(i + 1); path.pop()
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    static String[] M = {"", "", "abc", "def", "ghi", "jkl", "mno", "pqrs", "tuv", "wxyz"};
+    void bt(int i, String digits, StringBuilder path, List<String> out) {
+        if (i == digits.length()) { out.add(path.toString()); return; }
+        for (char c : M[digits.charAt(i) - '0'].toCharArray()) {
+            path.append(c);
+            bt(i + 1, digits, path, out);
+            path.deleteCharAt(path.length() - 1);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(3^a × 4^b × n)` where `a` digits map to 3 letters and `b` map to 4. **Space:** `O(n)`.
+
+### 6. Binary Watch (or any "place k items into n slots" counter)
+
+A binary watch has 4 LEDs for hours (1, 2, 4, 8) and 6 LEDs for minutes (1, 2, 4, 8, 16, 32). Given `turnedOn`, return all possible times the watch could be displaying.
+
+Decompose: pick `i` of the 4 hour LEDs and `turnedOn - i` of the 6 minute LEDs. Combinations of the hour bits sum to a candidate hour; combinations of the minute bits sum to a candidate minute. Only valid if `hour < 12` and `minute < 60`.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from itertools import combinations
+
+    def read_binary_watch(turned_on):
+        hours = [1, 2, 4, 8]
+        mins  = [1, 2, 4, 8, 16, 32]
+        out = []
+        for h in range(min(turned_on, 4) + 1):
+            m = turned_on - h
+            if m > 6: continue
+            for hc in combinations(hours, h):
+                if sum(hc) >= 12: continue
+                for mc in combinations(mins, m):
+                    if sum(mc) >= 60: continue
+                    out.append(f"{sum(hc)}:{sum(mc):02d}")
+        return out
+    ```
+    </Tab>
+</Tabs>
+
+A reminder that **the standard combinatoric primitives are often half the algorithm**. When you can express your problem as "pick `k` from this set," reach for `combinations` (Python), `next_permutation` (C++), or your own combination generator from question 3 above.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="In Generate Parentheses, why do we only need to check `open < n` and `close < open` rather than validating the final string?"
+    options={[
+        "Final validation would be slower",
+        "Those two checks are constraint propagation — they guarantee any candidate we build IS valid, so no leaf-level validator is needed",
+        "Some valid strings would be missed otherwise",
+        "It's just a code style choice"
+    ]}
+    correctIndex={1}
+    explanation="The two checks ARE the validity constraints, woven into the candidate generator: `open < n` means 'don't exceed n open parens,' and `close < open` means 'don't close more than you've opened.' Together they make every path through the tree a valid parenthesization, so we never need to validate at the leaf."
+/>
+
+<QuizBox
+    question="The recursion tree for Permutations of n distinct elements has how many leaves?"
+    options={["2^n", "n!", "n^2", "C(n, n/2)"]}
+    correctIndex={1}
+    explanation="At each of the n levels we pick one of the remaining (n - level) elements: n choices, then n-1, then n-2, ..., then 1. That's n!. For n = 10 that's already 3.6 million leaves — permutation problems cap quickly compared to subset problems (2^n)."
+/>
+
+<QuizBox
+    question="In Letter Combinations of a Phone Number, the recursion depth is bounded by:"
+    options={[
+        "log(n)",
+        "The length of the digit string",
+        "The total number of output strings",
+        "4 (max letters per digit)"
+    ]}
+    correctIndex={1}
+    explanation="Each digit advances us one level deeper. The recursion never goes deeper than the digit string is long. (The branching factor is 3-4 — letters per digit — but that's the FAN-OUT, not the DEPTH.)"
+/>
+
+Next: **the ten practice problems** — every backtracking template represented, with the pruning that takes each from TLE to AC.

@@ -1,0 +1,62 @@
+---
+title: "Backtracking Practice Questions"
+description: "Ten interview problems for backtracking — subsets, permutations, combination sum, word search, palindrome partitioning, N-Queens, Sudoku, and more."
+---
+
+import { Callout } from "nextra/components";
+
+# Backtracking Practice Questions
+
+Ten interview classics, every template represented. Each one is a direct instance of one of the [four canonical shapes](/day16/the_template), [advanced patterns](/day16/advanced), or constraint-satisfaction puzzles — once you spot the shape, the code writes itself.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the five-question checklist:
+
+    1. **What's the partial solution?** (Usually `path` + an index.)
+    2. **When is it complete?** (Base case.)
+    3. **What are the candidate choices?** (The loop body.)
+    4. **What's the legality check?** (Pruning — the highest-leverage optimization.)
+    5. **What's the un-do?** (The line after the recursive call.)
+
+    The code is a 10-line transcription of those five answers. If you can answer them, you've solved the problem.
+</Callout>
+
+## Easy
+
+| Problem                                                              | Pattern                                      | Status     |
+| :------------------------------------------------------------------- | :------------------------------------------- | :--------- |
+| [Subsets](/day16/practice_questions/subsets)                         | The subset template                          | Available  |
+| [Letter Combinations of a Phone Number](/day16/practice_questions/letter_combinations) | Fixed-depth, fixed-branching enumeration | Available |
+| [Generate Parentheses](/day16/practice_questions/generate_parentheses) | Constraint-baked candidate generator       | Available  |
+
+## Medium
+
+| Problem                                                                | Pattern                                          | Status     |
+| :--------------------------------------------------------------------- | :----------------------------------------------- | :--------- |
+| [Permutations](/day16/practice_questions/permutations)                 | The permutation template + `used[]` array        | Available  |
+| [Combination Sum](/day16/practice_questions/combination_sum)           | Unbounded combinations with sort-and-prune       | Available  |
+| [Word Search](/day16/practice_questions/word_search)                   | Grid DFS with in-place marking                   | Available  |
+| [Palindrome Partitioning](/day16/practice_questions/palindrome_partitioning) | String partition template                  | Available  |
+| [Restore IP Addresses](/day16/practice_questions/restore_ip_addresses) | Fixed-piece partition + validation               | Available  |
+
+## Hard
+
+| Problem                                                       | Pattern                                          | Status     |
+| :------------------------------------------------------------ | :----------------------------------------------- | :--------- |
+| [N-Queens](/day16/practice_questions/n_queens)                | Constraint placement + incremental column/diag state | Available |
+| [Sudoku Solver](/day16/practice_questions/sudoku_solver)      | 3-way constraint propagation (row/col/box)       | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                                  | Status        |
+| :------------------------------------- | :--------------------------------------- | :------------ |
+| Subsets II (with duplicates)           | Subsets + duplicate-skip prune           | Coming Soon   |
+| Permutations II (with duplicates)      | Permutations + duplicate-skip prune      | Coming Soon   |
+| Combination Sum II / III               | Combinations + sum constraint            | Coming Soon   |
+| Word Search II (trie + DFS)            | Grid DFS over a Trie of words            | Coming Soon   |
+| Word Break II                          | Partition + memoization                  | Coming Soon   |
+| Unique Paths III                       | Grid DFS visiting every walkable cell    | Coming Soon   |
+| Partition to K Equal Sum Subsets       | Bitmask DP / backtracking with pruning   | Coming Soon   |
+| Expression Add Operators               | Insert `+ - *` between digits            | Coming Soon   |
+| Beautiful Arrangement                  | Permutation with divisibility constraint | Coming Soon   |
+| Regular Expression Matching            | Constraint matching with wildcards       | Coming Soon   |

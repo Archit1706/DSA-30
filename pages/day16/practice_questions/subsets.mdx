@@ -1,0 +1,137 @@
+---
+title: "Subsets"
+description: "Generate all subsets of a distinct integer array using the canonical backtracking subset template."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Subsets <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an integer array `nums` of **unique** elements, return **all possible subsets** (the power set). The solution set must not contain duplicate subsets. Return the answer in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 2, 3]
+    Output: [[], [1], [2], [1,2], [3], [1,3], [2,3], [1,2,3]]
+
+> Case 2:
+    nums = [0]
+    Output: [[], [0]]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10`
+- `-10 <= nums[i] <= 10`
+- All integers in `nums` are unique.
+
+#### State design
+
+1. **Partial solution?** `path` — the elements picked so far.
+2. **Complete?** Once we've made a decision about every index.
+3. **Choices?** Include or skip `nums[i]`.
+4. **Legality?** No constraint — every choice is legal.
+5. **Undo?** Pop after recursing into the "include" branch.
+
+The whole power set in 8 lines.
+
+#### Code — include/skip variant
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int i, vector<int>& nums, vector<int>& path, vector<vector<int>>& out) {
+        if (i == (int)nums.size()) { out.push_back(path); return; }
+        path.push_back(nums[i]);
+        bt(i + 1, nums, path, out);
+        path.pop_back();
+        bt(i + 1, nums, path, out);
+    }
+    vector<vector<int>> subsets(vector<int>& nums) {
+        vector<vector<int>> out;
+        vector<int> path;
+        bt(0, nums, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def subsets(nums):
+        out, path = [], []
+        def bt(i):
+            if i == len(nums):
+                out.append(path[:])
+                return
+            path.append(nums[i]); bt(i + 1); path.pop()
+            bt(i + 1)
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int i, int[] nums, List<Integer> path, List<List<Integer>> out) {
+        if (i == nums.length) { out.add(new ArrayList<>(path)); return; }
+        path.add(nums[i]);
+        bt(i + 1, nums, path, out);
+        path.remove(path.size() - 1);
+        bt(i + 1, nums, path, out);
+    }
+    public List<List<Integer>> subsets(int[] nums) {
+        List<List<Integer>> out = new ArrayList<>();
+        bt(0, nums, new ArrayList<>(), out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Alternate code — iterate-over-remaining variant
+
+Every node of the recursion tree IS a subset; we record at every entry instead of only at leaves.
+
+```python
+def subsets(nums):
+    out, path = [], []
+    def bt(start):
+        out.append(path[:])
+        for i in range(start, len(nums)):
+            path.append(nums[i])
+            bt(i + 1)
+            path.pop()
+    bt(0)
+    return out
+```
+
+Both are correct. The iterate-over-remaining form is friendlier for follow-ups (subsets with duplicates, combinations, combination sum).
+
+#### Bonus — bitmask iterative form
+
+For `n <= 20`, the entire power set fits in `2^n` integers. Iterate `mask` from `0` to `2^n - 1` and read its bits:
+
+```python
+def subsets(nums):
+    n = len(nums)
+    return [[nums[i] for i in range(n) if mask >> i & 1]
+            for mask in range(1 << n)]
+```
+
+No recursion at all, `O(2^n × n)` time, `O(1)` aux space. A favorite of competitive programmers.
+
+#### Analysis
+
+- **Time:** `O(2^n × n)` — there are `2^n` subsets, each costing `O(n)` to copy.
+- **Space:** `O(n)` recursion stack plus `O(2^n × n)` for the output.
+
+#### Same skin
+
+- **Subsets II** (input has duplicates) — sort, then in the iterate-over-remaining form skip `nums[i]` if `i > start && nums[i] == nums[i - 1]`.
+- **Letter Case Permutation** — at each character, choose lowercase or uppercase if alphabetic.
+- **Binary Watch** — pick `k` of the `4 + 6` LEDs to be on; subset of size exactly `k`.

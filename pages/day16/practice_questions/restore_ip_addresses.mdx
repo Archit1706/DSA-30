@@ -1,0 +1,157 @@
+---
+title: "Restore IP Addresses"
+description: "Fixed-piece partition backtracking — split a digit string into 4 valid IPv4 octets with constraint-driven pruning."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Restore IP Addresses <DifficultyBadge level="medium" />
+
+#### Description
+
+A **valid IP address** consists of exactly four integers separated by single dots. Each integer is between `0` and `255` (inclusive) and **cannot have leading zeros** (so `"0"` is valid, `"01"` is not).
+
+Given a string `s` containing only digits, return all possible valid IP addresses that can be formed by inserting dots into `s`. You **may not reorder or remove any digits**.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "25525511135"
+    Output: ["255.255.11.135", "255.255.111.35"]
+
+> Case 2:
+    s = "0000"
+    Output: ["0.0.0.0"]
+
+> Case 3:
+    s = "101023"
+    Output: ["1.0.10.23", "1.0.102.3", "10.1.0.23", "10.10.2.3", "101.0.2.3"]
+```
+
+#### Constraints
+
+- `1 <= s.length <= 20`
+- `s` consists of digits only.
+
+#### State design
+
+A **fixed-piece partition** — exactly 4 pieces. So unlike Palindrome Partitioning where we recurse until the string runs out, here we recurse with an additional **count of pieces used so far**.
+
+1. **Partial solution?** `path` — the IP octets so far. Plus a `start` index and `pieces` count.
+2. **Complete?** When `start == len(s)` AND `pieces == 4`.
+3. **Choices?** `end` in `[start + 1, start + 3]` (each octet is 1-3 chars).
+4. **Legality?** The substring is a valid octet (≤ 255, no leading zero unless it's literally `"0"`), AND total chars left can fill remaining pieces.
+5. **Undo?** Pop the piece after recursing.
+
+The "total chars left can fill remaining pieces" check is the pruning win.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isValid(const string& s, int l, int r) {
+        if (r - l > 3) return false;
+        if (r - l > 1 && s[l] == '0') return false;            // no leading zero
+        int v = 0;
+        for (int i = l; i < r; i++) v = v * 10 + (s[i] - '0');
+        return v <= 255;
+    }
+    void bt(int start, int pieces, const string& s, vector<string>& path, vector<string>& out) {
+        int remaining = (int)s.size() - start;
+        int slots     = 4 - pieces;
+        if (remaining < slots || remaining > 3 * slots) return;     // length-bound prune
+        if (pieces == 4 && start == (int)s.size()) {
+            string ip = path[0] + "." + path[1] + "." + path[2] + "." + path[3];
+            out.push_back(ip);
+            return;
+        }
+        for (int end = start + 1; end <= min(start + 3, (int)s.size()); end++) {
+            if (!isValid(s, start, end)) continue;
+            path.push_back(s.substr(start, end - start));
+            bt(end, pieces + 1, s, path, out);
+            path.pop_back();
+        }
+    }
+    vector<string> restoreIpAddresses(string s) {
+        vector<string> out; vector<string> path;
+        bt(0, 0, s, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def restore_ip_addresses(s):
+        out, path = [], []
+        def is_valid(piece):
+            if not piece or len(piece) > 3: return False
+            if len(piece) > 1 and piece[0] == '0': return False
+            return int(piece) <= 255
+        def bt(start, pieces):
+            remaining = len(s) - start
+            slots     = 4 - pieces
+            if remaining < slots or remaining > 3 * slots:        # length-bound prune
+                return
+            if pieces == 4 and start == len(s):
+                out.append(".".join(path)); return
+            for end in range(start + 1, min(start + 4, len(s) + 1)):
+                piece = s[start:end]
+                if not is_valid(piece): continue
+                path.append(piece)
+                bt(end, pieces + 1)
+                path.pop()
+        bt(0, 0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean isValid(String s, int l, int r) {
+        if (r - l > 3) return false;
+        if (r - l > 1 && s.charAt(l) == '0') return false;
+        int v = 0;
+        for (int i = l; i < r; i++) v = v * 10 + (s.charAt(i) - '0');
+        return v <= 255;
+    }
+    void bt(int start, int pieces, String s, List<String> path, List<String> out) {
+        int remaining = s.length() - start;
+        int slots     = 4 - pieces;
+        if (remaining < slots || remaining > 3 * slots) return;
+        if (pieces == 4 && start == s.length()) {
+            out.add(String.join(".", path)); return;
+        }
+        for (int end = start + 1; end <= Math.min(start + 3, s.length()); end++) {
+            if (!isValid(s, start, end)) continue;
+            path.add(s.substring(start, end));
+            bt(end, pieces + 1, s, path, out);
+            path.remove(path.size() - 1);
+        }
+    }
+    public List<String> restoreIpAddresses(String s) {
+        List<String> out = new ArrayList<>();
+        bt(0, 0, s, new ArrayList<>(), out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The length-bound prune is killer.** With `slots = 4 - pieces` remaining slots, the leftover digits must satisfy `slots <= remaining <= 3 * slots`. Outside that band, no completion can possibly work. One `O(1)` check trims huge subtrees.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(1)` — the input is bounded by `s.length() <= 20`, so the answer set is bounded by a constant. Treating `n` as variable: `O(3^4) = O(81)` candidate placements per starting position, but pruning brings it well below that in practice.
+- **Space:** `O(1)` recursion (depth ≤ 4).
+
+#### Same skin
+
+- **Partition Into 4 Equal-Sum Subsets** — exact-piece partition, harder validation.
+- **Palindrome Partitioning II** — fixed-piece minimum (each piece a palindrome).
+- **Decode Ways** — partition a digit string into pieces of length 1 or 2, each valid (1-26).
+- **Word Break II** — partition into dictionary words; not fixed count.

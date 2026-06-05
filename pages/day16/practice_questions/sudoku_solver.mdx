@@ -1,0 +1,211 @@
+---
+title: "Sudoku Solver"
+description: "Solve a 9x9 Sudoku board with constraint propagation — three-way row/column/box tracking, the most-constrained-first heuristic, and the classical backtracking template."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sudoku Solver <DifficultyBadge level="hard" />
+
+#### Description
+
+Write a program to solve a Sudoku puzzle by filling the empty cells.
+
+A sudoku solution must satisfy **all of the following rules**:
+
+1. Each of the digits `1-9` must occur exactly once in each row.
+2. Each of the digits `1-9` must occur exactly once in each column.
+3. Each of the digits `1-9` must occur exactly once in each of the nine `3x3` sub-boxes of the grid.
+
+The `'.'` character indicates empty cells. The input board has **exactly one** solution.
+
+#### Examples
+
+```py
+> Input:
+    [["5","3",".",".","7",".",".",".","."],
+     ["6",".",".","1","9","5",".",".","."],
+     [".","9","8",".",".",".",".","6","."],
+     ["8",".",".",".","6",".",".",".","3"],
+     ["4",".",".","8",".","3",".",".","1"],
+     ["7",".",".",".","2",".",".",".","6"],
+     [".","6",".",".",".",".","2","8","."],
+     [".",".",".","4","1","9",".",".","5"],
+     [".",".",".",".","8",".",".","7","9"]]
+
+> Output:
+    [["5","3","4","6","7","8","9","1","2"],
+     ["6","7","2","1","9","5","3","4","8"],
+     ["1","9","8","3","4","2","5","6","7"],
+     ["8","5","9","7","6","1","4","2","3"],
+     ["4","2","6","8","5","3","7","9","1"],
+     ["7","1","3","9","2","4","8","5","6"],
+     ["9","6","1","5","3","7","2","8","4"],
+     ["2","8","7","4","1","9","6","3","5"],
+     ["3","4","5","2","8","6","1","7","9"]]
+```
+
+#### Constraints
+
+- `board.length == 9`
+- `board[i].length == 9`
+- `board[i][j]` is a digit or `'.'`.
+- It is guaranteed that the input board has only one solution.
+
+#### State design
+
+This is N-Queens with **three** constraint families instead of two, but the algorithmic structure is identical.
+
+1. **Partial solution?** The board mutated in place. Plus three `9 x 9` boolean tables: `row_used[r][d]`, `col_used[c][d]`, `box_used[b][d]`.
+2. **Complete?** When there's no empty cell left.
+3. **Choices?** Each digit `'1'` through `'9'` for the next empty cell.
+4. **Legality?** `!row_used[r][d] AND !col_used[c][d] AND !box_used[b][d]` — three `O(1)` checks.
+5. **Undo?** Reset the cell to `'.'` and clear the three booleans.
+
+The **box index** for cell `(r, c)` is `(r / 3) * 3 + c / 3` — that's how we map a cell into the 9 boxes.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool solve(vector<vector<char>>& board,
+               vector<vector<bool>>& row, vector<vector<bool>>& col,
+               vector<vector<bool>>& box, int idx) {
+        if (idx == 81) return true;
+        int r = idx / 9, c = idx % 9;
+        if (board[r][c] != '.') return solve(board, row, col, box, idx + 1);
+        int b = (r / 3) * 3 + c / 3;
+        for (int d = 0; d < 9; d++) {
+            if (row[r][d] || col[c][d] || box[b][d]) continue;
+            board[r][c] = '1' + d;
+            row[r][d] = col[c][d] = box[b][d] = true;
+            if (solve(board, row, col, box, idx + 1)) return true;
+            board[r][c] = '.';
+            row[r][d] = col[c][d] = box[b][d] = false;
+        }
+        return false;
+    }
+    void solveSudoku(vector<vector<char>>& board) {
+        vector<vector<bool>> row(9, vector<bool>(9, false));
+        vector<vector<bool>> col(9, vector<bool>(9, false));
+        vector<vector<bool>> box(9, vector<bool>(9, false));
+        for (int r = 0; r < 9; r++)
+            for (int c = 0; c < 9; c++)
+                if (board[r][c] != '.') {
+                    int d = board[r][c] - '1';
+                    int b = (r / 3) * 3 + c / 3;
+                    row[r][d] = col[c][d] = box[b][d] = true;
+                }
+        solve(board, row, col, box, 0);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def solve_sudoku(board):
+        row = [[False] * 9 for _ in range(9)]
+        col = [[False] * 9 for _ in range(9)]
+        box = [[False] * 9 for _ in range(9)]
+        for r in range(9):
+            for c in range(9):
+                if board[r][c] != '.':
+                    d = int(board[r][c]) - 1
+                    b = (r // 3) * 3 + c // 3
+                    row[r][d] = col[c][d] = box[b][d] = True
+        def solve(idx):
+            if idx == 81: return True
+            r, c = idx // 9, idx % 9
+            if board[r][c] != '.':
+                return solve(idx + 1)
+            b = (r // 3) * 3 + c // 3
+            for d in range(9):
+                if row[r][d] or col[c][d] or box[b][d]: continue
+                board[r][c] = str(d + 1)
+                row[r][d] = col[c][d] = box[b][d] = True
+                if solve(idx + 1): return True
+                board[r][c] = '.'
+                row[r][d] = col[c][d] = box[b][d] = False
+            return False
+        solve(0)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean[][] row = new boolean[9][9];
+    boolean[][] col = new boolean[9][9];
+    boolean[][] box = new boolean[9][9];
+    char[][] board;
+    boolean solve(int idx) {
+        if (idx == 81) return true;
+        int r = idx / 9, c = idx % 9;
+        if (board[r][c] != '.') return solve(idx + 1);
+        int b = (r / 3) * 3 + c / 3;
+        for (int d = 0; d < 9; d++) {
+            if (row[r][d] || col[c][d] || box[b][d]) continue;
+            board[r][c] = (char) ('1' + d);
+            row[r][d] = col[c][d] = box[b][d] = true;
+            if (solve(idx + 1)) return true;
+            board[r][c] = '.';
+            row[r][d] = col[c][d] = box[b][d] = false;
+        }
+        return false;
+    }
+    public void solveSudoku(char[][] board) {
+        this.board = board;
+        for (int r = 0; r < 9; r++)
+            for (int c = 0; c < 9; c++)
+                if (board[r][c] != '.') {
+                    int d = board[r][c] - '1';
+                    int b = (r / 3) * 3 + c / 3;
+                    row[r][d] = col[c][d] = box[b][d] = true;
+                }
+        solve(0);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The "first true unblocks the whole stack" pattern.** Sudoku is a SEARCH problem — we want *one* solution, not all. The instant any deep call returns `true`, every caller returns `true` immediately without trying further candidates. The `if (solve(...)) return true;` line is what does this. Compare with N-Queens, which kept searching for more solutions even after finding one — different return semantics, same template shape.
+</Callout>
+
+#### Optimization: most-constrained variable
+
+The standard implementation fills cells left-to-right top-to-bottom. A dramatic speedup: at each step, **pick the empty cell with the fewest legal candidates** and fill it next. This "Most Constrained Variable" heuristic often makes the search tree 10-100x smaller on hard puzzles.
+
+```python
+def next_cell():
+    best_r = best_c = -1
+    best_options = 10
+    for r in range(9):
+        for c in range(9):
+            if board[r][c] != '.': continue
+            b = (r // 3) * 3 + c // 3
+            options = sum(1 for d in range(9)
+                          if not row[r][d] and not col[c][d] and not box[b][d])
+            if options < best_options:
+                best_options = options
+                best_r, best_c = r, c
+                if options == 1: return r, c
+    return best_r, best_c
+```
+
+The cost of finding the next cell is `O(81 × 9)` per pick, but the reduction in tree size more than pays for it on hard inputs.
+
+#### Analysis
+
+- **Time:** Worst case `O(9^81)` (vacuous upper bound — 81 empty cells, 9 choices each). Pruning makes real-world performance sub-millisecond on most published puzzles.
+- **Space:** `O(1)` — the board, three `9 x 9` tables, and `O(81)` recursion depth — all constants.
+
+#### Same skin
+
+- **Valid Sudoku** — the validation step, no search needed.
+- **N-Queens** — same template, two constraint dimensions instead of three.
+- **Knight's Tour** — visit every cell with constraint of legal knight move.
+- **Latin Square** completion — like Sudoku without the box constraint.
+- **Crossword puzzle solvers** — pick a word for each slot, propagate letter constraints across intersections.
+
+This is the final boss of this chapter — and a beautiful one. **Constraint satisfaction + incremental state + most-constrained-first heuristic** is a recipe that scales from puzzle solvers to real-world planners, schedulers, and SAT solvers. The template never changes.

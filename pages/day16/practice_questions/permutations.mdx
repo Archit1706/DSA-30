@@ -1,0 +1,160 @@
+---
+title: "Permutations"
+description: "Generate all permutations of a distinct integer array using the canonical backtracking permutation template."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Permutations <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array `nums` of distinct integers, return **all the possible permutations**. You can return the answer in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 2, 3]
+    Output: [[1,2,3], [1,3,2], [2,1,3], [2,3,1], [3,1,2], [3,2,1]]
+
+> Case 2:
+    nums = [0, 1]
+    Output: [[0,1], [1,0]]
+
+> Case 3:
+    nums = [1]
+    Output: [[1]]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 6`
+- `-10 <= nums[i] <= 10`
+- All integers are unique.
+
+#### State design
+
+1. **Partial solution?** `path` — the chosen prefix so far. Plus a `used[]` boolean array.
+2. **Complete?** When `len(path) == n`.
+3. **Choices?** Every unused index.
+4. **Legality?** `used[i]` must be false.
+5. **Undo?** Pop the element from `path` AND mark `used[i] = false`.
+
+#### Code — `used[]` array variant
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(vector<int>& nums, vector<bool>& used, vector<int>& path, vector<vector<int>>& out) {
+        if (path.size() == nums.size()) { out.push_back(path); return; }
+        for (int i = 0; i < (int)nums.size(); i++) {
+            if (used[i]) continue;
+            used[i] = true;
+            path.push_back(nums[i]);
+            bt(nums, used, path, out);
+            path.pop_back();
+            used[i] = false;
+        }
+    }
+    vector<vector<int>> permute(vector<int>& nums) {
+        vector<vector<int>> out;
+        vector<int> path;
+        vector<bool> used(nums.size(), false);
+        bt(nums, used, path, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def permute(nums):
+        out, path = [], []
+        used = [False] * len(nums)
+        def bt():
+            if len(path) == len(nums):
+                out.append(path[:])
+                return
+            for i in range(len(nums)):
+                if used[i]: continue
+                used[i] = True
+                path.append(nums[i])
+                bt()
+                path.pop()
+                used[i] = False
+        bt()
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int[] nums, boolean[] used, List<Integer> path, List<List<Integer>> out) {
+        if (path.size() == nums.length) { out.add(new ArrayList<>(path)); return; }
+        for (int i = 0; i < nums.length; i++) {
+            if (used[i]) continue;
+            used[i] = true;
+            path.add(nums[i]);
+            bt(nums, used, path, out);
+            path.remove(path.size() - 1);
+            used[i] = false;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### In-place swap variant (no `used[]`)
+
+Treat `nums[0..start)` as the fixed prefix and `nums[start..n)` as the pool. Swap each pool element into position `start`, recurse, swap back.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def permute(nums):
+        out = []
+        def bt(start):
+            if start == len(nums):
+                out.append(nums[:])
+                return
+            for i in range(start, len(nums)):
+                nums[start], nums[i] = nums[i], nums[start]
+                bt(start + 1)
+                nums[start], nums[i] = nums[i], nums[start]
+        bt(0)
+        return out
+    ```
+    </Tab>
+</Tabs>
+
+`O(1)` auxiliary space (besides the output). Trade-off: handling duplicates needs an explicit per-call seen-set.
+
+#### Handling duplicates (Permutations II preview)
+
+If the input has repeats — `nums = [1, 1, 2]` — the bare template generates the same permutation multiple times. The fix:
+
+1. **Sort** the input.
+2. In the for-loop, skip `i` if `nums[i] == nums[i - 1]` AND `!used[i - 1]` — meaning "the previous identical value isn't currently picked in this branch."
+
+```python
+nums.sort()
+for i in range(len(nums)):
+    if used[i]: continue
+    if i > 0 and nums[i] == nums[i - 1] and not used[i - 1]:
+        continue
+    ...
+```
+
+This enforces a canonical "always pick identical values left-to-right" rule that kills all duplicates without ever generating them.
+
+#### Analysis
+
+- **Time:** `O(n! × n)` — `n!` permutations, `O(n)` to copy each.
+- **Space:** `O(n)` recursion + `used[]`.
+
+#### Same skin
+
+- **Permutations II** — duplicates in input; see fix above.
+- **Next Permutation** — find the lexicographically next permutation in-place (`O(n)` two-pointer trick, not backtracking).
+- **Beautiful Arrangement** — permutation with a divisibility constraint on each position.

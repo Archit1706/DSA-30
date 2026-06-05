@@ -1,0 +1,175 @@
+---
+title: "N-Queens"
+description: "The poster child of constraint-satisfaction backtracking — incremental column and diagonal tracking turns an exponential search into a sub-millisecond solve."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### N-Queens <DifficultyBadge level="hard" />
+
+#### Description
+
+The N-Queens puzzle is the problem of placing `n` queens on an `n x n` chessboard such that **no two queens attack each other** — meaning no two share a row, column, or diagonal.
+
+Given an integer `n`, return all distinct solutions to the n-queens puzzle. Each solution contains a distinct board configuration where `'Q'` indicates a queen and `'.'` indicates an empty cell.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 4
+    Output: [
+        [".Q..",
+         "...Q",
+         "Q...",
+         "..Q."],
+        [
+         "..Q.",
+         "Q...",
+         "...Q",
+         ".Q.."]
+    ]
+
+> Case 2:
+    n = 1
+    Output: [["Q"]]
+```
+
+#### Constraints
+
+- `1 <= n <= 9`
+
+#### State design
+
+The defining example of **constraint placement with incremental state**.
+
+1. **Partial solution?** `queens[]` — the column index of the queen in each row processed so far. Plus three sets: `cols`, `diag1` (the `/` diagonals indexed by `r + c`), `diag2` (the `\` diagonals indexed by `r - c`).
+2. **Complete?** When we've placed queens in all `n` rows.
+3. **Choices?** Every column `c` in row `r`.
+4. **Legality?** `c not in cols AND (r + c) not in diag1 AND (r - c) not in diag2` — `O(1)` lookups thanks to the maintained sets.
+5. **Undo?** Remove the column/diagonal from each set after recursing.
+
+We process row by row (one queen per row), so we never have to worry about row conflicts.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void bt(int n, int r, vector<int>& queens,
+            vector<bool>& cols, vector<bool>& d1, vector<bool>& d2,
+            vector<vector<string>>& out) {
+        if (r == n) {
+            vector<string> board(n, string(n, '.'));
+            for (int row = 0; row < n; row++) board[row][queens[row]] = 'Q';
+            out.push_back(board);
+            return;
+        }
+        for (int c = 0; c < n; c++) {
+            int k1 = r + c, k2 = r - c + n;
+            if (cols[c] || d1[k1] || d2[k2]) continue;
+            cols[c] = d1[k1] = d2[k2] = true;
+            queens[r] = c;
+            bt(n, r + 1, queens, cols, d1, d2, out);
+            cols[c] = d1[k1] = d2[k2] = false;
+        }
+    }
+    vector<vector<string>> solveNQueens(int n) {
+        vector<vector<string>> out;
+        vector<int> queens(n);
+        vector<bool> cols(n, false), d1(2 * n, false), d2(2 * n, false);
+        bt(n, 0, queens, cols, d1, d2, out);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def solve_n_queens(n):
+        out, queens = [], []
+        cols, d1, d2 = set(), set(), set()
+        def bt(r):
+            if r == n:
+                board = ['.' * c + 'Q' + '.' * (n - c - 1) for c in queens]
+                out.append(board)
+                return
+            for c in range(n):
+                if c in cols or (r + c) in d1 or (r - c) in d2:
+                    continue
+                cols.add(c); d1.add(r + c); d2.add(r - c)
+                queens.append(c)
+                bt(r + 1)
+                queens.pop()
+                cols.remove(c); d1.remove(r + c); d2.remove(r - c)
+        bt(0)
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void bt(int n, int r, int[] queens,
+            boolean[] cols, boolean[] d1, boolean[] d2,
+            List<List<String>> out) {
+        if (r == n) {
+            List<String> board = new ArrayList<>();
+            for (int row = 0; row < n; row++) {
+                char[] line = new char[n];
+                Arrays.fill(line, '.');
+                line[queens[row]] = 'Q';
+                board.add(new String(line));
+            }
+            out.add(board);
+            return;
+        }
+        for (int c = 0; c < n; c++) {
+            int k1 = r + c, k2 = r - c + n;
+            if (cols[c] || d1[k1] || d2[k2]) continue;
+            cols[c] = d1[k1] = d2[k2] = true;
+            queens[r] = c;
+            bt(n, r + 1, queens, cols, d1, d2, out);
+            cols[c] = d1[k1] = d2[k2] = false;
+        }
+    }
+    public List<List<String>> solveNQueens(int n) {
+        List<List<String>> out = new ArrayList<>();
+        int[] queens = new int[n];
+        boolean[] cols = new boolean[n];
+        boolean[] d1 = new boolean[2 * n], d2 = new boolean[2 * n];
+        bt(n, 0, queens, cols, d1, d2, out);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why `r + c` for one diagonal and `r - c` for the other?**
+
+    Cells on the same `/`-diagonal (top-right to bottom-left) all share the same value of `r + c`. Cells on the same `\`-diagonal (top-left to bottom-right) all share `r - c`. So `(r + c)` and `(r - c)` are perfect unique IDs for the two diagonal families.
+
+    For the C++/Java arrays we use `(r - c + n)` to shift the range into `[0, 2n)` so it can index a boolean array.
+</Callout>
+
+#### A bitmask micro-optimization
+
+For competitive programming, the `cols / d1 / d2` sets can be encoded as **three integers** and updated with bit shifts. Placing a queen at column `c` of row `r`:
+
+- `cols |= (1 << c)`
+- `d1 = (d1 | (1 << c)) << 1` (shift left so it represents row `r+1`'s diagonal)
+- `d2 = (d2 | (1 << c)) >> 1`
+
+The legality check becomes `!(cols | d1 | d2)` and the available-columns mask is `~(cols | d1 | d2) & ((1 << n) - 1)`. This solves **N = 14** in milliseconds and **N = 20** in a few seconds — out of scope for interviews but conceptually beautiful.
+
+#### Analysis
+
+- **Time:** `O(N!)` in the worst case, but the diagonal pruning slashes that to roughly `O(N^N)` divided by exponential factors. In practice: `N = 8` runs in microseconds; `N = 13` is the last one solvable in well under a second by the standard backtracking version.
+- **Space:** `O(N)` recursion + `O(N)` state sets.
+
+#### Same skin
+
+- **N-Queens II** — return only the COUNT (not the boards).
+- **Sudoku Solver** (next problem) — same idea, 3-way constraints (row / col / box).
+- **Graph Coloring** — assign one of `k` colors per vertex; no two adjacent vertices same color.
+- **Knight's Tour** — visit every cell of a chessboard exactly once with knight moves.
