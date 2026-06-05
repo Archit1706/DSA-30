@@ -1,0 +1,141 @@
+---
+title: "Linked List Cycle II"
+description: "Floyd's cycle detection + the reset-and-walk trick — find the node where the cycle begins in O(n) time and O(1) space."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Linked List Cycle II <DifficultyBadge level="medium" />
+
+#### Description
+
+Given the `head` of a linked list, return the node where the cycle begins. If there is no cycle, return `null`.
+
+There is a cycle in a linked list if there is some node in the list that can be reached again by continuously following the `next` pointer. **Do not modify** the linked list.
+
+#### Examples
+
+```py
+> Case 1:
+    list = [3, 2, 0, -4],  cycle starts at index 1
+    Output: node with value 2
+
+> Case 2:
+    list = [1, 2],  cycle starts at index 0
+    Output: node with value 1
+
+> Case 3:
+    list = [1],  no cycle
+    Output: null
+```
+
+#### Constraints
+
+- The number of nodes is in the range `[0, 10^4]`.
+- `-10^5 <= Node.val <= 10^5`.
+- `pos` is `-1` (no cycle) or a valid index in the linked list.
+
+**Required:** `O(1)` extra space.
+
+#### State design
+
+A two-phase fast-and-slow algorithm.
+
+**Phase 1: Detect the cycle.**
+
+- `slow` moves 1 step at a time. `fast` moves 2 steps.
+- If `fast` runs off the end → no cycle, return `null`.
+- If `slow == fast` → cycle exists. Note the meeting point.
+
+**Phase 2: Find the cycle's entry.**
+
+- Reset one pointer (say `slow`) to `head`. Leave `fast` at the meeting point.
+- Advance both at the **same speed** (1 step each).
+- Where they meet IS the cycle's entry.
+
+The math justifying phase 2 is in the [Fast and Slow page](/day25/fast_slow#why-it-works-the-math).
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    ListNode* detectCycle(ListNode* head) {
+        ListNode *slow = head, *fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+            if (slow == fast) {                              // phase 1 done
+                ListNode* p = head;
+                while (p != slow) {                          // phase 2
+                    p = p->next;
+                    slow = slow->next;
+                }
+                return p;
+            }
+        }
+        return nullptr;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def detect_cycle(head):
+        slow = fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+            if slow == fast:                              # phase 1 done
+                p = head
+                while p != slow:                          # phase 2
+                    p = p.next
+                    slow = slow.next
+                return p
+        return None
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public ListNode detectCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) {
+                ListNode p = head;
+                while (p != slow) {
+                    p = p.next;
+                    slow = slow.next;
+                }
+                return p;
+            }
+        }
+        return null;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The proof in one paragraph:** Let `L` = distance from head to cycle entry, `C` = cycle length, `m` = distance from cycle entry to the first meeting point. When they meet, slow has walked `L + m` and fast has walked `2(L + m) = L + m + kC` for some integer `k` (it lapped the cycle `k` extra times). Solving: `L + m = kC`, so `L = kC − m`. Walking `L` steps from the head AND `L` steps from the meeting point both land at the cycle entry. Walk both at speed 1 and they meet there.
+</Callout>
+
+#### Why the hash-set approach is rejected
+
+The hash-set version stores every visited node and checks each new one. `O(n)` time, `O(n)` space. The constraint "`O(1)` extra space" forces the Floyd's trick.
+
+#### Analysis
+
+- **Time:** `O(n)` total. Phase 1 finishes in at most `n` steps; phase 2 in at most `n` more.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Linked List Cycle (the easy version)** — only detect, don't find the entry. Phase 1 alone.
+- **Find the Duplicate Number** — model array indices as a linked list, then run this exact two-phase algorithm.
+- **Happy Number** — Floyd's on the "sum of squared digits" function, detecting a cycle in number-iteration space.
+- **Middle of the Linked List** — same fast/slow setup, return slow when fast reaches the end.
+
+This is the single most-asked fast/slow problem in interviews. Knowing both the algorithm AND the proof is the difference between rote memorization and demonstrating understanding.

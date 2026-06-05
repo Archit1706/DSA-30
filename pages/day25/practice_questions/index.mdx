@@ -1,0 +1,61 @@
+---
+title: "Two Pointers Practice Questions"
+description: "Ten interview classics for two pointers — Two Sum II, 3Sum, container with most water, Sort Colors, trapping rain water, cycle detection."
+---
+
+import { Callout } from "nextra/components";
+
+# Two Pointers Practice Questions
+
+Ten interview classics, every flavor represented. Each problem is a direct instance of one of the [opposite-ends](/day25/opposite_ends), [same-direction](/day25/same_direction), or [fast-and-slow](/day25/fast_slow) templates — once you spot which flavor it is, the code writes itself.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the four-question checklist:
+
+    1. **Which flavor?** (Opposite-ends / same-direction / fast-and-slow)
+    2. **What does each pointer represent?**
+    3. **What's the movement rule?**
+    4. **When do I stop?**
+
+    The code is six to ten lines. The whole chapter.
+</Callout>
+
+## Easy
+
+| Problem                                                                | Pattern                                | Status     |
+| :--------------------------------------------------------------------- | :------------------------------------- | :--------- |
+| [Two Sum II — Input Array Is Sorted](/day25/practice_questions/two_sum_ii) | Opposite-ends, classic convergence    | Available  |
+| [Valid Palindrome](/day25/practice_questions/valid_palindrome)         | Opposite-ends with skip-junk inner loop | Available  |
+| [Remove Duplicates from Sorted Array](/day25/practice_questions/remove_duplicates_sorted) | Same-direction read/write       | Available  |
+| [Squares of a Sorted Array](/day25/practice_questions/squares_of_sorted_array) | Opposite-ends, fill from the back  | Available  |
+
+## Medium
+
+| Problem                                                                | Pattern                                | Status     |
+| :--------------------------------------------------------------------- | :------------------------------------- | :--------- |
+| [3Sum](/day25/practice_questions/three_sum)                            | Sort + fix one + two-pointer + dedup   | Available  |
+| [Container With Most Water](/day25/practice_questions/container_with_most_water) | Opposite-ends, move the shorter side | Available |
+| [Sort Colors](/day25/practice_questions/sort_colors)                   | Three-pointer Dutch national flag      | Available  |
+| [Linked List Cycle II](/day25/practice_questions/linked_list_cycle_ii) | Floyd's + reset + same-speed pass      | Available  |
+| [Find the Duplicate Number](/day25/practice_questions/find_the_duplicate_number) | Array as linked list + Floyd's      | Available  |
+
+## Hard
+
+| Problem                                                                | Pattern                                | Status     |
+| :--------------------------------------------------------------------- | :------------------------------------- | :--------- |
+| [Trapping Rain Water](/day25/practice_questions/trapping_rain_water)   | Opposite-ends with running max on each side | Available |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                                 | Status        |
+| :------------------------------------- | :-------------------------------------- | :------------ |
+| 4Sum                                   | K-Sum reduction                         | Coming Soon   |
+| 3Sum Closest                           | 3Sum with min-distance tracking         | Coming Soon   |
+| Remove Duplicates from Sorted Array II | Same-direction with "allow 2 of each"   | Coming Soon   |
+| Boats to Save People                   | Opposite-ends greedy pairing            | Coming Soon   |
+| Merge Sorted Array (in place)          | Right-to-left two-pointer               | Coming Soon   |
+| Backspace String Compare               | Two-pointer from the right              | Coming Soon   |
+| Longest Word in Dictionary             | Two-pointer subsequence matching        | Coming Soon   |
+| Palindrome Linked List                 | Find middle + reverse + compare         | Coming Soon   |
+| Happy Number                           | Floyd's cycle on digit-square-sum       | Coming Soon   |
+| Move Zeroes                            | Same-direction read/write               | Coming Soon   |

@@ -81,7 +81,7 @@ The goal: make DSA feel less like a textbook chore and more like something you a
 | Day | Topic | Status |
 | :-: | :--- | :--- |
 | 24 | Sliding Window | ✅ Available |
-| 25 | Two Pointers | 📋 Coming soon |
+| 25 | Two Pointers | ✅ Available |
 | 26 | Divide & Conquer | 📋 Coming soon |
 | 27 | Advanced Strings | 📋 Coming soon |
 

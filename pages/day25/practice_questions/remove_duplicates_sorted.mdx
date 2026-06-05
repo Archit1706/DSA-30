@@ -1,0 +1,125 @@
+---
+title: "Remove Duplicates from Sorted Array"
+description: "The canonical same-direction read/write pointer pattern — in-place dedup of a sorted array in O(n) time and O(1) extra space."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Remove Duplicates from Sorted Array <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an integer array `nums` sorted in **non-decreasing** order, remove the duplicates in place such that each unique element appears only once. The relative order of the elements should be kept the same.
+
+Return `k`, the number of unique elements. The first `k` slots of `nums` should hold the unique values; what comes after is don't-care.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 1, 2]
+    Output: k = 2,  nums = [1, 2, _]
+
+> Case 2:
+    nums = [0, 0, 1, 1, 1, 2, 2, 3, 3, 4]
+    Output: k = 5,  nums = [0, 1, 2, 3, 4, _, _, _, _, _]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 3 × 10^4`
+- `-100 <= nums[i] <= 100`
+- `nums` is sorted in non-decreasing order.
+
+#### State design
+
+The textbook **same-direction read/write** pattern.
+
+1. **Flavor?** Same-direction.
+2. **Pointers?** `read` walks every element. `write` marks the end of the unique-prefix we've built.
+3. **Filter?** Keep `nums[read]` if it differs from the **last kept value**, `nums[write - 1]`.
+4. **Initialization?** The first element is always unique (kept by default), so `write = 1` and `read = 1`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int removeDuplicates(vector<int>& nums) {
+        if (nums.empty()) return 0;
+        int write = 1;
+        for (int read = 1; read < (int)nums.size(); read++) {
+            if (nums[read] != nums[write - 1]) {
+                nums[write++] = nums[read];
+            }
+        }
+        return write;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def remove_duplicates(nums):
+        if not nums: return 0
+        write = 1
+        for read in range(1, len(nums)):
+            if nums[read] != nums[write - 1]:
+                nums[write] = nums[read]
+                write += 1
+        return write
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int removeDuplicates(int[] nums) {
+        if (nums.length == 0) return 0;
+        int write = 1;
+        for (int read = 1; read < nums.length; read++) {
+            if (nums[read] != nums[write - 1]) {
+                nums[write++] = nums[read];
+            }
+        }
+        return write;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Compare against `nums[write - 1]`, not `nums[read - 1]`.**
+
+    `nums[write - 1]` is the most recent UNIQUE value we've kept. `nums[read - 1]` could be a duplicate we just decided to skip. For this exact problem (allow 1 of each) both happen to work on most inputs, but for the **Remove Duplicates II** follow-up (allow up to 2 of each), the distinction matters — and you want to be in the habit of using `nums[write - 1]` everywhere.
+</Callout>
+
+#### Follow-up: Remove Duplicates II (allow up to 2)
+
+> Same problem but each unique value may appear up to **twice**.
+
+Tiny tweak: compare against `nums[write - 2]` (two positions back), not `nums[write - 1]`.
+
+```python
+def remove_duplicates_two(nums):
+    if len(nums) <= 2: return len(nums)
+    write = 2
+    for read in range(2, len(nums)):
+        if nums[read] != nums[write - 2]:
+            nums[write] = nums[read]
+            write += 1
+    return write
+```
+
+The pattern generalizes: "allow up to `k` of each" → compare against `nums[write - k]`.
+
+#### Analysis
+
+- **Time:** `O(n)`. Each element visited exactly once by `read`.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Remove Duplicates II** — see above.
+- **Remove Element** — filter "keep if `nums[read] != val`".
+- **Move Zeroes** — same template, filter "keep if non-zero", backfill with zeros.
+- **Compact Sparse Array** — generalize to "remove every element matching a predicate".

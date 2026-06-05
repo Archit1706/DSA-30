@@ -1,0 +1,138 @@
+---
+title: "Sort Colors"
+description: "Dutch national flag — three-pointer in-place partition for an array containing only 0s, 1s, and 2s."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sort Colors <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array `nums` with `n` objects colored red, white, or blue, sort them **in place** so that objects of the same color are adjacent, with the colors in the order red, white, and blue.
+
+We will use the integers `0`, `1`, and `2` to represent the colors red, white, and blue, respectively.
+
+You must solve this problem **without using the library's sort function** and using **constant extra space**.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [2, 0, 2, 1, 1, 0]
+    Output: [0, 0, 1, 1, 2, 2]
+
+> Case 2:
+    nums = [2, 0, 1]
+    Output: [0, 1, 2]
+```
+
+#### Constraints
+
+- `n == nums.length`
+- `1 <= n <= 300`
+- `nums[i]` is `0`, `1`, or `2`.
+
+#### State design — Dutch National Flag
+
+Edsger Dijkstra invented this exact algorithm for exactly this problem ("the Dutch flag problem"). Three pointers:
+
+- **`l`** — write head for 0s. Everything in `nums[0..l)` is 0.
+- **`m`** — read cursor. Everything in `nums[l..m)` is 1.
+- **`r`** — write tail for 2s. Everything in `nums[r+1..n)` is 2.
+
+The unknown region is `nums[m..r]` (inclusive of `r`). We classify by inspecting `nums[m]`:
+
+- **`nums[m] == 0`**: swap into the 0-region. `l++; m++`.
+- **`nums[m] == 1`**: stays where it is. `m++`.
+- **`nums[m] == 2`**: swap into the 2-region. `r--`. **Don't advance `m`** — the value we just received from `r` is unclassified.
+
+The loop runs while `m <= r`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void sortColors(vector<int>& nums) {
+        int l = 0, m = 0, r = nums.size() - 1;
+        while (m <= r) {
+            if (nums[m] == 0)      swap(nums[l++], nums[m++]);
+            else if (nums[m] == 2) swap(nums[m], nums[r--]);
+            else                   m++;
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sort_colors(nums):
+        l, m, r = 0, 0, len(nums) - 1
+        while m <= r:
+            if nums[m] == 0:
+                nums[l], nums[m] = nums[m], nums[l]
+                l += 1; m += 1
+            elif nums[m] == 2:
+                nums[m], nums[r] = nums[r], nums[m]
+                r -= 1
+            else:
+                m += 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void sortColors(int[] nums) {
+        int l = 0, m = 0, r = nums.length - 1;
+        while (m <= r) {
+            if (nums[m] == 0) {
+                int t = nums[l]; nums[l] = nums[m]; nums[m] = t;
+                l++; m++;
+            } else if (nums[m] == 2) {
+                int t = nums[m]; nums[m] = nums[r]; nums[r] = t;
+                r--;
+            } else {
+                m++;
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The "don't advance `m` after the 2-swap" rule is the most-missed Sort Colors bug.**
+
+    When swapping `nums[m]` (which was 2) with `nums[r]` (unknown), `nums[m]` now holds an unclassified value — could be 0, 1, or 2. Advancing `m` would skip past it. We need the next loop iteration to inspect and classify it.
+
+    Contrast the 0-swap: `nums[l]` was a 1 (from the invariant). After the swap, `nums[m]` holds 1 — already classified, safe to skip past with `m++`.
+</Callout>
+
+#### A two-pass alternative (counting sort)
+
+If you prefer simplicity over a one-pass solution:
+
+```python
+def sort_colors_two_pass(nums):
+    count = [0, 0, 0]
+    for x in nums: count[x] += 1
+    i = 0
+    for color in range(3):
+        for _ in range(count[color]):
+            nums[i] = color; i += 1
+```
+
+`O(n)` time, `O(1)` space. Easier to write but does two passes. The Dutch National Flag is a single pass — interview-worthy and the conventional answer.
+
+#### Analysis
+
+- **Time:** `O(n)`. Each element handled once (the unclassified region shrinks by one per iteration).
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Partition Array Around a Pivot** — Lomuto / Hoare partition for quicksort.
+- **Move Even Numbers Before Odd** — two-color version of the same problem.
+- **Sort Array by Parity II** — alternating-position partition.
+- **Wiggle Sort** — different shape but same "swap to satisfy a positional constraint" feel.

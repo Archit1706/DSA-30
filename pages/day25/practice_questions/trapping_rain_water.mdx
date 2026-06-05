@@ -1,0 +1,143 @@
+---
+title: "Trapping Rain Water"
+description: "Opposite-ends two pointers with running max on each side — compute water trapped between bars in O(n) time and O(1) space."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Trapping Rain Water <DifficultyBadge level="hard" />
+
+#### Description
+
+Given `n` non-negative integers representing an elevation map where the width of each bar is `1`, compute how much water it can trap after raining.
+
+#### Examples
+
+```py
+> Case 1:
+    height = [0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]
+    Output: 6
+    Explanation: the elevation map traps 6 units of water.
+
+> Case 2:
+    height = [4, 2, 0, 3, 2, 5]
+    Output: 9
+```
+
+#### Constraints
+
+- `n == height.length`
+- `1 <= n <= 2 × 10^4`
+- `0 <= height[i] <= 10^5`
+
+#### The key insight
+
+The water trapped above column `i` is:
+
+```
+water[i] = min(max_left[i], max_right[i]) - height[i]
+```
+
+Where `max_left[i]` is the tallest bar at or left of `i`, and `max_right[i]` is the tallest bar at or right of `i`. The min of those bounds the column's water level; subtract the column's own height to get the trapped amount.
+
+A natural `O(n)` solution: precompute `max_left[]` and `max_right[]` arrays, then scan once. That's `O(n)` time, `O(n)` space.
+
+The two-pointer solution is `O(n)` time and `O(1)` space, by computing the relevant max on the fly.
+
+#### State design
+
+1. **Flavor?** Opposite-ends.
+2. **Pointers?** `l = 0`, `r = n - 1`.
+3. **State?** `max_left` and `max_right` — running maxes seen from each side.
+4. **Invariant?** At any step, `max_left = max(height[0..l])` and `max_right = max(height[r..n-1])`.
+5. **Movement?** Whichever side has the **shorter running max** moves inward. We can compute the water for that side's pointer because the shorter running max IS the bottleneck.
+
+Why? If `max_left <= max_right`, then for column `l`, the bottleneck is `max_left` (which is `<= max_right`, so it's the min of the two). We've seen `max_left` already; we know it's accurate. Water at column `l` = `max_left - height[l]`. Advance `l`.
+
+If `max_left > max_right`, the symmetric argument for column `r`. Advance `r`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int trap(vector<int>& height) {
+        int l = 0, r = height.size() - 1;
+        int maxLeft = 0, maxRight = 0, water = 0;
+        while (l < r) {
+            if (height[l] < height[r]) {
+                maxLeft = max(maxLeft, height[l]);
+                water += maxLeft - height[l];
+                l++;
+            } else {
+                maxRight = max(maxRight, height[r]);
+                water += maxRight - height[r];
+                r--;
+            }
+        }
+        return water;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def trap(height):
+        l, r = 0, len(height) - 1
+        max_left = max_right = water = 0
+        while l < r:
+            if height[l] < height[r]:
+                max_left = max(max_left, height[l])
+                water += max_left - height[l]
+                l += 1
+            else:
+                max_right = max(max_right, height[r])
+                water += max_right - height[r]
+                r -= 1
+        return water
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int trap(int[] height) {
+        int l = 0, r = height.length - 1;
+        int maxLeft = 0, maxRight = 0, water = 0;
+        while (l < r) {
+            if (height[l] < height[r]) {
+                maxLeft = Math.max(maxLeft, height[l]);
+                water += maxLeft - height[l];
+                l++;
+            } else {
+                maxRight = Math.max(maxRight, height[r]);
+                water += maxRight - height[r];
+                r--;
+            }
+        }
+        return water;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The argument restated:** at each step we compare `height[l]` and `height[r]`. The smaller side has its running max as the *guaranteed bottleneck* — we know nothing taller will appear on that side (we've scanned it), AND the other side is at least as tall as the current other endpoint. So the water level at the smaller-side pointer is determined: `running_max - height[pointer]`. Add to total, advance.
+</Callout>
+
+#### The relationship to Container With Most Water
+
+Container With Most Water uses the same "move the smaller side" rule. Both problems are bottlenecked by the shorter side, and both gain nothing from moving the taller. Trapping Rain Water adds the running-max tracking because we care about *each column's* water level, not just the global pair max.
+
+#### Analysis
+
+- **Time:** `O(n)`. Each pointer moves at most `n - 1` times.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Container With Most Water** — same opposite-ends, no running max, single max area tracking.
+- **Largest Rectangle in Histogram** — different (monotonic stack), but the "bar histogram" framing is the same.
+- **Pour Water** (simulation) — same elevation-map setup, different question.
+- **Trapping Rain Water II** (2D grid) — requires a min-heap / Dijkstra-style approach; the 1D two-pointer trick doesn't generalize.
+
+This is **the** classic hard two-pointer problem. Get the "move the smaller side, add `running_max − height[pointer]`" pattern in your head; the code is six lines once the argument clicks.

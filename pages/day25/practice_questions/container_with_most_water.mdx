@@ -1,0 +1,111 @@
+---
+title: "Container With Most Water"
+description: "Opposite-ends two pointers — find two lines forming the container with the most water by always moving the shorter side."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Container With Most Water <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given an integer array `height` of length `n`. There are `n` vertical lines drawn such that the two endpoints of the `i`-th line are `(i, 0)` and `(i, height[i])`.
+
+Find two lines that together with the x-axis form a container, such that the container contains the **most water**.
+
+Return the maximum amount of water a container can store.
+
+#### Examples
+
+```py
+> Case 1:
+    height = [1, 8, 6, 2, 5, 4, 8, 3, 7]
+    Output: 49
+    Explanation: lines at indices 1 and 8 (heights 8 and 7) form a container
+                 of width 7 and bottleneck height 7 → area = 49.
+
+> Case 2:
+    height = [1, 1]
+    Output: 1
+```
+
+#### Constraints
+
+- `n == height.length`
+- `2 <= n <= 10^5`
+- `0 <= height[i] <= 10^4`
+
+#### State design
+
+1. **Flavor?** Opposite-ends.
+2. **Pointers?** `l = 0`, `r = n - 1`. Width is `r - l`, height is `min(height[l], height[r])`.
+3. **Movement?** **Move the shorter side inward.** Moving the taller side can only decrease the bottleneck (the shorter line stays the bottleneck) while shrinking the width — strictly worse. The shorter line is the only direction with hope.
+4. **Stop?** When `l >= r`.
+5. **Record?** Max area at every step.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxArea(vector<int>& height) {
+        int l = 0, r = height.size() - 1, best = 0;
+        while (l < r) {
+            int area = min(height[l], height[r]) * (r - l);
+            best = max(best, area);
+            if (height[l] < height[r]) l++;
+            else                       r--;
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_area(height):
+        l, r = 0, len(height) - 1
+        best = 0
+        while l < r:
+            area = min(height[l], height[r]) * (r - l)
+            best = max(best, area)
+            if height[l] < height[r]: l += 1
+            else:                     r -= 1
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxArea(int[] height) {
+        int l = 0, r = height.length - 1, best = 0;
+        while (l < r) {
+            int area = Math.min(height[l], height[r]) * (r - l);
+            best = Math.max(best, area);
+            if (height[l] < height[r]) l++;
+            else                       r--;
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The convergence proof:** suppose `height[l] <= height[r]`. The current bottleneck is `height[l]`. If we move `r` inward instead of `l`, the new bottleneck is `min(height[l], height[r'])` — still at most `height[l]` since `r'` is now smaller-indexed. The width strictly shrinks. So the area can only go down. The only direction with hope of a larger area is moving `l`. Symmetric if `height[r] < height[l]`.
+</Callout>
+
+#### A tie-breaking note
+
+When `height[l] == height[r]`, it doesn't matter which side we move — both produce identical optimal values. Many solutions move `l` by default; some move both. Either is correct.
+
+#### Analysis
+
+- **Time:** `O(n)`. Each pointer moves at most `n - 1` times.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Trapping Rain Water** — similar opposite-ends idea, but tracking running max heights on each side.
+- **Maximize Distance to Closest Person** — opposite-ends-style scan for the largest gap.
+- **Boats to Save People** — opposite-ends greedy pairing for "lightest + heaviest fit in one boat?"

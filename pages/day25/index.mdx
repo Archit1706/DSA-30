@@ -1,21 +1,44 @@
 ---
 title: "Day 25 — Two Pointers"
-description: "Two-pointers — opposite-end, same-direction, and fast and slow variants. The technique behind palindrome checks, container-with-most-water, and cycle detection."
+description: "The three flavors of two pointers — opposite ends, same direction, and fast/slow. The technique behind palindrome checks, three-sum, Dutch national flag, and Floyd's cycle detection."
 ---
 
 import { Callout } from "nextra/components";
 
 # Day 25 — Two Pointers
 
+Yesterday's sliding window used two pointers that both moved forward — one in, one out. **Two pointers** is the bigger family that includes sliding window as a special case, plus two more shapes that come up everywhere in interviews:
+
+- **Opposite ends** — pointers start at `0` and `n-1` and walk toward each other. Solves pair-sum problems, palindrome checks, container-with-most-water.
+- **Same direction** — both pointers walk forward, often at different speeds, with one used to read and the other to write. Solves in-place dedup, partitioning, Dutch national flag.
+- **Fast and slow** — two pointers in the same data structure where one moves twice as fast as the other. Solves cycle detection, finding the middle, linked-list midpoint.
+
+The unifying idea: **two indices replace a nested loop**. When the brute force is `O(n²)`, two pointers often gets you to `O(n)` with `O(1)` extra space.
+
+## What you'll learn today
+
+- The **three canonical flavors** and how to recognize which one a problem wants
+- **Opposite ends**: the convergence argument that makes pair-sum-on-sorted-array `O(n)`
+- **Same direction**: the read/write pointer pattern for in-place transforms
+- **Fast and slow**: Floyd's cycle detection and how it generalizes to "find the start of the cycle"
+- **Three Sum** and **K Sum** — fixing one pointer and running two-pointer on the rest
+- **Dutch national flag** — the three-pointer cousin for three-way partitioning
+- **Ten interview problems** that drill every shape into muscle memory
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The trick to spotting two-pointer problems: **the brute force is two nested loops, AND the inputs have some structure** (sorted, contains duplicates, is a linked list, etc.) that lets you skip whole regions instead of checking every pair. Without that structure — a totally random array, no monotonicity, no duplicates — two pointers usually doesn't beat brute force, and you'd reach for hash maps or DP instead.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- The two flavors: **same direction** (sliding window) and **opposite ends** (converging)
-- Classic problems: **pair sum in a sorted array, Dutch national flag, container with most water, three-sum**
-- When you need to **sort first** to enable the technique
-- Handling **duplicates** without producing duplicate answers
+1. **[Introduction](/day25/introduction)** — what makes a problem a two-pointer problem, the convergence argument, when to sort first.
+2. **[Opposite-Ends Pointers](/day25/opposite_ends)** — the converging template: pair sum, palindrome check, container with most water, three-sum reduction.
+3. **[Same-Direction Pointers](/day25/same_direction)** — the read/write template: in-place dedup, move zeroes, partition, Dutch national flag.
+4. **[Fast and Slow Pointers](/day25/fast_slow)** — Floyd's tortoise-and-hare for cycle detection, linked-list midpoint, the trick that turns "find the duplicate number" from O(n) extra space into O(1).
+5. **[Advanced Patterns](/day25/advanced)** — K-sum reduction, the merge step from merge sort viewed as two pointers, two-pointer on two different arrays, sliding window as a special case.
+6. **[Basic Questions](/day25/basic_questions)** — warm-ups: valid palindrome, reverse string, two sum II, move zeroes.
+7. **[Practice Questions](/day25/practice_questions)** — ten interview classics, every flavor covered, with the convergence argument or read/write justification spelled out.
 
-Two-pointer techniques routinely turn O(n²) brute force into O(n) — and they cost nothing beyond two integer variables.
+Two pointers pairs naturally with [Sliding Window](/day24) (Day 24), [Sorting and Searching](/day13), and [Linked Lists](/day3). Most problems where the brute force is "for every pair, check..." yield to one of these three templates — once you spot the right flavor, the code is six to ten lines.
+
+Coming up next: **Day 26 — Divide & Conquer**, where one problem becomes many sub-problems and the answer is stitched back together.

@@ -1,0 +1,108 @@
+---
+title: "Two Sum II — Input Array Is Sorted"
+description: "The canonical opposite-ends two-pointer problem — sorted array, target sum, O(n) time and O(1) space."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Two Sum II — Input Array Is Sorted <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a **1-indexed** array of integers `numbers` that is already sorted in **non-decreasing** order, find two numbers such that they add up to a specific target. Return the two indices (1-indexed) as `[index1, index2]` with `index1 < index2`.
+
+The solution is guaranteed to exist and to be unique. You may not use the same element twice. Your solution must use only **constant extra space**.
+
+#### Examples
+
+```py
+> Case 1:
+    numbers = [2, 7, 11, 15],  target = 9
+    Output: [1, 2]
+
+> Case 2:
+    numbers = [2, 3, 4],  target = 6
+    Output: [1, 3]
+
+> Case 3:
+    numbers = [-1, 0],  target = -1
+    Output: [1, 2]
+```
+
+#### Constraints
+
+- `2 <= numbers.length <= 3 × 10^4`
+- `-1000 <= numbers[i] <= 1000`
+- `numbers` is sorted in non-decreasing order.
+- There is exactly one solution and you cannot use the same element twice.
+
+#### State design
+
+The textbook opposite-ends two-pointer problem.
+
+1. **Flavor?** Opposite-ends.
+2. **Pointers?** `l = 0`, `r = n − 1`. They represent the smallest-and-largest remaining candidates.
+3. **Movement?** If sum `< target`, we need a bigger value → `l += 1`. If sum `> target`, smaller → `r -= 1`. If equal → found it.
+4. **Stop?** When `l == r` (no answer); the problem guarantees this never happens.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> twoSum(vector<int>& numbers, int target) {
+        int l = 0, r = numbers.size() - 1;
+        while (l < r) {
+            int s = numbers[l] + numbers[r];
+            if (s == target) return {l + 1, r + 1};
+            if (s < target) l++;
+            else            r--;
+        }
+        return {};
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def two_sum(numbers, target):
+        l, r = 0, len(numbers) - 1
+        while l < r:
+            s = numbers[l] + numbers[r]
+            if s == target: return [l + 1, r + 1]
+            if s < target:  l += 1
+            else:           r -= 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] twoSum(int[] numbers, int target) {
+        int l = 0, r = numbers.length - 1;
+        while (l < r) {
+            int s = numbers[l] + numbers[r];
+            if (s == target) return new int[]{l + 1, r + 1};
+            if (s < target) l++;
+            else            r--;
+        }
+        return new int[]{};
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why opposite-ends works here but not on unsorted Two Sum (LeetCode 1):** the convergence argument requires sortedness. If the input weren't sorted, `numbers[l] + numbers[r] < target` wouldn't tell us anything about which direction to move — the next bigger left value could be anywhere. Without sortedness, the right answer is a hash map: `O(n)` time, `O(n)` space.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)` — `l` and `r` each move at most `n - 1` times.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Three Sum** — fix one index, then run this exact two-pointer on the remaining sorted slice.
+- **Two Sum Less Than K** — find the maximum sum of any pair `<= K`. Same convergence, track best instead of returning.
+- **Boats to Save People** — opposite-ends pairing for "lightest + heaviest fit one boat?".
+- **Pair with Target Difference** — both pointers same-direction, advance based on difference vs target.

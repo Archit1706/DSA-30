@@ -1,0 +1,345 @@
+---
+title: "Opposite-Ends Pointers"
+description: "The converging two-pointer pattern — pair sum, palindrome check, container with most water, three sum. The convergence argument that turns O(n²) into O(n)."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Opposite-Ends Pointers
+
+The most common two-pointer flavor. `l` starts at `0`, `r` starts at `n - 1`, and they walk toward each other based on a comparison. The whole technique is built on a single idea:
+
+> **Moving one pointer in a known direction can't skip a valid answer.**
+
+When that's true, you can collapse a `O(n²)` "for every pair" brute force into a `O(n)` single pass.
+
+## The template
+
+```text
+l = 0
+r = n - 1
+while l < r:
+    compare arr[l] and arr[r]
+    if (some condition):
+        record the answer (optionally)
+        l += 1 OR r -= 1 OR both
+    elif (need a larger value):
+        l += 1
+    else:  # need a smaller value
+        r -= 1
+```
+
+Three things vary problem-to-problem:
+
+1. **The comparison** — sum, equality, character match.
+2. **When and what to record** — return immediately, accumulate a max, push to an output list.
+3. **The movement rule** — which pointer moves based on which condition.
+
+The rest is the same skeleton.
+
+## Worked example 1: Two Sum II (sorted)
+
+> Given a 1-indexed **sorted** array `numbers` and target `t`, find the two 1-indexed positions `i < j` with `numbers[i] + numbers[j] = t`. There is exactly one solution.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> twoSum(vector<int>& numbers, int t) {
+        int l = 0, r = numbers.size() - 1;
+        while (l < r) {
+            int s = numbers[l] + numbers[r];
+            if (s == t) return {l + 1, r + 1};      // 1-indexed
+            if (s < t) l++;
+            else       r--;
+        }
+        return {};
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def two_sum(numbers, t):
+        l, r = 0, len(numbers) - 1
+        while l < r:
+            s = numbers[l] + numbers[r]
+            if s == t: return [l + 1, r + 1]
+            if s < t:  l += 1
+            else:      r -= 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] twoSum(int[] numbers, int t) {
+        int l = 0, r = numbers.length - 1;
+        while (l < r) {
+            int s = numbers[l] + numbers[r];
+            if (s == t) return new int[]{l + 1, r + 1};
+            if (s < t) l++;
+            else       r--;
+        }
+        return new int[]{};
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+The convergence argument:
+
+- If `numbers[l] + numbers[r] < t`: any pair starting at `l` with a smaller right value (`< r`) would be even smaller. So no answer uses `l` — advance it.
+- If `numbers[l] + numbers[r] > t`: any pair ending at `r` with a larger left value would be even bigger. So no answer uses `r` — retreat it.
+
+Each move discards a row OR a column of the implicit `n × n` pair grid. After at most `2n − 1` moves, all valid pairs have been considered or excluded.
+
+## Worked example 2: Valid Palindrome
+
+> Given a string `s`, return `true` if it's a palindrome after lowercasing and removing non-alphanumerics.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isPalindrome(string s) {
+        int l = 0, r = s.size() - 1;
+        while (l < r) {
+            while (l < r && !isalnum(s[l])) l++;
+            while (l < r && !isalnum(s[r])) r--;
+            if (tolower(s[l]) != tolower(s[r])) return false;
+            l++; r--;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_palindrome(s):
+        l, r = 0, len(s) - 1
+        while l < r:
+            while l < r and not s[l].isalnum(): l += 1
+            while l < r and not s[r].isalnum(): r -= 1
+            if s[l].lower() != s[r].lower(): return False
+            l += 1; r -= 1
+        return True
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isPalindrome(String s) {
+        int l = 0, r = s.length() - 1;
+        while (l < r) {
+            while (l < r && !Character.isLetterOrDigit(s.charAt(l))) l++;
+            while (l < r && !Character.isLetterOrDigit(s.charAt(r))) r--;
+            if (Character.toLowerCase(s.charAt(l)) != Character.toLowerCase(s.charAt(r))) return false;
+            l++; r--;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)` — no copy of the filtered string.
+
+The inner `while` loops handle the "skip junk characters" requirement without breaking the linear bound: each character is visited at most once by `l` and at most once by `r`.
+
+## Worked example 3: Container With Most Water
+
+> You're given `n` non-negative integers `height[0..n-1]` representing the heights of vertical lines. Find two lines that together with the x-axis form a container holding the most water.
+
+**Brute force:** for every pair, area = `min(height[l], height[r]) × (r − l)`. `O(n²)`.
+
+**Two-pointer:** start `l, r` at the ends. The area at any step is `min(h[l], h[r]) × (r − l)`. To beat the current area, we'd need to either move past the shorter line (since it's the bottleneck) or hope the wider container has both lines taller. **Moving the shorter line inward** is the only direction that could increase the area — moving the taller line only ever decreases width without raising the bottleneck.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxArea(vector<int>& height) {
+        int l = 0, r = height.size() - 1, best = 0;
+        while (l < r) {
+            int area = min(height[l], height[r]) * (r - l);
+            best = max(best, area);
+            if (height[l] < height[r]) l++;
+            else                       r--;
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_area(height):
+        l, r = 0, len(height) - 1
+        best = 0
+        while l < r:
+            area = min(height[l], height[r]) * (r - l)
+            best = max(best, area)
+            if height[l] < height[r]: l += 1
+            else:                     r -= 1
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxArea(int[] height) {
+        int l = 0, r = height.length - 1, best = 0;
+        while (l < r) {
+            int area = Math.min(height[l], height[r]) * (r - l);
+            best = Math.max(best, area);
+            if (height[l] < height[r]) l++;
+            else                       r--;
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+<Callout type="info">
+    **Why "move the shorter line" is correct:** the area is bottlenecked by the shorter line. If we moved the taller one, the new bottleneck is at best the same (and could be smaller); the width is smaller; the area can only go down. So any improvement *must* involve moving the shorter line. We can safely skip every pair whose taller side is the current one. That's the convergence argument for this problem.
+</Callout>
+
+## Worked example 4: Three Sum (reduction)
+
+> Given an integer array `nums`, return all triplets `[a, b, c]` with `a + b + c = 0` and no duplicate triplets.
+
+The trick: **sort, fix the first element, run two-pointer on the rest**. This reduces 3Sum to "find pairs summing to `−nums[i]`".
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<vector<int>> threeSum(vector<int>& nums) {
+        vector<vector<int>> out;
+        sort(nums.begin(), nums.end());
+        int n = nums.size();
+        for (int i = 0; i + 2 < n; i++) {
+            if (i > 0 && nums[i] == nums[i - 1]) continue;       // skip dup first
+            int l = i + 1, r = n - 1, target = -nums[i];
+            while (l < r) {
+                int s = nums[l] + nums[r];
+                if (s == target) {
+                    out.push_back({nums[i], nums[l], nums[r]});
+                    l++; r--;
+                    while (l < r && nums[l] == nums[l - 1]) l++; // skip dup l
+                    while (l < r && nums[r] == nums[r + 1]) r--; // skip dup r
+                } else if (s < target) l++;
+                else                   r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def three_sum(nums):
+        nums.sort()
+        n = len(nums)
+        out = []
+        for i in range(n - 2):
+            if i > 0 and nums[i] == nums[i - 1]: continue
+            l, r, target = i + 1, n - 1, -nums[i]
+            while l < r:
+                s = nums[l] + nums[r]
+                if s == target:
+                    out.append([nums[i], nums[l], nums[r]])
+                    l += 1; r -= 1
+                    while l < r and nums[l] == nums[l - 1]: l += 1
+                    while l < r and nums[r] == nums[r + 1]: r -= 1
+                elif s < target: l += 1
+                else:            r -= 1
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<List<Integer>> threeSum(int[] nums) {
+        List<List<Integer>> out = new ArrayList<>();
+        Arrays.sort(nums);
+        int n = nums.length;
+        for (int i = 0; i + 2 < n; i++) {
+            if (i > 0 && nums[i] == nums[i - 1]) continue;
+            int l = i + 1, r = n - 1, target = -nums[i];
+            while (l < r) {
+                int s = nums[l] + nums[r];
+                if (s == target) {
+                    out.add(Arrays.asList(nums[i], nums[l], nums[r]));
+                    l++; r--;
+                    while (l < r && nums[l] == nums[l - 1]) l++;
+                    while (l < r && nums[r] == nums[r + 1]) r--;
+                } else if (s < target) l++;
+                else                   r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n²)`. **Space:** `O(1)` extra (the output doesn't count).
+
+<Callout type="warning">
+    **Duplicate handling is the hardest part of 3Sum.** Three places need it:
+    1. After fixing `i`, skip the next `i` if `nums[i] == nums[i - 1]` (same first element gives identical triplets).
+    2. After finding a valid triplet, advance `l` past all equal values.
+    3. After finding a valid triplet, retreat `r` past all equal values.
+
+    Skip any of the three and you'll emit duplicates. Skip both 2 and 3 and you'll emit the same triplet `n` times for arrays with many zeros.
+</Callout>
+
+## A summary table
+
+| Problem                  | When to move `l` (forward)         | When to move `r` (backward)       |
+| :----------------------- | :--------------------------------- | :-------------------------------- |
+| Two Sum II (sorted)      | `sum < target`                     | `sum > target`                    |
+| Valid Palindrome         | always after match; skip non-alnum | always after match; skip non-alnum |
+| Container With Most Water | `height[l] < height[r]`           | `height[l] >= height[r]`          |
+| 3Sum (inner)             | `s < target`                       | `s > target`                      |
+| Trapping Rain Water (preview) | `height[l] < height[r]`        | `height[l] >= height[r]`          |
+
+Notice how often the rule is the same shape: **"move the side that's smaller / weaker / not-yet-satisfied"**. That's the heuristic for almost every new opposite-ends problem.
+
+## Quick check
+
+<QuizBox
+    question="In Container With Most Water, you compute the area at (l, r). Why is it always correct to move the SHORTER line inward?"
+    options={[
+        "Symmetry",
+        "Because the area is bottlenecked by the shorter line — moving the taller one keeps the same (or worse) bottleneck while shrinking the width, so the area can only go down. The shorter line is the ONLY hope for improvement.",
+        "Random choice — both work",
+        "The shorter line is closer"
+    ]}
+    correctIndex={1}
+    explanation="This is the canonical convergence argument. min(h[l], h[r]) is bottlenecked by the shorter side. Moving the taller side can't raise the bottleneck (still capped by the shorter one) and shrinks the width — area strictly decreases. So we'd only ever consider the taller line as a candidate at the cost of width with no upside. Move the shorter."
+/>
+
+<QuizBox
+    question="In Three Sum, why do we sort first?"
+    options={[
+        "To make the output sorted",
+        "Sorting enables (a) the inner two-pointer pass, (b) the duplicate-skip logic which relies on equal elements being adjacent",
+        "Performance — search is faster",
+        "Convention"
+    ]}
+    correctIndex={1}
+    explanation="Sorting is the enabler for two things at once. First, the convergence argument needs sortedness. Second, deduplication via 'skip if equal to previous' only works when duplicates are adjacent — sorting brings them together. Without sorting, you'd need a hash set on triplet keys, which is slower and uglier."
+/>
+
+<QuizBox
+    question="A common Three Sum bug: emitting [-1, 0, 1] twice for input [-1, -1, 0, 1, 1]. What's missing?"
+    options={[
+        "Sort wasn't done",
+        "The 'skip duplicate i' guard, or the 'skip duplicate l/r after finding a match' guards",
+        "Wrong target",
+        "Off-by-one"
+    ]}
+    correctIndex={1}
+    explanation="With nums = [-1, -1, 0, 1, 1], fixing i = 0 (-1) finds the triplet [-1, 0, 1]. Without 'skip dup l' after finding it, l moves to the next 1, paired with r at 1 — sum is too big, r retreats. But fixing i = 1 (-1 again) repeats the same exploration. You need BOTH the outer 'skip dup i' guard AND the inner 'skip dup l/r' guards."
+/>
+
+Next: **same-direction pointers** — the read/write pattern for in-place transforms.

@@ -1,0 +1,371 @@
+---
+title: "Same-Direction Pointers"
+description: "The read/write pointer pattern for in-place transforms — remove duplicates, move zeroes, partition, Dutch national flag, and the partition step of quicksort."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Same-Direction Pointers
+
+The second flavor of two pointers. Both `read` and `write` walk forward through the array, but at **different speeds**: `read` visits every element, `write` advances only when something "passes" a filter.
+
+The pattern shows up whenever you'd be tempted to write:
+
+```python
+# tempting but wasteful
+output = []
+for x in arr:
+    if passes_filter(x):
+        output.append(x)
+arr[:] = output
+```
+
+That's `O(n)` time and `O(n)` extra space. Same-direction two pointers does the same thing in `O(n)` time and `O(1)` extra space — by **writing the filtered output back into the same array, in place**.
+
+## The template
+
+```text
+write = 0
+for read in 0 .. n - 1:
+    if arr[read] passes the filter:
+        arr[write] = arr[read]
+        write += 1
+# at the end, arr[0..write] is the filtered prefix; arr[write..n] is garbage
+return write
+```
+
+That's the entire pattern. The "filter" is problem-specific.
+
+<Callout type="info">
+    **The key invariant:** at every moment, `arr[0..write)` is the valid output we've built so far, and `arr[read..n)` is the unread portion. `write <= read` always — the write pointer can never lap the read pointer because it only advances on a successful filter, while read advances every step.
+</Callout>
+
+## Worked example 1: Remove Duplicates from Sorted Array
+
+> Given a sorted array `nums`, remove duplicates in place such that each unique element appears once. Return the new length `k`; the first `k` elements of `nums` should hold the unique values.
+
+The filter: "this element is different from the one we just wrote."
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int removeDuplicates(vector<int>& nums) {
+        if (nums.empty()) return 0;
+        int write = 1;
+        for (int read = 1; read < (int)nums.size(); read++) {
+            if (nums[read] != nums[write - 1]) {
+                nums[write++] = nums[read];
+            }
+        }
+        return write;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def remove_duplicates(nums):
+        if not nums: return 0
+        write = 1
+        for read in range(1, len(nums)):
+            if nums[read] != nums[write - 1]:
+                nums[write] = nums[read]
+                write += 1
+        return write
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int removeDuplicates(int[] nums) {
+        if (nums.length == 0) return 0;
+        int write = 1;
+        for (int read = 1; read < nums.length; read++) {
+            if (nums[read] != nums[write - 1]) {
+                nums[write++] = nums[read];
+            }
+        }
+        return write;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+The "compare against `nums[write - 1]`" (the last *kept* value) is the key — we don't compare against `nums[read - 1]` (the last *read* value), because consecutive duplicates would then fool us.
+
+## Worked example 2: Move Zeroes
+
+> Given an integer array `nums`, move all zeroes to the end while maintaining the relative order of the non-zero elements. Do it in place.
+
+The filter: "this element is non-zero." After the read loop finishes, fill the rest with zeroes.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void moveZeroes(vector<int>& nums) {
+        int write = 0;
+        for (int read = 0; read < (int)nums.size(); read++) {
+            if (nums[read] != 0) nums[write++] = nums[read];
+        }
+        while (write < (int)nums.size()) nums[write++] = 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def move_zeroes(nums):
+        write = 0
+        for read in range(len(nums)):
+            if nums[read] != 0:
+                nums[write] = nums[read]
+                write += 1
+        for i in range(write, len(nums)):
+            nums[i] = 0
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void moveZeroes(int[] nums) {
+        int write = 0;
+        for (int read = 0; read < nums.length; read++) {
+            if (nums[read] != 0) nums[write++] = nums[read];
+        }
+        while (write < nums.length) nums[write++] = 0;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### A subtle variant: swap instead of overwrite
+
+If you `swap` instead of overwriting + back-filling, you do it in one pass with no post-loop fixup:
+
+```python
+def move_zeroes(nums):
+    write = 0
+    for read in range(len(nums)):
+        if nums[read] != 0:
+            nums[read], nums[write] = nums[write], nums[read]
+            write += 1
+```
+
+Both are correct. Overwrite + backfill is conceptually simpler; swap is one pass and slightly fewer assignments when most elements are non-zero.
+
+## Worked example 3: Partition (the quicksort step)
+
+> Given an array and a pivot value `p`, partition the array so that elements `< p` come before elements `>= p`.
+
+The filter: "this element is less than the pivot." Swap into the write position to avoid losing the element at write.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int partition(vector<int>& nums, int p) {
+        int write = 0;
+        for (int read = 0; read < (int)nums.size(); read++) {
+            if (nums[read] < p) {
+                swap(nums[read], nums[write]);
+                write++;
+            }
+        }
+        return write;          // number of elements < p
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def partition(nums, p):
+        write = 0
+        for read in range(len(nums)):
+            if nums[read] < p:
+                nums[read], nums[write] = nums[write], nums[read]
+                write += 1
+        return write
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int partition(int[] nums, int p) {
+        int write = 0;
+        for (int read = 0; read < nums.length; read++) {
+            if (nums[read] < p) {
+                int tmp = nums[read]; nums[read] = nums[write]; nums[write] = tmp;
+                write++;
+            }
+        }
+        return write;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This is **the Lomuto partition** — the simple variant used as the core step of quicksort. The Hoare partition is a different two-pointer pattern (opposite-ends, swap when both are misplaced). Both are correct; Lomuto is easier to write.
+
+## Worked example 4: Dutch National Flag
+
+> Given an array containing only 0s, 1s, and 2s, sort them in place in one pass.
+
+The 0s and 2s want to be at the ends; the 1s sit in the middle. **Three pointers** instead of two:
+
+- `l` — write head for 0s.
+- `m` — read cursor.
+- `r` — write tail for 2s.
+
+Invariants:
+- `nums[0..l)` are all 0.
+- `nums[l..m)` are all 1.
+- `nums[m..r]` are unknown.
+- `nums[r+1..n)` are all 2.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void sortColors(vector<int>& nums) {
+        int l = 0, m = 0, r = nums.size() - 1;
+        while (m <= r) {
+            if (nums[m] == 0)      swap(nums[l++], nums[m++]);
+            else if (nums[m] == 2) swap(nums[m], nums[r--]);     // do NOT m++ here
+            else                   m++;
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sort_colors(nums):
+        l, m, r = 0, 0, len(nums) - 1
+        while m <= r:
+            if nums[m] == 0:
+                nums[l], nums[m] = nums[m], nums[l]
+                l += 1; m += 1
+            elif nums[m] == 2:
+                nums[m], nums[r] = nums[r], nums[m]
+                r -= 1                                # don't m += 1
+            else:
+                m += 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void sortColors(int[] nums) {
+        int l = 0, m = 0, r = nums.length - 1;
+        while (m <= r) {
+            if (nums[m] == 0) {
+                int t = nums[l]; nums[l] = nums[m]; nums[m] = t;
+                l++; m++;
+            } else if (nums[m] == 2) {
+                int t = nums[m]; nums[m] = nums[r]; nums[r] = t;
+                r--;
+            } else {
+                m++;
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+<Callout type="warning">
+    **The tricky line: do NOT advance `m` after swapping with `r`.** The value we just swapped in could be a 0 or a 1 or a 2 — we haven't classified it yet. Advancing `m` would skip it. Contrast with the 0-swap branch, where we know the value at `l` was a 1 (already classified) so advancing `m` is safe.
+</Callout>
+
+## Worked example 5: Remove Element
+
+> Given an array `nums` and a value `val`, remove all instances of `val` in place. Return the new length.
+
+The filter: "this element is not `val`."
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int removeElement(vector<int>& nums, int val) {
+        int write = 0;
+        for (int read = 0; read < (int)nums.size(); read++) {
+            if (nums[read] != val) nums[write++] = nums[read];
+        }
+        return write;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def remove_element(nums, val):
+        write = 0
+        for read in range(len(nums)):
+            if nums[read] != val:
+                nums[write] = nums[read]
+                write += 1
+        return write
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int removeElement(int[] nums, int val) {
+        int write = 0;
+        for (int read = 0; read < nums.length; read++) {
+            if (nums[read] != val) nums[write++] = nums[read];
+        }
+        return write;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`. The cleanest example of the template.
+
+## A summary table
+
+| Problem                  | Filter (`read` keeps if...)                     | Notes                              |
+| :----------------------- | :---------------------------------------------- | :--------------------------------- |
+| Remove Duplicates Sorted | `nums[read] != nums[write - 1]`                 | Compare against last kept value    |
+| Remove Element           | `nums[read] != val`                             | Cleanest template                  |
+| Move Zeroes              | `nums[read] != 0`                               | Backfill or swap                   |
+| Lomuto Partition         | `nums[read] < pivot`                            | Swap (don't overwrite)             |
+| Dutch National Flag      | three-way: 0 / 1 / 2                            | Three pointers, careful `m` advance |
+| Squares of Sorted Array  | two-pointer merge from both ends                | Different pattern — see practice   |
+
+## Quick check
+
+<QuizBox
+    question="In Remove Duplicates from Sorted Array, we compare nums[read] against nums[write - 1], not nums[read - 1]. Why?"
+    options={[
+        "Off-by-one",
+        "Because we want to know if the current element differs from the LAST KEPT element, not the last READ element — consecutive duplicates would fool the latter check",
+        "Performance",
+        "Either works"
+    ]}
+    correctIndex={1}
+    explanation="If the input is [1, 1, 1, 2] and we compare against nums[read - 1], the second 1 differs from... wait, it doesn't. Hmm. Actually the second 1 EQUALS nums[read - 1], so we'd correctly skip. But the third 1 ALSO equals nums[read - 1], correctly skipped. So both checks happen to work on [1, 1, 1, 2]. The deeper reason: nums[write - 1] is the GUARANTEED last kept value, while nums[read - 1] could already have been a 'skipped' duplicate. For Remove-Duplicates-II (allow at most 2 of each), the distinction is crucial."
+/>
+
+<QuizBox
+    question="In Dutch National Flag, why don't we advance m after swapping nums[m] with nums[r]?"
+    options={[
+        "It's optional",
+        "Because the value we just received from r is unclassified — it could be 0, 1, or 2. We need to inspect it on the next iteration",
+        "Performance",
+        "Wrong — we should advance m"
+    ]}
+    correctIndex={1}
+    explanation="When we swap nums[m] (which was 2) with nums[r] (unknown), nums[m] now holds an unclassified value. Advancing m would skip past it, leaving an un-sorted value in our 'classified' region. Contrast with the 0-swap branch: nums[l] was known to be a 1 (from the m..l invariant), so after the swap nums[m] holds 1 and is safe to skip past."
+/>
+
+<QuizBox
+    question="The same-direction template uses O(1) extra space. The 'append to a new list' alternative uses O(n) extra space. Why is the in-place version preferred?"
+    options={[
+        "Style",
+        "Memory efficiency on large inputs, and many real systems (databases, embedded code) have strict memory limits where O(n) extra is unaffordable",
+        "Speed",
+        "It's not preferred"
+    ]}
+    correctIndex={1}
+    explanation="The interview reason: it shows you understand the read/write pattern. The real reason: in production, allocating a parallel array doubles memory pressure, can trigger garbage collection on hot paths, and is straight-up infeasible on memory-constrained systems. In-place is the default for filter / dedup operations whenever the API allows it."
+/>
+
+Next: **fast and slow pointers** — Floyd's cycle detection, linked-list midpoint, and finding the duplicate without using extra space.

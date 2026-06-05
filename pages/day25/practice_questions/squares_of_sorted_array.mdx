@@ -1,0 +1,153 @@
+---
+title: "Squares of a Sorted Array"
+description: "Opposite-ends two pointers with fill-from-the-back — O(n) sorted squares from a sorted input that may contain negatives."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Squares of a Sorted Array <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an integer array `nums` sorted in **non-decreasing** order (may contain negatives), return an array of the **squares** of each number sorted in non-decreasing order.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [-4, -1, 0, 3, 10]
+    Output: [0, 1, 9, 16, 100]
+    Explanation: squares = [16, 1, 0, 9, 100] → sorted = [0, 1, 9, 16, 100].
+
+> Case 2:
+    nums = [-7, -3, 2, 3, 11]
+    Output: [4, 9, 9, 49, 121]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^4`
+- `-10^4 <= nums[i] <= 10^4`
+- `nums` is sorted in non-decreasing order.
+
+#### Why brute force is wasteful
+
+```python
+return sorted(x * x for x in nums)
+```
+
+`O(n log n)` for the sort. But the input was already sorted! We're throwing away structure.
+
+#### The key insight
+
+Because `nums` is sorted, the **largest absolute value** is at one of the two ends. After squaring, that endpoint produces the **largest square**. The remaining squares come from a shorter sub-array; the same argument applies to it.
+
+So: opposite-ends two pointers, compare absolute values, take the larger one as the current biggest square, and write it into the **back** of the output array.
+
+#### State design
+
+1. **Flavor?** Opposite-ends.
+2. **Pointers?** `l = 0`, `r = n - 1`, plus a write pointer `k = n - 1` (back of output).
+3. **Movement?** Whichever absolute value is larger contributes the next square at position `k`. Then advance that side inward.
+4. **Stop?** When `l > r`.
+
+The output is filled from the back, hence `k--` each step.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> sortedSquares(vector<int>& nums) {
+        int n = nums.size(), l = 0, r = n - 1, k = n - 1;
+        vector<int> out(n);
+        while (l <= r) {
+            int a = nums[l] * nums[l];
+            int b = nums[r] * nums[r];
+            if (a > b) {
+                out[k--] = a;
+                l++;
+            } else {
+                out[k--] = b;
+                r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sorted_squares(nums):
+        n = len(nums)
+        out = [0] * n
+        l, r, k = 0, n - 1, n - 1
+        while l <= r:
+            a, b = nums[l] * nums[l], nums[r] * nums[r]
+            if a > b:
+                out[k] = a; l += 1
+            else:
+                out[k] = b; r -= 1
+            k -= 1
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] sortedSquares(int[] nums) {
+        int n = nums.length, l = 0, r = n - 1, k = n - 1;
+        int[] out = new int[n];
+        while (l <= r) {
+            int a = nums[l] * nums[l];
+            int b = nums[r] * nums[r];
+            if (a > b) {
+                out[k--] = a;
+                l++;
+            } else {
+                out[k--] = b;
+                r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why compare squares (or absolute values), not the raw values?** Because the input may contain negatives. `-4` and `3` have raw order `-4 < 3` but squared order `9 < 16` — the negative is the larger one. Comparing squares (or `abs()`) avoids the sign issue.
+</Callout>
+
+#### An even tighter version: compare `abs()` instead of squares
+
+Identical algorithm, swapping `nums[l] * nums[l]` for `abs(nums[l])`. Slightly cheaper per iteration since `abs` is faster than multiplication on most CPUs:
+
+```python
+def sorted_squares(nums):
+    n = len(nums)
+    out = [0] * n
+    l, r, k = 0, n - 1, n - 1
+    while l <= r:
+        if abs(nums[l]) > abs(nums[r]):
+            out[k] = nums[l] * nums[l]; l += 1
+        else:
+            out[k] = nums[r] * nums[r]; r -= 1
+        k -= 1
+    return out
+```
+
+#### Analysis
+
+- **Time:** `O(n)`. Each pointer moves at most `n - 1` times.
+- **Space:** `O(n)` for the output (unavoidable). `O(1)` auxiliary.
+
+#### Same skin
+
+- **Merge Sorted Array (in place)** — similar "fill from the back" trick to avoid overwriting unread data.
+- **Sort Transformed Array** — opposite-ends works for any monotone-after-transformation function (parabolas opening up or down).
+- **Wiggle Sort II** — different but uses the "split and reverse" pattern.
+- **Merge Two Sorted Lists** — two-pointer on two different inputs.
+
+The "fill from the back" trick is the most underrated two-pointer move. Anytime you'd be tempted to allocate a new array and then sort it, ask: **can I emit the right output element in O(1) per step by looking at both ends?**

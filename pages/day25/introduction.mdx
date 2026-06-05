@@ -1,0 +1,255 @@
+---
+title: "Introduction to Two Pointers"
+description: "What makes a problem a two-pointer problem — the three flavors, the convergence argument, when to sort first, and how to spot the pattern in interviews."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Introduction to Two Pointers
+
+Two-pointer techniques are the answer to a specific class of problems: ones where the **brute force is two nested loops over the same array** (or a closely related structure), and there's enough structure in the input to **skip whole regions** of the inner loop's work.
+
+The pattern shows up so often that it's worth naming and learning explicitly. Once you have it, an entire family of `O(n²)` brute-forces collapses to `O(n)`.
+
+## The three flavors
+
+The "two pointers" name covers three distinct shapes. Knowing which one a problem wants is half the battle.
+
+### 1. Opposite ends — pointers converge
+
+`l` starts at index `0`, `r` starts at index `n - 1`. They move toward each other based on a comparison. Used when:
+
+- The input is **sorted** (or can be sorted cheaply).
+- The brute force is "for every pair `(i, j)` with `i < j`, check some property."
+- Moving one pointer in a known direction can never miss a valid pair.
+
+Examples: **Two Sum on sorted array**, **Valid Palindrome**, **Container With Most Water**, the inner loop of **Three Sum**.
+
+### 2. Same direction — read and write
+
+Two pointers both walk forward, often at different speeds. The trick is using one as a **read cursor** (visits every element in order) and the other as a **write cursor** (advances only when something passes a filter or condition). Used for:
+
+- **In-place transforms** (dedup, filter, partition) where the output is a prefix of the input.
+- Problems where you'd be tempted to allocate a new array — same-direction two-pointer lets you do it in place.
+
+Examples: **Remove Duplicates from Sorted Array**, **Move Zeroes**, **Sort Colors** (Dutch National Flag), partition step of **quicksort**.
+
+### 3. Fast and slow — different speeds in the same structure
+
+Both pointers move forward, but the fast one moves **twice as fast**. Used in cycle detection and "find the middle" problems:
+
+- **Detecting a cycle** in a linked list (Floyd's tortoise and hare).
+- **Finding the middle** of a linked list in one pass.
+- **Finding the start of the cycle** (a clever follow-up to detection).
+- **Finding a duplicate** in an array where values point to indices.
+
+The mathematical guarantees behind these tricks come from the observation that if a cycle exists, the fast pointer will overtake the slow one within one cycle length.
+
+## A pattern-spotting checklist
+
+Before reaching for two pointers, run through these:
+
+<Steps>
+
+### Is the brute force two nested loops over the same array?
+
+Two pointers replaces nesting. If your inner loop is unrelated to the outer loop (a different array, a hash lookup, a recursive call), this isn't the pattern.
+
+### Does the input have structure?
+
+- **Sorted** → opposite ends or same direction.
+- **In-place output is a prefix of the input** → same direction (read/write).
+- **Cycle could exist** → fast and slow.
+- **Random unsorted, no special structure** → probably needs a hash map or sort-then-two-pointer.
+
+### Can I sort first?
+
+If sorting unlocks the technique, the total cost is `O(n log n)` for the sort plus `O(n)` for the two-pointer pass. That's still dramatically better than `O(n²)` brute force. **Always consider "sort then two-pointer"** as a candidate strategy.
+
+### What does each pointer represent?
+
+- For opposite ends: `l` and `r` define the *range under consideration*. Moving them inward shrinks that range.
+- For same direction: one is read, one is write. The write pointer's position marks the size of the valid output so far.
+- For fast and slow: both are positions in the same data structure, with the fast one moving twice as fast.
+
+### What moves the pointers?
+
+This is the hardest part. State the invariant:
+
+- "If `arr[l] + arr[r] < target`, then no pair starting at `arr[l]` and ending at anything less than `arr[r]` can hit target either — so we must increase `arr[l]`, i.e. `l += 1`."
+- "When `s[l] == s[r]`, both characters are good. Otherwise it's not a palindrome — return false."
+- "When the read pointer sees a non-zero, write it and advance write. Otherwise just advance read."
+
+If you can write the invariant as a single sentence, the code is one for-loop.
+
+</Steps>
+
+## A worked example: the convergence argument
+
+Take the canonical problem:
+
+> Given a **sorted** array `numbers` and target `t`, find two indices `i < j` such that `numbers[i] + numbers[j] = t`.
+
+The brute force is two nested loops — `O(n²)`. The two-pointer solution:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> twoSum(vector<int>& numbers, int t) {
+        int l = 0, r = numbers.size() - 1;
+        while (l < r) {
+            int s = numbers[l] + numbers[r];
+            if (s == t) return {l, r};
+            if (s < t) l++;
+            else       r--;
+        }
+        return {-1, -1};
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def two_sum(numbers, t):
+        l, r = 0, len(numbers) - 1
+        while l < r:
+            s = numbers[l] + numbers[r]
+            if s == t: return [l, r]
+            if s < t:  l += 1
+            else:      r -= 1
+        return [-1, -1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] twoSum(int[] numbers, int t) {
+        int l = 0, r = numbers.length - 1;
+        while (l < r) {
+            int s = numbers[l] + numbers[r];
+            if (s == t) return new int[]{l, r};
+            if (s < t) l++;
+            else       r--;
+        }
+        return new int[]{-1, -1};
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+Why is it correct? The **convergence argument**:
+
+- At each step, we know `numbers[l] + numbers[r]` is the sum of the smallest remaining left candidate and the largest remaining right candidate.
+- If their sum is `< t`, we can't get a bigger sum by decreasing `r` (smaller right value) — we must increase `l` to bring in a bigger left value.
+- If their sum is `> t`, we can't get a smaller sum by increasing `l` — we must decrease `r`.
+- The pointers never skip a valid pair, because we only ever move toward the unexplored region.
+
+The argument hinges on the array being **sorted**. On an unsorted array, two pointers from opposite ends would silently miss pairs.
+
+## When two pointers is *not* the answer
+
+The pattern fails when:
+
+- **The data is unsorted and you can only afford one pass.** Sort costs `O(n log n)` — if that's too much, you need a hash map (`O(n)` time, `O(n)` space).
+- **You need to enumerate all pairs satisfying a property.** Two pointers usually finds one or counts them, not enumerates them all (unless paired with careful index tracking).
+- **The "skip a region" invariant fails.** If both moving `l` forward AND moving `r` backward could lead to a valid answer at the current `(l, r)`, you can't pick a direction — and two pointers stalls.
+- **The problem is fundamentally about subsequences, not subarrays / pairs.** Subsequences need DP, not two pointers.
+
+## A worked example end-to-end: Valid Palindrome
+
+> Given a string `s`, return `true` if it is a palindrome after lowercasing all characters and removing non-alphanumerics.
+
+Run the checklist:
+
+1. **Brute force?** Build a new string with only alphanumerics, lowercased, then compare to its reverse. `O(n)` time and `O(n)` space.
+2. **Structure?** None needed — we can do this in place with opposite-ends pointers.
+3. **Sort?** No.
+4. **Pointers?** `l = 0`, `r = n - 1`. They walk inward.
+5. **Movement rule?** Skip non-alphanumerics on each side. Once both point at alphanumerics, compare lowercased characters. If equal, advance both. If not, return false.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isPalindrome(string s) {
+        int l = 0, r = s.size() - 1;
+        while (l < r) {
+            while (l < r && !isalnum(s[l])) l++;
+            while (l < r && !isalnum(s[r])) r--;
+            if (tolower(s[l]) != tolower(s[r])) return false;
+            l++; r--;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_palindrome(s):
+        l, r = 0, len(s) - 1
+        while l < r:
+            while l < r and not s[l].isalnum(): l += 1
+            while l < r and not s[r].isalnum(): r -= 1
+            if s[l].lower() != s[r].lower(): return False
+            l += 1; r -= 1
+        return True
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isPalindrome(String s) {
+        int l = 0, r = s.length() - 1;
+        while (l < r) {
+            while (l < r && !Character.isLetterOrDigit(s.charAt(l))) l++;
+            while (l < r && !Character.isLetterOrDigit(s.charAt(r))) r--;
+            if (Character.toLowerCase(s.charAt(l)) != Character.toLowerCase(s.charAt(r))) return false;
+            l++; r--;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`O(n)` time, `O(1)` extra space. **No copy of the string, no separate filtered version, no reverse.** That's two pointers doing what it does best.
+
+## Quick check
+
+<QuizBox
+    question="What's the defining property that makes a problem a two-pointer problem (the opposite-ends variant)?"
+    options={[
+        "The input is short",
+        "The brute force is two nested loops over the same array, AND moving one pointer in a known direction can never skip a valid answer",
+        "The input is sorted",
+        "It involves strings"
+    ]}
+    correctIndex={1}
+    explanation="Both halves are needed: nested-loop brute force PLUS the 'skip a whole half' invariant. Sortedness is often what enables the invariant, but the deeper property is monotonicity — once you've decided to move in a direction, you're guaranteed not to miss anything by doing so."
+/>
+
+<QuizBox
+    question="On an unsorted array, why doesn't opposite-ends two pointers work for Two Sum?"
+    options={[
+        "It's too slow",
+        "Without sortedness, knowing arr[l] + arr[r] < t tells us nothing about whether moving l forward or r backward would help — we have no convergence guarantee",
+        "It uses too much memory",
+        "Hash maps are faster"
+    ]}
+    correctIndex={1}
+    explanation="The whole convergence argument depends on sortedness. On a random unsorted array, the next bigger left value might be at any index, not necessarily at l+1. There's no way to know which pointer to move without checking more cells, which destroys the O(n) guarantee."
+/>
+
+<QuizBox
+    question="What's the time complexity of 'sort then two-pointer' for Three Sum?"
+    options={[
+        "O(n^2)",
+        "O(n^3)",
+        "O(n log n)",
+        "O(n)"
+    ]}
+    correctIndex={0}
+    explanation="Sort is O(n log n). Then for each fixed index i, we run an O(n) two-pointer pass — that's n × O(n) = O(n^2). Total is O(n log n) + O(n^2) = O(n^2). The classic interview answer is 'three sum is O(n^2) with sort-then-two-pointer.'"
+/>
+
+Next: **opposite-ends pointers** — the convergence pattern in detail, with templates for pair sum, palindrome, container with most water, and three sum.

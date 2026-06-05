@@ -1,0 +1,150 @@
+---
+title: "3Sum"
+description: "Sort plus fixed-pivot plus opposite-ends two-pointer — the canonical O(n²) three-sum solution with triple deduplication."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### 3Sum <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums`, return all the triplets `[nums[i], nums[j], nums[k]]` such that `i != j`, `i != k`, `j != k`, and `nums[i] + nums[j] + nums[k] == 0`.
+
+The solution set **must not contain duplicate triplets**.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [-1, 0, 1, 2, -1, -4]
+    Output: [[-1, -1, 2], [-1, 0, 1]]
+
+> Case 2:
+    nums = [0, 1, 1]
+    Output: []
+
+> Case 3:
+    nums = [0, 0, 0]
+    Output: [[0, 0, 0]]
+```
+
+#### Constraints
+
+- `3 <= nums.length <= 3000`
+- `-10^5 <= nums[i] <= 10^5`
+
+#### State design
+
+The textbook **K-Sum reduction**: sort, fix one index, then opposite-ends two-pointer on the rest.
+
+1. **Sort** the input so the convergence argument works AND duplicates are adjacent (for dedup).
+2. **For each `i`** from `0` to `n - 3`:
+   - If `nums[i] == nums[i - 1]`, skip (avoids duplicate first elements).
+   - Set `l = i + 1`, `r = n - 1`, `target = -nums[i]`.
+   - Run two-pointer to find pairs summing to `target`.
+   - On a match: record, advance both, skip duplicates on each side.
+
+The **three deduplication points** are the trickiest part — get any wrong and the output contains duplicates.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<vector<int>> threeSum(vector<int>& nums) {
+        vector<vector<int>> out;
+        sort(nums.begin(), nums.end());
+        int n = nums.size();
+        for (int i = 0; i + 2 < n; i++) {
+            if (nums[i] > 0) break;                                  // optional optimization
+            if (i > 0 && nums[i] == nums[i - 1]) continue;           // dedup #1
+            int l = i + 1, r = n - 1, target = -nums[i];
+            while (l < r) {
+                int s = nums[l] + nums[r];
+                if (s == target) {
+                    out.push_back({nums[i], nums[l], nums[r]});
+                    l++; r--;
+                    while (l < r && nums[l] == nums[l - 1]) l++;     // dedup #2
+                    while (l < r && nums[r] == nums[r + 1]) r--;     // dedup #3
+                } else if (s < target) l++;
+                else                   r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def three_sum(nums):
+        nums.sort()
+        out, n = [], len(nums)
+        for i in range(n - 2):
+            if nums[i] > 0: break                                # optimization
+            if i > 0 and nums[i] == nums[i - 1]: continue        # dedup #1
+            l, r, target = i + 1, n - 1, -nums[i]
+            while l < r:
+                s = nums[l] + nums[r]
+                if s == target:
+                    out.append([nums[i], nums[l], nums[r]])
+                    l += 1; r -= 1
+                    while l < r and nums[l] == nums[l - 1]: l += 1   # dedup #2
+                    while l < r and nums[r] == nums[r + 1]: r -= 1   # dedup #3
+                elif s < target: l += 1
+                else:            r -= 1
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<List<Integer>> threeSum(int[] nums) {
+        List<List<Integer>> out = new ArrayList<>();
+        Arrays.sort(nums);
+        int n = nums.length;
+        for (int i = 0; i + 2 < n; i++) {
+            if (nums[i] > 0) break;
+            if (i > 0 && nums[i] == nums[i - 1]) continue;
+            int l = i + 1, r = n - 1, target = -nums[i];
+            while (l < r) {
+                int s = nums[l] + nums[r];
+                if (s == target) {
+                    out.add(Arrays.asList(nums[i], nums[l], nums[r]));
+                    l++; r--;
+                    while (l < r && nums[l] == nums[l - 1]) l++;
+                    while (l < r && nums[r] == nums[r + 1]) r--;
+                } else if (s < target) l++;
+                else                   r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The three dedup points are not optional and not redundant:**
+    - **Dedup #1** (skip duplicate `i`): without it, fixing the same value for `i` would re-run the same two-pointer pass and re-emit triplets.
+    - **Dedup #2/#3** (skip after match): without them, on input like `[0, 0, 0, 0]`, the match at `(l, r)` would be followed by another match at `(l + 1, r - 1)` with identical values — duplicate triplet.
+
+    All three guards are required. Miss one and you produce duplicates.
+</Callout>
+
+#### The `nums[i] > 0` early exit
+
+Once the smallest of three numbers (`nums[i]`, after sorting) is positive, the sum of three numbers `>= nums[i] > 0` can never be zero. Break out of the outer loop. A small but cheap optimization that helps on inputs with many positives at the end.
+
+#### Analysis
+
+- **Time:** `O(n²)`. Sort is `O(n log n)`; the outer loop runs `n` times, each invoking an `O(n)` two-pointer pass.
+- **Space:** `O(1)` extra (excluding the output and sort's intrinsic stack space).
+
+#### Same skin
+
+- **3Sum Closest** — find the triplet whose sum is closest to a given target. Same template; track `abs(sum − target)` instead of equality.
+- **3Sum Smaller** — count triplets with sum `< target`. When `sum < target` at `(l, r)`, all `(l, l+1), ..., (l, r - 1)` also work — add `r - l` to the count and advance `l`.
+- **4Sum** — fix two indices, run two-pointer on the rest. `O(n³)` time.
+- **K-Sum (general)** — recursive reduction down to two-sum.

@@ -1,0 +1,261 @@
+---
+title: "Advanced Two-Pointer Patterns"
+description: "K-sum reduction, the merge step as two pointers, pointers on two different arrays, and the relationship to sliding window."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Advanced Two-Pointer Patterns
+
+The three canonical flavors carry most interview problems. The five techniques on this page show up in harder ones — multi-array problems, K-sum generalizations, and the "now do it without the hash map" follow-ups.
+
+## 1. K-Sum reduction — `kSum` via two-pointer
+
+> Given an array `nums` and a target `t`, return all unique tuples of `k` numbers from `nums` that sum to `t`.
+
+For `k = 2`: opposite-ends two-pointer on the sorted array. `O(n)`.
+For `k = 3`: fix one index, then two-pointer on the rest. `O(n²)`.
+For `k = 4`: fix two indices, then two-pointer on the rest. `O(n³)`.
+For general `k`: recursive reduction — fix one, recurse with `k − 1` on the suffix.
+
+```python
+def k_sum(nums, target, k):
+    nums.sort()
+    def helper(start, target, k):
+        if k == 2:
+            return two_sum_pairs(nums, start, target)
+        res = []
+        for i in range(start, len(nums) - k + 1):
+            if i > start and nums[i] == nums[i - 1]: continue
+            for sub in helper(i + 1, target - nums[i], k - 1):
+                res.append([nums[i]] + sub)
+        return res
+    return helper(0, target, k)
+
+def two_sum_pairs(nums, start, target):
+    res = []
+    l, r = start, len(nums) - 1
+    while l < r:
+        s = nums[l] + nums[r]
+        if s == target:
+            res.append([nums[l], nums[r]])
+            l += 1; r -= 1
+            while l < r and nums[l] == nums[l - 1]: l += 1
+            while l < r and nums[r] == nums[r + 1]: r -= 1
+        elif s < target: l += 1
+        else:            r -= 1
+    return res
+```
+
+`O(n^(k-1))` time. The deduplication trick — sort plus skip equal neighbors — works at every level.
+
+## 2. The merge step from merge sort
+
+> Given two sorted arrays `a` and `b`, return their merged sorted result.
+
+The classic "merge two sorted lists" trick is exactly two-pointer on two different arrays:
+
+```python
+def merge(a, b):
+    out = []
+    i = j = 0
+    while i < len(a) and j < len(b):
+        if a[i] <= b[j]:
+            out.append(a[i]); i += 1
+        else:
+            out.append(b[j]); j += 1
+    out.extend(a[i:])
+    out.extend(b[j:])
+    return out
+```
+
+`O(n + m)` time. The pointers advance independently — whichever points to the smaller value goes first.
+
+Variants of this same shape:
+
+- **Merge Two Sorted Lists** (linked-list version): same logic, linked-list nodes.
+- **Intersection of Two Arrays II** (multiset intersection of two sorted arrays).
+- **Find the Median of Two Sorted Arrays** (a binary-search variant, but the conceptual baseline is two-pointer).
+
+## 3. Pointers on two different arrays
+
+When the pointers live in *different* arrays, the "convergence" logic is replaced by "advance the lagging one":
+
+### Worked example: Merge Sorted Array (in place, into `a`)
+
+> `nums1` has length `m + n` with the first `m` elements being its content and the rest zero-padded. `nums2` has `n` elements. Merge `nums2` into `nums1` in sorted order, in place.
+
+The clever trick: **fill from the right, not the left**. Walking from the right means we never overwrite an unread value.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void merge(vector<int>& nums1, int m, vector<int>& nums2, int n) {
+        int i = m - 1, j = n - 1, k = m + n - 1;
+        while (j >= 0) {
+            if (i >= 0 && nums1[i] > nums2[j]) nums1[k--] = nums1[i--];
+            else                               nums1[k--] = nums2[j--];
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def merge(nums1, m, nums2, n):
+        i, j, k = m - 1, n - 1, m + n - 1
+        while j >= 0:
+            if i >= 0 and nums1[i] > nums2[j]:
+                nums1[k] = nums1[i]; i -= 1
+            else:
+                nums1[k] = nums2[j]; j -= 1
+            k -= 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void merge(int[] nums1, int m, int[] nums2, int n) {
+        int i = m - 1, j = n - 1, k = m + n - 1;
+        while (j >= 0) {
+            if (i >= 0 && nums1[i] > nums2[j]) nums1[k--] = nums1[i--];
+            else                               nums1[k--] = nums2[j--];
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`O(m + n)` time, `O(1)` space. **Walking right-to-left is the key insight** — it avoids the overwriting problem that left-to-right would cause.
+
+## 4. Sliding window as a special case
+
+The sliding-window pattern (Day 24) is actually a same-direction two-pointer where:
+
+- The "read" pointer is `r`, advancing every iteration.
+- The "write-like" pointer is `l`, advancing only when the window is invalid.
+- Both advance forward, with `l <= r` always.
+
+That's why sliding window is `O(n)`: it's a same-direction two-pointer whose movements are tied to a validity predicate instead of a write decision. The same amortization argument applies — each index enters and leaves the window at most once.
+
+If you ever feel "is this sliding window or two pointers?" — they're the same family. Sliding window is the version where you care about the *window contents*; two pointers is the version where you care about the *pointer positions* directly.
+
+## 5. Squares of a Sorted Array — merge from the outside in
+
+> Given an integer array `nums` sorted in **non-decreasing** order (may contain negatives), return an array of the squares, sorted in non-decreasing order.
+
+The brute force: square everything, then sort. `O(n log n)`.
+
+The clever two-pointer: the largest square is at one of the **ends** of the input (since the input is sorted; the most negative or most positive squares dominate). So opposite-ends pointers, comparing absolute values, filling the output **from the back**:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> sortedSquares(vector<int>& nums) {
+        int n = nums.size(), l = 0, r = n - 1, k = n - 1;
+        vector<int> out(n);
+        while (l <= r) {
+            if (abs(nums[l]) > abs(nums[r])) {
+                out[k--] = nums[l] * nums[l];
+                l++;
+            } else {
+                out[k--] = nums[r] * nums[r];
+                r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sorted_squares(nums):
+        n = len(nums)
+        out = [0] * n
+        l, r, k = 0, n - 1, n - 1
+        while l <= r:
+            if abs(nums[l]) > abs(nums[r]):
+                out[k] = nums[l] * nums[l]
+                l += 1
+            else:
+                out[k] = nums[r] * nums[r]
+                r -= 1
+            k -= 1
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] sortedSquares(int[] nums) {
+        int n = nums.length, l = 0, r = n - 1, k = n - 1;
+        int[] out = new int[n];
+        while (l <= r) {
+            if (Math.abs(nums[l]) > Math.abs(nums[r])) {
+                out[k--] = nums[l] * nums[l];
+                l++;
+            } else {
+                out[k--] = nums[r] * nums[r];
+                r--;
+            }
+        }
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`O(n)` time, `O(n)` extra for the output (unavoidable). A factor-of-`log n` speedup over the obvious sort, and a beautiful application of the "fill from the back" trick.
+
+## Choosing the right tool
+
+| Symptom                                                       | Reach for                                |
+| :------------------------------------------------------------ | :--------------------------------------- |
+| "Pair sum on sorted array" / "palindrome" / "container"       | Opposite-ends two-pointer                |
+| "Remove" / "filter" / "dedup" / "partition" in place          | Same-direction read/write                |
+| "Cycle in linked list" / "duplicate in array via cycle"       | Fast and slow (Floyd's)                  |
+| "Find middle of linked list in one pass"                      | Fast and slow                            |
+| "K-sum"                                                       | K-Sum reduction (recursive two-pointer)  |
+| "Merge two sorted arrays / lists"                             | Two-pointer on two arrays                |
+| "Merge in place into nums1 with extra space at the end"       | Right-to-left two-pointer                |
+| "Sorted squares" / monotone-after-transformation              | Opposite-ends, fill from the back        |
+| Subarray with a property (sum, distinct, etc.) — variable     | Sliding window (same-direction variant)  |
+
+## Quick check
+
+<QuizBox
+    question="For Merge Sorted Array (in-place), why do we fill from the RIGHT (back of nums1) instead of the left?"
+    options={[
+        "Right-to-left is faster",
+        "Filling from the left would overwrite nums1's existing values before we read them; filling from the right places values in the empty zero-padded region first, never touching unread content",
+        "Convention",
+        "Either works"
+    ]}
+    correctIndex={1}
+    explanation="nums1's left half is already populated with values we need to read. If we wrote left-to-right, the first write would clobber nums1[0]. Writing right-to-left puts new values into the unused (zero-padded) tail first; by the time we'd risk overwriting, the corresponding nums1 values have already been read."
+/>
+
+<QuizBox
+    question="In Squares of a Sorted Array, why is the maximum square at one of the ends of the input?"
+    options={[
+        "Coincidence",
+        "Because the input is sorted, the most-negative is at index 0 and the most-positive at index n-1. After squaring, those two are the candidates for largest. The interior squares are bounded by both ends.",
+        "Squares are always positive",
+        "Random ordering"
+    ]}
+    correctIndex={1}
+    explanation="A sorted array's leftmost value is the most negative (largest absolute value among negatives); its rightmost is the most positive (largest absolute value among positives). The square magnitude is |x|^2, so the max square is whichever endpoint has the larger absolute value. We compare and emit; the interior eventually becomes the next candidates as we shrink toward the middle."
+/>
+
+<QuizBox
+    question="K-sum reduction takes O(n^(k-1)) time. Why isn't it O(n^k)?"
+    options={[
+        "The recursion is cached",
+        "Because the innermost step (k = 2) is a two-pointer pass that's O(n), not O(n^2). The k - 2 outer levels each contribute a factor of n.",
+        "Sorting makes it faster",
+        "It's actually O(n^k)"
+    ]}
+    correctIndex={1}
+    explanation="At the base case (k = 2), we replace the O(n^2) brute force pair-finding with O(n) two-pointer. Each of the k - 2 recursive levels above adds a factor of n. Total: n^(k - 2) * n = n^(k - 1). Without the two-pointer trick at the base, the total would be the full n^k brute force."
+/>
+
+Next: **basic warm-up questions** — valid palindrome, reverse string, two sum II, move zeroes.

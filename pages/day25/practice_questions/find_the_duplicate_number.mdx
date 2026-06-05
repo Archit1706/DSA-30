@@ -1,0 +1,155 @@
+---
+title: "Find the Duplicate Number"
+description: "Floyd's cycle detection applied to an array — find the duplicate in O(n) time and O(1) space by treating the array as a linked list."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find the Duplicate Number <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array of integers `nums` containing `n + 1` integers where each integer is in the range `[1, n]` inclusive, there is **exactly one repeated number** in `nums`. Return this repeated number.
+
+You must solve the problem **without modifying the array** `nums` and use only **constant extra space**.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 3, 4, 2, 2]
+    Output: 2
+
+> Case 2:
+    nums = [3, 1, 3, 4, 2]
+    Output: 3
+
+> Case 3:
+    nums = [3, 3, 3, 3, 3]
+    Output: 3
+```
+
+#### Constraints
+
+- `1 <= n <= 10^5`
+- `nums.length == n + 1`
+- `1 <= nums[i] <= n`
+- All the integers in `nums` appear only once except for **precisely one** integer which appears two or more times.
+
+#### Why the obvious approaches don't fit
+
+- **Sort then scan:** modifies the array → violates the constraint.
+- **Hash set:** `O(n)` extra space → violates the constraint.
+- **Mark visited by negating `nums[abs(x)]`:** modifies the array → violates the constraint.
+
+We need something that's `O(n)` time, `O(1)` space, and read-only. The trick: **treat the array as a linked list and apply Floyd's cycle detection.**
+
+#### The reduction
+
+Define a function `f(i) = nums[i]`. Then iterating `f` starting from index 0 visits:
+
+```
+0 → nums[0] → nums[nums[0]] → nums[nums[nums[0]]] → ...
+```
+
+Each value is in `[1, n]`, so the iteration stays within indices `[1, n]` after the first step (and `0` is only the start). Since values come from `n + 1` slots but map to only `n` distinct values (1 through n), by pigeonhole **two different indices share the same next-value** — that's the duplicate, and it's the entry point of a cycle in this implicit graph.
+
+So the problem reduces to: **find the entry of the cycle in this functional iteration**. That's exactly Linked List Cycle II.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int findDuplicate(vector<int>& nums) {
+        int slow = nums[0], fast = nums[0];
+        // Phase 1: detect cycle (use do-while since slow == fast initially)
+        do {
+            slow = nums[slow];
+            fast = nums[nums[fast]];
+        } while (slow != fast);
+        // Phase 2: find the entry
+        slow = nums[0];
+        while (slow != fast) {
+            slow = nums[slow];
+            fast = nums[fast];
+        }
+        return slow;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_duplicate(nums):
+        slow = fast = nums[0]
+        # Phase 1
+        while True:
+            slow = nums[slow]
+            fast = nums[nums[fast]]
+            if slow == fast: break
+        # Phase 2
+        slow = nums[0]
+        while slow != fast:
+            slow = nums[slow]
+            fast = nums[fast]
+        return slow
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findDuplicate(int[] nums) {
+        int slow = nums[0], fast = nums[0];
+        do {
+            slow = nums[slow];
+            fast = nums[nums[fast]];
+        } while (slow != fast);
+        slow = nums[0];
+        while (slow != fast) {
+            slow = nums[slow];
+            fast = nums[fast];
+        }
+        return slow;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Use `do { ... } while` (or a `while True` with a break) for phase 1, not `while (slow != fast)`.**
+
+    Both `slow` and `fast` start at `nums[0]`, so they're equal at iteration 0. A plain `while (slow != fast)` would skip phase 1 entirely. The `do-while` (or `while True` + break-on-equal AFTER the move) guarantees at least one step before the equality check.
+</Callout>
+
+#### An alternative: binary search on the value space
+
+There's a slicker (and slower) `O(n log n)` approach: **binary search on the answer.** For each candidate value `mid`, count how many `nums[i] <= mid`. If that count is `> mid`, the duplicate is `<= mid`. Otherwise it's `> mid`.
+
+```python
+def find_duplicate_bs(nums):
+    lo, hi = 1, len(nums) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if sum(1 for x in nums if x <= mid) > mid:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+```
+
+`O(n log n)` time, `O(1)` space. Slower than Floyd's but easier to derive on the spot. Knowing both impresses interviewers.
+
+#### Analysis
+
+- **Time:** `O(n)`. Phase 1 and phase 2 each take at most `n` steps.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Linked List Cycle II** — same algorithm on actual linked lists.
+- **Circular Array Loop** — variant where we follow `i + nums[i]` instead of `nums[i]`.
+- **Happy Number** — Floyd's on the "sum of squared digits" function.
+- **Linked List Cycle (detection only)** — phase 1 only.
+
+This problem is a beautiful application of the "if you can frame iteration as a function with a fixed point or cycle, Floyd's works in `O(1)` space" pattern. Anywhere you'd otherwise need a hash set to remember visited states, Floyd's is the constant-space alternative.

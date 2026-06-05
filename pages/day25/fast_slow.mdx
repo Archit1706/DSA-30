@@ -1,0 +1,324 @@
+---
+title: "Fast and Slow Pointers"
+description: "Floyd's tortoise and hare — cycle detection, finding the start of a cycle, linked-list midpoint, and the O(1)-space duplicate-finding trick."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Fast and Slow Pointers
+
+The third flavor of two pointers. Both pointers move forward through the same structure (a linked list, an array, or a cycle in a graph), but **the fast pointer moves twice as fast as the slow one**.
+
+This sounds simple but unlocks three powerful tricks:
+
+1. **Cycle detection** — if the fast pointer ever meets the slow one, there's a cycle (Floyd's tortoise and hare).
+2. **Linked-list midpoint** — when the fast pointer reaches the end, the slow one is at the middle.
+3. **Finding the start of a cycle** — after detection, reset one pointer to the head; advance both at the same speed; they meet at the cycle's entry.
+
+All three run in `O(n)` time and **`O(1)` extra space** — no hash set, no auxiliary array.
+
+## Trick 1 — Cycle detection
+
+> Given the head of a singly linked list, return `true` if there's a cycle.
+
+The brute force: store visited nodes in a hash set, check each new node. `O(n)` time, `O(n)` space.
+
+Floyd's: walk `slow` one step at a time, `fast` two steps at a time. If there's a cycle, `fast` is gaining on `slow` by one node per step (relative speed = 1 within the cycle). It must eventually catch up. If there's no cycle, `fast` runs off the end.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool hasCycle(ListNode* head) {
+        ListNode *slow = head, *fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def has_cycle(head):
+        slow = fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+            if slow == fast: return True
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean hasCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+<Callout type="info">
+    **Why does fast always catch slow if there's a cycle?**
+
+    Once both pointers are inside the cycle, the fast pointer gains one position on the slow pointer per step (it moves 2 while slow moves 1, net +1 per iteration). The cycle has some length `C`. After at most `C` more steps, fast catches slow — they're now at the same node.
+
+    The "fast escapes" branch (`fast` or `fast.next` is null) only triggers if no cycle exists, since a cycle has no end.
+</Callout>
+
+## Trick 2 — Linked-list midpoint
+
+> Given the head of a linked list, return the middle node.
+
+When `fast` runs off the end, `slow` is at the midpoint. For even-length lists, this returns the **second** of the two middle nodes (which is the LeetCode convention for "Middle of the Linked List"). To get the first of the two middles, start `fast` one node ahead.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    ListNode* middleNode(ListNode* head) {
+        ListNode *slow = head, *fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+        }
+        return slow;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def middle_node(head):
+        slow = fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+        return slow
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public ListNode middleNode(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+        }
+        return slow;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+The "find the middle in one pass" trick is the building block for **Palindrome Linked List**, **Reorder List**, and **Sort List** — anywhere you need to split the list in half cheaply.
+
+## Trick 3 — Finding the start of the cycle
+
+> Given a linked list with a cycle, return the node where the cycle begins.
+
+After Floyd's detection, **reset one pointer to the head** and **advance both at the same speed**. They meet at the cycle's entry. This is one of those "math-magic" tricks that looks like sorcery the first time but is provable in three lines.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    ListNode* detectCycle(ListNode* head) {
+        ListNode *slow = head, *fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+            if (slow == fast) {
+                // Phase 2: find the entry
+                ListNode* p = head;
+                while (p != slow) {
+                    p = p->next;
+                    slow = slow->next;
+                }
+                return p;
+            }
+        }
+        return nullptr;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def detect_cycle(head):
+        slow = fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+            if slow == fast:
+                p = head
+                while p != slow:
+                    p = p.next
+                    slow = slow.next
+                return p
+        return None
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public ListNode detectCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) {
+                ListNode p = head;
+                while (p != slow) {
+                    p = p.next;
+                    slow = slow.next;
+                }
+                return p;
+            }
+        }
+        return null;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Why it works (the math)
+
+Let `L` = length from head to cycle entry. Let `C` = cycle length. Let `m` = distance from cycle entry to where `slow` and `fast` first met.
+
+When they meet:
+
+- `slow` has walked `L + m` steps.
+- `fast` has walked `2(L + m)` steps.
+- `fast` has also walked `L + m + kC` steps for some positive integer `k` (it took `k` extra laps).
+
+So `2(L + m) = L + m + kC`, which gives `L + m = kC`, i.e. **`L = kC − m`**.
+
+That means **walking `L` steps from the head AND walking `L` steps from the meeting point both land at the same place — the cycle entry**. So reset one pointer to head, walk both at speed 1, and where they meet is the start of the cycle.
+
+<Callout type="info">
+    Knowing the proof matters — interviewers love asking "why does that work?" after you write the code. The summary: "after they meet, the distance from head to entry equals the distance from meeting point to entry (mod cycle length), so two pointers walking at the same speed must meet at the entry."
+</Callout>
+
+## Trick 4 — Find the Duplicate Number (sneaky cycle)
+
+> Given an array `nums` of `n + 1` integers where each integer is between `1` and `n` (inclusive), there is at least one repeated number. Find it without modifying the array, in `O(1)` extra space.
+
+The trick: **treat the array as a linked list**, where the "next" of index `i` is `nums[i]`. The duplicate creates a cycle, and the cycle's entry is the duplicate. Floyd's applies directly.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int findDuplicate(vector<int>& nums) {
+        int slow = nums[0], fast = nums[0];
+        do {
+            slow = nums[slow];
+            fast = nums[nums[fast]];
+        } while (slow != fast);
+        slow = nums[0];
+        while (slow != fast) {
+            slow = nums[slow];
+            fast = nums[fast];
+        }
+        return slow;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_duplicate(nums):
+        slow = fast = nums[0]
+        while True:
+            slow = nums[slow]
+            fast = nums[nums[fast]]
+            if slow == fast: break
+        slow = nums[0]
+        while slow != fast:
+            slow = nums[slow]
+            fast = nums[fast]
+        return slow
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findDuplicate(int[] nums) {
+        int slow = nums[0], fast = nums[0];
+        do {
+            slow = nums[slow];
+            fast = nums[nums[fast]];
+        } while (slow != fast);
+        slow = nums[0];
+        while (slow != fast) {
+            slow = nums[slow];
+            fast = nums[fast];
+        }
+        return slow;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`O(n)` time, `O(1)` space. The "obvious" `O(n)` time + `O(n)` space solution is a hash set; this version uses the cycle detection insight to achieve constant space.
+
+## When to reach for fast and slow
+
+| Symptom                                                       | Fast / slow trick                       |
+| :------------------------------------------------------------ | :-------------------------------------- |
+| "Does this linked list have a cycle?"                         | Floyd's detection                       |
+| "Find the middle node of a linked list."                      | Single pass with `fast = 2 × slow`      |
+| "Where does the cycle start?"                                 | Detect + reset to head + same speed     |
+| "Find the duplicate in an array of `n+1` ints in `[1..n]`."   | Array-as-linked-list, then Floyd's      |
+| "Is this number `n` a happy number?"                          | Apply the digit-square-sum, detect cycle |
+| "Reorder / rearrange a linked list."                          | Find the middle, then process two halves |
+
+## The general fast-slow pattern
+
+The unifying observation: **if iterating a function `f` from a starting point eventually loops, Floyd's algorithm detects the loop in `O(n)` time and `O(1)` space**. The function can be `node.next` (linked lists), `nums[i]` (array as a graph), or `sum_of_squared_digits(n)` (happy number). Anywhere you'd otherwise need a hash set to remember visited states, Floyd's likely works in constant space.
+
+## Quick check
+
+<QuizBox
+    question="In Floyd's cycle detection, why does fast moving 2x guarantee catching slow if a cycle exists?"
+    options={[
+        "Coincidence",
+        "Inside the cycle, fast gains 1 position per step on slow (relative velocity = 2 - 1 = 1). After at most C steps where C is the cycle length, fast catches slow.",
+        "Because the cycle is small",
+        "Random chance"
+    ]}
+    correctIndex={1}
+    explanation="Once both are in the cycle, the relative velocity is +1 per outer-loop step. The gap between them shrinks by 1 each step until it's 0, which must happen within C iterations. If no cycle exists, fast runs off the end before meeting slow."
+/>
+
+<QuizBox
+    question="After Floyd's first meeting point, to find the cycle's start: reset slow to head, advance both at the same speed. The math proof relies on:"
+    options={[
+        "Random walk theory",
+        "L + m = kC, which implies L = kC - m: walking L from head AND L from meeting both land at the entry",
+        "Modular arithmetic on the cycle",
+        "Birthday paradox"
+    ]}
+    correctIndex={1}
+    explanation="Let L = head-to-entry distance, C = cycle length, m = entry-to-meeting distance. slow walked L+m; fast walked 2(L+m) = L+m+kC for some integer k. Solving: L+m = kC, so L = kC-m. That means head-to-entry == meeting-to-entry mod C, so walking same-speed from both lands at the entry."
+/>
+
+<QuizBox
+    question="In Find the Duplicate Number, why does treating nums as a linked list (next(i) = nums[i]) work?"
+    options={[
+        "Magic",
+        "Each value in [1..n] points to an index in [0..n+1]; with n+1 values pointing to n slots, by pigeonhole at least one slot has two predecessors — that's the cycle's entry, which is the duplicate",
+        "Because the array is sorted",
+        "It's a hash collision trick"
+    ]}
+    correctIndex={1}
+    explanation="The function f(i) = nums[i] maps [0..n] -> [1..n] (since values are in [1, n]). Starting from index 0, we follow nums[0], nums[nums[0]], etc. Because two different indices have the same value (the duplicate), they both point to the same next-index — that's the entry of a cycle. The cycle's entry node is the duplicate."
+/>
+
+Next: **advanced patterns** — K-sum reduction, two-pointer merge, and the technique applied to two different arrays.

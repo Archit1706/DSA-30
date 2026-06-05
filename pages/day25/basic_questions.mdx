@@ -1,0 +1,288 @@
+---
+title: "Basic Two-Pointer Questions"
+description: "Warm-up problems for the three two-pointer flavors — valid palindrome, reverse string, two sum II, move zeroes, middle of linked list, linked list cycle."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic Two-Pointer Questions
+
+Six warm-ups to lock the three templates into muscle memory. Two opposite-ends, two same-direction, two fast-and-slow — one of each shape from each side of the family.
+
+For each problem, force yourself through the [pattern-spotting checklist](/day25/introduction) before peeking:
+
+1. Which **flavor** does the problem want?
+2. What are the **pointers' roles**?
+3. What's the **movement rule**?
+4. What's the **stopping condition**?
+
+<Steps>
+
+### 1. Reverse String (in place)
+
+Given a character array `s`, reverse it in place.
+
+**Flavor:** opposite-ends. **Pointers:** `l = 0`, `r = n - 1`. **Movement:** swap and move both inward.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void reverseString(vector<char>& s) {
+        int l = 0, r = s.size() - 1;
+        while (l < r) swap(s[l++], s[r--]);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse_string(s):
+        l, r = 0, len(s) - 1
+        while l < r:
+            s[l], s[r] = s[r], s[l]
+            l += 1; r -= 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void reverseString(char[] s) {
+        int l = 0, r = s.length - 1;
+        while (l < r) {
+            char tmp = s[l]; s[l] = s[r]; s[r] = tmp;
+            l++; r--;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 2. Valid Palindrome
+
+Given a string `s`, return `true` if it's a palindrome after lowercasing and removing non-alphanumerics.
+
+**Flavor:** opposite-ends. Inner `while` loops skip junk characters.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isPalindrome(string s) {
+        int l = 0, r = s.size() - 1;
+        while (l < r) {
+            while (l < r && !isalnum(s[l])) l++;
+            while (l < r && !isalnum(s[r])) r--;
+            if (tolower(s[l]) != tolower(s[r])) return false;
+            l++; r--;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def is_palindrome(s):
+        l, r = 0, len(s) - 1
+        while l < r:
+            while l < r and not s[l].isalnum(): l += 1
+            while l < r and not s[r].isalnum(): r -= 1
+            if s[l].lower() != s[r].lower(): return False
+            l += 1; r -= 1
+        return True
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isPalindrome(String s) {
+        int l = 0, r = s.length() - 1;
+        while (l < r) {
+            while (l < r && !Character.isLetterOrDigit(s.charAt(l))) l++;
+            while (l < r && !Character.isLetterOrDigit(s.charAt(r))) r--;
+            if (Character.toLowerCase(s.charAt(l)) != Character.toLowerCase(s.charAt(r))) return false;
+            l++; r--;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 3. Two Sum II (sorted array)
+
+Given a 1-indexed sorted array `numbers` and target `t`, return the two 1-indexed positions whose values sum to `t`.
+
+**Flavor:** opposite-ends. **Movement:** if sum too small, `l++`; if too big, `r--`.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def two_sum(numbers, t):
+        l, r = 0, len(numbers) - 1
+        while l < r:
+            s = numbers[l] + numbers[r]
+            if s == t: return [l + 1, r + 1]
+            if s < t:  l += 1
+            else:      r -= 1
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 4. Move Zeroes
+
+Given an integer array `nums`, move all 0s to the end while keeping the relative order of non-zero elements. In place.
+
+**Flavor:** same-direction. **Filter:** "non-zero." Backfill with zeros after the read loop.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void moveZeroes(vector<int>& nums) {
+        int write = 0;
+        for (int read = 0; read < (int)nums.size(); read++) {
+            if (nums[read] != 0) nums[write++] = nums[read];
+        }
+        while (write < (int)nums.size()) nums[write++] = 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def move_zeroes(nums):
+        write = 0
+        for read in range(len(nums)):
+            if nums[read] != 0:
+                nums[write] = nums[read]; write += 1
+        for i in range(write, len(nums)):
+            nums[i] = 0
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public void moveZeroes(int[] nums) {
+        int write = 0;
+        for (int read = 0; read < nums.length; read++) {
+            if (nums[read] != 0) nums[write++] = nums[read];
+        }
+        while (write < nums.length) nums[write++] = 0;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 5. Middle of the Linked List
+
+Return the middle node. For even-length lists, return the second of the two middles.
+
+**Flavor:** fast and slow. `fast` moves 2 steps for every 1 step of `slow`.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def middle_node(head):
+        slow = fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+        return slow
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 6. Linked List Cycle
+
+Given the head of a singly linked list, return `true` if it has a cycle.
+
+**Flavor:** fast and slow (Floyd's). If a cycle exists, fast eventually meets slow inside it.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool hasCycle(ListNode* head) {
+        ListNode *slow = head, *fast = head;
+        while (fast && fast->next) {
+            slow = slow->next;
+            fast = fast->next->next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def has_cycle(head):
+        slow = fast = head
+        while fast and fast.next:
+            slow = slow.next
+            fast = fast.next.next
+            if slow == fast: return True
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean hasCycle(ListNode head) {
+        ListNode slow = head, fast = head;
+        while (fast != null && fast.next != null) {
+            slow = slow.next;
+            fast = fast.next.next;
+            if (slow == fast) return true;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="In Reverse String, why use opposite-ends pointers instead of building a new reversed string?"
+    options={[
+        "Style",
+        "In place: O(1) extra space instead of O(n). Same time, less memory.",
+        "Performance — swapping is faster",
+        "Convention"
+    ]}
+    correctIndex={1}
+    explanation="Both versions are O(n) time. The in-place opposite-ends swap uses O(1) extra space; building a new string uses O(n). For an interview question explicitly asking for in-place, the answer is the swap version."
+/>
+
+<QuizBox
+    question="In Move Zeroes (overwrite + backfill version), why do we need the second loop?"
+    options={[
+        "Off-by-one",
+        "Because the first loop only writes non-zeros into the prefix arr[0..write); the suffix arr[write..n) still contains the original (now stale) values — including non-zeros we've duplicated. The backfill zeroes them out.",
+        "Performance",
+        "Not needed"
+    ]}
+    correctIndex={1}
+    explanation="The first loop copies non-zeros to the front but doesn't clear the rest of the array. Without the backfill, arr would look like [nonzeros] + [old garbage including duplicates of the nonzeros], not [nonzeros] + [zeros]. The backfill enforces the 'all zeros at the end' invariant."
+/>
+
+<QuizBox
+    question="In Middle of the Linked List, when fast lands on the LAST node (not past it), what's slow at?"
+    options={[
+        "The middle",
+        "Slow is at the SECOND of the two middle nodes for even-length lists (since the loop condition is fast && fast.next; when fast.next is null, fast is at the last node and slow is one past the midpoint).",
+        "Off by one — bug",
+        "Doesn't matter"
+    ]}
+    correctIndex={1}
+    explanation="For odd n (e.g., 5 nodes), fast traverses positions 0, 2, 4 — lands exactly on the last node when slow is at the middle (position 2). For even n (e.g., 6 nodes), fast at position 4 has fast.next = position 5, the loop continues: fast moves to position 6 (null), slow moves to position 3 — the second middle. LeetCode's convention is to return the second middle for even-length lists."
+/>
+
+Next: **the ten practice problems** — every two-pointer flavor represented, with the movement-rule justification for each.
