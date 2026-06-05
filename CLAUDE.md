@@ -64,6 +64,8 @@ Components are plain JSX with **named exports** (`export { Foo, FooInteractive }
 
 `pages/index.mdx` is the only page that isn't a docs chapter — it's a marketing-style landing with a hero, problem-agitation section, live demo, quiz, features grid, 30-tile roadmap, and final CTA. **No emojis** — use `react-icons/lu` (Lucide) icons. When adding icon+text inside a flex container, apply `leading-none` on the container and `shrink-0` on the icon, and wrap bare text in `<span>` so Nextra's prose layer doesn't mangle the alignment.
 
+**Tailwind text-size + line-height trap.** Tailwind v3's `text-5xl` through `text-9xl` utilities bundle `line-height: 1` into the same class declaration as the font-size. If you mark the size class with `!` (e.g. `!text-7xl`) to override Nextra's heading rules, you also mark that `line-height: 1` as `!important` — and an inline `style={{ lineHeight: 1.2 }}` cannot beat a class with `!important`. To fix overlapping hero text on large screens, apply the line-height as a Tailwind class with `!` of its own (`!leading-[1.25]` / `!leading-tight`) — same specificity but appears later in the cascade and wins.
+
 ## Public assets
 
 Day-specific images live in `public/assets/` and are referenced from MDX as absolute paths (`/assets/foo.png`). New diagrams go there. `public/manifest.json` and the `icon-*.png` files back the PWA manifest declared in `theme.config.jsx`.
