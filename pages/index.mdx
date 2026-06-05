@@ -34,17 +34,16 @@ import {
   </div>
 
   <div className="flex flex-col items-center justify-center text-center pt-16 pb-10 px-4">
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs font-medium text-blue-300 mb-8">
-      <span className="relative flex w-2 h-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400" />
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs font-medium text-blue-300 mb-8 leading-none">
+      <span className="relative inline-flex w-2 h-2 shrink-0">
+        <span className="animate-ping absolute inset-0 rounded-full bg-blue-400 opacity-75" />
+        <span className="relative w-2 h-2 rounded-full bg-blue-400" />
       </span>
-      30 days · 30 topics · 0 fluff
+      <span>30 days · 30 topics · 0 fluff</span>
     </div>
 
-    <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-5 leading-[1.05]">
-      The interview-prep <br className="hidden md:block" /> guide that
-      {" "}
+    <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.1] max-w-5xl">
+      The interview-prep guide that{" "}
       <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400">
         actually sticks.
       </span>
@@ -57,28 +56,28 @@ import {
       This one feels like playing a game — one level a day, for thirty days.
     </p>
 
-    <div className="flex flex-wrap gap-3 justify-center mb-4">
+    <div className="flex flex-wrap gap-3 justify-center mb-5">
       <Link
         href="/getting_started"
-        className="group inline-flex items-center gap-2 px-7 py-3 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 transform hover:-translate-y-0.5"
+        className="group inline-flex items-center gap-2 px-7 py-3 text-base font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 rounded-full hover:shadow-lg hover:shadow-blue-500/50 transition-all duration-300 transform hover:-translate-y-0.5 leading-none"
       >
-        <LuRocket className="w-4 h-4" />
-        Start the Challenge
-        <LuArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+        <LuRocket className="w-[18px] h-[18px] shrink-0" />
+        <span>Start the Challenge</span>
+        <LuArrowRight className="w-[18px] h-[18px] shrink-0 transition-transform group-hover:translate-x-1" />
       </Link>
       <Link
         href="/day1"
-        className="inline-flex items-center gap-2 px-7 py-3 text-base font-semibold text-gray-200 bg-gray-800/70 backdrop-blur border border-gray-700 rounded-full hover:bg-gray-700 transition-all"
+        className="inline-flex items-center gap-2 px-7 py-3 text-base font-semibold text-gray-200 bg-gray-800/70 backdrop-blur border border-gray-700 rounded-full hover:bg-gray-700 transition-all leading-none"
       >
-        <LuBookOpen className="w-4 h-4" />
-        Jump to Day 1
+        <LuBookOpen className="w-[18px] h-[18px] shrink-0" />
+        <span>Jump to Day 1</span>
       </Link>
     </div>
 
-    <p className="text-xs text-gray-500 mt-2 inline-flex items-center gap-2">
-      <LuLockOpen className="w-3 h-3" />
-      Free forever · No signup · Bookmark and bail any time
-    </p>
+    <div className="inline-flex items-center gap-2 text-xs text-gray-500 leading-none">
+      <LuLockOpen className="w-3.5 h-3.5 shrink-0" />
+      <span>Free forever · No signup · Bookmark and bail any time</span>
+    </div>
   </div>
 </div>
 
@@ -145,9 +144,9 @@ import {
 
 <div className="max-w-4xl mx-auto px-4 mb-24">
   <div className="text-center mb-8">
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-xs font-medium text-purple-300 mb-4">
-      <LuFlaskConical className="w-3 h-3" />
-      LIVE DEMO — NO SCROLL, GO
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-xs font-medium text-purple-300 mb-4 leading-none">
+      <LuFlaskConical className="w-3.5 h-3.5 shrink-0" />
+      <span>LIVE DEMO — NO SCROLL, GO</span>
     </div>
     <h2 className="text-3xl md:text-4xl font-bold mb-3">
       Don't take our word for it. <br />
@@ -167,9 +166,9 @@ import {
 
 <div className="max-w-3xl mx-auto px-4 mb-24">
   <div className="text-center mb-8">
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-xs font-medium text-amber-300 mb-4">
-      <LuTarget className="w-3 h-3" />
-      ONE-QUESTION POP QUIZ
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-xs font-medium text-amber-300 mb-4 leading-none">
+      <LuTarget className="w-3.5 h-3.5 shrink-0" />
+      <span>ONE-QUESTION POP QUIZ</span>
     </div>
     <h2 className="text-3xl md:text-4xl font-bold mb-3">
       Think you've already got the basics?
@@ -270,9 +269,9 @@ import {
 
 <div className="max-w-6xl mx-auto px-4 mb-24">
   <div className="text-center mb-12">
-    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/30 text-xs font-medium text-teal-300 mb-4">
-      <LuTrendingUp className="w-3 h-3" />
-      THE 30-DAY ROADMAP
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/30 text-xs font-medium text-teal-300 mb-4 leading-none">
+      <LuTrendingUp className="w-3.5 h-3.5 shrink-0" />
+      <span>THE 30-DAY ROADMAP</span>
     </div>
     <h2 className="text-3xl md:text-4xl font-bold mb-3">Here's the whole map.</h2>
     <p className="text-gray-400">Every tile is a self-contained day. The green dots are already written.</p>
@@ -332,14 +331,14 @@ import {
     ))}
   </div>
 
-  <p className="text-center text-xs text-gray-500 mt-6 inline-flex items-center justify-center gap-2 w-full">
+  <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-6 leading-none">
     <span className="inline-flex items-center gap-1.5">
-      <span className="w-2 h-2 rounded-full bg-green-400" />
+      <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
       <span>live</span>
     </span>
     <span className="text-gray-600">·</span>
     <span>grey = coming soon</span>
-  </p>
+  </div>
 </div>
 
 {/* ──────────────────────── HOW A DAY LOOKS ──────────────────────── */}
@@ -424,10 +423,10 @@ import {
       </p>
       <Link
         href="/getting_started"
-        className="group inline-flex items-center gap-2 px-8 py-4 text-base font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur border border-white/30 rounded-full transition-all transform hover:-translate-y-0.5 hover:shadow-xl"
+        className="group inline-flex items-center gap-2 px-8 py-4 text-base font-semibold text-white bg-white/10 hover:bg-white/20 backdrop-blur border border-white/30 rounded-full transition-all transform hover:-translate-y-0.5 hover:shadow-xl leading-none"
       >
-        Begin Day 1
-        <LuArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
+        <span>Begin Day 1</span>
+        <LuArrowUpRight className="w-[18px] h-[18px] shrink-0 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
       </Link>
       <p className="text-xs text-gray-400 mt-5">Free · Open source · Bookmark and bail any time</p>
     </div>
