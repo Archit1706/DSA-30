@@ -1,0 +1,143 @@
+---
+title: "Minimum Size Subarray Sum"
+description: "The canonical shortest-valid-window sliding window — expand right, shrink left while the sum is still high enough."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Minimum Size Subarray Sum <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array of **positive integers** `nums` and a positive integer `target`, return the **minimal length** of a contiguous subarray of which the sum is greater than or equal to `target`. If there is no such subarray, return 0.
+
+#### Examples
+
+```py
+> Case 1:
+    target = 7,  nums = [2, 3, 1, 2, 4, 3]
+    Output: 2
+    Explanation: [4, 3] is the minimal subarray with sum >= 7.
+
+> Case 2:
+    target = 4,  nums = [1, 4, 4]
+    Output: 1
+
+> Case 3:
+    target = 11,  nums = [1, 1, 1, 1, 1, 1, 1, 1]
+    Output: 0
+```
+
+#### Constraints
+
+- `1 <= target <= 10^9`
+- `1 <= nums.length <= 10^5`
+- `1 <= nums[i] <= 10^4`
+
+#### State design
+
+The textbook **shortest-valid** variable-size window.
+
+1. **Contiguous range?** Yes.
+2. **Monotone?** Yes — sum monotonically increases as the window grows (positive integers only).
+3. **State?** Running sum.
+4. **Shrink rule?** While `sum >= target`. We're allowed to be valid; we want to be **just barely** valid.
+5. **When to record?** **Inside** the shrink loop — every step where the window is valid is a candidate.
+
+The shrink-while-valid loop is the signature shape of shortest-valid problems.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int minSubArrayLen(int target, vector<int>& nums) {
+        int n = nums.size(), l = 0, sum = 0;
+        int best = INT_MAX;
+        for (int r = 0; r < n; r++) {
+            sum += nums[r];
+            while (sum >= target) {
+                best = min(best, r - l + 1);
+                sum -= nums[l];
+                l++;
+            }
+        }
+        return best == INT_MAX ? 0 : best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def min_sub_array_len(target, nums):
+        l = total = 0
+        best = float('inf')
+        for r, x in enumerate(nums):
+            total += x
+            while total >= target:
+                best = min(best, r - l + 1)
+                total -= nums[l]
+                l += 1
+        return 0 if best == float('inf') else best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int minSubArrayLen(int target, int[] nums) {
+        int l = 0, sum = 0, best = Integer.MAX_VALUE;
+        for (int r = 0; r < nums.length; r++) {
+            sum += nums[r];
+            while (sum >= target) {
+                best = Math.min(best, r - l + 1);
+                sum -= nums[l];
+                l++;
+            }
+        }
+        return best == Integer.MAX_VALUE ? 0 : best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)` — `l` and `r` each move at most `n` times.
+**Space:** `O(1)`.
+
+<Callout type="warning">
+    **The "record inside the shrink loop" placement is the whole game.** If you record *after* the shrink, you'd be measuring an *invalid* window (sum < target). Off by one logically, off by a lot numerically.
+</Callout>
+
+#### Follow-up — `O(n log n)` binary search version
+
+If the array could contain negative numbers, the sliding-window approach breaks (monotonicity is gone). The standard fallback uses **prefix sums + binary search**:
+
+```python
+import bisect
+
+def min_sub_array_len_bs(target, nums):
+    prefix = [0]
+    for x in nums:
+        prefix.append(prefix[-1] + x)
+    best = float('inf')
+    for r in range(1, len(prefix)):
+        # Find smallest l such that prefix[r] - prefix[l] >= target
+        # i.e., prefix[l] <= prefix[r] - target
+        bound = prefix[r] - target
+        l = bisect.bisect_right(prefix, bound, 0, r)
+        if l > 0:
+            best = min(best, r - (l - 1))
+    return 0 if best == float('inf') else best
+```
+
+`O(n log n)` time, `O(n)` space. Works on positive inputs too, just slower than sliding window. Useful follow-up to know.
+
+#### Analysis
+
+- **Time:** `O(n)` sliding window.
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Maximum Size Subarray Sum Equals K** (with negative values) — prefix sum + hash map.
+- **Subarray Product Less Than K** — same shape, multiplication instead of sum, all positives required.
+- **Shortest Subarray with Sum at Least K** (with negative values) — needs a monotonic deque on prefix sums. Hard.

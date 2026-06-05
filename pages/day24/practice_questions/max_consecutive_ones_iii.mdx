@@ -1,0 +1,116 @@
+---
+title: "Max Consecutive Ones III"
+description: "Variable-size sliding window with a 'flip up to K zeros' budget — the cleanest introduction to the budget-style window."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Max Consecutive Ones III <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a binary array `nums` and an integer `k`, return the **maximum number of consecutive 1's** in the array if you can flip at most `k` zeros to ones.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0],  k = 2
+    Output: 6
+    Explanation: flip the bolded zeros: [1,1,1,0,0,1,1,1,1,1,1] → longest run of ones is 6.
+
+> Case 2:
+    nums = [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 0, 1],  k = 3
+    Output: 10
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- `nums[i]` is either 0 or 1.
+- `0 <= k <= nums.length`
+
+#### State design
+
+Reframe the problem: find the **longest contiguous subarray containing at most `k` zeros**. That's a clean variable-size longest-valid window.
+
+1. **Contiguous range?** Yes.
+2. **Monotone?** Yes — adding a position can only increase the zero count.
+3. **State?** Running `zero_count`.
+4. **Shrink rule?** While `zero_count > k`.
+5. **Record?** After the shrink — `r − l + 1` is the candidate.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int longestOnes(vector<int>& nums, int k) {
+        int l = 0, zeros = 0, best = 0;
+        for (int r = 0; r < (int)nums.size(); r++) {
+            if (nums[r] == 0) zeros++;
+            while (zeros > k) {
+                if (nums[l] == 0) zeros--;
+                l++;
+            }
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longest_ones(nums, k):
+        l = zeros = best = 0
+        for r, x in enumerate(nums):
+            if x == 0: zeros += 1
+            while zeros > k:
+                if nums[l] == 0: zeros -= 1
+                l += 1
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int longestOnes(int[] nums, int k) {
+        int l = 0, zeros = 0, best = 0;
+        for (int r = 0; r < nums.length; r++) {
+            if (nums[r] == 0) zeros++;
+            while (zeros > k) {
+                if (nums[l] == 0) zeros--;
+                l++;
+            }
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+<Callout type="info">
+    **The "budget" framing** — "you have a budget of `k` zeros to flip" — is one of the cleanest sliding-window setups. The same shape solves Max Consecutive Ones II (k=1, also accepts), Maximum Number of Vowels in a Substring of Given Length (k vowels allowed inside a fixed window), and a handful of similar.
+</Callout>
+
+#### The `if` vs `while` shortcut
+
+Since the window grows by exactly one per outer iteration, the inner shrink restores validity in a single step. Many solutions use `if (zeros > k)` instead of `while`. Both are correct here. The `while` is more idiomatic and generalizes to problems where the window can become "doubly invalid" — useful muscle memory.
+
+#### Analysis
+
+- **Time:** `O(n)` — each index visited at most twice (once by `r`, once by `l`).
+- **Space:** `O(1)`.
+
+#### Same skin
+
+- **Longest Repeating Character Replacement** — same shape, with a "non-majority characters allowed" budget instead of "zeros allowed".
+- **Maximum Number of Vowels in a Substring of Given Length** — fixed-size version on vowels.
+- **Number of Substrings Containing All Three Characters** — variable-size with a three-character coverage check.
+
+This is the easiest hard-pattern problem in the sliding-window family — once you've solved it, every "budget-style" window in interviews collapses to the same 8-line template.

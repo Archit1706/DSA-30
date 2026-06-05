@@ -1,0 +1,171 @@
+---
+title: "Longest Substring Without Repeating Characters"
+description: "The canonical variable-size sliding window — expand right, shrink left while a character repeats."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Substring Without Repeating Characters <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s`, find the length of the **longest substring** without repeating characters.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "abcabcbb"
+    Output: 3
+    Explanation: the answer is "abc" with length 3.
+
+> Case 2:
+    s = "bbbbb"
+    Output: 1
+    Explanation: the answer is "b".
+
+> Case 3:
+    s = "pwwkew"
+    Output: 3
+    Explanation: the answer is "wke" — note that "pwke" is a SUBSEQUENCE, not a substring.
+```
+
+#### Constraints
+
+- `0 <= s.length <= 5 × 10^4`
+- `s` consists of English letters, digits, symbols, and spaces.
+
+#### State design
+
+1. **Contiguous range?** Yes — substring.
+2. **Monotone in growth?** Yes — adding a character can only push the "has duplicate" predicate from false to true, never back.
+3. **State?** Set of characters in the current window.
+4. **Shrink rule?** While the just-added character is already in the set.
+5. **When to record?** After the shrink — the window is valid; `r − l + 1` is a candidate longest.
+
+#### Code — set version
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstring(string s) {
+        unordered_set<char> window;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            while (window.count(s[r])) {
+                window.erase(s[l]);
+                l++;
+            }
+            window.insert(s[r]);
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        window = set()
+        l = best = 0
+        for r, c in enumerate(s):
+            while c in window:
+                window.remove(s[l])
+                l += 1
+            window.add(c)
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLongestSubstring(String s) {
+        Set<Character> window = new HashSet<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            while (window.contains(s.charAt(r))) {
+                window.remove(s.charAt(l));
+                l++;
+            }
+            window.add(s.charAt(r));
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(min(n, charset))`.
+
+#### Optimization — "skip ahead" with a hash map
+
+The set-based version may shrink `l` one step at a time. We can do better: track each character's **last seen index** in a hash map, and on a duplicate, **jump `l` directly past the previous occurrence**.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstring(string s) {
+        unordered_map<char, int> last;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            if (last.count(s[r]) && last[s[r]] >= l) {
+                l = last[s[r]] + 1;
+            }
+            last[s[r]] = r;
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        last = {}
+        l = best = 0
+        for r, c in enumerate(s):
+            if c in last and last[c] >= l:
+                l = last[c] + 1
+            last[c] = r
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLongestSubstring(String s) {
+        Map<Character, Integer> last = new HashMap<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            char c = s.charAt(r);
+            if (last.containsKey(c) && last.get(c) >= l) {
+                l = last.get(c) + 1;
+            }
+            last.put(c, r);
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Same `O(n)` worst case, but each character is visited exactly once (instead of potentially `k` times during a shrink). For most inputs the difference is invisible; on pathological inputs ("aaaaaaa...aaab") it matters.
+
+<Callout type="info">
+    The `last[c] >= l` guard is critical: if the character's previous occurrence is **before** the current window's left edge, it isn't a "duplicate in the window" — it's just an old memory. Skipping that check causes `l` to jump backwards in some cases, breaking the algorithm.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)`.
+- **Space:** `O(min(n, charset size))`.
+
+#### Same skin
+
+- **Longest Substring with At Most K Distinct Characters** — same template, frequency map instead of set, "shrink while distinct count > k".
+- **Longest Repeating Character Replacement** — same template plus a "max frequency" tracker.
+- **Fruit Into Baskets** — at most 2 distinct, otherwise identical.

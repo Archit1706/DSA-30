@@ -1,0 +1,166 @@
+---
+title: "Permutation in String"
+description: "Fixed-size sliding window with the match counter trick — detect whether s2 contains any permutation of s1 in O(|s2|)."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Permutation in String <DifficultyBadge level="medium" />
+
+#### Description
+
+Given two strings `s1` and `s2`, return `true` if `s2` **contains a permutation of `s1`** as a substring. In other words, return `true` if one of the substrings of `s2` of length `|s1|` is an anagram of `s1`.
+
+#### Examples
+
+```py
+> Case 1:
+    s1 = "ab",  s2 = "eidbaooo"
+    Output: true
+    Explanation: s2 contains "ba", which is a permutation of "ab".
+
+> Case 2:
+    s1 = "ab",  s2 = "eidboaoo"
+    Output: false
+```
+
+#### Constraints
+
+- `1 <= s1.length, s2.length <= 10^4`
+- `s1` and `s2` consist of lowercase English letters.
+
+#### State design
+
+A permutation of `s1` is a length-`|s1|` window whose **character frequency** matches `s1`'s exactly. So:
+
+1. **Window length:** fixed = `|s1|`.
+2. **State:** frequency arrays `need[26]` and `have[26]`.
+3. **Validity check:** all 26 entries of `have` equal `need`.
+
+The naïve approach checks all 26 entries on every slide — `O(26 × |s2|)`. The slick approach uses a **match counter** to track "how many letters have the correct count" in `O(1)` per shift.
+
+#### Code — match-counter version
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool checkInclusion(string s1, string s2) {
+        if (s1.size() > s2.size()) return false;
+        int need[26] = {0}, have[26] = {0};
+        for (char c : s1) need[c - 'a']++;
+        int matches = 0;
+        for (int i = 0; i < 26; i++) if (need[i] == 0) matches++;
+        int k = s1.size();
+        for (int r = 0; r < (int)s2.size(); r++) {
+            int ci = s2[r] - 'a';
+            have[ci]++;
+            if (have[ci] == need[ci])           matches++;
+            else if (have[ci] == need[ci] + 1)  matches--;
+            if (r >= k) {
+                int li = s2[r - k] - 'a';
+                have[li]--;
+                if (have[li] == need[li])           matches++;
+                else if (have[li] == need[li] - 1)  matches--;
+            }
+            if (matches == 26) return true;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def check_inclusion(s1, s2):
+        if len(s1) > len(s2): return False
+        need = [0] * 26
+        have = [0] * 26
+        for c in s1: need[ord(c) - ord('a')] += 1
+        matches = sum(1 for i in range(26) if need[i] == 0)
+        k = len(s1)
+        for r in range(len(s2)):
+            ci = ord(s2[r]) - ord('a')
+            have[ci] += 1
+            if have[ci] == need[ci]:        matches += 1
+            elif have[ci] == need[ci] + 1:  matches -= 1
+            if r >= k:
+                li = ord(s2[r - k]) - ord('a')
+                have[li] -= 1
+                if have[li] == need[li]:        matches += 1
+                elif have[li] == need[li] - 1:  matches -= 1
+            if matches == 26: return True
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean checkInclusion(String s1, String s2) {
+        if (s1.length() > s2.length()) return false;
+        int[] need = new int[26], have = new int[26];
+        for (char c : s1.toCharArray()) need[c - 'a']++;
+        int matches = 0;
+        for (int i = 0; i < 26; i++) if (need[i] == 0) matches++;
+        int k = s1.length();
+        for (int r = 0; r < s2.length(); r++) {
+            int ci = s2.charAt(r) - 'a';
+            have[ci]++;
+            if (have[ci] == need[ci])           matches++;
+            else if (have[ci] == need[ci] + 1)  matches--;
+            if (r >= k) {
+                int li = s2.charAt(r - k) - 'a';
+                have[li]--;
+                if (have[li] == need[li])           matches++;
+                else if (have[li] == need[li] - 1)  matches--;
+            }
+            if (matches == 26) return true;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The match counter trick in plain English:**
+
+    - We're trying to make `have[i] == need[i]` for all 26 characters.
+    - A `matches` integer counts how many indices currently satisfy that.
+    - When a character is added, its `have[ci]` increases by 1. So either it just hit `need[ci]` (matches++) or it just passed `need[ci]` (matches--).
+    - Similarly when one leaves.
+
+    The whole 26-array compare becomes a single integer check: `matches == 26`.
+</Callout>
+
+#### Code — simpler "compare arrays" version
+
+For interviews where readability matters more than constant-factor speed, this version is easier to write under pressure:
+
+```python
+def check_inclusion(s1, s2):
+    if len(s1) > len(s2): return False
+    need = [0] * 26
+    have = [0] * 26
+    for c in s1: need[ord(c) - ord('a')] += 1
+    k = len(s1)
+    for i in range(k): have[ord(s2[i]) - ord('a')] += 1
+    if have == need: return True
+    for r in range(k, len(s2)):
+        have[ord(s2[r]) - ord('a')] += 1
+        have[ord(s2[r - k]) - ord('a')] -= 1
+        if have == need: return True
+    return False
+```
+
+`O(26 × |s2|)` — the `have == need` array compare is the inner cost. For `|s2| <= 10^4` it's still well within limits.
+
+#### Analysis
+
+- **Time:** `O(|s1| + |s2|)` with match counter. `O(26 × |s2|)` with array compare.
+- **Space:** `O(1)` — fixed 26-entry arrays.
+
+#### Same skin
+
+- **Find All Anagrams in a String** — return all starting indices (not just whether one exists).
+- **Substring with Concatenation of All Words** — same idea, but the "alphabet" is the set of words.
+- **Anagram Differences** — count of characters to add/remove to turn one into the other.

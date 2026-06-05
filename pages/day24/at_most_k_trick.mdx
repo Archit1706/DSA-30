@@ -1,0 +1,241 @@
+---
+title: "The At-Most-K Trick"
+description: "Turn 'exactly K' problems into two 'at most K' problems — the slickest indirect technique in the sliding-window playbook."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# The At-Most-K Trick
+
+Some problems ask for *exactly* a property — exactly K distinct integers, exactly K odd numbers, exactly K vowels. Sliding window doesn't naturally count "exactly" — the window can drift past the target and back. But there's a clean indirect move:
+
+> **Count of subarrays with exactly K = Count with at most K − Count with at most (K − 1).**
+
+The "at most" version is a textbook variable-window problem. So you solve the same template twice with different `k`, subtract, done.
+
+This trick is so common in interviews that recognizing it is half the battle.
+
+## Why does it work?
+
+Define `atMost(k)` = number of contiguous subarrays whose property count is `<= k`.
+
+Then:
+
+- `atMost(K)` = subarrays with property count in `{0, 1, 2, ..., K}`.
+- `atMost(K - 1)` = subarrays with property count in `{0, 1, 2, ..., K - 1}`.
+- Subtraction = subarrays with property count exactly `K`.
+
+It's set subtraction. The "at most" function is monotone (the answer for `k` is always `>=` the answer for `k - 1`), so the subtraction is always non-negative.
+
+## Worked example 1: Subarrays with K Different Integers
+
+> Given an integer array `nums` and integer `k`, return the **number of good subarrays** of `nums`. A good subarray is a contiguous subarray with exactly `k` distinct integers.
+
+Direct sliding window for "exactly k" is awkward — you'd have to enumerate every (l, r) and count. But `atMost(k)` is a standard variable-window count.
+
+### Step 1 — write `atMost(k)`
+
+**State:** frequency map. **Invalid when:** `len(map) > k`. **Count:** `r − l + 1` for each `r` once the window is valid.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    long long atMostK(vector<int>& nums, int k) {
+        unordered_map<int, int> freq;
+        long long ans = 0;
+        int l = 0;
+        for (int r = 0; r < (int)nums.size(); r++) {
+            freq[nums[r]]++;
+            while ((int)freq.size() > k) {
+                if (--freq[nums[l]] == 0) freq.erase(nums[l]);
+                l++;
+            }
+            ans += r - l + 1;
+        }
+        return ans;
+    }
+    int subarraysWithKDistinct(vector<int>& nums, int k) {
+        return (int)(atMostK(nums, k) - atMostK(nums, k - 1));
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def at_most_k(nums, k):
+        freq = defaultdict(int)
+        ans = l = 0
+        for r in range(len(nums)):
+            freq[nums[r]] += 1
+            while len(freq) > k:
+                freq[nums[l]] -= 1
+                if freq[nums[l]] == 0:
+                    del freq[nums[l]]
+                l += 1
+            ans += r - l + 1
+        return ans
+
+    def subarrays_with_k_distinct(nums, k):
+        return at_most_k(nums, k) - at_most_k(nums, k - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    long atMostK(int[] nums, int k) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        long ans = 0;
+        int l = 0;
+        for (int r = 0; r < nums.length; r++) {
+            freq.merge(nums[r], 1, Integer::sum);
+            while (freq.size() > k) {
+                if (freq.merge(nums[l], -1, Integer::sum) == 0) freq.remove(nums[l]);
+                l++;
+            }
+            ans += r - l + 1;
+        }
+        return ans;
+    }
+    public int subarraysWithKDistinct(int[] nums, int k) {
+        return (int)(atMostK(nums, k) - atMostK(nums, k - 1));
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### Step 2 — return the difference
+
+`atMostK(k) − atMostK(k - 1)`. That's it.
+
+**Time:** `O(n)` (two passes). **Space:** `O(k)`.
+
+## Worked example 2: Count Number of Nice Subarrays
+
+> Given an array of integers `nums` and an integer `k`. A continuous subarray is called **nice** if there are `k` odd numbers in it. Return the number of nice subarrays.
+
+Same shape — "exactly k odd numbers." Solve as `atMost(k) − atMost(k - 1)`, where "at most k odd" is the windowed count.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def number_of_subarrays(nums, k):
+        def at_most(K):
+            ans = l = odd_count = 0
+            for r in range(len(nums)):
+                if nums[r] % 2 == 1:
+                    odd_count += 1
+                while odd_count > K:
+                    if nums[l] % 2 == 1:
+                        odd_count -= 1
+                    l += 1
+                ans += r - l + 1
+            return ans
+        return at_most(k) - at_most(k - 1)
+    ```
+    </Tab>
+</Tabs>
+
+Same `atMost` template, different running statistic (count of odd numbers instead of distinct-integer count). The two-call pattern is identical.
+
+## Worked example 3: Binary Subarrays With Sum
+
+> Given a binary array `nums` and integer `goal`, return the number of non-empty subarrays with sum equal to `goal`.
+
+Same trick: "exactly `goal` ones in the window."
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def num_subarrays_with_sum(nums, goal):
+        def at_most(S):
+            if S < 0: return 0
+            ans = l = total = 0
+            for r in range(len(nums)):
+                total += nums[r]
+                while total > S:
+                    total -= nums[l]
+                    l += 1
+                ans += r - l + 1
+            return ans
+        return at_most(goal) - at_most(goal - 1)
+    ```
+    </Tab>
+</Tabs>
+
+The `if S < 0: return 0` guard handles the edge case where `goal == 0` and we call `at_most(-1)`.
+
+## When the trick applies
+
+The at-most-K trick works whenever:
+
+1. The problem asks for **"exactly K"** of some countable property over a contiguous range.
+2. The property's count over a window is **monotone in window growth** — adding an element can only increase or preserve the count, never decrease it. (Distinct values, odd numbers, sum of non-negative numbers, character frequencies — all monotone. Things like "max minus min" or signed sums are not.)
+3. The `atMost(k)` version of the problem is a clean variable-size sliding window.
+
+If all three hold, the trick is a near-immediate `O(n)` solution.
+
+## When the trick doesn't apply
+
+It fails when:
+
+- The property isn't monotone (signed sums, max − min with mixed values).
+- The "at most" version isn't easily slidable (e.g., the count depends on the window's *order*, not just its multiset).
+- You're asked for "exactly K" of something where K = 0 is the natural empty answer (e.g., "no duplicates"); the trick still works but is overkill.
+
+## A cousin: prefix-sum + hash map
+
+For "subarrays with sum equal to K" on **signed** integers (where sliding window doesn't work because adding can decrease the sum), the standard fallback is **prefix sums + hash map**, which is `O(n)` time and `O(n)` space.
+
+The at-most-K trick is the right tool for **non-negative** or **counting** properties. The prefix-sum trick is the right tool when the underlying quantity can decrease as the window grows. Know both.
+
+## The pattern in code, one more time
+
+The reusable template:
+
+```python
+def exactly_k_subarrays(nums, k, property_count):
+    """
+    property_count(nums, K) = # subarrays where (some property count) <= K.
+    Returns: # subarrays where the property count is EXACTLY k.
+    """
+    return property_count(nums, k) - property_count(nums, k - 1)
+```
+
+For any problem where the property count is monotone over window growth, write `at_most(K)` as a 10-line variable-size sliding window, then return the subtraction. Two lines of "main" code, one slid template.
+
+## Quick check
+
+<QuizBox
+    question="Why does atMost(k) - atMost(k - 1) equal 'exactly k'?"
+    options={[
+        "Magic",
+        "Set subtraction: subarrays with count in {0..k} minus those with count in {0..k-1} leaves subarrays with count exactly k",
+        "It only works for distinct integers",
+        "It requires sorted input"
+    ]}
+    correctIndex={1}
+    explanation="atMost(k) is the count of subarrays whose property-count is in {0, 1, ..., k}. atMost(k - 1) is the count whose property-count is in {0, 1, ..., k - 1}. The difference is the count whose property-count is exactly k."
+/>
+
+<QuizBox
+    question="What property must hold for the at-most-K trick to work?"
+    options={[
+        "The input must be sorted",
+        "The property's count must be MONOTONE in window growth — adding an element never decreases it",
+        "K must be small",
+        "The array must contain only positive numbers"
+    ]}
+    correctIndex={1}
+    explanation="Monotonicity is what makes the sliding-window 'at most' approach work. If adding an element could decrease the property count, the window could become valid when it wasn't before, and the cleanly-amortized two-pointer pass breaks. Distinct count, sum-of-nonneg, odd-count are all monotone. Max-minus-min and signed sums are not."
+/>
+
+<QuizBox
+    question="For Subarrays with K Different Integers using atMost(k) - atMost(k - 1), what's the total time complexity?"
+    options={["O(n²)", "O(n × k)", "O(n) — two linear passes plus a constant subtraction", "O(n log n)"]}
+    correctIndex={2}
+    explanation="atMost runs in O(n). We call it twice, total 2 × O(n) = O(n). The final subtraction is O(1). The two-pass overhead is what keeps it linear despite the indirect formulation."
+/>
+
+Next: **advanced patterns** — monotonic-deque windows, two-pointer techniques, and string-frequency-matching variants of sliding window.

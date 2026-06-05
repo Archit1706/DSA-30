@@ -1,0 +1,147 @@
+---
+title: "Subarrays with K Different Integers"
+description: "The textbook at-most-K trick — turn 'exactly K distinct' into a difference of two at-most-K sliding windows."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Subarrays with K Different Integers <DifficultyBadge level="hard" />
+
+#### Description
+
+Given an integer array `nums` and an integer `k`, return the **number of good subarrays** of `nums`. A good subarray is a contiguous subarray with **exactly `k` different integers**.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 2, 1, 2, 3],  k = 2
+    Output: 7
+    Explanation:
+        [1, 2], [2, 1], [1, 2], [2, 3],
+        [1, 2, 1], [2, 1, 2], [1, 2, 1, 2]
+
+> Case 2:
+    nums = [1, 2, 1, 3, 4],  k = 3
+    Output: 3
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 2 × 10^4`
+- `1 <= nums[i], k <= nums.length`
+
+#### Why direct sliding window doesn't work
+
+Sliding window naturally answers "longest" / "shortest" / "first" / "at most K" questions. For "exactly K," the window can drift past K back to K-1 and forward to K+1 — there's no natural place to record a count of "exactly-K windows ending here."
+
+The clean indirection: solve "exactly K" as **at most K minus at most K−1**, both of which ARE clean sliding-window problems.
+
+#### State design
+
+Define:
+
+```
+atMost(K) = number of contiguous subarrays with at most K distinct integers.
+```
+
+Then:
+
+```
+exactly(K) = atMost(K) - atMost(K - 1)
+```
+
+For `atMost(K)`:
+
+1. **Shape:** variable-size, longest-valid-style. **State:** frequency map.
+2. **Shrink while:** `len(freq) > K`.
+3. **Count contribution:** every valid window contributes `r − l + 1` (every subarray ending at `r` and starting at `>= l` is valid).
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    long long atMostK(vector<int>& nums, int k) {
+        unordered_map<int, int> freq;
+        long long ans = 0;
+        int l = 0;
+        for (int r = 0; r < (int)nums.size(); r++) {
+            freq[nums[r]]++;
+            while ((int)freq.size() > k) {
+                if (--freq[nums[l]] == 0) freq.erase(nums[l]);
+                l++;
+            }
+            ans += r - l + 1;
+        }
+        return ans;
+    }
+    int subarraysWithKDistinct(vector<int>& nums, int k) {
+        return (int)(atMostK(nums, k) - atMostK(nums, k - 1));
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def subarrays_with_k_distinct(nums, k):
+        def at_most(K):
+            freq = defaultdict(int)
+            ans = l = 0
+            for r in range(len(nums)):
+                freq[nums[r]] += 1
+                while len(freq) > K:
+                    freq[nums[l]] -= 1
+                    if freq[nums[l]] == 0:
+                        del freq[nums[l]]
+                    l += 1
+                ans += r - l + 1
+            return ans
+        return at_most(k) - at_most(k - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    long atMostK(int[] nums, int k) {
+        Map<Integer, Integer> freq = new HashMap<>();
+        long ans = 0;
+        int l = 0;
+        for (int r = 0; r < nums.length; r++) {
+            freq.merge(nums[r], 1, Integer::sum);
+            while (freq.size() > k) {
+                if (freq.merge(nums[l], -1, Integer::sum) == 0) freq.remove(nums[l]);
+                l++;
+            }
+            ans += r - l + 1;
+        }
+        return ans;
+    }
+    public int subarraysWithKDistinct(int[] nums, int k) {
+        return (int)(atMostK(nums, k) - atMostK(nums, k - 1));
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)` — two linear passes plus a subtraction.
+**Space:** `O(k)`.
+
+<Callout type="info">
+    **Why `r − l + 1` per valid window?** When the window `[l..r]` is valid (at-most-K distinct), so is every smaller right-aligned window: `[l..r]`, `[l+1..r]`, ..., `[r..r]`. That's `r − l + 1` subarrays ending at `r`. Sum across all `r` and you've counted every at-most-K subarray exactly once.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)`.
+- **Space:** `O(k)`.
+
+#### Same skin (every "exactly K" with a monotone counting property)
+
+- **Count Number of Nice Subarrays** — `atMost(k) − atMost(k − 1)` on count of odd integers.
+- **Binary Subarrays With Sum** — same trick on a binary sum.
+- **Subarrays with K Different Integers** (this problem) — the canonical example.
+
+If you ever see "**exactly K** ... in a contiguous subarray," try at-most-K first. If the "at most" version is monotone, you're done in 12 lines.

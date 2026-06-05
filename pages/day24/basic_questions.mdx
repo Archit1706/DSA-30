@@ -1,0 +1,307 @@
+---
+title: "Basic Sliding Window Questions"
+description: "Warm-up problems for fixed and variable windows — maximum sum subarray of size k, moving average, contains nearby duplicate, longest substring without repeats."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic Sliding Window Questions
+
+Six warm-ups to lock the two templates into muscle memory. Three are fixed-size, three are variable-size — by the end you should be able to spot which flavor a new problem wants in five seconds.
+
+For each problem, force yourself through the [pattern-spotting checklist](/day24/introduction) before peeking:
+
+1. Is the answer over a **contiguous range**?
+2. Is the property **monotone** in window growth?
+3. What **running state** do I need?
+4. What signals **shrink** (variable) or **slide** (fixed)?
+5. When do I **record the answer**?
+
+<Steps>
+
+### 1. Maximum sum of a size-k subarray
+
+Find the maximum sum of any contiguous subarray of length `k`.
+
+**Flavor:** fixed-size. **State:** running sum. **Record:** every shift after the first window.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxSum(vector<int>& nums, int k) {
+        int window = 0;
+        for (int i = 0; i < k; i++) window += nums[i];
+        int best = window;
+        for (int r = k; r < (int)nums.size(); r++) {
+            window += nums[r] - nums[r - k];
+            best = max(best, window);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_sum(nums, k):
+        window = sum(nums[:k])
+        best = window
+        for r in range(k, len(nums)):
+            window += nums[r] - nums[r - k]
+            best = max(best, window)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxSum(int[] nums, int k) {
+        int window = 0;
+        for (int i = 0; i < k; i++) window += nums[i];
+        int best = window;
+        for (int r = k; r < nums.length; r++) {
+            window += nums[r] - nums[r - k];
+            best = Math.max(best, window);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+### 2. Moving Average from a Data Stream
+
+Implement a `MovingAverage(k)` class that supports `next(val)` returning the average of the last `k` values.
+
+**Flavor:** fixed-size (streaming). **State:** queue + running sum.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    class MovingAverage:
+        def __init__(self, size):
+            self.k = size
+            self.q = deque()
+            self.total = 0
+
+        def next(self, val):
+            self.q.append(val)
+            self.total += val
+            if len(self.q) > self.k:
+                self.total -= self.q.popleft()
+            return self.total / len(self.q)
+    ```
+    </Tab>
+</Tabs>
+
+The queue keeps the window contents so we know what to evict. The sum is a precomputed projection for `O(1)` averaging.
+
+### 3. Contains Nearby Duplicate
+
+Return `true` if there are two distinct indices `i` and `j` with `nums[i] == nums[j]` and `|i − j| <= k`.
+
+**Flavor:** fixed-size. **State:** set of values in the last `k + 1` positions.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool containsNearbyDuplicate(vector<int>& nums, int k) {
+        unordered_set<int> seen;
+        for (int r = 0; r < (int)nums.size(); r++) {
+            if (seen.count(nums[r])) return true;
+            seen.insert(nums[r]);
+            if ((int)seen.size() > k) seen.erase(nums[r - k]);
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def contains_nearby_duplicate(nums, k):
+        seen = set()
+        for r, x in enumerate(nums):
+            if x in seen: return True
+            seen.add(x)
+            if len(seen) > k:
+                seen.remove(nums[r - k])
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean containsNearbyDuplicate(int[] nums, int k) {
+        Set<Integer> seen = new HashSet<>();
+        for (int r = 0; r < nums.length; r++) {
+            if (seen.contains(nums[r])) return true;
+            seen.add(nums[r]);
+            if (seen.size() > k) seen.remove(nums[r - k]);
+        }
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(k)`.
+
+### 4. Longest Substring Without Repeating Characters
+
+Find the length of the longest substring of `s` without repeating characters.
+
+**Flavor:** variable-size, longest-valid. **State:** set of chars in window. **Shrink while:** `s[r]` already in set.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstring(string s) {
+        unordered_set<char> w;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            while (w.count(s[r])) {
+                w.erase(s[l]);
+                l++;
+            }
+            w.insert(s[r]);
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        w = set()
+        l = best = 0
+        for r, c in enumerate(s):
+            while c in w:
+                w.remove(s[l])
+                l += 1
+            w.add(c)
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLongestSubstring(String s) {
+        Set<Character> w = new HashSet<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            while (w.contains(s.charAt(r))) {
+                w.remove(s.charAt(l));
+                l++;
+            }
+            w.add(s.charAt(r));
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(min(n, charset))`.
+
+### 5. Minimum Size Subarray Sum
+
+Given a positive-integer array `nums` and `target`, find the minimal length of a contiguous subarray with sum `>= target`.
+
+**Flavor:** variable-size, shortest-valid. **State:** running sum. **Record:** inside the shrink loop.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def min_sub_array_len(target, nums):
+        l = total = 0
+        best = float('inf')
+        for r, x in enumerate(nums):
+            total += x
+            while total >= target:
+                best = min(best, r - l + 1)
+                total -= nums[l]
+                l += 1
+        return 0 if best == float('inf') else best
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+The "shrink while valid, recording each step" structure is the signature of shortest-valid-window problems.
+
+### 6. Fruit Into Baskets (longest with at most 2 distinct)
+
+A classic in disguise. You walk through a row of fruit trees and can carry only two types of fruit. Starting at any tree, how many fruits can you collect?
+
+It's "longest contiguous subarray with at most 2 distinct values" — variable-window with at-most-K.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def total_fruit(fruits):
+        freq = defaultdict(int)
+        l = best = 0
+        for r, f in enumerate(fruits):
+            freq[f] += 1
+            while len(freq) > 2:
+                freq[fruits[l]] -= 1
+                if freq[fruits[l]] == 0:
+                    del freq[fruits[l]]
+                l += 1
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)` — the map has at most 3 entries before shrinking.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="In Longest Substring Without Repeating Characters, where do you put the answer update?"
+    options={[
+        "Inside the shrink loop",
+        "After the shrink loop — at that point the window is just-barely valid and r - l + 1 is the candidate length",
+        "Before the shrink loop",
+        "Doesn't matter"
+    ]}
+    correctIndex={1}
+    explanation="It's a 'longest valid' problem. After the shrink loop, the window is valid (we just made it so by removing duplicates). Record `r - l + 1` as a candidate longest. Inside the shrink loop, the window is invalid — its length isn't a valid candidate."
+/>
+
+<QuizBox
+    question="In Minimum Size Subarray Sum, where do you put the answer update?"
+    options={[
+        "After the shrink loop",
+        "Inside the shrink loop — every step where sum >= target is a valid shorter candidate worth recording",
+        "Outside the outer loop",
+        "Before the inner loop"
+    ]}
+    correctIndex={1}
+    explanation="It's a 'shortest valid' problem. The window is valid (sum >= target) every time we enter the shrink loop. We record before each shrink step — that way every shorter-but-still-valid version is considered. After the shrink, the window is invalid (sum < target), so we'd miss the just-shrunk one if we recorded outside."
+/>
+
+<QuizBox
+    question="Why does Contains Nearby Duplicate use a hash SET instead of a deque or queue?"
+    options={[
+        "Hash sets are smaller",
+        "We only need O(1) membership query — the window's positions don't matter, just whether a value is present",
+        "Sets support remove and queues don't",
+        "Convention"
+    ]}
+    correctIndex={1}
+    explanation="The question is binary: 'is this value in the size-(k+1) window?' Set membership is exactly O(1). We don't care about order, position, or count — just presence. A queue would track position but cost more memory and add nothing useful."
+/>
+
+Next: **the eight practice problems** — every shape covered, with full state-design walkthroughs.

@@ -1,0 +1,166 @@
+---
+title: "Minimum Window Substring"
+description: "The boss-level variable-window problem — find the smallest window in s containing every character of t, with the match counter trick."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Minimum Window Substring <DifficultyBadge level="hard" />
+
+#### Description
+
+Given two strings `s` and `t`, return the **minimum window** substring of `s` such that **every character in `t`** (including duplicates) is included in the window. If there's no such substring, return the empty string `""`.
+
+The answer is guaranteed to be unique.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "ADOBECODEBANC",  t = "ABC"
+    Output: "BANC"
+    Explanation: "BANC" is the minimum substring containing A, B, C.
+
+> Case 2:
+    s = "a",  t = "a"
+    Output: "a"
+
+> Case 3:
+    s = "a",  t = "aa"
+    Output: ""
+    Explanation: both 'a's must be in the window. s only has one.
+```
+
+#### Constraints
+
+- `1 <= s.length, t.length <= 10^5`
+- `s` and `t` consist of uppercase and lowercase English letters.
+
+#### State design
+
+The boss-level **shortest-valid** variable window. The complexity comes from the validity predicate: "the window contains every character of `t` at least as many times as `t` does."
+
+1. **Contiguous range?** Yes.
+2. **Monotone?** Yes — adding a character can only increase or preserve the "have at least one of every needed character" property.
+3. **State?** Two hash maps: `need` (frequency in `t`) and `have` (frequency in window). Plus a **match counter**: how many distinct characters in `need` are currently satisfied.
+4. **Valid when:** `matches == |need|`. The match counter avoids comparing two maps every iteration.
+5. **Shrink while valid.** Record the window length at the start of each shrink step.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string minWindow(string s, string t) {
+        if (s.empty() || t.empty()) return "";
+        unordered_map<char, int> need;
+        for (char c : t) need[c]++;
+        int required = need.size();
+        unordered_map<char, int> have;
+        int l = 0, matches = 0;
+        int bestL = 0, bestLen = INT_MAX;
+        for (int r = 0; r < (int)s.size(); r++) {
+            char c = s[r];
+            have[c]++;
+            if (need.count(c) && have[c] == need[c]) matches++;
+            while (matches == required) {
+                if (r - l + 1 < bestLen) {
+                    bestLen = r - l + 1;
+                    bestL = l;
+                }
+                char lc = s[l];
+                have[lc]--;
+                if (need.count(lc) && have[lc] < need[lc]) matches--;
+                l++;
+            }
+        }
+        return bestLen == INT_MAX ? "" : s.substr(bestL, bestLen);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import Counter, defaultdict
+
+    def min_window(s, t):
+        if not s or not t: return ""
+        need = Counter(t)
+        required = len(need)
+        have = defaultdict(int)
+        l = matches = 0
+        best_l, best_len = 0, float('inf')
+        for r, c in enumerate(s):
+            have[c] += 1
+            if c in need and have[c] == need[c]:
+                matches += 1
+            while matches == required:
+                if r - l + 1 < best_len:
+                    best_len = r - l + 1
+                    best_l = l
+                lc = s[l]
+                have[lc] -= 1
+                if lc in need and have[lc] < need[lc]:
+                    matches -= 1
+                l += 1
+        return "" if best_len == float('inf') else s[best_l:best_l + best_len]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String minWindow(String s, String t) {
+        if (s.isEmpty() || t.isEmpty()) return "";
+        Map<Character, Integer> need = new HashMap<>();
+        for (char c : t.toCharArray()) need.merge(c, 1, Integer::sum);
+        int required = need.size();
+        Map<Character, Integer> have = new HashMap<>();
+        int l = 0, matches = 0, bestL = 0, bestLen = Integer.MAX_VALUE;
+        for (int r = 0; r < s.length(); r++) {
+            char c = s.charAt(r);
+            have.merge(c, 1, Integer::sum);
+            if (need.containsKey(c) && have.get(c).equals(need.get(c))) matches++;
+            while (matches == required) {
+                if (r - l + 1 < bestLen) {
+                    bestLen = r - l + 1;
+                    bestL = l;
+                }
+                char lc = s.charAt(l);
+                have.merge(lc, -1, Integer::sum);
+                if (need.containsKey(lc) && have.get(lc) < need.get(lc)) matches--;
+                l++;
+            }
+        }
+        return bestLen == Integer.MAX_VALUE ? "" : s.substring(bestL, bestL + bestLen);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(|s| + |t|)`. **Space:** `O(|s| + |t|)`.
+
+<Callout type="warning">
+    **Update `matches` only when the frequency CROSSES the threshold, not whenever it changes.**
+
+    - On `have[c]++`: only `matches++` when `have[c]` is now exactly equal to `need[c]`. Going from 3 to 4 when `need[c] = 2` doesn't add a match — we were already satisfied.
+    - On `have[c]--`: only `matches--` when `have[c]` is now strictly less than `need[c]`. Going from 4 to 3 when `need[c] = 2` doesn't lose a match — still satisfied.
+
+    Sloppy boundary checks here are the #1 bug in this problem.
+</Callout>
+
+#### Why we shrink while valid
+
+This is a "shortest valid" problem. The window is valid the moment `matches == required`. To find the *smallest* valid window, we must try to shrink it. Every step of the shrink is itself a valid (smaller) window worth recording — so the answer update goes **inside** the shrink loop, not after.
+
+#### Analysis
+
+- **Time:** `O(|s| + |t|)` — each character of `s` enters and leaves the window at most once.
+- **Space:** `O(|s| + |t|)` for the two hash maps in the worst case.
+
+#### Same skin
+
+- **Smallest Range Covering Elements from K Lists** — variable-size window across multiple sorted lists, same "matches" tracking.
+- **Substring with Concatenation of All Words** — the "alphabet" is a multiset of words instead of characters.
+- **Replace the Substring for Balanced String** — inverted: find smallest window such that *outside* it, the character distribution is balanced.
+
+This is the most-asked-about sliding-window problem in interviews. Get the template solid in your head, and ten cousins fall into place.

@@ -1,0 +1,131 @@
+---
+title: "Longest Substring with At Most K Distinct Characters"
+description: "Variable-size sliding window with a frequency hash map — the bridge between 'no repeats' and the at-most-K family."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Substring with At Most K Distinct Characters <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s` and an integer `k`, return the length of the **longest substring** of `s` that contains **at most `k` distinct characters**.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "eceba",  k = 2
+    Output: 3
+    Explanation: "ece" — two distinct characters (e and c), length 3.
+
+> Case 2:
+    s = "aa",  k = 1
+    Output: 2
+
+> Case 3:
+    s = "abcabcabc",  k = 0
+    Output: 0
+```
+
+#### Constraints
+
+- `1 <= s.length <= 5 × 10^4`
+- `0 <= k <= 50`
+
+#### State design
+
+Pure variable-size, longest-valid. The state we maintain is a **frequency map** — character to count in the current window.
+
+1. **Contiguous range?** Yes.
+2. **Monotone?** Yes — distinct-character count can only stay the same or increase as the window grows.
+3. **State?** `freq: char → int`.
+4. **Shrink rule?** While `len(freq) > k`.
+5. **When to record?** After the shrink — window is just-barely valid.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstringKDistinct(string s, int k) {
+        if (k == 0) return 0;
+        unordered_map<char, int> freq;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            freq[s[r]]++;
+            while ((int)freq.size() > k) {
+                if (--freq[s[l]] == 0) freq.erase(s[l]);
+                l++;
+            }
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def length_of_longest_substring_k_distinct(s, k):
+        if k == 0: return 0
+        freq = defaultdict(int)
+        l = best = 0
+        for r, c in enumerate(s):
+            freq[c] += 1
+            while len(freq) > k:
+                freq[s[l]] -= 1
+                if freq[s[l]] == 0:
+                    del freq[s[l]]
+                l += 1
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLongestSubstringKDistinct(String s, int k) {
+        if (k == 0) return 0;
+        Map<Character, Integer> freq = new HashMap<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            freq.merge(s.charAt(r), 1, Integer::sum);
+            while (freq.size() > k) {
+                char lc = s.charAt(l);
+                if (freq.merge(lc, -1, Integer::sum) == 0) freq.remove(lc);
+                l++;
+            }
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(k)`.
+
+<Callout type="warning">
+    **Don't forget to delete the map entry when the count hits zero.** If you leave `freq['a'] = 0` in the map, `len(freq)` keeps counting it as a distinct character, and the algorithm thinks the window has more distinct chars than it really does. Either delete the entry on zero, or check `freq[c] > 0` when computing distinctness.
+</Callout>
+
+#### A special case: K = 2 is Fruit Into Baskets
+
+> You walk through a row of fruit trees. You can carry only two types of fruit. Starting from any tree, how many fruits can you collect?
+
+That's literally `lengthOfLongestSubstringKDistinct(fruits, 2)`. Different domain, identical algorithm.
+
+#### Analysis
+
+- **Time:** `O(n)`.
+- **Space:** `O(k)`.
+
+#### Same skin
+
+- **Fruit Into Baskets** — K = 2.
+- **Longest Substring with At Most Two Distinct Characters** — K = 2 again, same algorithm.
+- **Subarrays with K Different Integers** — uses the at-most-K trick: `atMost(k) − atMost(k − 1)`.
+- **Replace the Substring for Balanced String** — inverted variant; find the smallest window such that *outside* the window, the character distribution is balanced.

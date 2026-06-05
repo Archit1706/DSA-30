@@ -1,0 +1,413 @@
+---
+title: "Fixed-Size Window"
+description: "The simpler half of sliding window — a window of fixed length k slides over the array. Templates and worked examples for max sum, moving average, anagram detection."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Fixed-Size Window
+
+A fixed-size sliding window has a single rule: **the window is always exactly `k` elements long**. As you scan the array, one element enters on the right, one element leaves on the left, and the running state updates accordingly.
+
+This is the easier of the two flavors and lives behind a 7-line template.
+
+## The template
+
+```text
+1. Build the first window:  process nums[0 .. k-1].
+2. Initialize the answer from the first window.
+3. For each index r = k .. n-1:
+     - ADD     nums[r]      → it just entered the window.
+     - REMOVE  nums[r - k]  → it just left.
+     - Update the answer from the current window state.
+```
+
+In code:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    // Fixed-window template
+    Result fixedWindow(vector<int>& nums, int k) {
+        // 1. Build the first window
+        State state;
+        for (int i = 0; i < k; i++) add(state, nums[i]);
+        Result answer = answerFrom(state);
+
+        // 2. Slide
+        for (int r = k; r < (int)nums.size(); r++) {
+            add(state, nums[r]);
+            remove(state, nums[r - k]);
+            answer = combine(answer, answerFrom(state));
+        }
+        return answer;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def fixed_window(nums, k):
+        # 1. Build first window
+        state = State()
+        for i in range(k):
+            add(state, nums[i])
+        answer = answer_from(state)
+
+        # 2. Slide
+        for r in range(k, len(nums)):
+            add(state, nums[r])
+            remove(state, nums[r - k])
+            answer = combine(answer, answer_from(state))
+        return answer
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    Result fixedWindow(int[] nums, int k) {
+        State state = new State();
+        for (int i = 0; i < k; i++) add(state, nums[i]);
+        Result answer = answerFrom(state);
+
+        for (int r = k; r < nums.length; r++) {
+            add(state, nums[r]);
+            remove(state, nums[r - k]);
+            answer = combine(answer, answerFrom(state));
+        }
+        return answer;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+What changes problem-to-problem is **what `state` is**, **what `add` / `remove` do**, and **what `answer_from(state)` returns**.
+
+## Worked example 1: Max sum of size-k subarray
+
+> Find the maximum sum of any contiguous subarray of length `k`.
+
+**State:** the running sum.
+**Add:** `sum += x`. **Remove:** `sum -= x`. **Answer from state:** `sum` itself.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxSumSubarray(vector<int>& nums, int k) {
+        int n = nums.size();
+        int window = 0;
+        for (int i = 0; i < k; i++) window += nums[i];
+        int best = window;
+        for (int r = k; r < n; r++) {
+            window += nums[r] - nums[r - k];
+            best = max(best, window);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_sum_subarray(nums, k):
+        window = sum(nums[:k])
+        best = window
+        for r in range(k, len(nums)):
+            window += nums[r] - nums[r - k]
+            best = max(best, window)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxSumSubarray(int[] nums, int k) {
+        int window = 0;
+        for (int i = 0; i < k; i++) window += nums[i];
+        int best = window;
+        for (int r = k; r < nums.length; r++) {
+            window += nums[r] - nums[r - k];
+            best = Math.max(best, window);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+## Worked example 2: Moving Average
+
+> Implement a class that computes the moving average of the last `k` values from a stream of integers.
+
+**State:** running sum + a queue of the most-recent `k` values (because we need to know what to subtract when the queue overflows).
+**Add:** push to queue, `sum += x`. **Remove:** pop oldest if queue size exceeds `k`, `sum -= popped`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class MovingAverage {
+        queue<int> q;
+        int k;
+        double sum = 0;
+    public:
+        MovingAverage(int size) : k(size) {}
+        double next(int val) {
+            q.push(val);
+            sum += val;
+            if ((int)q.size() > k) {
+                sum -= q.front();
+                q.pop();
+            }
+            return sum / q.size();
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    class MovingAverage:
+        def __init__(self, size):
+            self.k = size
+            self.q = deque()
+            self.sum = 0
+
+        def next(self, val):
+            self.q.append(val)
+            self.sum += val
+            if len(self.q) > self.k:
+                self.sum -= self.q.popleft()
+            return self.sum / len(self.q)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class MovingAverage {
+        Queue<Integer> q = new LinkedList<>();
+        int k;
+        double sum = 0;
+        public MovingAverage(int size) { this.k = size; }
+        public double next(int val) {
+            q.offer(val);
+            sum += val;
+            if (q.size() > k) sum -= q.poll();
+            return sum / q.size();
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+The queue **is** the window state. The sum is just a precomputed projection of that state for `O(1)` answer extraction.
+
+**Time:** `O(1)` per `next()` call. **Space:** `O(k)`.
+
+## Worked example 3: Find All Anagrams of `p` in `s`
+
+> Given two strings `s` and `p`, return the **starting indices** of every substring of `s` that is an anagram of `p`.
+
+**Insight:** an anagram of `p` is any size-`|p|` window of `s` whose character-frequency map equals `p`'s. So the window has fixed size `|p|`, and the state is a frequency hash map. We test equality with `p`'s frequency map after every slide.
+
+A naïve "compare two maps with 26 entries" check is `O(26)` per slide. There's a slicker `O(1)` check: maintain a **match count** — number of characters whose window-frequency matches `p`'s target. When `matches == 26` (or however many distinct chars `p` has), the window is an anagram.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> findAnagrams(string s, string p) {
+        vector<int> ans;
+        if (s.size() < p.size()) return ans;
+        int n = s.size(), k = p.size();
+        vector<int> need(26, 0), have(26, 0);
+        for (char c : p) need[c - 'a']++;
+        int matches = 0;
+        for (int i = 0; i < 26; i++) if (need[i] == 0) matches++;
+        for (int r = 0; r < n; r++) {
+            int ci = s[r] - 'a';
+            have[ci]++;
+            if (have[ci] == need[ci])       matches++;
+            else if (have[ci] == need[ci] + 1) matches--;
+            if (r >= k) {
+                int li = s[r - k] - 'a';
+                have[li]--;
+                if (have[li] == need[li])       matches++;
+                else if (have[li] == need[li] - 1) matches--;
+            }
+            if (matches == 26) ans.push_back(r - k + 1);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_anagrams(s, p):
+        ans = []
+        if len(s) < len(p): return ans
+        n, k = len(s), len(p)
+        need = [0] * 26
+        have = [0] * 26
+        for c in p: need[ord(c) - ord('a')] += 1
+        matches = sum(1 for i in range(26) if need[i] == 0)
+        for r in range(n):
+            ci = ord(s[r]) - ord('a')
+            have[ci] += 1
+            if have[ci] == need[ci]:        matches += 1
+            elif have[ci] == need[ci] + 1:  matches -= 1
+            if r >= k:
+                li = ord(s[r - k]) - ord('a')
+                have[li] -= 1
+                if have[li] == need[li]:        matches += 1
+                elif have[li] == need[li] - 1:  matches -= 1
+            if matches == 26: ans.append(r - k + 1)
+        return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> findAnagrams(String s, String p) {
+        List<Integer> ans = new ArrayList<>();
+        if (s.length() < p.length()) return ans;
+        int n = s.length(), k = p.length();
+        int[] need = new int[26], have = new int[26];
+        for (char c : p.toCharArray()) need[c - 'a']++;
+        int matches = 0;
+        for (int i = 0; i < 26; i++) if (need[i] == 0) matches++;
+        for (int r = 0; r < n; r++) {
+            int ci = s.charAt(r) - 'a';
+            have[ci]++;
+            if (have[ci] == need[ci])           matches++;
+            else if (have[ci] == need[ci] + 1)  matches--;
+            if (r >= k) {
+                int li = s.charAt(r - k) - 'a';
+                have[li]--;
+                if (have[li] == need[li])           matches++;
+                else if (have[li] == need[li] - 1)  matches--;
+            }
+            if (matches == 26) ans.add(r - k + 1);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)` — fixed-size 26-entry alphabets.
+
+<Callout type="info">
+    The **"matches counter"** trick is gold. Instead of comparing two arrays of 26 ints (`O(26)`) every shift, you track a single integer and update it in `O(1)` whenever a frequency crosses or moves away from its target. This same trick comes back in Minimum Window Substring (a variable-window problem).
+</Callout>
+
+## Worked example 4: Contains Nearby Duplicate
+
+> Given `nums` and `k`, return `true` if there are two distinct indices `i` and `j` with `nums[i] == nums[j]` and `|i − j| <= k`.
+
+**Window:** the last `k + 1` elements. **State:** a hash set of values currently in the window. **Answer extraction:** if `nums[r]` is already in the set, return `true`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool containsNearbyDuplicate(vector<int>& nums, int k) {
+        unordered_set<int> window;
+        for (int r = 0; r < (int)nums.size(); r++) {
+            if (window.count(nums[r])) return true;
+            window.insert(nums[r]);
+            if ((int)window.size() > k) window.erase(nums[r - k]);
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def contains_nearby_duplicate(nums, k):
+        window = set()
+        for r, x in enumerate(nums):
+            if x in window: return True
+            window.add(x)
+            if len(window) > k:
+                window.remove(nums[r - k])
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean containsNearbyDuplicate(int[] nums, int k) {
+        Set<Integer> window = new HashSet<>();
+        for (int r = 0; r < nums.length; r++) {
+            if (window.contains(nums[r])) return true;
+            window.add(nums[r]);
+            if (window.size() > k) window.remove(nums[r - k]);
+        }
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(k)`.
+
+## Common pitfalls
+
+<Callout type="warning">
+    **Off-by-one on the first slide.** The first window covers indices `0 .. k-1`. The first *new* element added by the slide loop is at index `k`. The first removed element is at index `0` (= `k - k`). Get either of these wrong and your first window is the wrong size.
+</Callout>
+
+<Callout type="warning">
+    **Recording the answer at the wrong time.** Decide whether you record:
+    - **Every iteration** (most max/min sum problems).
+    - **Only when the window first reaches size `k`** (Find All Anagrams).
+    - **Only when a specific condition holds** (Contains Nearby Duplicate — return `true` immediately).
+
+    Recording before the first window is fully built, or skipping the very last window, is a classic off-by-one bug.
+</Callout>
+
+## Choosing the right state
+
+The hardest decision in any fixed-window problem is **what to maintain in the running state**. Here's a decision tree:
+
+| You're tracking...                                 | State to maintain                                     |
+| :------------------------------------------------- | :---------------------------------------------------- |
+| Sum / count                                        | A single integer                                      |
+| Max / min                                          | A monotonic deque (covered in [Advanced](/day24/advanced)) |
+| Whether a duplicate exists                          | A hash set                                           |
+| Whether the window matches a character profile     | A frequency array (26 for lowercase / 128 for ASCII) + match counter |
+| Whether the window contains specific elements      | A hash set + counter                                 |
+| Average (for streaming problems)                   | A queue (so you know what to evict) + sum            |
+
+When in doubt, ask: **"What's the smallest piece of data I need to answer the question for the current window in O(1)?"** That's your state.
+
+## Quick check
+
+<QuizBox
+    question="In the Max-Sum-of-size-k template, why do we run a separate loop for the first window before entering the slide loop?"
+    options={[
+        "Cosmetic — both loops could be unified",
+        "Because the slide loop only knows how to update — it has nothing to subtract until we've built a full window of size k",
+        "Performance",
+        "Off-by-one"
+    ]}
+    correctIndex={1}
+    explanation="The slide loop says: add nums[r], remove nums[r - k]. For r < k, nums[r - k] would be a negative index or wrap around. The first loop bootstraps the window so by the time we enter the slide, every iteration has a valid 'one in, one out' shape."
+/>
+
+<QuizBox
+    question="What's the time complexity of Find All Anagrams using the 'match counter' trick?"
+    options={["O(n × k)", "O(n)", "O(n × 26)", "O(n log n)"]}
+    correctIndex={1}
+    explanation="The 26-element frequency array would suggest O(n × 26) at first glance, but the match counter updates in O(1) per character entered or left — the 26-element compare is never executed inside the loop. Total: O(n) with a small constant factor."
+/>
+
+<QuizBox
+    question="For Contains Nearby Duplicate, why do we use a hash SET (not a hash map)?"
+    options={[
+        "Hash sets are faster",
+        "We only care WHETHER a value is in the window, not what index it was at — set membership is enough",
+        "Hash maps don't support remove",
+        "Convention"
+    ]}
+    correctIndex={1}
+    explanation="The question is binary: 'does the current window already contain nums[r]?' A hash set answers in O(1). We don't need to know WHICH index it was at — only that it's in the size-(k+1) window. Hash sets give us exactly that, with less memory than a hash map would use."
+/>
+
+Next: **variable-size windows** — the harder half, where the two pointers move independently based on a validity predicate.

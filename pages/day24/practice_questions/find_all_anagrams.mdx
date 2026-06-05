@@ -1,0 +1,139 @@
+---
+title: "Find All Anagrams in a String"
+description: "Fixed-size sliding window — return every starting index in s where an anagram of p occurs."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find All Anagrams in a String <DifficultyBadge level="easy" />
+
+#### Description
+
+Given two strings `s` and `p`, return an array of all the **start indices** of `p`'s anagrams in `s`. You may return the answer in any order.
+
+An anagram is a rearrangement of all original letters.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "cbaebabacd",  p = "abc"
+    Output: [0, 6]
+    Explanation: "cba" at 0 and "bac" at 6 are anagrams of "abc".
+
+> Case 2:
+    s = "abab",  p = "ab"
+    Output: [0, 1, 2]
+```
+
+#### Constraints
+
+- `1 <= s.length, p.length <= 3 × 10^4`
+- `s` and `p` consist of lowercase English letters.
+
+#### State design
+
+This is **Permutation in String**, but instead of returning whether one exists, we collect every position where one does. The state and algorithm are identical — only the answer-recording line changes.
+
+1. **Window length:** fixed = `|p|`.
+2. **State:** frequency arrays `need[26]` and `have[26]`.
+3. **Validity:** `have == need` (use the match counter for `O(1)` checks).
+4. **Record:** when valid, append `r − k + 1` (the start index of the current window).
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> findAnagrams(string s, string p) {
+        vector<int> ans;
+        if (s.size() < p.size()) return ans;
+        int need[26] = {0}, have[26] = {0};
+        for (char c : p) need[c - 'a']++;
+        int matches = 0;
+        for (int i = 0; i < 26; i++) if (need[i] == 0) matches++;
+        int k = p.size();
+        for (int r = 0; r < (int)s.size(); r++) {
+            int ci = s[r] - 'a';
+            have[ci]++;
+            if (have[ci] == need[ci])           matches++;
+            else if (have[ci] == need[ci] + 1)  matches--;
+            if (r >= k) {
+                int li = s[r - k] - 'a';
+                have[li]--;
+                if (have[li] == need[li])           matches++;
+                else if (have[li] == need[li] - 1)  matches--;
+            }
+            if (matches == 26) ans.push_back(r - k + 1);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_anagrams(s, p):
+        ans = []
+        if len(s) < len(p): return ans
+        need = [0] * 26
+        have = [0] * 26
+        for c in p: need[ord(c) - ord('a')] += 1
+        matches = sum(1 for i in range(26) if need[i] == 0)
+        k = len(p)
+        for r in range(len(s)):
+            ci = ord(s[r]) - ord('a')
+            have[ci] += 1
+            if have[ci] == need[ci]:        matches += 1
+            elif have[ci] == need[ci] + 1:  matches -= 1
+            if r >= k:
+                li = ord(s[r - k]) - ord('a')
+                have[li] -= 1
+                if have[li] == need[li]:        matches += 1
+                elif have[li] == need[li] - 1:  matches -= 1
+            if matches == 26: ans.append(r - k + 1)
+        return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> findAnagrams(String s, String p) {
+        List<Integer> ans = new ArrayList<>();
+        if (s.length() < p.length()) return ans;
+        int[] need = new int[26], have = new int[26];
+        for (char c : p.toCharArray()) need[c - 'a']++;
+        int matches = 0;
+        for (int i = 0; i < 26; i++) if (need[i] == 0) matches++;
+        int k = p.length();
+        for (int r = 0; r < s.length(); r++) {
+            int ci = s.charAt(r) - 'a';
+            have[ci]++;
+            if (have[ci] == need[ci])           matches++;
+            else if (have[ci] == need[ci] + 1)  matches--;
+            if (r >= k) {
+                int li = s.charAt(r - k) - 'a';
+                have[li]--;
+                if (have[li] == need[li])           matches++;
+                else if (have[li] == need[li] - 1)  matches--;
+            }
+            if (matches == 26) ans.add(r - k + 1);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(|s| + |p|)`. **Space:** `O(1)` — bounded by alphabet size.
+
+#### Analysis
+
+- **Time:** `O(|s| + |p|)`.
+- **Space:** `O(|p|)` for the output worst case; `O(1)` for the window state.
+
+#### Same skin
+
+- **Permutation in String** — same algorithm, just return early on first match.
+- **Substring with Concatenation of All Words** — multi-word alphabet.
+- **Minimum Window Substring** — variable-size version (can be longer than `|t|`).

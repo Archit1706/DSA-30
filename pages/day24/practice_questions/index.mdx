@@ -1,0 +1,60 @@
+---
+title: "Sliding Window Practice Questions"
+description: "Ten interview classics for sliding window — longest substring without repeats, minimum window substring, sliding window maximum, K distinct, character replacement."
+---
+
+import { Callout } from "nextra/components";
+
+# Sliding Window Practice Questions
+
+Ten interview classics, every flavor of the pattern represented. Each problem is a direct instance of one of the [fixed](/day24/fixed_window) or [variable](/day24/variable_window) templates, the [at-most-K trick](/day24/at_most_k_trick), or an [advanced technique](/day24/advanced) — once you spot which flavor it is, the code writes itself.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the pattern-spotting checklist:
+
+    1. **Contiguous range?**
+    2. **Property monotone in window growth?**
+    3. **Running state?** (sum, count, hash map, deque)
+    4. **Slide rule** (fixed) or **shrink rule** (variable)?
+    5. **When do I record the answer?**
+
+    Five questions. Ten lines of code. The whole chapter.
+</Callout>
+
+## Easy
+
+| Problem                                                                                                            | Pattern                                          | Status     |
+| :----------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :--------- |
+| [Max Consecutive Ones III](/day24/practice_questions/max_consecutive_ones_iii)                                     | Variable-size window with a "K zeros allowed" budget | Available |
+| [Find All Anagrams in a String](/day24/practice_questions/find_all_anagrams)                                       | Fixed-size window + match counter                | Available  |
+
+## Medium
+
+| Problem                                                                                                            | Pattern                                          | Status     |
+| :----------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :--------- |
+| [Longest Substring Without Repeating Characters](/day24/practice_questions/longest_substring_without_repeating)    | Variable-size, longest valid                     | Available  |
+| [Minimum Size Subarray Sum](/day24/practice_questions/minimum_size_subarray_sum)                                   | Variable-size, shortest valid                    | Available  |
+| [Longest Substring with At Most K Distinct Characters](/day24/practice_questions/longest_substring_k_distinct)     | Variable-size, longest valid + frequency map     | Available  |
+| [Permutation in String](/day24/practice_questions/permutation_in_string)                                           | Fixed-size + match counter                       | Available  |
+| [Longest Repeating Character Replacement](/day24/practice_questions/longest_repeating_character_replacement)       | Variable-size, longest valid, with the "max freq" trick | Available |
+
+## Hard
+
+| Problem                                                                                                            | Pattern                                          | Status     |
+| :----------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :--------- |
+| [Subarrays with K Different Integers](/day24/practice_questions/subarrays_with_k_distinct)                         | At-most-K trick (twice)                          | Available  |
+| [Minimum Window Substring](/day24/practice_questions/minimum_window_substring)                                     | Variable-size, shortest valid + match counter    | Available  |
+| [Sliding Window Maximum](/day24/practice_questions/sliding_window_maximum)                                         | Fixed-size + monotonic deque                     | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                                          | Status        |
+| :------------------------------------- | :----------------------------------------------- | :------------ |
+| Count Number of Nice Subarrays         | At-most-K trick on odd counts                    | Coming Soon   |
+| Binary Subarrays With Sum              | At-most-K trick on binary sums                   | Coming Soon   |
+| Fruit Into Baskets                     | Variable-size with at most 2 distinct (the simpler cousin of K distinct) | Coming Soon |
+| Longest Continuous Subarray Limit      | Two monotonic deques (max + min in window)       | Coming Soon   |
+| Substrings with Distinct Characters    | Variable-size, more constraints                  | Coming Soon   |
+| Substring with Concatenation of All Words | Multi-word sliding window                     | Coming Soon   |
+| Replace the Substring for Balanced String | Window-on-complement variant                  | Coming Soon   |
+| K Radius Subarray Averages             | Fixed-size averaging on every centered window    | Coming Soon   |

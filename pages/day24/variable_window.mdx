@@ -1,0 +1,437 @@
+---
+title: "Variable-Size Window"
+description: "The harder half of sliding window — two pointers that move independently, expand while the window is valid, contract while it's invalid. Templates for longest, shortest, and count-of-valid subarrays."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Variable-Size Window
+
+Variable-size sliding window is the more powerful half of the pattern. The window length isn't fixed — it grows and shrinks based on whether the current contents are **valid** under some problem-specific predicate.
+
+There are two genuine pointers, **`l`** (left edge) and **`r`** (right edge), and they move at different speeds:
+
+- `r` advances every iteration of the outer loop (always one step forward).
+- `l` advances only **when the window becomes invalid**, and keeps advancing until validity is restored.
+
+That asymmetric motion is what makes the technique `O(n)` overall — each element enters the window at most once (`r` advances) and leaves at most once (`l` advances). Total work: `O(2n) = O(n)`.
+
+## The expand-contract template
+
+```text
+l = 0
+state = empty
+answer = identity
+
+for r in 0 .. n - 1:
+    add(state, nums[r])                  # expand right
+
+    while state is INVALID:
+        remove(state, nums[l])           # contract left
+        l += 1
+
+    answer = update(answer, l, r, state) # record the current valid window
+```
+
+That's the whole template. Three things vary problem-to-problem:
+
+1. **What `state` is** (sum, count of distinct, hash map, etc.).
+2. **What "invalid" means** (sum exceeds target, more than `k` distinct, duplicate present, etc.).
+3. **What you record** (`r − l + 1` for longest, `r − l + 1` for shortest *just when* valid, a running count, etc.).
+
+The **inner `while` loop is the secret**. It looks like it makes the algorithm `O(n²)`, but it doesn't — `l` only ever moves forward, never backwards, across the whole input. So the *total* number of inner-loop iterations across all outer iterations is at most `n`.
+
+## Variant A — "Longest valid window"
+
+The most common shape. *"Find the longest contiguous subarray such that the contents satisfy property P."*
+
+The window is *always* valid by the time you update the answer (because the `while` loop just finished shrinking it back into validity). So the current window length `r − l + 1` is a candidate answer at every iteration.
+
+### Worked example: Longest Substring Without Repeating Characters
+
+> Given a string `s`, find the length of the longest substring without repeating characters.
+
+**State:** a set of characters in the window (or a frequency map).
+**Invalid when:** the just-added character `s[r]` is already in the set.
+**Record:** `r − l + 1` after the shrink loop.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstring(string s) {
+        unordered_set<char> window;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            while (window.count(s[r])) {
+                window.erase(s[l]);
+                l++;
+            }
+            window.insert(s[r]);
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        window = set()
+        l = best = 0
+        for r in range(len(s)):
+            while s[r] in window:
+                window.remove(s[l])
+                l += 1
+            window.add(s[r])
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLongestSubstring(String s) {
+        Set<Character> window = new HashSet<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            while (window.contains(s.charAt(r))) {
+                window.remove(s.charAt(l));
+                l++;
+            }
+            window.add(s.charAt(r));
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(min(n, charset))`.
+
+### Worked example: Longest Substring with At Most K Distinct Characters
+
+> Find the longest substring of `s` containing at most `k` distinct characters.
+
+**State:** a hash map `char → frequency`.
+**Invalid when:** `len(map) > k`.
+**Record:** `r − l + 1` after the shrink loop.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int longestKDistinct(string s, int k) {
+        unordered_map<char, int> freq;
+        int l = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            freq[s[r]]++;
+            while ((int)freq.size() > k) {
+                if (--freq[s[l]] == 0) freq.erase(s[l]);
+                l++;
+            }
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def longest_k_distinct(s, k):
+        freq = defaultdict(int)
+        l = best = 0
+        for r in range(len(s)):
+            freq[s[r]] += 1
+            while len(freq) > k:
+                freq[s[l]] -= 1
+                if freq[s[l]] == 0: del freq[s[l]]
+                l += 1
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int longestKDistinct(String s, int k) {
+        Map<Character, Integer> freq = new HashMap<>();
+        int l = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            freq.merge(s.charAt(r), 1, Integer::sum);
+            while (freq.size() > k) {
+                char lc = s.charAt(l);
+                if (freq.merge(lc, -1, Integer::sum) == 0) freq.remove(lc);
+                l++;
+            }
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(k)`.
+
+## Variant B — "Shortest valid window"
+
+The window is allowed to be invalid most of the time. **You only record the answer when it becomes valid**, then immediately try to shrink further to see if a smaller window also works.
+
+### Worked example: Minimum Size Subarray Sum
+
+> Given a positive-integer array `nums` and target `target`, find the **minimal length** of a contiguous subarray of which the sum is `>= target`. Return 0 if no such subarray.
+
+**State:** the running sum.
+**Valid when:** `sum >= target`.
+**Record:** `r − l + 1` every time we're valid, then try to shrink.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int minSubArrayLen(int target, vector<int>& nums) {
+        int n = nums.size(), l = 0, sum = 0;
+        int best = INT_MAX;
+        for (int r = 0; r < n; r++) {
+            sum += nums[r];
+            while (sum >= target) {
+                best = min(best, r - l + 1);
+                sum -= nums[l];
+                l++;
+            }
+        }
+        return best == INT_MAX ? 0 : best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def min_sub_array_len(target, nums):
+        l = total = 0
+        best = float('inf')
+        for r in range(len(nums)):
+            total += nums[r]
+            while total >= target:
+                best = min(best, r - l + 1)
+                total -= nums[l]
+                l += 1
+        return 0 if best == float('inf') else best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int minSubArrayLen(int target, int[] nums) {
+        int l = 0, sum = 0, best = Integer.MAX_VALUE;
+        for (int r = 0; r < nums.length; r++) {
+            sum += nums[r];
+            while (sum >= target) {
+                best = Math.min(best, r - l + 1);
+                sum -= nums[l];
+                l++;
+            }
+        }
+        return best == Integer.MAX_VALUE ? 0 : best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+<Callout type="info">
+    **Where does the answer update go?** In "longest valid", it's *after* the shrink (window is just-barely valid, record its length). In "shortest valid", it's *inside* the shrink loop (every smaller window that's still valid is a candidate). Get this swap wrong and your answers are off.
+</Callout>
+
+### Worked example: Minimum Window Substring
+
+> Given two strings `s` and `t`, return the **minimum window** in `s` which contains all characters of `t` (including duplicates). Return `""` if no such window.
+
+This is the boss-level variable-window problem. State is a character frequency map for `t`, plus a "characters fully satisfied" counter.
+
+**State:** `need[c]` = how many more of `c` we need. `matches` = how many distinct chars currently have count `>= need[c]`.
+**Valid when:** `matches == distinct chars in t`.
+**Record:** the (l, r) pair of the smallest valid window seen.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string minWindow(string s, string t) {
+        if (t.empty() || s.empty()) return "";
+        unordered_map<char, int> need;
+        for (char c : t) need[c]++;
+        int required = need.size();
+        int l = 0, matches = 0;
+        int bestL = 0, bestLen = INT_MAX;
+        unordered_map<char, int> have;
+        for (int r = 0; r < (int)s.size(); r++) {
+            char c = s[r];
+            have[c]++;
+            if (need.count(c) && have[c] == need[c]) matches++;
+            while (matches == required) {
+                if (r - l + 1 < bestLen) {
+                    bestLen = r - l + 1;
+                    bestL = l;
+                }
+                char lc = s[l];
+                have[lc]--;
+                if (need.count(lc) && have[lc] < need[lc]) matches--;
+                l++;
+            }
+        }
+        return bestLen == INT_MAX ? "" : s.substr(bestL, bestLen);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import Counter, defaultdict
+
+    def min_window(s, t):
+        if not t or not s: return ""
+        need = Counter(t)
+        required = len(need)
+        have = defaultdict(int)
+        l = matches = 0
+        best_l, best_len = 0, float('inf')
+        for r, c in enumerate(s):
+            have[c] += 1
+            if c in need and have[c] == need[c]:
+                matches += 1
+            while matches == required:
+                if r - l + 1 < best_len:
+                    best_len = r - l + 1
+                    best_l = l
+                lc = s[l]
+                have[lc] -= 1
+                if lc in need and have[lc] < need[lc]:
+                    matches -= 1
+                l += 1
+        return "" if best_len == float('inf') else s[best_l:best_l + best_len]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String minWindow(String s, String t) {
+        if (s.isEmpty() || t.isEmpty()) return "";
+        Map<Character, Integer> need = new HashMap<>();
+        for (char c : t.toCharArray()) need.merge(c, 1, Integer::sum);
+        int required = need.size();
+        Map<Character, Integer> have = new HashMap<>();
+        int l = 0, matches = 0, bestL = 0, bestLen = Integer.MAX_VALUE;
+        for (int r = 0; r < s.length(); r++) {
+            char c = s.charAt(r);
+            have.merge(c, 1, Integer::sum);
+            if (need.containsKey(c) && have.get(c).equals(need.get(c))) matches++;
+            while (matches == required) {
+                if (r - l + 1 < bestLen) {
+                    bestLen = r - l + 1;
+                    bestL = l;
+                }
+                char lc = s.charAt(l);
+                have.merge(lc, -1, Integer::sum);
+                if (need.containsKey(lc) && have.get(lc) < need.get(lc)) matches--;
+                l++;
+            }
+        }
+        return bestLen == Integer.MAX_VALUE ? "" : s.substring(bestL, bestL + bestLen);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(|s| + |t|)`. **Space:** `O(|s| + |t|)`.
+
+The "match counter" trick from the fixed-window page returns here: instead of comparing two hash maps every iteration, we track how many distinct characters have hit their target count, and increment / decrement that counter in `O(1)` whenever a frequency crosses or moves away from the threshold.
+
+## Variant C — "Count of valid windows"
+
+The third common shape: *"How many contiguous subarrays satisfy property P?"*
+
+The standard move: at every iteration, count how many *valid* windows end at index `r`. The total is the sum across all `r`.
+
+### Worked example: Subarrays with Sum Less Than K
+
+> Given a positive-integer array `nums` and integer `k`, count the number of contiguous subarrays whose sum is **strictly less than** `k`.
+
+**State:** running sum.
+**Invalid when:** sum `>= k`.
+**Count contribution:** every time the window is valid, every subarray ending at `r` that starts at `>= l` is valid. That's `r − l + 1` of them.
+
+```python
+def subarrays_less_than_k(nums, k):
+    l = total = count = 0
+    for r in range(len(nums)):
+        total += nums[r]
+        while total >= k and l <= r:
+            total -= nums[l]
+            l += 1
+        count += r - l + 1
+    return count
+```
+
+**Time:** `O(n)`. **Space:** `O(1)`.
+
+The `r − l + 1` increment is the **count contribution** for the right endpoint at index `r`. Every valid subarray ends at exactly one `r`, so summing across all `r` gives the total.
+
+## Putting it all together
+
+| Variant      | When window invalid    | Answer update location              | What you record    |
+| :----------- | :--------------------- | :---------------------------------- | :----------------- |
+| Longest      | shrink until valid     | **After** the shrink loop           | `r − l + 1`        |
+| Shortest     | not allowed; valid means "found one we want" | **Inside** the shrink loop  | `r − l + 1`, but track min |
+| Count        | shrink until valid     | **After** the shrink loop           | sum of `r − l + 1` |
+
+Memorize this table. It's the difference between *the right algorithm with the wrong answer* and an actually correct submission.
+
+## A subtle gotcha: the shrink condition
+
+For variable-size windows, the shrink loop runs **while the window is INVALID** (longest/count variants) or **while it's STILL VALID** (shortest variant). Mixing those up is the most common subtle bug.
+
+| Problem flavor                                 | Shrink while...                                |
+| :--------------------------------------------- | :--------------------------------------------- |
+| "Longest with property P"                      | `not P(window)` (shrink until P holds)         |
+| "Shortest with property P"                     | `P(window)` (keep shrinking as long as we're still valid, recording each time) |
+| "Count of subarrays with property P"           | `not P(window)` (count once we're valid)       |
+
+If your code returns 0 or the whole-array length for every input, the shrink condition is almost certainly flipped.
+
+## Quick check
+
+<QuizBox
+    question="In a variable-size sliding window, why is the inner `while` loop NOT an O(n²) trap?"
+    options={[
+        "It's actually O(log n) amortized",
+        "Because the left pointer `l` only ever moves forward — across the whole algorithm, the total number of inner-loop iterations is at most n",
+        "Because the input is small",
+        "Because of caching"
+    ]}
+    correctIndex={1}
+    explanation="The amortization argument: `l` is monotonically non-decreasing. Across the entire run, `l` advances at most n times total. Each inner-loop iteration moves `l` by 1. So the SUM of inner-loop iterations across all outer iterations is bounded by n. Total work: O(n) outer + O(n) inner = O(n)."
+/>
+
+<QuizBox
+    question="In a 'longest valid' problem, where do you put the answer update — inside the shrink loop or after it?"
+    options={[
+        "Inside the shrink loop",
+        "After the shrink loop — by that point the window is just-barely valid and r - l + 1 is the candidate length",
+        "Either",
+        "Before the shrink loop"
+    ]}
+    correctIndex={1}
+    explanation="After the shrink loop, the window is valid (we just made it so). r - l + 1 is the length of the candidate longest. Inside the shrink loop, the window is invalid — its length isn't a valid candidate."
+/>
+
+<QuizBox
+    question="For Minimum Window Substring, the 'match counter' trick lets us check window validity in:"
+    options={[
+        "O(charset size) — by comparing two hash maps",
+        "O(1) — checking matches == required",
+        "O(window size) — by scanning the window",
+        "O(log n)"
+    ]}
+    correctIndex={1}
+    explanation="Without the trick, every shift would do an O(26) or O(128) hash-map equality check. With the trick, we just increment / decrement `matches` whenever a character's frequency crosses its target, and check `matches == required` in O(1). Across n shifts, that's an n-fold constant-factor speedup."
+/>
+
+Next: **the at-most-K trick** — the slickest technique in the sliding-window playbook.

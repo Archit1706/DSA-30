@@ -1,21 +1,43 @@
 ---
 title: "Day 24 — Sliding Window"
-description: "The sliding-window pattern — fixed vs variable window, the at-most-K trick, and the template that solves longest and shortest-substring problems in linear time."
+description: "The sliding window pattern — fixed vs variable windows, the at-most-K trick, and the 12-line template that solves longest/shortest-subarray problems in O(n) when the brute force is O(n²)."
 ---
 
 import { Callout } from "nextra/components";
 
 # Day 24 — Sliding Window
 
+There's a class of problems that look like they want **two nested loops** — "for every subarray, do X." The naïve solution is `O(n²)`. The actual solution is `O(n)`, and it comes from a single observation:
+
+> When the window moves right by one, almost everything inside it stays the same.
+
+Instead of recomputing from scratch on every shift, you **update the running answer incrementally** — add what entered the window, subtract what left. That's the sliding window pattern, and once it clicks, an entire family of "subarray / substring with property X" problems collapses into 10 lines of code.
+
+This is the **single highest-leverage technique** in the interview-pattern catalog. Most arrays-and-strings problems where the answer involves a contiguous range — sums, counts, character frequencies, distinct-value counts — yield to sliding window.
+
+## What you'll learn today
+
+- The **incremental-update mindset** — why `O(n²)` brute force becomes `O(n)` for free
+- **Fixed-size windows** — the simpler half: max sum of size k, anagram detection, moving averages
+- **Variable-size windows** — the harder half: expand while valid, contract while invalid, track the best
+- The **`atMost(k) − atMost(k−1)` trick** — turns "exactly k" problems into two "at most k" problems
+- **Window state design** — what running data to maintain (sum, count, hash map, deque, set)
+- **Eight interview classics** — every shape you're likely to see, with full state-machine walkthroughs
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The sliding window mindset is bigger than the problem set. Anytime you catch yourself writing `for i in range(n): for j in range(i, n): ...recompute something contiguous from i to j`, ask: **what changes when the window grows by one?** If the answer is "very little," you can probably skip the inner loop entirely.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Fixed-size windows** — max sum of size k, average of last n elements, anagrams
-- **Variable-size windows** — longest substring without repeating, minimum window substring
-- The **expand/contract template** that solves most of them in ~10 lines
-- Common pitfalls: forgetting to update the answer when contracting, off-by-one with right pointer
+1. **[Introduction](/day24/introduction)** — the brute-force baseline, the incremental insight, and the two flavors (fixed and variable).
+2. **[Fixed-Size Window](/day24/fixed_window)** — the simpler shape: a window of length `k` slides over the array; you maintain a running statistic.
+3. **[Variable-Size Window](/day24/variable_window)** — the harder shape: two pointers `l` and `r`, expand `r` while the window stays valid, contract `l` when it doesn't. Tracks "longest" / "shortest" / "first" subarrays.
+4. **[The At-Most-K Trick](/day24/at_most_k_trick)** — when a problem asks for "exactly K", solve it as "at most K minus at most K−1". The single most useful indirect technique.
+5. **[Advanced Patterns](/day24/advanced)** — monotonic-deque windows (for max/min in window), two-pointer on sorted arrays, sliding window on strings with character-frequency counters.
+6. **[Basic Questions](/day24/basic_questions)** — warm-ups: maximum sum subarray of size k, moving average, contains duplicate within k positions.
+7. **[Practice Questions](/day24/practice_questions)** — eight interview classics, each one a clean instance of one of the templates.
 
-You already met sliding window in [Sliding Window Maximum](/day4/queues/practice_questions/sliding_window_maximum) and [Number of Recent Calls](/day4/queues/practice_questions/recent_calls). This chapter formalizes the pattern.
+Sliding window pairs naturally with [Two Pointers](/day25) (Day 25), [Hash Tables](/day8), and the [Sorting and Searching](/day13) chapters. The technique is so universal that once you've seen the patterns, you'll start spotting them in problems that don't *look* like sliding-window problems at first glance.
+
+Coming up next: **Day 25 — Two Pointers**, the close cousin where the two pointers don't always move in the same direction.

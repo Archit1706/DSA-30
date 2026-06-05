@@ -1,0 +1,145 @@
+---
+title: "Longest Repeating Character Replacement"
+description: "Variable-size sliding window with a max-frequency tracker — the prettiest trick in the whole chapter."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Repeating Character Replacement <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given a string `s` and an integer `k`. You can choose any character of the string and change it to any other uppercase English character. You can perform this operation **at most `k` times**.
+
+Return the length of the **longest substring** containing the same letter you can get after performing the operations.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "ABAB",  k = 2
+    Output: 4
+    Explanation: Replace the two 'A's with 'B' (or vice versa) to get "BBBB".
+
+> Case 2:
+    s = "AABABBA",  k = 1
+    Output: 4
+    Explanation: Replace one 'A' with 'B' to get "AABBBBA". Window "ABBB" or "BBBB" has length 4.
+```
+
+#### Constraints
+
+- `1 <= s.length <= 10^5`
+- `s` consists of only uppercase English letters.
+- `0 <= k <= s.length`
+
+#### State design
+
+The window `s[l..r]` is **valid** if we can make every character in it the same by changing at most `k` of them. Equivalently:
+
+```
+window_length − max_frequency_in_window ≤ k
+```
+
+Because the cheapest way to homogenize the window is to **keep the most common character** and change everything else.
+
+1. **Contiguous range?** Yes — substring.
+2. **Monotone?** Almost — when we add a character, `max_freq` can only go up or stay the same. So `window_length − max_freq` can only go up by at most 1 per step (length+1, max_freq+0 or +1).
+3. **State:** a `freq[26]` array, plus a running `max_freq`.
+4. **Shrink rule:** while `(r − l + 1) − max_freq > k`.
+5. **Record:** after the shrink, `r − l + 1` is a candidate.
+
+#### The "we don't need to update max_freq on shrink" trick
+
+A subtle but beautiful detail: when we shrink from the left and decrement a character's count, the true `max_freq` of the window might go down. But we **don't recompute** it. Why is that OK?
+
+The answer we care about is the **longest** valid window. Once we found a window of length `L` valid with `max_freq = M`, any smaller window can't beat `L`. So if we lazily leave `max_freq` stale (potentially too high), the validity check `length − max_freq ≤ k` becomes too lenient, but it only *fails to shrink* when we should. The window length stays the same, so we never accidentally count a longer-than-real answer.
+
+The result: the window length is monotonically non-decreasing across iterations — exactly what we need for the "longest" query.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int characterReplacement(string s, int k) {
+        int freq[26] = {0};
+        int l = 0, maxFreq = 0, best = 0;
+        for (int r = 0; r < (int)s.size(); r++) {
+            freq[s[r] - 'A']++;
+            maxFreq = max(maxFreq, freq[s[r] - 'A']);
+            while ((r - l + 1) - maxFreq > k) {
+                freq[s[l] - 'A']--;
+                l++;
+            }
+            best = max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def character_replacement(s, k):
+        freq = [0] * 26
+        l = max_freq = best = 0
+        for r, c in enumerate(s):
+            freq[ord(c) - ord('A')] += 1
+            max_freq = max(max_freq, freq[ord(c) - ord('A')])
+            while (r - l + 1) - max_freq > k:
+                freq[ord(s[l]) - ord('A')] -= 1
+                l += 1
+            best = max(best, r - l + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int characterReplacement(String s, int k) {
+        int[] freq = new int[26];
+        int l = 0, maxFreq = 0, best = 0;
+        for (int r = 0; r < s.length(); r++) {
+            freq[s.charAt(r) - 'A']++;
+            maxFreq = Math.max(maxFreq, freq[s.charAt(r) - 'A']);
+            while ((r - l + 1) - maxFreq > k) {
+                freq[s.charAt(l) - 'A']--;
+                l++;
+            }
+            best = Math.max(best, r - l + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The most common confusion** with this problem: "if the true max-frequency in the current window is lower than `max_freq`, doesn't that invalidate our check?"
+
+    No — because `max_freq` is monotonically non-decreasing across the whole run (we only ever `max(..., ...)` it), and the answer is the max window length we've ever seen. A stale `max_freq` may let us hold the window a bit longer than the strict invariant requires, but it never lets us record a fake-larger answer. The numerical answer stays correct.
+</Callout>
+
+#### `if` vs `while` on the shrink
+
+Many tutorials use `if` instead of `while`:
+
+```python
+if (r - l + 1) - max_freq > k:
+    freq[ord(s[l]) - ord('A')] -= 1
+    l += 1
+```
+
+This also works! Because we only ever expand by one per outer iteration, the window's length grows by at most 1 per step, so a single shrink restores validity. Both versions are correct; `while` is safer style.
+
+#### Analysis
+
+- **Time:** `O(n)`. Each character enters and leaves at most once.
+- **Space:** `O(1)` — fixed 26-entry frequency array.
+
+#### Same skin
+
+- **Max Consecutive Ones III** — same template, "k zeros allowed in window."
+- **Longest Substring with At Most K Distinct Characters** — variable-size with frequency map.
+- **Longest Subarray with Sum Divisible by K** — different state (running sum mod K), prefix-sum cousin.

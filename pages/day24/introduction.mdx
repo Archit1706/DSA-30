@@ -1,0 +1,225 @@
+---
+title: "Introduction to Sliding Window"
+description: "Why O(n²) brute force collapses to O(n) — the incremental update trick, the two flavors of windows, and when to reach for the pattern."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Introduction to Sliding Window
+
+The sliding window pattern lives at the intersection of two ideas:
+
+1. The answer depends on a **contiguous range** of the input (a subarray, a substring, a window of size k).
+2. As the range shifts by one element, **most of its internal state stays the same** — so you can update incrementally instead of recomputing.
+
+When both are true, the brute-force `O(n²)` "try every subarray" approach collapses to `O(n)`.
+
+## The brute-force baseline
+
+Take a representative problem:
+
+> Given an array `nums` and integer `k`, find the **maximum sum of any subarray of size k**.
+
+The obvious code:
+
+```python
+def max_sum_brute(nums, k):
+    best = float('-inf')
+    for i in range(len(nums) - k + 1):
+        s = sum(nums[i:i + k])
+        best = max(best, s)
+    return best
+```
+
+Outer loop: `n − k + 1` starts. Inner `sum` call: `O(k)` each. Total: `O(n × k)`. For `n = 10^5` and `k = 10^4`, that's `10^9` operations — minutes of wall-clock time.
+
+But every shift looks like this:
+
+```text
+[1, 4, 2, 10, 23, 3, 1, 0, 20]    k = 4
+
+start i=0:  [1, 4, 2, 10]                                   sum = 17
+start i=1:     [4, 2, 10, 23]                               sum = 39
+start i=2:        [2, 10, 23, 3]                            sum = 38
+start i=3:            [10, 23, 3, 1]                        sum = 37
+```
+
+Between `i=0` and `i=1`, three of the four elements are identical. We're paying `O(k)` to re-add 75% of the same numbers. **That's the waste.**
+
+## The incremental update
+
+The shift from window `[i .. i+k−1]` to `[i+1 .. i+k]` is two operations:
+
+- **Add** the new element `nums[i + k]`
+- **Subtract** the element that left, `nums[i]`
+
+The running sum updates in `O(1)`, regardless of how big `k` is:
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int maxSum(vector<int>& nums, int k) {
+        int n = nums.size();
+        int window = 0;
+        for (int i = 0; i < k; i++) window += nums[i];
+        int best = window;
+        for (int i = k; i < n; i++) {
+            window += nums[i] - nums[i - k];     // add new, drop old
+            best = max(best, window);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_sum(nums, k):
+        window = sum(nums[:k])
+        best = window
+        for i in range(k, len(nums)):
+            window += nums[i] - nums[i - k]      # add new, drop old
+            best = max(best, window)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int maxSum(int[] nums, int k) {
+        int window = 0;
+        for (int i = 0; i < k; i++) window += nums[i];
+        int best = window;
+        for (int i = k; i < nums.length; i++) {
+            window += nums[i] - nums[i - k];
+            best = Math.max(best, window);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)` — one pass. **Space:** `O(1)`.
+
+That's the entire idea. Everything else is figuring out **what running state to maintain** (sum, count, hash map, deque, set) and **when to record the answer** (every shift, only when valid, only when invalid becomes valid).
+
+## The two flavors
+
+Once you've seen a few sliding-window problems, you notice they split cleanly into two camps:
+
+### 1. Fixed-size windows
+
+The window has a hard length `k`. You know exactly when to slide (every iteration) and exactly when to record (every iteration once the first window is built).
+
+**Examples:**
+- Maximum sum of any size-`k` subarray
+- Average of every contiguous size-`k` window (moving average)
+- "Find all anagrams of `p` in `s`" (window length = `len(p)`)
+- "Does any size-`k` window contain a duplicate?"
+- Sliding window maximum (the hardest fixed-window problem; uses a deque)
+
+### 2. Variable-size windows
+
+The window expands when the state is "valid" and contracts when it's "invalid". You track the longest, shortest, or count of valid windows seen so far.
+
+**Examples:**
+- Longest substring without repeating characters
+- Smallest subarray with sum `>= target`
+- Minimum window substring (smallest window of `s` containing all of `t`)
+- Longest substring with at most `k` distinct characters
+- Subarrays with at most / exactly `k` distinct integers
+
+The mental shift between the two: **fixed-size is one pointer plus a fixed offset; variable-size is two genuine pointers that move independently**.
+
+## A pattern-spotting checklist
+
+Before reaching for the template, run through these:
+
+<Steps>
+
+### Is the answer over a CONTIGUOUS range?
+
+Subarrays. Substrings. Not "any subset" — that's a different problem class (subset / knapsack).
+
+### Does the property MONOTONICALLY change with window size?
+
+"Sum of window goes up as you add a positive number." "Distinct-character count goes up as you add a new char." "Longest-without-repeats is monotone in window-end position." If yes, the window's expand-contract behavior is predictable, and sliding window works.
+
+If the property doesn't change monotonically — like "max minus min in window" with negative numbers — sliding window can still work but typically needs auxiliary data structures (deques, sorted sets).
+
+### What running state do I need?
+
+The smallest piece of data that lets me check "is this window valid?" in `O(1)` (or `O(log n)`). Sum? Count of distinct? A frequency hash table? A deque of indices?
+
+### What's the condition that signals "shrink"?
+
+For variable-size windows: when is the window no longer valid? "Sum > target" → shrink. "Distinct count > k" → shrink. "Has duplicate" → shrink.
+
+### When do I record the answer?
+
+For "longest valid" → record after every successful expand. For "shortest valid" → record every time the window becomes valid (typically after a shrink step). For "count of valid" → record every iteration.
+
+</Steps>
+
+If you can answer all five, the code writes itself.
+
+## When sliding window is NOT the answer
+
+The pattern fails when:
+
+- **The answer needs subsequences, not subarrays.** Sliding window only handles contiguous ranges. Longest Common Subsequence, Longest Increasing Subsequence — those are DP territory.
+- **The property isn't monotonic.** Some problems ("find a subarray whose product is closest to X" with mixed signs) need different approaches.
+- **You need to enumerate all windows.** Most sliding-window solutions only track the *best* window. If you need to list every valid one, the cost may already be `O(n²)` regardless.
+- **`k` is given as a range, not a fixed value.** "All subarrays of size between `a` and `b`" might still fit, but typically needs more careful state.
+
+## A worked example: the brute force vs the slide
+
+Let's race the two approaches on a 100,000-element array with `k = 1000`:
+
+| Approach           | Inner work per step | Total operations  | Time on `n = 10^5` |
+| :----------------- | :------------------ | :---------------- | :----------------- |
+| Brute force        | `O(k) = 1000`       | `n × k = 10^8`    | ~1 sec             |
+| Sliding window     | `O(1)`              | `n = 10^5`        | ~1 ms              |
+
+**1000× speedup, same correctness.** That's the trade — one cheap insight (incremental update) for three orders of magnitude.
+
+## Quick check
+
+<QuizBox
+    question="What's the defining property that makes a problem a sliding-window problem?"
+    options={[
+        "It involves two arrays",
+        "The answer is over a contiguous range AND the running state can be updated incrementally as the window shifts",
+        "It involves strings",
+        "The brute force is exactly O(n²)"
+    ]}
+    correctIndex={1}
+    explanation="Sliding window requires both: a contiguous-range answer (so the window concept is meaningful), AND incremental updatability (so you can avoid recomputing the running statistic from scratch). Without incremental updates, you'd still be O(n × k)."
+/>
+
+<QuizBox
+    question="In a fixed-size window of length k, how many operations does it take to update the running sum when the window shifts by one?"
+    options={[
+        "O(k) — recompute the whole window",
+        "O(1) — add the new element, subtract the one that left",
+        "O(log k)",
+        "It depends on the data"
+    ]}
+    correctIndex={1}
+    explanation="The whole point of sliding window: O(1) per shift. Only two elements change in the window — the new one entering on the right, the old one leaving on the left. The other (k − 2) elements are unaffected, so we don't touch them."
+/>
+
+<QuizBox
+    question="What's the difference between fixed-size and variable-size sliding window?"
+    options={[
+        "Fixed-size is always faster",
+        "Fixed-size has a constant window length; variable-size has two independent pointers that expand and contract based on a validity condition",
+        "Variable-size only works on strings",
+        "They're the same"
+    ]}
+    correctIndex={1}
+    explanation="Fixed-size windows slide rigidly — one in, one out per step. Variable-size windows expand when valid and contract when invalid, with the two pointers moving independently. Variable-size handles 'longest / shortest / first / count of valid' problems; fixed-size handles 'every size-k window' problems."
+/>
+
+Next: **fixed-size windows** — the simpler half of the pattern, with the cleanest template.

@@ -1,0 +1,146 @@
+---
+title: "Sliding Window Maximum"
+description: "The monotonic deque pattern — find the maximum in every size-k window in O(n)."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sliding Window Maximum <DifficultyBadge level="hard" />
+
+#### Description
+
+You are given an array of integers `nums`, there is a sliding window of size `k` which is moving from the very left to the very right of the array. You can only see the `k` numbers in the window. Each time the window moves right by one position, return the **maximum** in the current window.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 3, -1, -3, 5, 3, 6, 7],  k = 3
+    Output: [3, 3, 5, 5, 6, 7]
+    Explanation:
+        Window position           Max
+        ---------------           ---
+        [1  3 -1] -3  5  3  6  7    3
+         1 [3 -1 -3]  5  3  6  7    3
+         1  3 [-1 -3  5]  3  6  7   5
+         1  3  -1 [-3  5  3]  6  7  5
+         1  3  -1  -3 [5  3  6]  7  6
+         1  3  -1  -3  5 [3  6  7]  7
+
+> Case 2:
+    nums = [1],  k = 1
+    Output: [1]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- `-10^4 <= nums[i] <= 10^4`
+- `1 <= k <= nums.length`
+
+#### Why heap doesn't quite work
+
+A max-heap gives the maximum in `O(log k)`. So the naïve heap solution is `O(n log k)`. But heaps don't support **efficient removal** of arbitrary elements — when an element leaves the window, you can't immediately pop it from the heap (it's not the max). You'd have to lazily remove it later, which works but bloats the code.
+
+The clean `O(n)` solution uses a **monotonic deque**.
+
+#### The monotonic deque idea
+
+Maintain a deque of **indices** whose corresponding values form a **monotonically decreasing** sequence. The front of the deque is always the index of the current window's maximum.
+
+When the window shifts by one:
+
+1. **Front cleanup:** if `dq.front()` is now out of the window (`< r − k + 1`), pop it.
+2. **Back cleanup:** while `nums[dq.back()] <= nums[r]`, pop the back. (Those indices can never be the max again — there's a newer, at-least-as-large value.)
+3. **Push** `r` to the back.
+4. **Record** `nums[dq.front()]` once the first window is built.
+
+Each index is pushed and popped at most once. Total work: `O(n)`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+        deque<int> dq;                       // indices, values monotonically decreasing
+        vector<int> ans;
+        ans.reserve(nums.size() - k + 1);
+        for (int r = 0; r < (int)nums.size(); r++) {
+            // 1. Drop indices that fell out of the window
+            while (!dq.empty() && dq.front() <= r - k) dq.pop_front();
+            // 2. Maintain monotonic-decreasing invariant
+            while (!dq.empty() && nums[dq.back()] <= nums[r]) dq.pop_back();
+            // 3. Push current index
+            dq.push_back(r);
+            // 4. Once the first window is complete, the front is the max
+            if (r >= k - 1) ans.push_back(nums[dq.front()]);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def max_sliding_window(nums, k):
+        dq = deque()                         # stores indices
+        ans = []
+        for r, x in enumerate(nums):
+            # 1. Drop indices that fell out of the window
+            while dq and dq[0] <= r - k:
+                dq.popleft()
+            # 2. Maintain monotonic-decreasing invariant
+            while dq and nums[dq[-1]] <= x:
+                dq.pop()
+            # 3. Push current index
+            dq.append(r)
+            # 4. Once the first window is complete, record
+            if r >= k - 1:
+                ans.append(nums[dq[0]])
+        return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] maxSlidingWindow(int[] nums, int k) {
+        int n = nums.length;
+        int[] ans = new int[n - k + 1];
+        Deque<Integer> dq = new ArrayDeque<>();
+        for (int r = 0; r < n; r++) {
+            while (!dq.isEmpty() && dq.peekFirst() <= r - k) dq.pollFirst();
+            while (!dq.isEmpty() && nums[dq.peekLast()] <= nums[r]) dq.pollLast();
+            dq.offerLast(r);
+            if (r >= k - 1) ans[r - k + 1] = nums[dq.peekFirst()];
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why amortized O(n)?** Every index is pushed to the deque exactly once. Every index is popped from the deque at most once (either from the front because it left the window, or from the back because a larger value entered). The total number of deque operations across the whole algorithm is at most 2n. So the total time is O(n), even though the inner `while` loops look unbounded.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(n)`. **Space:** `O(k)`.
+
+#### The minimum version
+
+For sliding-window **minimum**, flip the comparator in step 2: pop the back while `nums[dq.back()] >= nums[r]`. Now the deque is monotonically increasing and the front is the min.
+
+For both max and min in the same window (used in problems like "longest subarray where `max − min <= limit`"), maintain **two** monotonic deques in parallel.
+
+#### Same skin
+
+- **Constrained Subsequence Sum** — DP with a sliding-window-max on the previous `k` DP values.
+- **Shortest Subarray with Sum at Least K** (with negatives) — monotonic deque on prefix sums.
+- **Jump Game VI** — DP with sliding window max on the previous `k` reachable values.
+- **Largest Rectangle in Histogram** — a stack-based cousin (monotonic, but not quite a sliding deque).
+
+The monotonic deque is one of the most elegant `O(n)` data structures in the toolkit — internalize it and a whole family of "max/min over a moving window" problems become routine.

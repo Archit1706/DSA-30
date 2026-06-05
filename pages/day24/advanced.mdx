@@ -1,0 +1,240 @@
+---
+title: "Advanced Sliding Window Patterns"
+description: "Monotonic-deque windows, the two-pointer-on-sorted-array variant, character-frequency matching, and the niche techniques that show up in the harder problems."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Advanced Sliding Window Patterns
+
+The fixed and variable templates cover most of the interview-shaped problems. The five techniques on this page show up in the harder ones — competitive-programming flavored questions, multi-array problems, and the "now make it O(1) per step" follow-ups.
+
+## 1. Monotonic-Deque Window — Max/Min in a Window
+
+> Given an array `nums` and integer `k`, return the **maximum** in each contiguous size-`k` window.
+
+The naïve `O(n × k)` approach: for each window, scan `k` elements for the max. The `O(n log k)` approach: keep a sorted multiset of window contents, query the max in `O(log k)`. The **`O(n)` approach**: a monotonic deque.
+
+The idea: maintain a deque of indices whose corresponding values form a **monotonically decreasing** sequence. The front of the deque is always the current window's max. When the window shifts:
+
+- **From the front:** if the front index is now out of the window (`< r - k + 1`), pop it.
+- **From the back:** while the back's value is `<=` the just-entered value, pop it. (Those values can never be the max again — there's a larger and more-recent value now.)
+- Push the new index on the back.
+
+The total work is `O(n)` because each index enters and leaves the deque at most once.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> maxSlidingWindow(vector<int>& nums, int k) {
+        deque<int> dq;                                  // stores indices
+        vector<int> ans;
+        for (int r = 0; r < (int)nums.size(); r++) {
+            while (!dq.empty() && dq.front() <= r - k) dq.pop_front();
+            while (!dq.empty() && nums[dq.back()] <= nums[r]) dq.pop_back();
+            dq.push_back(r);
+            if (r >= k - 1) ans.push_back(nums[dq.front()]);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def max_sliding_window(nums, k):
+        dq = deque()                                   # stores indices
+        ans = []
+        for r, x in enumerate(nums):
+            while dq and dq[0] <= r - k:
+                dq.popleft()
+            while dq and nums[dq[-1]] <= x:
+                dq.pop()
+            dq.append(r)
+            if r >= k - 1:
+                ans.append(nums[dq[0]])
+        return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] maxSlidingWindow(int[] nums, int k) {
+        Deque<Integer> dq = new ArrayDeque<>();
+        int n = nums.length;
+        int[] ans = new int[n - k + 1];
+        for (int r = 0; r < n; r++) {
+            while (!dq.isEmpty() && dq.peekFirst() <= r - k) dq.pollFirst();
+            while (!dq.isEmpty() && nums[dq.peekLast()] <= nums[r]) dq.pollLast();
+            dq.offerLast(r);
+            if (r >= k - 1) ans[r - k + 1] = nums[dq.peekFirst()];
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(k)`.
+
+For minimum-in-window, flip the comparator. For both max and min simultaneously (e.g., "longest subarray where max − min `<= k`"), maintain two deques.
+
+<Callout type="info">
+    The monotonic deque is one of the most elegant data structures in competitive programming. It pops up in sliding window problems, in stock-span problems, in shortest path on grids with bounded weights, and as a building block for divide-and-conquer DP optimizations. Worth keeping in muscle memory.
+</Callout>
+
+## 2. Two Pointers on a Sorted Array
+
+A close cousin of sliding window. Two pointers `l` and `r`, but **starting at opposite ends** of a sorted array. They move toward each other based on a comparison.
+
+### Canonical: Two Sum on Sorted Array
+
+> Given a 1-indexed sorted array of integers `numbers` and a target `target`, find two indices such that they add up to `target`. There's exactly one solution.
+
+```python
+def two_sum(numbers, target):
+    l, r = 0, len(numbers) - 1
+    while l < r:
+        s = numbers[l] + numbers[r]
+        if s == target: return [l + 1, r + 1]
+        if s < target: l += 1
+        else:          r -= 1
+```
+
+`O(n)` time. The pointers move at most `n` times total. The invariant: every valid pair has been considered when both pointers eventually meet (they never skip a valid pair because of sorted order).
+
+### Three Sum, Four Sum
+
+Sort the array, then **fix one index** and run two-sum on the remainder. `3Sum` is `O(n²)`. `4Sum` is `O(n³)`. Both reduce a level of nesting compared to brute force.
+
+The technique applies wherever you can sort and the pointers' movements are monotone with respect to the goal — a generalization of the sliding-window amortization argument.
+
+## 3. The "negative numbers ruin sliding window" workaround
+
+Sliding window for sums relies on **monotonicity**: as you expand the window, the sum only goes up (assuming non-negative inputs). If the array contains negatives, the sum can go down on expansion, and the shrink logic breaks.
+
+The standard workaround: **prefix sums plus a hash map**. For "subarrays with sum exactly k":
+
+```python
+def subarray_sum(nums, k):
+    count = 0
+    prefix = 0
+    seen = {0: 1}                              # one way to have empty prefix sum 0
+    for x in nums:
+        prefix += x
+        count += seen.get(prefix - k, 0)
+        seen[prefix] = seen.get(prefix, 0) + 1
+    return count
+```
+
+`O(n)` time, `O(n)` space. The hash map remembers how many prefix sums of each value we've seen; subtraction (`prefix - k`) tells us "how many subarrays ending here have sum k."
+
+This is a different paradigm from sliding window — but it's the correct fallback for sum-on-signed-numbers problems.
+
+## 4. Character-Frequency Matching (Permutation-in-String)
+
+A class of sliding window problems asks: "does `s` contain a permutation of `p` as a substring?" These look like Find All Anagrams (fixed window), but the trick to keep them `O(n)` is the **match counter** introduced earlier.
+
+> Given two strings `s1` and `s2`, return `true` if `s2` contains a permutation of `s1`.
+
+```python
+def check_inclusion(s1, s2):
+    if len(s1) > len(s2): return False
+    need = [0] * 26
+    have = [0] * 26
+    for c in s1: need[ord(c) - ord('a')] += 1
+    matches = sum(1 for i in range(26) if need[i] == have[i])
+    k = len(s1)
+    for r in range(len(s2)):
+        ci = ord(s2[r]) - ord('a')
+        have[ci] += 1
+        if have[ci] == need[ci]:        matches += 1
+        elif have[ci] == need[ci] + 1:  matches -= 1
+        if r >= k:
+            li = ord(s2[r - k]) - ord('a')
+            have[li] -= 1
+            if have[li] == need[li]:        matches += 1
+            elif have[li] == need[li] - 1:  matches -= 1
+        if matches == 26: return True
+    return False
+```
+
+`O(|s2|)` time. The match counter is doing the heavy lifting: it converts a `O(26)` per-shift comparison into `O(1)` per-shift accounting.
+
+## 5. Sliding Window on Two Arrays Simultaneously
+
+Niche but elegant: when two arrays share a window. The classic is **Find K Closest Elements**:
+
+> Given a sorted array `arr`, an integer `k`, and an integer `x`, return the `k` closest integers to `x` in the array.
+
+You can use binary search to find the start of the answer window, then expand or contract from there. Or — sliding window:
+
+```python
+def find_closest_elements(arr, k, x):
+    # Binary search for the leftmost endpoint of the answer window
+    lo, hi = 0, len(arr) - k
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if x - arr[mid] > arr[mid + k] - x:
+            lo = mid + 1
+        else:
+            hi = mid
+    return arr[lo:lo + k]
+```
+
+`O(log(n - k))` time. This is more "binary search on the answer" than vanilla sliding window, but the idea — *find the optimal window position* — is in the same family.
+
+## Choosing the right tool
+
+| Symptom                                                              | Reach for                                            |
+| :------------------------------------------------------------------- | :--------------------------------------------------- |
+| "Max / min in every size-k window"                                   | Monotonic deque                                      |
+| Sliding sum problem but the array has negative numbers               | Prefix sums + hash map                               |
+| "Does s contain a permutation of p?" / "Find all anagrams of p in s" | Frequency-array sliding window + match counter       |
+| "Find the K closest elements"                                        | Binary search for the window position                |
+| "Pair / triple sums up to target" on sorted input                    | Two pointers from opposite ends                      |
+| "Exactly K of property P"                                            | At-most-K trick (see previous page)                  |
+| "Longest / shortest / count of subarrays with monotone property"     | Variable-size sliding window                         |
+| "Statistic on every size-k window"                                   | Fixed-size sliding window                            |
+
+## Quick check
+
+<QuizBox
+    question="Why is the monotonic deque approach to max-in-window O(n) rather than O(n × k)?"
+    options={[
+        "Magic",
+        "Each index is pushed to the deque once and popped once — total deque operations are bounded by 2n across the entire algorithm",
+        "Because the deque uses log time",
+        "Because k is bounded"
+    ]}
+    correctIndex={1}
+    explanation="Amortization. The inner while loops look like they could be O(k) per outer step, but across the entire run, each of the n indices enters the deque exactly once and leaves at most once. Total deque ops: O(n). Outer loop: O(n). Combined: O(n)."
+/>
+
+<QuizBox
+    question="For 'count of subarrays with sum exactly k' on an array containing negative numbers, the right tool is:"
+    options={[
+        "Sliding window",
+        "Prefix sum + hash map",
+        "Sorting then two pointers",
+        "Binary search"
+    ]}
+    correctIndex={1}
+    explanation="Negative numbers break sliding-window's monotonicity. Prefix sums + hash map handles signed inputs in O(n). The hash map remembers how many prefix sums of each value we've seen, so (prefix - k) lookups tell us how many subarrays ending at the current index have sum k."
+/>
+
+<QuizBox
+    question="For 'permutation in string' (does s2 contain any permutation of s1?), what's the trick that keeps the per-shift work O(1)?"
+    options={[
+        "Sort s1 and search",
+        "Maintain a frequency array + a 'matches' counter that tracks how many characters have the correct frequency; update O(1) per shift",
+        "Hash the substring",
+        "Use a trie"
+    ]}
+    correctIndex={1}
+    explanation="Without the matches counter, every shift needs O(26) to compare two frequency arrays. With it, we just increment / decrement matches whenever a character crosses its target frequency — and check matches == 26 in O(1). Same template as Find All Anagrams."
+/>
+
+Next: **basic warm-up questions** — maximum sum subarray of size k, moving average, contains-nearby-duplicate, longest substring without repeats.
