@@ -210,8 +210,8 @@ To see how much pruning matters, here's Combination Sum II solved with and witho
 | Version                         | Recursive calls | Time  |
 | :------------------------------ | :-------------- | :---- |
 | No sort, only `remaining < 0`   | ~3000           | ~5ms  |
-| Sorted, prune with `break`      | ~80             | <1ms  |
-| Sorted + skip duplicate values  | ~30             | <1ms  |
+| Sorted, prune with `break`      | ~80             | `<1ms`  |
+| Sorted + skip duplicate values  | ~30             | `<1ms`  |
 
 Same problem, same correctness, ~100x fewer recursive calls. **Pruning isn't a nice-to-have. On harder problems it's the difference between accepted and time-limit-exceeded.**
 

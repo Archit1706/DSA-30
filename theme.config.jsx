@@ -96,10 +96,10 @@ export default {
         link: "https://github.com/Archit1706",
     },
     banner: {
-        key: "phases-1-4-live",
+        key: "phases-1-5-live",
         content: (
             <span>
-                🚀 Phases 1–4 are live — Days 1–13 + Day 17 are fully written. <a href="/" style={{ textDecoration: "underline" }}>See the roadmap →</a>
+                🚀 Phases 1–5 are live — Days 1–17 cover the foundations and the algorithmic patterns. <a href="/" style={{ textDecoration: "underline" }}>See the roadmap →</a>
             </span>
         ),
         dismissible: true,
