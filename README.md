@@ -74,7 +74,7 @@ The goal: make DSA feel less like a textbook chore and more like something you a
 | 20 | Union Find | 📋 Coming soon |
 | 21 | Shortest Paths | 📋 Coming soon |
 | 22 | Minimum Spanning Trees | 📋 Coming soon |
-| 23 | Topological Sort | 📋 Coming soon |
+| 23 | Topological Sort | ✅ Available |
 
 ### Phase 7 — Interview Techniques
 

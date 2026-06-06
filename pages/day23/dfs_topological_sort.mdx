@@ -1,0 +1,256 @@
+---
+title: "DFS Topological Sort"
+description: "The recursive variant — DFS post-order with three-color marking, emit on the way back, reverse at the end."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# DFS Topological Sort
+
+The second topological-sort algorithm. Once you have a DFS template in your fingers, this version is a four-line addition.
+
+The intuition: **recurse depth-first. When a node's recursion finishes (all of its descendants are emitted), emit the node itself**. Then reverse the output at the end.
+
+Why does that work? When DFS at `u` finishes, every node reachable from `u` has been emitted before `u` in the *output list*. So when we reverse, `u` appears before every node reachable from `u` — which is exactly the topological-order requirement.
+
+## The template
+
+```text
+state[v] in { WHITE, GRAY, BLACK }   for every v
+output = []
+
+def dfs(u):
+    state[u] = GRAY
+    for each edge u -> v:
+        if state[v] == GRAY:  cycle detected
+        if state[v] == WHITE: dfs(v)
+    state[u] = BLACK
+    output.append(u)
+
+for each node u with state[u] == WHITE:
+    dfs(u)
+
+return reversed(output)
+```
+
+The three colors:
+
+- **WHITE** — not yet visited.
+- **GRAY** — currently being processed (on the DFS recursion stack).
+- **BLACK** — fully processed (recursion finished).
+
+Seeing a GRAY descendant during the loop means we've looped back to an ancestor on the current DFS path — that's a **back edge**, and back edges exist if and only if there's a cycle.
+
+## The full code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    enum Color { WHITE, GRAY, BLACK };
+
+    bool dfs(int u, vector<vector<int>>& adj, vector<Color>& state, vector<int>& out) {
+        state[u] = GRAY;
+        for (int v : adj[u]) {
+            if (state[v] == GRAY)  return false;          // cycle
+            if (state[v] == WHITE && !dfs(v, adj, state, out)) return false;
+        }
+        state[u] = BLACK;
+        out.push_back(u);                                 // post-order
+        return true;
+    }
+
+    vector<int> topoSortDFS(int n, vector<vector<int>>& edges) {
+        vector<vector<int>> adj(n);
+        for (auto& e : edges) adj[e[0]].push_back(e[1]);
+        vector<Color> state(n, WHITE);
+        vector<int> out;
+        for (int i = 0; i < n; i++) {
+            if (state[i] == WHITE && !dfs(i, adj, state, out)) return {};
+        }
+        reverse(out.begin(), out.end());
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    WHITE, GRAY, BLACK = 0, 1, 2
+
+    def topo_sort_dfs(n, edges):
+        adj = [[] for _ in range(n)]
+        for u, v in edges:
+            adj[u].append(v)
+        state = [WHITE] * n
+        out = []
+        def dfs(u):
+            state[u] = GRAY
+            for v in adj[u]:
+                if state[v] == GRAY:  return False        # cycle
+                if state[v] == WHITE and not dfs(v): return False
+            state[u] = BLACK
+            out.append(u)                                  # post-order
+            return True
+        for i in range(n):
+            if state[i] == WHITE and not dfs(i): return []
+        return out[::-1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] topoSortDFS(int n, int[][] edges) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] e : edges) adj.get(e[0]).add(e[1]);
+        int[] state = new int[n];                         // 0 WHITE, 1 GRAY, 2 BLACK
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            if (state[i] == 0 && !dfs(i, adj, state, out)) return new int[0];
+        }
+        Collections.reverse(out);
+        int[] arr = new int[n];
+        for (int i = 0; i < n; i++) arr[i] = out.get(i);
+        return arr;
+    }
+    boolean dfs(int u, List<List<Integer>> adj, int[] state, List<Integer> out) {
+        state[u] = 1;
+        for (int v : adj.get(u)) {
+            if (state[v] == 1) return false;
+            if (state[v] == 0 && !dfs(v, adj, state, out)) return false;
+        }
+        state[u] = 2;
+        out.add(u);
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(V + E)`. **Space:** `O(V + E)` for the adjacency list and recursion stack.
+
+## Why the reversal?
+
+When we `out.append(u)` after the recursion at `u` finishes, every node reachable from `u` is already in `out`. So in the **forward** order, descendants come *before* their ancestors — opposite of topological order. Reverse at the end and you get the right order.
+
+A common alternative: **prepend** to the output list (no reversal needed). Less efficient if `out` is a Python list (`O(n)` prepend), but conceptually identical:
+
+```python
+out.insert(0, u)              # equivalent to appending then reversing
+```
+
+Or use a **stack** in the formal sense — push during post-order, pop at the end — same idea.
+
+## Stepping through an example
+
+Same graph as the Kahn's page: edges `5→0, 5→2, 4→0, 4→1, 2→3, 3→1`.
+
+Starting DFS from node 0 (the smallest):
+
+1. `dfs(0)` — state[0] = GRAY. No out-edges. state[0] = BLACK. `out = [0]`.
+
+Starting DFS from node 1:
+
+2. `dfs(1)` — same. `out = [0, 1]`.
+
+Node 2:
+
+3. `dfs(2)` — state[2] = GRAY. Has edge `2 → 3`.
+   - `dfs(3)` — state[3] = GRAY. Has edge `3 → 1`. state[1] is BLACK, skip. state[3] = BLACK. `out = [0, 1, 3]`.
+   - Return to `dfs(2)`. state[2] = BLACK. `out = [0, 1, 3, 2]`.
+
+Node 3 is BLACK — skip. Node 4:
+
+4. `dfs(4)` — state[4] = GRAY. Edges `4 → 0` (skip BLACK), `4 → 1` (skip BLACK). state[4] = BLACK. `out = [0, 1, 3, 2, 4]`.
+
+Node 5:
+
+5. `dfs(5)` — state[5] = GRAY. Edges `5 → 0` (skip), `5 → 2` (skip). state[5] = BLACK. `out = [0, 1, 3, 2, 4, 5]`.
+
+Reverse: `[5, 4, 2, 3, 1, 0]`. **Valid topo order.** Different from Kahn's output, equally correct.
+
+## DFS vs Kahn's — head to head
+
+| Aspect                          | Kahn's (BFS)                              | DFS post-order                            |
+| :------------------------------ | :---------------------------------------- | :---------------------------------------- |
+| Iterative                       | Yes — uses a queue                        | No — recursive                            |
+| Stack depth                     | None                                      | `O(V)` worst case                         |
+| Cycle detection                 | `len(out) != V`                           | GRAY descendant during recursion          |
+| Order produced                  | Earliest-eligible first                   | Reverse post-order — "leaf-deepest" first |
+| Easy to make lex-smallest       | Yes — heap instead of queue               | Harder                                    |
+| Easy to track parallel levels   | Yes — BFS rounds                          | Harder                                    |
+| Edge in/out direction sensitive | Yes                                       | Yes                                       |
+
+The recursive DFS version has a hidden trap: **deep DAGs can blow the stack**. A DAG that's effectively a long chain `1 → 2 → 3 → ... → n` will recurse `n` levels deep. For `n` in the millions, that exceeds most language defaults. Kahn's has no such limit.
+
+If you specifically want DFS but need to handle deep chains, **convert to an explicit stack**:
+
+```python
+def topo_sort_dfs_iterative(n, edges):
+    adj = [[] for _ in range(n)]
+    for u, v in edges:
+        adj[u].append(v)
+    state = [0] * n              # 0 white, 1 gray, 2 black
+    out = []
+    for start in range(n):
+        if state[start] != 0: continue
+        stack = [(start, 0)]      # (node, next-neighbor-index)
+        while stack:
+            u, i = stack[-1]
+            if i == 0:
+                if state[u] == 1: return []   # cycle
+                state[u] = 1
+            if i < len(adj[u]):
+                v = adj[u][i]
+                stack[-1] = (u, i + 1)
+                if state[v] == 1: return []   # back edge -> cycle
+                if state[v] == 0:
+                    stack.append((v, 0))
+            else:
+                state[u] = 2
+                out.append(u)
+                stack.pop()
+    return out[::-1]
+```
+
+Same algorithm, no recursion stack. Uglier code — Kahn's is the easier path for "no recursion."
+
+## Quick check
+
+<QuizBox
+    question="Why do we use THREE colors (WHITE/GRAY/BLACK) in DFS topo sort instead of just visited/unvisited?"
+    options={[
+        "Style",
+        "Because on a DIRECTED graph, seeing an already-visited node could mean either 'forward edge to a finished sibling' (safe) or 'back edge to an ancestor on the current DFS path' (cycle). Two colors can't distinguish them.",
+        "Performance",
+        "Convention"
+    ]}
+    correctIndex={1}
+    explanation="In an UNDIRECTED graph, the only way to revisit a vertex is via the edge you came from, so two colors suffice. In a DIRECTED graph, you might revisit because of (a) a forward edge to a fully-processed descendant (safe — no cycle) or (b) a back edge to a currently-on-stack ancestor (cycle). GRAY marks 'currently on stack,' making the distinction explicit. Without the GRAY state, you'd report false positives for cycles."
+/>
+
+<QuizBox
+    question="Why do we REVERSE the output at the end of DFS topo sort?"
+    options={[
+        "Style",
+        "Because we appended each node AFTER all its descendants were emitted, so the natural order is 'descendants before ancestors' — the opposite of topological order. Reversing gives 'ancestors before descendants.'",
+        "Performance",
+        "Arbitrary"
+    ]}
+    correctIndex={1}
+    explanation="Post-order emission means a node u is appended only when all nodes reachable from u are already in the list. So forward order = descendants first. Reverse it and ancestors come first — which is what 'topological order' demands. Some tutorials prepend instead of appending, avoiding the reversal step but paying an O(n) prepend cost per node."
+/>
+
+<QuizBox
+    question="A deep DAG of n = 10^6 nodes shaped like a chain. Should you use the recursive DFS or Kahn's?"
+    options={[
+        "Recursive DFS — it's faster",
+        "Kahn's — recursive DFS would blow the stack at ~10^4 levels in most languages; Kahn's is iterative and has no such limit",
+        "Either",
+        "Neither works"
+    ]}
+    correctIndex={1}
+    explanation="Recursive DFS uses stack space proportional to the deepest recursion path. Most languages cap recursion at 10^4 to 10^5 frames. A million-node chain exceeds that. Kahn's has no recursion — the queue holds at most O(V) entries — so it scales without trouble. For deep DAGs, always default to Kahn's (or the iterative DFS variant)."
+/>
+
+Next: **cycle detection** — the three-color algorithm and Kahn's complementary technique, plus how to actually report the cycle.

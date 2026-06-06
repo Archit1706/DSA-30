@@ -1,0 +1,185 @@
+---
+title: "Longest Increasing Path in a Matrix"
+description: "DAG-DP via DFS+memo — find the longest strictly-increasing path through a grid where each cell points to its larger neighbors."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Increasing Path in a Matrix <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an `m × n` integers `matrix`, return the length of the **longest strictly increasing path** in matrix.
+
+From each cell, you can either move in four directions: left, right, up, or down. You **may not** move diagonally or move outside the boundary (i.e., wrap-around is not allowed).
+
+#### Examples
+
+```py
+> Case 1:
+    matrix = [[9, 9, 4], [6, 6, 8], [2, 1, 1]]
+    Output: 4
+    Explanation: longest path = [1, 2, 6, 9].
+
+> Case 2:
+    matrix = [[3, 4, 5], [3, 2, 6], [2, 2, 1]]
+    Output: 4
+    Explanation: [3, 4, 5, 6].
+
+> Case 3:
+    matrix = [[1]]
+    Output: 1
+```
+
+#### Constraints
+
+- `m == matrix.length`
+- `n == matrix[i].length`
+- `1 <= m, n <= 200`
+- `0 <= matrix[i][j] <= 2^31 - 1`
+
+#### Why this is topo sort in disguise
+
+Treat each cell as a graph node. Draw an edge `(r, c) → (r', c')` iff `(r', c')` is a 4-neighbor of `(r, c)` AND `matrix[r'][c'] > matrix[r][c]`.
+
+Because edges only go from smaller values to strictly larger values, **the resulting graph is a DAG** — no cycles possible (a cycle would require a value to be strictly larger than itself).
+
+The problem becomes: **find the longest path in this DAG**. Two solutions:
+
+#### Solution 1 — DFS with memoization (top-down)
+
+For each cell, compute "longest increasing path starting here" by recursing into the strictly-larger 4-neighbors and adding 1. Cache results.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int longestIncreasingPath(vector<vector<int>>& matrix) {
+        int m = matrix.size(), n = matrix[0].size();
+        vector<vector<int>> memo(m, vector<int>(n, 0));
+        function<int(int, int)> dfs = [&](int r, int c) -> int {
+            if (memo[r][c]) return memo[r][c];
+            int best = 1;
+            int dr[] = {-1, 1, 0, 0}, dc[] = {0, 0, -1, 1};
+            for (int d = 0; d < 4; d++) {
+                int nr = r + dr[d], nc = c + dc[d];
+                if (nr >= 0 && nr < m && nc >= 0 && nc < n && matrix[nr][nc] > matrix[r][c]) {
+                    best = max(best, 1 + dfs(nr, nc));
+                }
+            }
+            return memo[r][c] = best;
+        };
+        int ans = 0;
+        for (int r = 0; r < m; r++)
+            for (int c = 0; c < n; c++)
+                ans = max(ans, dfs(r, c));
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longest_increasing_path(matrix):
+        m, n = len(matrix), len(matrix[0])
+        memo = [[0] * n for _ in range(m)]
+        def dfs(r, c):
+            if memo[r][c]: return memo[r][c]
+            best = 1
+            for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < m and 0 <= nc < n and matrix[nr][nc] > matrix[r][c]:
+                    best = max(best, 1 + dfs(nr, nc))
+            memo[r][c] = best
+            return best
+        return max(dfs(r, c) for r in range(m) for c in range(n))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[][] memo;
+    int[][] matrix;
+    int m, n;
+    int[] DR = {-1, 1, 0, 0}, DC = {0, 0, -1, 1};
+    public int longestIncreasingPath(int[][] matrix) {
+        this.matrix = matrix;
+        m = matrix.length; n = matrix[0].length;
+        memo = new int[m][n];
+        int ans = 0;
+        for (int r = 0; r < m; r++)
+            for (int c = 0; c < n; c++)
+                ans = Math.max(ans, dfs(r, c));
+        return ans;
+    }
+    int dfs(int r, int c) {
+        if (memo[r][c] != 0) return memo[r][c];
+        int best = 1;
+        for (int d = 0; d < 4; d++) {
+            int nr = r + DR[d], nc = c + DC[d];
+            if (nr >= 0 && nr < m && nc >= 0 && nc < n && matrix[nr][nc] > matrix[r][c]) {
+                best = Math.max(best, 1 + dfs(nr, nc));
+            }
+        }
+        memo[r][c] = best;
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`O(m × n)` time and space — each cell is visited and computed once thanks to memoization.
+
+#### Solution 2 — Kahn's-based DP (bottom-up)
+
+Build the DAG explicitly with indegrees, then process in topo order, propagating `dp[cell] = max(dp[predecessor]) + 1`. This is the "longest path on a DAG" DP from the [applications page](/day23/applications#10-less-obvious-phylogenetic-trees-neural-network-forward-passes).
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def longest_increasing_path_bfs(matrix):
+        m, n = len(matrix), len(matrix[0])
+        indeg = [[0] * n for _ in range(m)]
+        for r in range(m):
+            for c in range(n):
+                for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < m and 0 <= nc < n and matrix[nr][nc] < matrix[r][c]:
+                        indeg[r][c] += 1
+        q = deque()
+        for r in range(m):
+            for c in range(n):
+                if indeg[r][c] == 0:
+                    q.append((r, c))
+        rounds = 0
+        while q:
+            rounds += 1
+            for _ in range(len(q)):
+                r, c = q.popleft()
+                for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < m and 0 <= nc < n and matrix[nr][nc] > matrix[r][c]:
+                        indeg[nr][nc] -= 1
+                        if indeg[nr][nc] == 0:
+                            q.append((nr, nc))
+        return rounds
+    ```
+    </Tab>
+</Tabs>
+
+Same `O(m × n)` time. The "rounds" of Kahn's correspond directly to path lengths.
+
+#### Analysis
+
+- **Time:** `O(m × n)`.
+- **Space:** `O(m × n)`.
+
+#### Same skin
+
+- **Course Schedule II** — different domain, same DAG.
+- **Parallel Courses** — rounds-counting Kahn's, same shape as the BFS variant here.
+- **Word Ladder** — BFS shortest path, similar grid-on-graph framing.
+- **Longest Path in DAG** (generic) — this is the canonical instance.
+
+This is one of the rare problems where two completely different framings (DFS+memo and Kahn's-DP) both reach the same `O(m × n)` answer. Recognizing that "every grid where you can only move to strictly-larger neighbors is a DAG" is the core skill.

@@ -1,0 +1,179 @@
+---
+title: "Alien Dictionary"
+description: "Build the character-precedence DAG from a sorted word list, then run Kahn's topological sort to recover the alien alphabet."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Alien Dictionary <DifficultyBadge level="hard" />
+
+#### Description
+
+There is a new alien language that uses the English alphabet. However, the order among the letters is unknown to you.
+
+You are given a list of strings `words` from the alien language's dictionary, where the strings in `words` are **sorted lexicographically** by the rules of this new language.
+
+Return a string of the unique letters in the new alien language sorted in lexicographically increasing order by the new language's rules. If there is no solution, return `""`. If there are multiple solutions, return any of them.
+
+#### Examples
+
+```py
+> Case 1:
+    words = ["wrt", "wrf", "er", "ett", "rftt"]
+    Output: "wertf"
+
+> Case 2:
+    words = ["z", "x"]
+    Output: "zx"
+
+> Case 3:
+    words = ["z", "x", "z"]
+    Output: ""
+    Explanation: the order is invalid — no solution.
+```
+
+#### Constraints
+
+- `1 <= words.length <= 100`
+- `1 <= words[i].length <= 100`
+- `words[i]` consists of only lowercase English letters.
+
+#### State design
+
+This is the boss-level topo-sort problem. Two phases:
+
+1. **Build the precedence DAG.** For each adjacent pair `(words[i], words[i+1])`, find the first differing character — that gives one directed edge "earlier-letter → later-letter". Also handle the **prefix violation** edge case (`"abc"` before `"ab"` is impossible).
+2. **Topo sort** the resulting graph to recover the alphabet order.
+
+The hard part is **edge extraction** — getting the DAG right.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string alienOrder(vector<string>& words) {
+        unordered_map<char, unordered_set<char>> adj;
+        unordered_map<char, int> indeg;
+        for (auto& w : words) for (char c : w) {
+            adj[c]; indeg[c];                          // ensure key exists
+        }
+        for (int i = 0; i + 1 < (int)words.size(); i++) {
+            string& a = words[i];
+            string& b = words[i + 1];
+            // Prefix violation
+            if (a.size() > b.size() && a.substr(0, b.size()) == b) return "";
+            for (int j = 0; j < min(a.size(), b.size()); j++) {
+                if (a[j] != b[j]) {
+                    if (!adj[a[j]].count(b[j])) {
+                        adj[a[j]].insert(b[j]);
+                        indeg[b[j]]++;
+                    }
+                    break;
+                }
+            }
+        }
+        queue<char> q;
+        for (auto& p : indeg) if (p.second == 0) q.push(p.first);
+        string out;
+        while (!q.empty()) {
+            char u = q.front(); q.pop();
+            out += u;
+            for (char v : adj[u]) {
+                if (--indeg[v] == 0) q.push(v);
+            }
+        }
+        return out.size() == indeg.size() ? out : "";
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import defaultdict, deque
+
+    def alien_order(words):
+        adj = defaultdict(set)
+        indeg = {c: 0 for w in words for c in w}
+        for i in range(len(words) - 1):
+            a, b = words[i], words[i + 1]
+            if len(a) > len(b) and a.startswith(b):
+                return ""                                 # prefix violation
+            for ca, cb in zip(a, b):
+                if ca != cb:
+                    if cb not in adj[ca]:
+                        adj[ca].add(cb)
+                        indeg[cb] += 1
+                    break
+        q = deque(c for c in indeg if indeg[c] == 0)
+        out = []
+        while q:
+            u = q.popleft(); out.append(u)
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0: q.append(v)
+        return "".join(out) if len(out) == len(indeg) else ""
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String alienOrder(String[] words) {
+        Map<Character, Set<Character>> adj = new HashMap<>();
+        Map<Character, Integer> indeg = new HashMap<>();
+        for (String w : words) for (char c : w.toCharArray()) {
+            adj.putIfAbsent(c, new HashSet<>());
+            indeg.putIfAbsent(c, 0);
+        }
+        for (int i = 0; i + 1 < words.length; i++) {
+            String a = words[i], b = words[i + 1];
+            if (a.length() > b.length() && a.startsWith(b)) return "";
+            for (int j = 0; j < Math.min(a.length(), b.length()); j++) {
+                char ca = a.charAt(j), cb = b.charAt(j);
+                if (ca != cb) {
+                    if (adj.get(ca).add(cb)) {
+                        indeg.merge(cb, 1, Integer::sum);
+                    }
+                    break;
+                }
+            }
+        }
+        Deque<Character> q = new ArrayDeque<>();
+        for (Map.Entry<Character, Integer> e : indeg.entrySet()) {
+            if (e.getValue() == 0) q.offer(e.getKey());
+        }
+        StringBuilder out = new StringBuilder();
+        while (!q.isEmpty()) {
+            char u = q.poll();
+            out.append(u);
+            for (char v : adj.get(u)) {
+                if (indeg.merge(v, -1, Integer::sum) == 0) q.offer(v);
+            }
+        }
+        return out.length() == indeg.size() ? out.toString() : "";
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The three classic Alien Dictionary bugs:**
+
+    1. **Forgetting the prefix violation check.** If `a = "abc"` and `b = "ab"`, the input is inconsistent — no valid ordering. Output `""`.
+    2. **Adding duplicate edges.** Adding the same `(u, v)` edge multiple times inflates `indeg[v]` and the topo sort never terminates correctly. Use a set, or check before inserting.
+    3. **Missing characters.** Every character that appears in any word must be in the output. Don't only add characters that get edges — initialize `indeg[c] = 0` for every letter encountered.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(C + sum of word lengths)` where `C` is the number of distinct characters (at most 26).
+- **Space:** `O(C²)` for the adjacency map (bounded by 26² edges).
+
+#### Same skin
+
+- **Verifying an Alien Dictionary** — given a proposed alphabet, check whether a word list is sorted under it. Single pass, no topo sort.
+- **Sequence Reconstruction** — same shape: build a DAG from short ordered constraints, topo-sort, verify uniqueness.
+- **Build a Matrix with Conditions** — two independent topo sorts (rows + cols) from precedence constraints.
+- **Loud and Rich** — DFS on a precedence DAG with memoization.
+
+This is the **canonical "real-world topo sort"** interview problem. The algorithmic core is mechanical once you've done Kahn's; the difficulty is entirely in correctly extracting the DAG from the constraints.

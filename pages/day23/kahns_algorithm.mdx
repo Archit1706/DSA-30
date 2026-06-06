@@ -1,0 +1,279 @@
+---
+title: "Kahn's Algorithm (BFS-style Topological Sort)"
+description: "The indegree-based BFS approach — repeatedly peel off nodes with no remaining prerequisites until none remain."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Kahn's Algorithm
+
+Kahn's algorithm (1962) is the most intuitive topological sort. The idea is exactly what you'd do by hand:
+
+> Find a task with no remaining prerequisites. Do it. Cross it off everyone else's prerequisite list. Repeat until everything is done — or until something with prerequisites remains, in which case there's a cycle.
+
+In graph language: find a node with **indegree 0**. Emit it. Decrement the indegree of every neighbor. If a neighbor's indegree hits zero, it's now eligible. Repeat.
+
+It's BFS in disguise — the queue holds "currently eligible" nodes, and we expand by emitting and decrementing.
+
+## The template
+
+```text
+1. Build adjacency list adj and indegree[] from edges.
+2. Initialize queue with every v where indegree[v] == 0.
+3. While queue is nonempty:
+     u = queue.pop()
+     append u to output
+     for each edge u -> v:
+         indegree[v] -= 1
+         if indegree[v] == 0:
+             queue.push(v)
+4. If len(output) == V, return output.
+   Else, the graph has a cycle.
+```
+
+Four lines of pseudocode, all `O(V + E)`.
+
+## The full code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> topoSortKahn(int n, vector<vector<int>>& edges) {
+        vector<vector<int>> adj(n);
+        vector<int> indeg(n, 0);
+        for (auto& e : edges) {
+            adj[e[0]].push_back(e[1]);
+            indeg[e[1]]++;
+        }
+        queue<int> q;
+        for (int i = 0; i < n; i++) if (indeg[i] == 0) q.push(i);
+        vector<int> out;
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            out.push_back(u);
+            for (int v : adj[u]) {
+                if (--indeg[v] == 0) q.push(v);
+            }
+        }
+        if ((int)out.size() != n) return {};                  // cycle: empty result
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def topo_sort_kahn(n, edges):
+        adj = [[] for _ in range(n)]
+        indeg = [0] * n
+        for u, v in edges:
+            adj[u].append(v)
+            indeg[v] += 1
+        q = deque(i for i in range(n) if indeg[i] == 0)
+        out = []
+        while q:
+            u = q.popleft()
+            out.append(u)
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0:
+                    q.append(v)
+        return out if len(out) == n else []                   # cycle: empty
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] topoSortKahn(int n, int[][] edges) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        int[] indeg = new int[n];
+        for (int[] e : edges) {
+            adj.get(e[0]).add(e[1]);
+            indeg[e[1]]++;
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) if (indeg[i] == 0) q.offer(i);
+        int[] out = new int[n];
+        int k = 0;
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            out[k++] = u;
+            for (int v : adj.get(u)) {
+                if (--indeg[v] == 0) q.offer(v);
+            }
+        }
+        return (k == n) ? out : new int[0];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(V + E)`. **Space:** `O(V + E)` for the adjacency list and indegree array.
+
+## Why it works (proof in two paragraphs)
+
+**Correctness:** every node we emit has indegree 0 at the moment we emit it — meaning all its prerequisites are already in the output. So for every edge `u → v`, `u` appears before `v`: that's the definition of a topological order.
+
+**Completeness on DAGs:** if there's no cycle, **at least one node has indegree 0** at every step. Proof by contradiction: if every remaining node had indegree `>= 1`, you could trace edges backward from any node and never run out — but with finitely many nodes, you'd eventually revisit a node, forming a cycle. Contradiction. So we always have something to emit, and we emit every node exactly once.
+
+## Stepping through an example
+
+Consider the graph with edges:
+
+```text
+5 → 0, 5 → 2, 4 → 0, 4 → 1, 2 → 3, 3 → 1
+```
+
+Initial indegrees: `[2, 2, 1, 1, 0, 0]` (for nodes 0..5).
+
+| Step | Queue       | Emit | Output       | Indegrees changed                       |
+| :--- | :---------- | :--- | :----------- | :-------------------------------------- |
+| 0    | `[4, 5]`    |      | `[]`         |                                         |
+| 1    | `[5, 1]`    | 4    | `[4]`        | `0 → 1, 1 → 1` (1's hit 1, but not 0)   |
+| 2    | `[1, 0, 2]` | 5    | `[4, 5]`     | `0 → 0, 2 → 0` (both became 0)          |
+| 3    | `[0, 2]`    | 1    | `[4, 5, 1]`  | no out-edges from 1                     |
+| 4    | `[2]`       | 0    | `[4, 5, 1, 0]` | no out-edges from 0                   |
+| 5    | `[3]`       | 2    | `[4, 5, 1, 0, 2]` | `3 → 0`                            |
+| 6    | `[]`        | 3    | `[4, 5, 1, 0, 2, 3]` | no out-edges from 3              |
+
+Final output: `[4, 5, 1, 0, 2, 3]` — a valid topo order. Other orders are equally valid; which one comes out depends on the order we initially push zero-indegree nodes.
+
+<Callout type="info">
+    **The output depends on the queue's behavior.** A FIFO queue gives one order; a stack (LIFO) gives a different one; a priority queue gives the smallest available eligible node first. All produce valid topo orders if the graph is a DAG.
+</Callout>
+
+## Variation 1 — Lexicographically smallest topo order
+
+Replace the FIFO queue with a **min-heap**. When multiple nodes have indegree 0, the heap returns the smallest one first.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    import heapq
+
+    def topo_sort_lex(n, edges):
+        adj = [[] for _ in range(n)]
+        indeg = [0] * n
+        for u, v in edges:
+            adj[u].append(v)
+            indeg[v] += 1
+        heap = [i for i in range(n) if indeg[i] == 0]
+        heapq.heapify(heap)
+        out = []
+        while heap:
+            u = heapq.heappop(heap)
+            out.append(u)
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0:
+                    heapq.heappush(heap, v)
+        return out if len(out) == n else []
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O((V + E) log V)` because of the heap operations.
+
+This is the trick behind **Alien Dictionary** when the problem wants a deterministic answer.
+
+## Variation 2 — Parallel scheduling depth
+
+> Tasks have prerequisites. If we can run any number of tasks in parallel as long as their prerequisites are done, what's the minimum number of time-steps to finish all tasks?
+
+The answer is the **length of the longest path in the DAG**. Equivalently, the number of "rounds" in a level-by-level Kahn's:
+
+- Round 0: all nodes with indegree 0.
+- Round 1: all nodes whose indegree became 0 after round 0 emissions.
+- ...
+
+Tweak Kahn's to track levels:
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def min_time_to_finish(n, edges):
+        adj = [[] for _ in range(n)]
+        indeg = [0] * n
+        for u, v in edges:
+            adj[u].append(v); indeg[v] += 1
+        q = deque(i for i in range(n) if indeg[i] == 0)
+        rounds = 0
+        done = 0
+        while q:
+            rounds += 1
+            for _ in range(len(q)):
+                u = q.popleft()
+                done += 1
+                for v in adj[u]:
+                    indeg[v] -= 1
+                    if indeg[v] == 0:
+                        q.append(v)
+        return rounds if done == n else -1
+    ```
+    </Tab>
+</Tabs>
+
+**Same `O(V + E)`** as plain Kahn's, plus a per-round bookkeeping. This is **Parallel Courses I** on LeetCode.
+
+## Variation 3 — Count distinct topo orders
+
+Multiple valid orders may exist. Counting them is `#P-hard` in general (no polynomial algorithm known unless `P = NP`). For small graphs, you can enumerate via backtracking over "which zero-indegree node to pick next."
+
+## Common bugs
+
+<Callout type="warning">
+    **The "decrement-then-check" idiom.** Use `if (--indeg[v] == 0)` (C++/Java) or `indeg[v] -= 1; if indeg[v] == 0` (Python). Checking before decrementing is wrong; decrementing twice is wrong. The single-step decrement-and-check is what makes the algorithm `O(V + E)` — every edge contributes one decrement, total `O(E)`.
+</Callout>
+
+<Callout type="warning">
+    **Forgetting to check `len(output) == V`.** Without it, on a cyclic input you'd return a *partial* order — looks valid for the prefix, silently wrong overall. The length check is the cycle detector; never skip it.
+</Callout>
+
+<Callout type="warning">
+    **Edge direction.** `[a, b]` in LeetCode's Course Schedule means "to take `a`, you need `b` first," so the edge is `b → a`. Read the problem statement carefully — half of "Course Schedule wrong answer" bugs come from flipping this direction.
+</Callout>
+
+## Quick check
+
+<QuizBox
+    question="In Kahn's algorithm, why do we ONLY enqueue a node when its indegree DROPS to 0, not when it's < some_threshold?"
+    options={[
+        "Random choice",
+        "Because a node can be safely emitted ONLY when all its prerequisites are emitted; indegree 0 means 'no remaining prerequisites,' and emitting earlier would put it before some dependency",
+        "Performance",
+        "Because of stack overflow"
+    ]}
+    correctIndex={1}
+    explanation="The invariant: at every moment, indegree[v] = number of v's prerequisites NOT yet emitted. So indegree == 0 means all prerequisites are emitted, and v is now safe to emit. Emitting earlier would violate the topo order. Emitting later is also fine in principle, but enqueueing as soon as it's safe is what gives the algorithm its O(V + E) bound."
+/>
+
+<QuizBox
+    question="To get the lexicographically smallest topo order, you replace the FIFO queue with:"
+    options={[
+        "A stack",
+        "A min-heap (priority queue) so the smallest eligible node is always emitted next",
+        "A hash set",
+        "A counter"
+    ]}
+    correctIndex={1}
+    explanation="When multiple nodes have indegree 0 simultaneously, FIFO returns them in queue-insertion order — arbitrary from a lexicographic standpoint. A min-heap (priority queue keyed on node label) always returns the smallest, producing the lex-smallest topo order. The cost is O(log V) per pop instead of O(1), giving O((V+E) log V) total."
+/>
+
+<QuizBox
+    question="On a graph with a cycle, what does Kahn's return?"
+    options={[
+        "Crashes",
+        "Returns the partial output and we detect 'cycle' by len(output) < V",
+        "Returns the cycle",
+        "Returns all nodes anyway"
+    ]}
+    correctIndex={1}
+    explanation="Nodes inside a cycle never have indegree drop to 0 (they each have at least one prerequisite that's still 'pending'), so they're never enqueued and never emitted. The output is the prefix consisting of nodes outside the cycle. We detect the cycle by comparing output size to V — if smaller, a cycle exists. Returning the empty list (or false) is the standard convention."
+/>
+
+Next: **DFS topological sort** — the recursive variant, post-order emission, and the elegance of a single DFS.

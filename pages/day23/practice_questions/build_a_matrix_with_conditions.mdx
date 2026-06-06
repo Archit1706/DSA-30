@@ -1,0 +1,185 @@
+---
+title: "Build a Matrix with Conditions"
+description: "Two independent topo sorts (rows and cols) plus a placement step — the canonical 'compose two orderings into a grid' problem."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Build a Matrix with Conditions <DifficultyBadge level="hard" />
+
+#### Description
+
+You are given a positive integer `k`. You are also given:
+
+- a 2D integer array `rowConditions` of size `n` where `rowConditions[i] = [above_i, below_i]`, and
+- a 2D integer array `colConditions` of size `m` where `colConditions[i] = [left_i, right_i]`.
+
+The two arrays contain integers from `1` to `k`.
+
+You have to build a `k × k` matrix that contains each of the numbers from `1` to `k` **exactly once**. The remaining cells should have the value `0`.
+
+The matrix should also satisfy the following conditions:
+
+- The number `above_i` should appear in a **row that is strictly above** the row at which the number `below_i` appears for all `i` from `0` to `n - 1`.
+- The number `left_i` should appear in a **column that is strictly left** of the column at which the number `right_i` appears for all `i` from `0` to `m - 1`.
+
+Return any matrix that satisfies the conditions. If no such matrix exists, return an empty matrix.
+
+#### Examples
+
+```py
+> Case 1:
+    k = 3
+    rowConditions = [[1, 2], [3, 2]]
+    colConditions = [[2, 1], [3, 2]]
+    Output: [[3, 0, 0], [0, 0, 1], [0, 2, 0]]
+    Explanation:
+        Row order: 1 above 2, 3 above 2. So 1 and 3 are in higher rows than 2.
+        Col order: 2 is in a column left of 1; 3 is in a column left of 2.
+        One valid arrangement: number 3 at (0, 0); number 1 at (1, 2); number 2 at (2, 1).
+```
+
+#### Constraints
+
+- `2 <= k <= 400`
+- `1 <= rowConditions.length, colConditions.length <= 10^4`
+- `1 <= above_i, below_i, left_i, right_i <= k`
+
+#### State design
+
+Two **independent** topological sorts:
+
+1. **Row order:** topo-sort the row constraints. Output → which row each number goes to.
+2. **Column order:** topo-sort the column constraints. Output → which column each number goes to.
+
+Each topo sort gives a list `order[]` where `order[i]` is the number at position `i`. Invert it to get `pos[number] = i`. Then place each number at `(rowPos[number], colPos[number])`.
+
+If either topo sort detects a cycle, return the empty matrix.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> topoSort(int k, vector<vector<int>>& conds) {
+        vector<vector<int>> adj(k + 1);
+        vector<int> indeg(k + 1, 0);
+        for (auto& c : conds) {
+            adj[c[0]].push_back(c[1]);
+            indeg[c[1]]++;
+        }
+        queue<int> q;
+        for (int i = 1; i <= k; i++) if (indeg[i] == 0) q.push(i);
+        vector<int> out;
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            out.push_back(u);
+            for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);
+        }
+        return (int)out.size() == k ? out : vector<int>{};
+    }
+    vector<vector<int>> buildMatrix(int k, vector<vector<int>>& rowConds, vector<vector<int>>& colConds) {
+        vector<int> rowOrder = topoSort(k, rowConds);
+        vector<int> colOrder = topoSort(k, colConds);
+        if (rowOrder.empty() || colOrder.empty()) return {};
+        vector<int> rowPos(k + 1), colPos(k + 1);
+        for (int i = 0; i < k; i++) {
+            rowPos[rowOrder[i]] = i;
+            colPos[colOrder[i]] = i;
+        }
+        vector<vector<int>> mat(k, vector<int>(k, 0));
+        for (int x = 1; x <= k; x++) mat[rowPos[x]][colPos[x]] = x;
+        return mat;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def build_matrix(k, row_conds, col_conds):
+        def topo(conds):
+            adj = [[] for _ in range(k + 1)]
+            indeg = [0] * (k + 1)
+            for u, v in conds:
+                adj[u].append(v); indeg[v] += 1
+            q = deque(i for i in range(1, k + 1) if indeg[i] == 0)
+            out = []
+            while q:
+                u = q.popleft(); out.append(u)
+                for v in adj[u]:
+                    indeg[v] -= 1
+                    if indeg[v] == 0: q.append(v)
+            return out if len(out) == k else []
+
+        row_order = topo(row_conds)
+        col_order = topo(col_conds)
+        if not row_order or not col_order: return []
+        row_pos = [0] * (k + 1)
+        col_pos = [0] * (k + 1)
+        for i, x in enumerate(row_order): row_pos[x] = i
+        for i, x in enumerate(col_order): col_pos[x] = i
+        mat = [[0] * k for _ in range(k)]
+        for x in range(1, k + 1):
+            mat[row_pos[x]][col_pos[x]] = x
+        return mat
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] topo(int k, int[][] conds) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i <= k; i++) adj.add(new ArrayList<>());
+        int[] indeg = new int[k + 1];
+        for (int[] c : conds) {
+            adj.get(c[0]).add(c[1]); indeg[c[1]]++;
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 1; i <= k; i++) if (indeg[i] == 0) q.offer(i);
+        int[] out = new int[k];
+        int j = 0;
+        while (!q.isEmpty()) {
+            int u = q.poll(); out[j++] = u;
+            for (int v : adj.get(u)) if (--indeg[v] == 0) q.offer(v);
+        }
+        return j == k ? out : new int[0];
+    }
+    public int[][] buildMatrix(int k, int[][] rowConds, int[][] colConds) {
+        int[] rowOrder = topo(k, rowConds);
+        int[] colOrder = topo(k, colConds);
+        if (rowOrder.length == 0 || colOrder.length == 0) return new int[0][0];
+        int[] rowPos = new int[k + 1];
+        int[] colPos = new int[k + 1];
+        for (int i = 0; i < k; i++) {
+            rowPos[rowOrder[i]] = i;
+            colPos[colOrder[i]] = i;
+        }
+        int[][] mat = new int[k][k];
+        for (int x = 1; x <= k; x++) mat[rowPos[x]][colPos[x]] = x;
+        return mat;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The decomposition insight:** rows and columns are independent — row constraints only constrain row positions, column constraints only constrain column positions. So we can topo-sort each independently. The 2D placement is then just looking up `(rowPos[x], colPos[x])` per number.
+
+    If either ordering fails (cycle), the whole problem fails.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(k + n + m)` where `n` = row conditions, `m` = col conditions. Plus `O(k²)` for filling the matrix.
+- **Space:** `O(k² + n + m)`.
+
+#### Same skin
+
+- **Course Schedule II** — single topo sort, output the order.
+- **Alien Dictionary** — extract constraints from a list, then topo sort.
+- **Sort Items by Groups Respecting Dependencies** — two-level topo sort (groups + items within groups).
+- **Sequence Reconstruction** — single topo sort with uniqueness check.
+
+This is one of the **cleanest "compose multiple topo sorts"** problems on LeetCode. Once you see that rows and columns are independent, the algorithm follows naturally — and the rest is just bookkeeping.

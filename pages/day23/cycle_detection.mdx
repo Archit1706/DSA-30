@@ -1,0 +1,251 @@
+---
+title: "Cycle Detection on Directed Graphs"
+description: "Three-color DFS, Kahn's count-check, reporting the actual cycle, and the related Union-Find cycle detection on undirected graphs."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Cycle Detection
+
+Topological sort and cycle detection are two sides of the same coin. **A directed graph has a topological order if and only if it has no cycle.** So every topo-sort algorithm is also a cycle detector, and every directed-cycle detector can be repurposed to attempt a topo sort.
+
+This page covers the two standard approaches plus the technique for **reporting the cycle itself**, not just its existence.
+
+## Approach 1 — Kahn's: count what got emitted
+
+The shortest cycle detector in this chapter:
+
+```python
+def has_cycle_kahn(n, edges):
+    adj = [[] for _ in range(n)]
+    indeg = [0] * n
+    for u, v in edges:
+        adj[u].append(v); indeg[v] += 1
+    from collections import deque
+    q = deque(i for i in range(n) if indeg[i] == 0)
+    emitted = 0
+    while q:
+        u = q.popleft(); emitted += 1
+        for v in adj[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0:
+                q.append(v)
+    return emitted < n      # if some nodes were never emitted, there's a cycle
+```
+
+`O(V + E)` time, `O(V + E)` space. The same code as topo sort — we just return the truthy-cycle check instead of the order.
+
+**Limitations:** doesn't tell you *which* nodes are in the cycle. For "report the cycle," use DFS.
+
+## Approach 2 — DFS with three colors
+
+Mark each node WHITE (unvisited), GRAY (on the current DFS stack), or BLACK (fully processed). A **back edge** — an edge from a GRAY node to another GRAY node — is a cycle.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool dfs(int u, vector<vector<int>>& adj, vector<int>& state) {
+        state[u] = 1;                                  // GRAY
+        for (int v : adj[u]) {
+            if (state[v] == 1) return true;            // back edge: cycle
+            if (state[v] == 0 && dfs(v, adj, state)) return true;
+        }
+        state[u] = 2;                                  // BLACK
+        return false;
+    }
+    bool hasCycle(int n, vector<vector<int>>& edges) {
+        vector<vector<int>> adj(n);
+        for (auto& e : edges) adj[e[0]].push_back(e[1]);
+        vector<int> state(n, 0);
+        for (int i = 0; i < n; i++) {
+            if (state[i] == 0 && dfs(i, adj, state)) return true;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def has_cycle(n, edges):
+        adj = [[] for _ in range(n)]
+        for u, v in edges: adj[u].append(v)
+        state = [0] * n                                # 0 white, 1 gray, 2 black
+        def dfs(u):
+            state[u] = 1
+            for v in adj[u]:
+                if state[v] == 1: return True
+                if state[v] == 0 and dfs(v): return True
+            state[u] = 2
+            return False
+        return any(state[i] == 0 and dfs(i) for i in range(n))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean hasCycle(int n, int[][] edges) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] e : edges) adj.get(e[0]).add(e[1]);
+        int[] state = new int[n];
+        for (int i = 0; i < n; i++) {
+            if (state[i] == 0 && dfs(i, adj, state)) return true;
+        }
+        return false;
+    }
+    boolean dfs(int u, List<List<Integer>> adj, int[] state) {
+        state[u] = 1;
+        for (int v : adj.get(u)) {
+            if (state[v] == 1) return true;
+            if (state[v] == 0 && dfs(v, adj, state)) return true;
+        }
+        state[u] = 2;
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(V + E)`. **Space:** `O(V)` recursion + `O(V + E)` adjacency.
+
+## Why three colors and not two on directed graphs?
+
+On an **undirected** graph, the only way DFS revisits a node is via the edge you came from (the "parent edge"). If you skip the parent and still find a visited node, that's a cycle. Two states (visited/unvisited) suffice — plus the parent edge to ignore.
+
+On a **directed** graph, two states fail. Consider:
+
+```text
+A -> B -> C
+A -> C
+```
+
+DFS from `A`: visit `B`, then `C` (from `B`). Mark both visited. Return to `A`. Now see edge `A → C`. `C` is visited. Is that a cycle? **No!** It's a forward edge to an already-finished descendant.
+
+GRAY/BLACK separates the two cases: **GRAY = on the current path; BLACK = finished**. A back edge to GRAY is a cycle; a forward/cross edge to BLACK is not. Two states can't tell them apart.
+
+## Reporting the actual cycle
+
+Once you detect a cycle, the GRAY ancestor that triggered the detection plus the path from it to the current node forms a cycle. Track parents during DFS:
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def find_cycle(n, edges):
+        adj = [[] for _ in range(n)]
+        for u, v in edges: adj[u].append(v)
+        state = [0] * n
+        parent = [-1] * n
+        cycle_start = cycle_end = -1
+        def dfs(u):
+            nonlocal cycle_start, cycle_end
+            state[u] = 1
+            for v in adj[u]:
+                if state[v] == 1:
+                    cycle_start, cycle_end = v, u
+                    return True
+                if state[v] == 0:
+                    parent[v] = u
+                    if dfs(v): return True
+            state[u] = 2
+            return False
+        for i in range(n):
+            if state[i] == 0 and dfs(i): break
+        if cycle_start == -1: return []
+        cycle = [cycle_start]
+        u = cycle_end
+        while u != cycle_start:
+            cycle.append(u); u = parent[u]
+        cycle.append(cycle_start)
+        cycle.reverse()
+        return cycle
+    ```
+    </Tab>
+</Tabs>
+
+This is the technique behind real-world cycle reports in tools like `npm`'s "circular dependency" warnings or `make`'s `circular X <- Y dependency dropped` message.
+
+## Undirected graphs — a brief cousin
+
+For an **undirected** graph, the two-color DFS is enough:
+
+```python
+def has_cycle_undirected(n, edges):
+    adj = [[] for _ in range(n)]
+    for u, v in edges:
+        adj[u].append(v); adj[v].append(u)
+    visited = [False] * n
+    def dfs(u, parent):
+        visited[u] = True
+        for v in adj[u]:
+            if not visited[v]:
+                if dfs(v, u): return True
+            elif v != parent:                        # don't count the parent edge
+                return True
+        return False
+    return any(not visited[i] and dfs(i, -1) for i in range(n))
+```
+
+Or, more elegantly, use **Union-Find**: for each edge `(u, v)`, if `find(u) == find(v)` then this edge would form a cycle; otherwise union them. `O(α(V) × E)` time. We cover this on [Day 20](/day20).
+
+## A subtle bug worth knowing
+
+<Callout type="warning">
+    **Resetting state after recursion is wrong.** In DFS topo sort / cycle detection, once a node becomes BLACK (state = 2), it stays BLACK. Some beginners try to "reset state to 0 on the way back" thinking that's how backtracking works — but this is graph traversal, not backtracking. Resetting causes the same node to be reprocessed exponentially many times. Never reset state.
+</Callout>
+
+<Callout type="warning">
+    **Disconnected graphs need the outer loop.** A graph can have multiple components. If you only DFS from node 0, you miss everything not reachable from it. Always loop `for i in range(n): if state[i] == 0: dfs(i)` so you cover every component.
+</Callout>
+
+## Comparison
+
+| Aspect                          | Kahn's (count emitted)         | DFS three-color                              |
+| :------------------------------ | :----------------------------- | :------------------------------------------- |
+| Detects cycle?                  | Yes (`emitted < V`)            | Yes (GRAY descendant)                        |
+| Reports nodes in cycle?         | No, needs extra work           | Yes — parent pointers reconstruct it         |
+| Iterative?                      | Yes                            | Recursive (or iterative with explicit stack) |
+| Stack overflow risk?            | No                             | Yes on deep graphs                           |
+| Time / Space                    | `O(V + E)` / `O(V + E)`        | `O(V + E)` / `O(V + E)`                       |
+
+For **"does a cycle exist?"** problems, Kahn's is simpler. For **"report the cycle"** or **"find any topo order"** problems, either works.
+
+## Quick check
+
+<QuizBox
+    question="On a directed graph, two-color DFS (visited / unvisited) gives FALSE POSITIVES for cycle detection. Why?"
+    options={[
+        "It's a Python-specific quirk",
+        "Because seeing a 'visited' descendant could mean either a back edge (cycle) or a forward edge to a fully-finished descendant (no cycle). GRAY/BLACK separates them.",
+        "Because of cache effects",
+        "Two-color works correctly"
+    ]}
+    correctIndex={1}
+    explanation="On a DAG like A->B->C, A->C: DFS visits B then C (from B), marks both visited. Back at A, edge A->C points to a visited node — but it's NOT a cycle, it's a forward edge to a finished descendant. Two-color DFS would mistakenly report a cycle here. GRAY/BLACK makes the distinction: only back edges to GRAY ancestors are cycles."
+/>
+
+<QuizBox
+    question="In Kahn's-based cycle detection, the check is `emitted < V`. Why does this work?"
+    options={[
+        "Magic",
+        "Nodes in a cycle never have their indegree drop to 0 (each cycle member has a predecessor that's also in the cycle and never gets emitted), so they're never enqueued. The emitted count falls short of V.",
+        "Random pivots help",
+        "It only works on connected graphs"
+    ]}
+    correctIndex={1}
+    explanation="In a cycle A -> B -> C -> A, A's indegree starts at 1 (from C); to drop to 0, we'd need to emit C, which requires emitting B, which requires emitting A — a deadlock. None of them get enqueued, so none get emitted. Outside the cycle, everything proceeds normally. Final emitted count = V minus (size of cycle and anything depending on the cycle)."
+/>
+
+<QuizBox
+    question="To report the actual nodes in a directed cycle, the DFS approach uses:"
+    options={[
+        "A visited set",
+        "Parent pointers — when a back edge is found from node u to ancestor v, walk parents from u up to v to reconstruct the cycle",
+        "Union-Find",
+        "A hash table of edges"
+    ]}
+    correctIndex={1}
+    explanation="When DFS at u sees a GRAY neighbor v, the cycle is v -> ... -> u -> v. The 'middle' part is whatever path DFS took from v to u, which we recover by following parent pointers from u back up to v. This same parent-pointer reconstruction is what real-world tools (npm, make, dependency analyzers) use to print circular-dependency messages."
+/>
+
+Next: **applications** — build systems, package managers, spreadsheet recalc, instruction scheduling, and the lex-smallest / parallel-depth variations.

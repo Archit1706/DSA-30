@@ -1,0 +1,252 @@
+---
+title: "Basic Topological Sort Questions"
+description: "Warm-up problems for both algorithms — detect a directed cycle, find any topo order via Kahn's, DFS variant, lexicographically smallest, parallel rounds."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic Topological Sort Questions
+
+Six warm-ups to lock both algorithms — Kahn's and DFS — into muscle memory. By the end you should be able to write either from scratch and pick the right one for a new problem in seconds.
+
+<Steps>
+
+### 1. Detect a cycle in a directed graph
+
+**Tool:** Kahn's count-check (cleanest) or three-color DFS.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool hasCycle(int n, vector<vector<int>>& edges) {
+        vector<vector<int>> adj(n);
+        vector<int> indeg(n, 0);
+        for (auto& e : edges) {
+            adj[e[0]].push_back(e[1]); indeg[e[1]]++;
+        }
+        queue<int> q;
+        for (int i = 0; i < n; i++) if (indeg[i] == 0) q.push(i);
+        int emitted = 0;
+        while (!q.empty()) {
+            int u = q.front(); q.pop(); emitted++;
+            for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);
+        }
+        return emitted < n;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def has_cycle(n, edges):
+        adj = [[] for _ in range(n)]
+        indeg = [0] * n
+        for u, v in edges:
+            adj[u].append(v); indeg[v] += 1
+        q = deque(i for i in range(n) if indeg[i] == 0)
+        emitted = 0
+        while q:
+            u = q.popleft(); emitted += 1
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0: q.append(v)
+        return emitted < n
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean hasCycle(int n, int[][] edges) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        int[] indeg = new int[n];
+        for (int[] e : edges) {
+            adj.get(e[0]).add(e[1]); indeg[e[1]]++;
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) if (indeg[i] == 0) q.offer(i);
+        int emitted = 0;
+        while (!q.isEmpty()) {
+            int u = q.poll(); emitted++;
+            for (int v : adj.get(u)) if (--indeg[v] == 0) q.offer(v);
+        }
+        return emitted < n;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)` time, `O(V + E)` space.
+
+### 2. Find any topological order via Kahn's
+
+Same code as cycle detection, but return the output list.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def topo_kahn(n, edges):
+        adj = [[] for _ in range(n)]; indeg = [0] * n
+        for u, v in edges:
+            adj[u].append(v); indeg[v] += 1
+        q = deque(i for i in range(n) if indeg[i] == 0)
+        out = []
+        while q:
+            u = q.popleft(); out.append(u)
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0: q.append(v)
+        return out if len(out) == n else []
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)`. Returns the empty list on cycle.
+
+### 3. DFS-based topological sort
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def topo_dfs(n, edges):
+        adj = [[] for _ in range(n)]
+        for u, v in edges: adj[u].append(v)
+        WHITE, GRAY, BLACK = 0, 1, 2
+        state = [WHITE] * n
+        out = []
+        def dfs(u):
+            state[u] = GRAY
+            for v in adj[u]:
+                if state[v] == GRAY: return False
+                if state[v] == WHITE and not dfs(v): return False
+            state[u] = BLACK
+            out.append(u)
+            return True
+        for i in range(n):
+            if state[i] == WHITE and not dfs(i): return []
+        return out[::-1]
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)`. Returns the empty list on cycle.
+
+### 4. Lexicographically smallest topological order
+
+Swap Kahn's FIFO queue for a min-heap.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    import heapq
+
+    def topo_lex(n, edges):
+        adj = [[] for _ in range(n)]; indeg = [0] * n
+        for u, v in edges:
+            adj[u].append(v); indeg[v] += 1
+        heap = [i for i in range(n) if indeg[i] == 0]
+        heapq.heapify(heap)
+        out = []
+        while heap:
+            u = heapq.heappop(heap); out.append(u)
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0: heapq.heappush(heap, v)
+        return out if len(out) == n else []
+    ```
+    </Tab>
+</Tabs>
+
+`O((V + E) log V)`. One log factor for the heap.
+
+### 5. Minimum semesters / parallel rounds
+
+Kahn's-with-rounds — count BFS layers.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def min_rounds(n, edges):
+        adj = [[] for _ in range(n)]; indeg = [0] * n
+        for u, v in edges:
+            adj[u].append(v); indeg[v] += 1
+        q = deque(i for i in range(n) if indeg[i] == 0)
+        rounds = done = 0
+        while q:
+            rounds += 1
+            for _ in range(len(q)):
+                u = q.popleft(); done += 1
+                for v in adj[u]:
+                    indeg[v] -= 1
+                    if indeg[v] == 0: q.append(v)
+        return rounds if done == n else -1
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)`. Returns `-1` on cycle.
+
+### 6. Count nodes with no dependents (zero outdegree)
+
+A simple warm-up that builds intuition: a leaf-like node in a DAG.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def count_leaf_dag(n, edges):
+        outdeg = [0] * n
+        for u, _ in edges: outdeg[u] += 1
+        return sum(1 for d in outdeg if d == 0)
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)`. The "outdegree = 0" nodes are the **terminal tasks** — the leaves of the dependency tree, things nothing else needs.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="In Kahn's-with-rounds, why does counting rounds give the minimum number of semesters?"
+    options={[
+        "Coincidence",
+        "Each round, every node with indegree 0 can be processed in parallel — that's one semester. The number of rounds equals the longest chain of dependencies, which is the minimum schedule depth.",
+        "Heuristic only",
+        "Wrong — it's an upper bound only"
+    ]}
+    correctIndex={1}
+    explanation="At each round, all currently-eligible nodes are processed together (one semester of parallel coursework). The next round can only start after they're done, since the next-level nodes depended on them. The total number of rounds = the length of the longest dependency chain = the minimum number of semesters required."
+/>
+
+<QuizBox
+    question="The DFS topo sort uses out.reverse() at the end. Could you also use out.insert(0, u) inside dfs?"
+    options={[
+        "No, it's wrong",
+        "Yes, logically equivalent, but insert(0, u) is O(n) per call in Python lists — making the whole algorithm O(n^2)",
+        "Yes, equally fast",
+        "Only for short inputs"
+    ]}
+    correctIndex={1}
+    explanation="insert(0, u) shifts every later element by one, so it's O(len(out)) per call. n calls -> O(n^2) total. Appending plus a single reversal is O(n) total. For correctness either works, but the appending-and-reversing version is strictly better. Use collections.deque if you want efficient prepending."
+/>
+
+<QuizBox
+    question="If you replace Kahn's queue with a STACK (LIFO) instead of FIFO, what do you get?"
+    options={[
+        "Wrong answer",
+        "A different valid topological order — neither lex-smallest nor lex-largest, but still respecting every dependency",
+        "Cycle detection only",
+        "Same output as FIFO"
+    ]}
+    correctIndex={1}
+    explanation="The choice of data structure for 'currently eligible nodes' determines WHICH topo order you produce, not whether the output is valid. FIFO gives one order; LIFO gives a different order; a min-heap gives lex-smallest. All produce valid topo orders if the graph is a DAG. The 'all produce valid' fact is a useful interview talking point."
+/>
+
+Next: **the ten practice problems** — Course Schedule, Course Schedule II, Alien Dictionary, Minimum Height Trees, and more.

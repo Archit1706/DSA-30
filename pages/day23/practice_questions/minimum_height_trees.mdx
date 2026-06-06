@@ -1,0 +1,154 @@
+---
+title: "Minimum Height Trees"
+description: "Iterated leaf-stripping — find the 1 or 2 centroids of a tree by peeling off leaves Kahn's-style."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Minimum Height Trees <DifficultyBadge level="medium" />
+
+#### Description
+
+A tree is an undirected graph in which any two vertices are connected by exactly one path. In other words, any connected graph without simple cycles is a tree.
+
+Given a tree of `n` nodes labeled from `0` to `n - 1`, and an array of `n - 1` `edges` where `edges[i] = [a_i, b_i]` indicates that there is an undirected edge between the two nodes `a_i` and `b_i` in the tree, choose any node of the tree as the root. The result tree has some height `h`. Among all possible rooted trees, those with minimum height (i.e. `min(h)`) are called minimum height trees (MHTs).
+
+Return a list of all MHTs' root labels. You can return the answer in any order.
+
+The height of a rooted tree is the number of edges on the longest downward path between the root and a leaf.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 4,  edges = [[1, 0], [1, 2], [1, 3]]
+    Output: [1]
+
+> Case 2:
+    n = 6,  edges = [[3, 0], [3, 1], [3, 2], [3, 4], [5, 4]]
+    Output: [3, 4]
+```
+
+#### Constraints
+
+- `1 <= n <= 2 × 10^4`
+- `edges.length == n - 1`
+- The given input is guaranteed to be a tree.
+
+#### The key insight
+
+The MHT root must be the **centroid** of the tree — the node (or two nodes) that minimize the maximum distance to any leaf. There are **at most 2 centroids** in any tree.
+
+The algorithm: **iteratively strip away leaves** (nodes with degree 1) until 1 or 2 nodes remain.
+
+- **Leaves are the worst possible roots** — they're at the extreme of every path. Stripping them shifts the "frontier" inward.
+- Each round of stripping reduces the longest path by 1. After enough rounds, only the center remains.
+
+This is **Kahn's algorithm on an undirected graph**, using "degree" instead of "indegree." It always terminates with either 1 or 2 nodes.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> findMinHeightTrees(int n, vector<vector<int>>& edges) {
+        if (n == 1) return {0};
+        vector<set<int>> adj(n);
+        for (auto& e : edges) {
+            adj[e[0]].insert(e[1]);
+            adj[e[1]].insert(e[0]);
+        }
+        queue<int> leaves;
+        for (int i = 0; i < n; i++) if (adj[i].size() == 1) leaves.push(i);
+        int remaining = n;
+        while (remaining > 2) {
+            int sz = leaves.size();
+            remaining -= sz;
+            for (int i = 0; i < sz; i++) {
+                int u = leaves.front(); leaves.pop();
+                int v = *adj[u].begin();
+                adj[v].erase(u);
+                if (adj[v].size() == 1) leaves.push(v);
+            }
+        }
+        vector<int> out;
+        while (!leaves.empty()) { out.push_back(leaves.front()); leaves.pop(); }
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def find_min_height_trees(n, edges):
+        if n == 1: return [0]
+        adj = [set() for _ in range(n)]
+        for u, v in edges:
+            adj[u].add(v); adj[v].add(u)
+        leaves = deque(i for i in range(n) if len(adj[i]) == 1)
+        remaining = n
+        while remaining > 2:
+            sz = len(leaves)
+            remaining -= sz
+            for _ in range(sz):
+                u = leaves.popleft()
+                v = next(iter(adj[u]))
+                adj[v].remove(u)
+                if len(adj[v]) == 1:
+                    leaves.append(v)
+        return list(leaves)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> findMinHeightTrees(int n, int[][] edges) {
+        if (n == 1) return Arrays.asList(0);
+        List<Set<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new HashSet<>());
+        for (int[] e : edges) {
+            adj.get(e[0]).add(e[1]);
+            adj.get(e[1]).add(e[0]);
+        }
+        Deque<Integer> leaves = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) if (adj.get(i).size() == 1) leaves.offer(i);
+        int remaining = n;
+        while (remaining > 2) {
+            int sz = leaves.size();
+            remaining -= sz;
+            for (int i = 0; i < sz; i++) {
+                int u = leaves.poll();
+                int v = adj.get(u).iterator().next();
+                adj.get(v).remove(u);
+                if (adj.get(v).size() == 1) leaves.offer(v);
+            }
+        }
+        return new ArrayList<>(leaves);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why 1 or 2 centroids, never 3+?** Suppose three nodes all achieved the same minimum eccentricity. They'd have to all be on the "longest path" of the tree (the diameter), at the same distance from each end. But two distinct points can't both be the midpoint of the same segment — they're a midpoint of the diameter iff the diameter is even (one centroid) or odd (two adjacent centroids). Three is geometrically impossible.
+</Callout>
+
+#### Why peeling leaves works — intuition
+
+Think of it as a "burning" simulation. Set fire to every leaf at time 0. Each round, every leaf burns away — and any node that becomes a leaf because of the burning catches fire next round. After enough rounds, only the center(s) of the tree remain, because they're "farthest from the original leaves" by definition.
+
+The number of rounds is exactly `(diameter + 1) / 2`, where the diameter is the longest simple path in the tree.
+
+#### Analysis
+
+- **Time:** `O(V + E) = O(n)` for a tree.
+- **Space:** `O(V + E) = O(n)`.
+
+#### Same skin
+
+- **Tree Diameter** — different algorithm (two BFS), same "extreme paths in a tree" feel.
+- **Centroid Decomposition** — algorithmic toolkit built on the centroid concept; used for offline tree queries.
+- **Find Champion II** — similar "peel off non-champions" idea applied to a different graph.
+- **Sum of Distances in Tree** — uses the centroid idea plus rerooting DP.

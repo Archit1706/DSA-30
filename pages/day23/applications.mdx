@@ -1,0 +1,194 @@
+---
+title: "Applications of Topological Sort"
+description: "Where topological sort powers real systems — build systems, package managers, spreadsheet recalculation, instruction scheduling, course planners, and lifecycle orchestrators."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Applications of Topological Sort
+
+Topological sort sits behind more real-world systems than almost any other algorithm in the chapter. Anywhere there's a "depends on" relationship that needs to be linearized — or that needs to detect impossible-to-linearize cycles — topo sort is doing the work.
+
+This page tours the most important applications, plus the small variations that adapt the basic algorithm to each.
+
+## 1. Build systems
+
+`make`, `bazel`, `npm`, `cargo`, `gradle`, `webpack` — every modern build tool runs topological sort on the dependency graph of files / targets / packages.
+
+The shape:
+
+- **Nodes:** files, modules, build targets.
+- **Edges:** "X depends on Y" — to build X, Y must be built first.
+- **Topo order:** the sequence in which to compile.
+- **Cycle detection:** circular dependencies are an error (or a fatal warning).
+
+In a `Makefile`, `make` reads every rule's dependencies, builds the DAG, runs Kahn's, and executes targets in topo order. The "parallel build levels" (`make -j`) come from the BFS-rounds variation we covered in [Kahn's algorithm](/day23/kahns_algorithm#variation-2--parallel-scheduling-depth) — at each level, every target with all dependencies built can be compiled simultaneously.
+
+When `npm install` reports `npm ERR! Found: ... Could not resolve dependency`, it's reporting a topological-sort cycle in the package graph.
+
+## 2. Package managers and dependency resolution
+
+`apt`, `dnf`, `pip`, `cargo`, `npm` install packages — and packages depend on packages. The installation order is a topological order on the package graph.
+
+Two complications:
+
+- **Version constraints** — package X needs version `>= 2.0` of Y. The graph becomes a constraint-satisfaction problem on top of the topo order.
+- **Circular dependencies** — sometimes unavoidable (e.g., `glibc` and `libgcc`). Real package managers detect cycles and either error out or break them with special-case logic.
+
+## 3. Spreadsheet recalculation
+
+When you change cell `A1`, every cell that depends on it (via a formula like `=A1*2`) must be recomputed, and every cell that depends on *those* must be recomputed, and so on.
+
+Excel, Google Sheets, and LibreOffice each maintain a dependency graph between cells. When any cell changes, they:
+
+1. Find every cell transitively depending on the changed cell (DFS).
+2. Run topological sort on that subgraph.
+3. Recalculate in topo order.
+
+Circular references — `A1 = B1 + 1`, `B1 = A1 + 1` — are detected via the same cycle-detection logic and surfaced as `#REF!` (Excel) or `#CIRC!` (Sheets).
+
+## 4. Instruction scheduling in compilers
+
+Modern CPUs execute multiple instructions per cycle (out-of-order, superscalar, pipelined). The compiler reorders instructions to minimize stalls, but cannot reorder past **data dependencies**:
+
+- If instruction B reads a register written by A, B must come after A.
+
+The compiler builds a **dependency DAG** of instructions and runs topological sort to find a valid execution order that maximizes instruction-level parallelism. Variations (list scheduling, trace scheduling) all start with topo sort and add heuristics for choosing which ready instruction to emit next.
+
+## 5. Course planning and curriculum DAGs
+
+The canonical interview example. Universities encode prerequisites as a DAG; topo sort produces a valid sequence of classes.
+
+The same algorithm:
+
+- Detects impossible curricula (cycle) — useful for catalog validation.
+- With BFS rounds, finds the **minimum number of semesters** to finish (parallel scheduling).
+- With a priority queue, finds the **lexicographically smallest** valid order.
+
+LeetCode's Course Schedule (canFinish) and Course Schedule II (find any order) are both this exact problem.
+
+## 6. Lifecycle orchestrators (CI/CD, Airflow, Kubernetes)
+
+Apache Airflow, Prefect, Dagster, and other workflow orchestrators model jobs as DAG nodes and dependencies as edges. The scheduler runs Kahn's-with-BFS-rounds to find the longest path (critical path) and to schedule batches of independent jobs in parallel.
+
+Kubernetes' Operator pattern uses similar dependency-aware sequencing for resource creation (CRDs, deployments, services).
+
+CircleCI's `requires:` and GitHub Actions' `needs:` syntax both translate workflow definitions into DAGs and topo-sort them.
+
+## 7. Lexicographically smallest topological order
+
+Many problems want **the** order, not just *any* order. The standard variation:
+
+> Replace Kahn's FIFO queue with a min-heap.
+
+Whenever multiple nodes have indegree 0, emit the smallest-labeled one first. This guarantees the output is the lexicographically smallest valid topo order.
+
+```python
+import heapq
+
+def topo_sort_lex(n, edges):
+    adj = [[] for _ in range(n)]
+    indeg = [0] * n
+    for u, v in edges:
+        adj[u].append(v); indeg[v] += 1
+    heap = [i for i in range(n) if indeg[i] == 0]
+    heapq.heapify(heap)
+    out = []
+    while heap:
+        u = heapq.heappop(heap)
+        out.append(u)
+        for v in adj[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0: heapq.heappush(heap, v)
+    return out if len(out) == n else []
+```
+
+`O((V + E) log V)`. The cost is one log factor.
+
+**Use cases:** Alien Dictionary (smallest order that's consistent with word ordering), course planner with tie-breaks on course code, deterministic build orders.
+
+## 8. Critical-path / minimum scheduling depth
+
+> If we can run jobs in parallel as long as their dependencies are done, how long does the schedule take?
+
+This is the length of the **longest path** in the DAG. Compute via Kahn's-with-rounds (as in the [Kahn's page](/day23/kahns_algorithm#variation-2--parallel-scheduling-depth)) — the number of rounds equals the longest dependency chain.
+
+Used by:
+
+- Project management (PERT / CPM, with weighted job durations).
+- Compiler scheduling (longest dependency chain bounds runtime).
+- Build systems with `make -j` (longest single chain bounds parallelism's benefit).
+
+## 9. Detecting impossible orderings — the negative outcome
+
+Topological sort isn't always "find the order." Sometimes the entire question is "**can** it be done at all?" If yes, return true; if no, report the cycle.
+
+- "Can this course schedule be completed?" → cycle detection.
+- "Is this package graph consistent?" → cycle detection.
+- "Is this spreadsheet free of circular references?" → cycle detection.
+
+The simplest interview reflex: when a problem asks "is it possible to complete all tasks?", you're being asked whether the graph is a DAG. Kahn's-with-count or three-color DFS in `O(V + E)`.
+
+## 10. Less obvious: phylogenetic trees, neural network forward passes
+
+- **Neural networks** during a forward pass: the computation graph is a DAG. Frameworks (PyTorch, TensorFlow) build the graph and execute layers in topological order so every input is computed before its consumer.
+- **Phylogenetic / ancestry trees**: child-of relations form a DAG; topo sort lets you compute aggregate statistics bottom-up (parsimony scores, ancestral state reconstructions).
+- **Code formatters / linters with rule precedence**: when one rule's output is another's input, topo sort orders the passes.
+
+The pattern keeps showing up because "do dependencies first" is one of the most universal constraints in software.
+
+## The interview pattern catalog
+
+| Problem flavor                                        | Algorithm                                      |
+| :---------------------------------------------------- | :--------------------------------------------- |
+| "Can these tasks be completed?"                       | Kahn's, return `emitted == V`                  |
+| "In what order should I do these tasks?"              | Kahn's or DFS, return the output               |
+| "Find a deterministic / smallest order"               | Kahn's with min-heap                           |
+| "Find the minimum number of rounds"                   | Kahn's with BFS levels                         |
+| "Detect a circular dependency and report the cycle"   | DFS three-color with parent pointers           |
+| "Find the longest path in a DAG"                      | Topo sort + DP on the topo order               |
+| "Find the shortest path in a DAG (with weights)"      | Topo sort + relaxation in topo order           |
+
+The last two are particularly elegant: **on a DAG, single-source shortest/longest path is `O(V + E)`** because once you process nodes in topological order, you only need to relax each edge once. This beats Dijkstra (`O(E log V)`) and works with negative weights (unlike Dijkstra).
+
+## Quick check
+
+<QuizBox
+    question="A spreadsheet has 1000 cells, each potentially referencing others. When the user changes cell A1, what's the most efficient way to update everything that depends on it?"
+    options={[
+        "Recompute every cell",
+        "DFS to find all cells transitively depending on A1, then topological sort that subset and recompute in topo order",
+        "Recompute cells in alphabetical order",
+        "Run Kahn's on the entire spreadsheet"
+    ]}
+    correctIndex={1}
+    explanation="Recomputing every cell is O(N) per change — wasteful when only a small subgraph is affected. The DFS-then-topo-sort approach restricts work to cells that actually changed (or transitively depend on A1), in O(affected V + E). This is exactly what Excel and Google Sheets do."
+/>
+
+<QuizBox
+    question="For 'minimum number of semesters to finish all courses given prerequisites', the algorithm is:"
+    options={[
+        "Plain Kahn's; return the output length",
+        "Kahn's with BFS rounds — count the number of rounds; each round is one semester where all newly-eligible courses can be taken in parallel",
+        "DFS",
+        "Dijkstra"
+    ]}
+    correctIndex={1}
+    explanation="The minimum-semesters problem maps to 'longest path in the DAG' (the longest chain of prerequisites). Kahn's-with-rounds traverses the DAG level by level — at each level, all newly-zero-indegree nodes are processed together (representing one semester of parallel courses). The number of rounds equals the longest chain length, equals the minimum semesters."
+/>
+
+<QuizBox
+    question="Why is single-source shortest path on a DAG O(V + E), beating Dijkstra's O(E log V)?"
+    options={[
+        "Magic",
+        "Because once you process nodes in topological order, every edge u->v is relaxed AFTER u's shortest distance is final — so each edge needs only one relaxation. No priority queue, no logs.",
+        "Because DAGs have few edges",
+        "Random algorithm"
+    ]}
+    correctIndex={1}
+    explanation="On a DAG, processing nodes in topological order guarantees that when we visit u, its dist[u] is already finalized (no future processing can decrease it, because every path to u goes through earlier-topo-order nodes that we've already fully processed). So we relax u's outgoing edges once, in O(deg(u)) time. Total: O(V + E). Dijkstra doesn't have this guarantee in general graphs, hence the log factor."
+/>
+
+Next: **basic warm-up questions** — detect cycle, output any topo order, count parallel rounds, lex-smallest order.

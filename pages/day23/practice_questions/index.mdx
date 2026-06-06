@@ -1,0 +1,61 @@
+---
+title: "Topological Sort Practice Questions"
+description: "Ten interview classics for topological sort — Course Schedule, Course Schedule II, Alien Dictionary, Minimum Height Trees, Parallel Courses, Loud and Rich, Sequence Reconstruction, Longest Increasing Path."
+---
+
+import { Callout } from "nextra/components";
+
+# Topological Sort Practice Questions
+
+Ten interview classics, both algorithms represented. Each problem is a direct application of [Kahn's](/day23/kahns_algorithm) or [DFS topological sort](/day23/dfs_topological_sort), or one of the standard variations from the [applications page](/day23/applications) — once you spot the shape, the code writes itself.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the four-question checklist:
+
+    1. **What's the graph?** (Nodes? Edges? Edge direction?)
+    2. **Which algorithm?** (Kahn's for "any/lex-smallest/rounds"; DFS for "report cycle / longest path".)
+    3. **What's the return value?** (Boolean? List? Number?)
+    4. **What's the cycle case?** (Return false / empty / -1?)
+
+    The code is a 20-line transcription of those four answers. If you can answer them, you've solved the problem.
+</Callout>
+
+## Easy
+
+| Problem                                                                                | Pattern                                                | Status     |
+| :------------------------------------------------------------------------------------- | :----------------------------------------------------- | :--------- |
+| [Course Schedule](/day23/practice_questions/course_schedule)                           | Kahn's count-check / cycle detection                   | Available  |
+| [Find Eventual Safe States](/day23/practice_questions/find_eventual_safe_states)       | Reverse-graph Kahn's, or three-color DFS               | Available  |
+
+## Medium
+
+| Problem                                                                                | Pattern                                                | Status     |
+| :------------------------------------------------------------------------------------- | :----------------------------------------------------- | :--------- |
+| [Course Schedule II](/day23/practice_questions/course_schedule_ii)                     | Kahn's, return the order                               | Available  |
+| [Minimum Height Trees](/day23/practice_questions/minimum_height_trees)                 | Iterated leaf-stripping (Kahn's on undirected graph)   | Available  |
+| [Parallel Courses](/day23/practice_questions/parallel_courses)                         | Kahn's-with-rounds                                     | Available  |
+| [Loud and Rich](/day23/practice_questions/loud_and_rich)                               | DFS with memoization on a DAG                          | Available  |
+| [Sequence Reconstruction](/day23/practice_questions/sequence_reconstruction)           | Kahn's with uniqueness check                           | Available  |
+| [Longest Increasing Path in a Matrix](/day23/practice_questions/longest_increasing_path_in_matrix) | DFS + memoization (a DAG induced on grid cells) | Available |
+
+## Hard
+
+| Problem                                                                                | Pattern                                                | Status     |
+| :------------------------------------------------------------------------------------- | :----------------------------------------------------- | :--------- |
+| [Alien Dictionary](/day23/practice_questions/alien_dictionary)                         | Build the precedence DAG from word pairs, then topo    | Available  |
+| [Build a Matrix with Conditions](/day23/practice_questions/build_a_matrix_with_conditions) | Two independent topo sorts (rows, cols)            | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                                          | Status        |
+| :------------------------------------- | :----------------------------------------------- | :------------ |
+| All Ancestors of a Node                | BFS/DFS from each node on reversed graph         | Coming Soon   |
+| Reconstruct Itinerary                  | Eulerian path (Hierholzer's), not pure topo      | Coming Soon   |
+| Course Schedule IV                     | Transitive closure via topo + DP                 | Coming Soon   |
+| Minimum Number of Days to Eat N Oranges | DP, not topo, but interesting cousin            | Coming Soon   |
+| Find All Possible Recipes from Given Supplies | Kahn's on recipe graph                     | Coming Soon   |
+| Sort Items by Groups Respecting Dependencies | Two-layer topo sort (groups + items)        | Coming Soon   |
+| Number of Different Subsequences GCDs  | Math, not topo, but listed for completeness      | Coming Soon   |
+| Strongly Connected Components (Tarjan / Kosaraju) | DFS, generalization of cycle detection   | Coming Soon   |
+| Minimum Reorder to Make All Paths Lead to Zero | BFS on a tree, related "edge direction" topic | Coming Soon |
+| Cracking the Safe                      | Eulerian path on de Bruijn graph                 | Coming Soon   |

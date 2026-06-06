@@ -1,0 +1,158 @@
+---
+title: "Course Schedule"
+description: "The textbook cycle-detection problem — can you finish all courses given prerequisites? Kahn's algorithm in 15 lines."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Course Schedule <DifficultyBadge level="medium" />
+
+#### Description
+
+There are a total of `numCourses` courses you have to take, labeled from `0` to `numCourses - 1`. You are given an array `prerequisites` where `prerequisites[i] = [a_i, b_i]` indicates that you **must take course `b_i` first** if you want to take course `a_i`.
+
+Return `true` if you can finish all courses. Otherwise, return `false`.
+
+#### Examples
+
+```py
+> Case 1:
+    numCourses = 2,  prerequisites = [[1, 0]]
+    Output: true
+    Explanation: take course 0, then course 1.
+
+> Case 2:
+    numCourses = 2,  prerequisites = [[1, 0], [0, 1]]
+    Output: false
+    Explanation: courses 0 and 1 depend on each other — impossible.
+```
+
+#### Constraints
+
+- `1 <= numCourses <= 2000`
+- `0 <= prerequisites.length <= 5000`
+- `prerequisites[i].length == 2`
+- `0 <= a_i, b_i < numCourses`
+- All `[a_i, b_i]` pairs are distinct.
+
+#### State design
+
+A cycle-detection problem in disguise:
+
+1. **Nodes:** `numCourses` courses.
+2. **Edges:** `[a, b]` means `b → a` (take `b` before `a`).
+3. **Question:** is the resulting graph a DAG?
+
+Kahn's count-check is the cleanest solution.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
+        vector<vector<int>> adj(numCourses);
+        vector<int> indeg(numCourses, 0);
+        for (auto& p : prerequisites) {
+            adj[p[1]].push_back(p[0]);             // b -> a
+            indeg[p[0]]++;
+        }
+        queue<int> q;
+        for (int i = 0; i < numCourses; i++) if (indeg[i] == 0) q.push(i);
+        int done = 0;
+        while (!q.empty()) {
+            int u = q.front(); q.pop(); done++;
+            for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);
+        }
+        return done == numCourses;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def can_finish(num_courses, prerequisites):
+        adj = [[] for _ in range(num_courses)]
+        indeg = [0] * num_courses
+        for a, b in prerequisites:
+            adj[b].append(a)
+            indeg[a] += 1
+        q = deque(i for i in range(num_courses) if indeg[i] == 0)
+        done = 0
+        while q:
+            u = q.popleft(); done += 1
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0: q.append(v)
+        return done == num_courses
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean canFinish(int numCourses, int[][] prerequisites) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < numCourses; i++) adj.add(new ArrayList<>());
+        int[] indeg = new int[numCourses];
+        for (int[] p : prerequisites) {
+            adj.get(p[1]).add(p[0]);
+            indeg[p[0]]++;
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < numCourses; i++) if (indeg[i] == 0) q.offer(i);
+        int done = 0;
+        while (!q.isEmpty()) {
+            int u = q.poll(); done++;
+            for (int v : adj.get(u)) if (--indeg[v] == 0) q.offer(v);
+        }
+        return done == numCourses;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The edge direction trap.** LeetCode writes `[a, b]` as "to take a, you need b first." The corresponding edge is `b → a`, NOT `a → b`. Half of all "Course Schedule wrong answer" bugs come from flipping this. Read the problem statement word by word.
+</Callout>
+
+#### Alternative — three-color DFS
+
+For completeness, the DFS approach:
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def can_finish_dfs(num_courses, prerequisites):
+        adj = [[] for _ in range(num_courses)]
+        for a, b in prerequisites:
+            adj[b].append(a)
+        state = [0] * num_courses        # 0 white, 1 gray, 2 black
+        def dfs(u):
+            state[u] = 1
+            for v in adj[u]:
+                if state[v] == 1: return False
+                if state[v] == 0 and not dfs(v): return False
+            state[u] = 2
+            return True
+        return all(state[i] != 0 or dfs(i) for i in range(num_courses))
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)` time and space. Same asymptotics; recursion depth caveat applies (default Python recursion limit can be hit on adversarial inputs with `numCourses = 2000`).
+
+#### Analysis
+
+- **Time:** `O(V + E) = O(numCourses + len(prerequisites))`.
+- **Space:** `O(V + E)`.
+
+#### Same skin
+
+- **Course Schedule II** — same setup, return the order instead of a boolean.
+- **Course Schedule IV** — preprocess to answer "is X a prerequisite of Y?" queries.
+- **Find Eventual Safe States** — reverse-graph Kahn's.
+- **Detect Cycle in a Directed Graph** — generic version of this same problem.
+
+This is the entry point to the entire topo-sort family. Get the template right here and the next nine problems are 80% the same code.

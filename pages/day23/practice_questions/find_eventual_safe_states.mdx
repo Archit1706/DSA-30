@@ -1,0 +1,182 @@
+---
+title: "Find Eventual Safe States"
+description: "Find every node from which all paths lead to a terminal — Kahn's on the reverse graph, or three-color DFS."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find Eventual Safe States <DifficultyBadge level="medium" />
+
+#### Description
+
+There is a directed graph of `n` nodes. You are given a 2D array `graph` where `graph[i]` is an array of nodes adjacent to node `i`.
+
+A node is a **terminal node** if there are no outgoing edges. A node is a **safe node** if every possible path starting from that node leads to a terminal node (or to another safe node).
+
+Return an array of all the safe nodes, sorted in ascending order.
+
+#### Examples
+
+```py
+> Case 1:
+    graph = [[1,2],[2,3],[5],[0],[5],[],[]]
+    Output: [2, 4, 5, 6]
+    Explanation: nodes 5 and 6 are terminal. Node 4 only goes to 5 (safe).
+                 Node 2 only goes to 5 (safe). Nodes 0, 1, 3 are stuck in a cycle.
+
+> Case 2:
+    graph = [[1,2,3,4],[1,2],[3,4],[0,4],[]]
+    Output: [4]
+```
+
+#### Constraints
+
+- `n == graph.length`
+- `1 <= n <= 10^4`
+- `0 <= graph[i].length <= n`
+- All elements of `graph[i]` are unique.
+
+#### The key insight
+
+A node is **safe** iff none of its outgoing edges lead to a cycle. Equivalently: **every node NOT on or reachable from a cycle is safe**. The unsafe nodes are exactly those in cycles plus those that can reach a cycle.
+
+Two equivalent algorithms:
+
+#### Solution 1 — Kahn's on the reverse graph
+
+Reverse every edge. In the reversed graph, terminal nodes are the original terminal nodes (which now have indegree 0 in the reversed graph if they had outdegree 0 in the original). Run Kahn's: every node we manage to emit is safe; everything stuck is unsafe.
+
+**Why does this work?** In the reversed graph, "I have indegree 0" means "in the original graph, no one points OUT of me" — I'm a terminal. After we emit the terminal and decrement its predecessors' indegrees in the reversed graph, those predecessors now have one fewer "leads to unsafe" path. If their indegree hits 0, ALL their original outgoing edges led only to safe nodes — they're safe too.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def eventual_safe_nodes(graph):
+        n = len(graph)
+        rev = [[] for _ in range(n)]
+        outdeg = [0] * n
+        for u in range(n):
+            for v in graph[u]:
+                rev[v].append(u)
+                outdeg[u] += 1
+        q = deque(i for i in range(n) if outdeg[i] == 0)
+        safe = [False] * n
+        while q:
+            u = q.popleft()
+            safe[u] = True
+            for v in rev[u]:
+                outdeg[v] -= 1
+                if outdeg[v] == 0:
+                    q.append(v)
+        return [i for i in range(n) if safe[i]]
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)` time and space.
+
+#### Solution 2 — Three-color DFS
+
+Mark each node WHITE / GRAY / BLACK. A node is safe iff DFS from it never encounters a GRAY (back edge to an ancestor on the current stack). Cache the answer per node so we don't re-DFS.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def eventual_safe_nodes_dfs(graph):
+        n = len(graph)
+        WHITE, GRAY, BLACK = 0, 1, 2
+        state = [WHITE] * n
+        def dfs(u):
+            if state[u] != WHITE: return state[u] == BLACK
+            state[u] = GRAY
+            for v in graph[u]:
+                if state[v] == GRAY or not dfs(v):
+                    return False
+            state[u] = BLACK
+            return True
+        return [i for i in range(n) if dfs(i)]
+    ```
+    </Tab>
+</Tabs>
+
+`O(V + E)` time and space. The state-coloring doubles as memoization: BLACK = safe, GRAY = unsafe (currently on a back-edge path).
+
+#### Code (C++ and Java for the Kahn's version)
+
+<Tabs items={['C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> eventualSafeNodes(vector<vector<int>>& graph) {
+        int n = graph.size();
+        vector<vector<int>> rev(n);
+        vector<int> outdeg(n, 0);
+        for (int u = 0; u < n; u++) {
+            for (int v : graph[u]) {
+                rev[v].push_back(u);
+                outdeg[u]++;
+            }
+        }
+        queue<int> q;
+        for (int i = 0; i < n; i++) if (outdeg[i] == 0) q.push(i);
+        vector<bool> safe(n, false);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            safe[u] = true;
+            for (int v : rev[u]) {
+                if (--outdeg[v] == 0) q.push(v);
+            }
+        }
+        vector<int> out;
+        for (int i = 0; i < n; i++) if (safe[i]) out.push_back(i);
+        return out;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> eventualSafeNodes(int[][] graph) {
+        int n = graph.length;
+        List<List<Integer>> rev = new ArrayList<>();
+        for (int i = 0; i < n; i++) rev.add(new ArrayList<>());
+        int[] outdeg = new int[n];
+        for (int u = 0; u < n; u++) {
+            for (int v : graph[u]) {
+                rev.get(v).add(u);
+                outdeg[u]++;
+            }
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < n; i++) if (outdeg[i] == 0) q.offer(i);
+        boolean[] safe = new boolean[n];
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            safe[u] = true;
+            for (int v : rev.get(u)) if (--outdeg[v] == 0) q.offer(v);
+        }
+        List<Integer> out = new ArrayList<>();
+        for (int i = 0; i < n; i++) if (safe[i]) out.add(i);
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why reverse the graph?** In the original graph, a node `v` is safe iff all its out-edges lead to safe nodes (recursive definition). Reversing makes this a Kahn's-style "peel off zero-indegree" — terminal nodes are the seeds, and we propagate "safe" backward through the reversed edges. It's the same algorithm shape as standard topo sort, just on the graph turned around.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(V + E)`.
+- **Space:** `O(V + E)`.
+
+#### Same skin
+
+- **Detect Cycles in a Directed Graph** — the same machinery, asking only "is there a cycle?"
+- **Course Schedule** — also cycle detection, different problem framing.
+- **Longest Increasing Path in a Matrix** — DFS with memoization, same shape as the DFS solution here.
+- **Find All Nodes Reachable from All Sources** — variation with multiple sources.

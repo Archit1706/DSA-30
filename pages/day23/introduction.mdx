@@ -1,0 +1,225 @@
+---
+title: "Introduction to Topological Sort"
+description: "DAGs, why a topo order may not exist, and the two algorithms at a glance — Kahn's BFS-style and DFS post-order."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Introduction to Topological Sort
+
+A **topological sort** of a directed graph is a linear ordering of its vertices such that **for every directed edge `u → v`, `u` appears before `v` in the ordering**.
+
+Equivalently: if `u` is a prerequisite of `v`, then `u` shows up first in the output.
+
+## When does a topo order exist?
+
+A topological order exists **if and only if** the graph is a **DAG** — Directed Acyclic Graph. Two conditions:
+
+1. **Directed** — edges have a direction. "X before Y" is not the same as "Y before X."
+2. **Acyclic** — no cycle. If you can follow edges from a node back to itself, there's no way to put either occurrence first.
+
+A cycle `A → B → C → A` is a contradiction: `A` must come before `B`, `B` before `C`, `C` before `A`. Nothing can satisfy all three at once. So **a cycle means there's no topo order**, and any algorithm worth its salt detects that.
+
+## A canonical example
+
+Course prerequisites:
+
+```text
+nodes: {OS, Compilers, Algorithms, Calculus, Linear Algebra, ML}
+edges:
+    OS         → Compilers
+    Algorithms → Compilers
+    Calculus   → Linear Algebra
+    Linear Algebra → ML
+    Algorithms → ML
+```
+
+One valid topo order: `OS, Algorithms, Calculus, Linear Algebra, Compilers, ML`.
+
+Another: `Calculus, Linear Algebra, OS, Algorithms, Compilers, ML`.
+
+Yet another: `Algorithms, OS, Compilers, Calculus, Linear Algebra, ML`.
+
+**There can be many valid orderings**, and any one is a correct answer. The algorithm finds *one*. (If the problem wants a specific one — lexicographically smallest, say — we'll need a small tweak.)
+
+## The two algorithms at a glance
+
+### Kahn's algorithm (BFS-style)
+
+The intuition: **find a node with no prerequisites, do it first, remove its outgoing edges, repeat**.
+
+```text
+1. Compute indegree[v] for every node (# of incoming edges).
+2. Push every v with indegree 0 into a queue.
+3. While the queue is nonempty:
+     - Dequeue a node u; append it to the output.
+     - For each edge u → v: decrement indegree[v]. If it hits 0, enqueue v.
+4. If the output contains all nodes, return it. Otherwise the graph has a cycle.
+```
+
+- **Time:** `O(V + E)`.
+- **Detects cycles:** if any node is never enqueued (because its indegree never drops to 0), there's a cycle, and `len(output) < V`.
+
+### DFS post-order
+
+The intuition: **recurse depth-first; when a node's recursion finishes (all descendants done), prepend it to the output**.
+
+```text
+1. Mark every node WHITE.
+2. For each WHITE node u, run DFS(u):
+     - Mark u GRAY (entering recursion).
+     - For each edge u → v:
+         - If v is GRAY → cycle detected.
+         - If v is WHITE → recurse on v.
+     - Mark u BLACK; prepend u to the output (or push to a stack, reverse later).
+3. The final output is the topo order.
+```
+
+- **Time:** `O(V + E)`.
+- **Detects cycles:** seeing a GRAY descendant during DFS means we've looped back on an ancestor.
+
+## Which one should I use?
+
+Both are `O(V + E)`. Both detect cycles. They differ on:
+
+| Aspect                          | Kahn's (BFS)                            | DFS post-order                          |
+| :------------------------------ | :-------------------------------------- | :-------------------------------------- |
+| Mental model                    | "Peel off prerequisites"                | "Recurse, emit on the way back"         |
+| Iterative vs recursive          | Iterative (queue)                       | Recursive (stack)                       |
+| Stack-overflow risk             | None                                    | Yes — deep DAGs blow the stack          |
+| Lexicographically smallest      | Easy — replace the queue with a heap    | Harder                                  |
+| Parallel scheduling levels      | Easy — track BFS level                  | Harder                                  |
+| Cycle reporting                 | "Not all nodes were emitted"            | "GRAY found during recursion"           |
+| Easy to write under pressure    | Yes, very mechanical                    | Yes if you have a DFS template          |
+
+**Default to Kahn's unless you have a reason.** It's iterative, doesn't blow the stack, and the "smallest lexicographically" variant just swaps the queue for a heap.
+
+## When topological sort is *not* the answer
+
+- **The graph is undirected.** You'd be sorting edges in some arbitrary direction; there's no natural "before/after." A different algorithm applies (e.g., MST for spanning, BFS for shortest path).
+- **The graph has a cycle.** No topo order exists. You can still report the cycle as the answer.
+- **The relation isn't transitive in the way the problem implies.** Topo sort respects each individual edge, not pairwise constraints; sometimes problems need something stronger.
+- **You need a SPECIFIC ordering (not "any valid").** Standard topo sort returns *any* valid order. Lexicographically smallest, parallel-execution-level, fewest-swaps-from-the-input are all variations.
+
+## A worked example end-to-end: Course Schedule
+
+> There are `numCourses` courses. Some have prerequisites: `prerequisites[i] = [a, b]` means you must take `b` before `a`. Is it possible to finish all courses?
+
+Run the checklist:
+
+1. **Graph:** node per course, edge `b → a` for every `[a, b]`.
+2. **Question:** does a topo order exist? Equivalent to "is the graph a DAG?"
+3. **Algorithm:** Kahn's. If `len(output) == numCourses`, return `true`; otherwise `false`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool canFinish(int numCourses, vector<vector<int>>& prerequisites) {
+        vector<vector<int>> adj(numCourses);
+        vector<int> indeg(numCourses, 0);
+        for (auto& p : prerequisites) {
+            adj[p[1]].push_back(p[0]);
+            indeg[p[0]]++;
+        }
+        queue<int> q;
+        for (int i = 0; i < numCourses; i++) if (indeg[i] == 0) q.push(i);
+        int done = 0;
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            done++;
+            for (int v : adj[u]) {
+                if (--indeg[v] == 0) q.push(v);
+            }
+        }
+        return done == numCourses;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def can_finish(num_courses, prerequisites):
+        adj = [[] for _ in range(num_courses)]
+        indeg = [0] * num_courses
+        for a, b in prerequisites:
+            adj[b].append(a)
+            indeg[a] += 1
+        q = deque(i for i in range(num_courses) if indeg[i] == 0)
+        done = 0
+        while q:
+            u = q.popleft()
+            done += 1
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0:
+                    q.append(v)
+        return done == num_courses
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean canFinish(int numCourses, int[][] prerequisites) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i < numCourses; i++) adj.add(new ArrayList<>());
+        int[] indeg = new int[numCourses];
+        for (int[] p : prerequisites) {
+            adj.get(p[1]).add(p[0]);
+            indeg[p[0]]++;
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < numCourses; i++) if (indeg[i] == 0) q.offer(i);
+        int done = 0;
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            done++;
+            for (int v : adj.get(u)) {
+                if (--indeg[v] == 0) q.offer(v);
+            }
+        }
+        return done == numCourses;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(V + E)`. **Space:** `O(V + E)`.
+
+That's the entire chapter in one example. The rest is variations — output the order (Course Schedule II), find the smallest lexicographically (Alien Dictionary), count distinct topo orders, etc.
+
+## Quick check
+
+<QuizBox
+    question="A topological order of a directed graph exists if and only if:"
+    options={[
+        "The graph is connected",
+        "The graph is acyclic (it's a DAG)",
+        "Every node has at most one outgoing edge",
+        "The graph has fewer than V edges"
+    ]}
+    correctIndex={1}
+    explanation="A cycle creates a logical contradiction — nodes in the cycle would need to come before each other simultaneously. So a topological order exists if and only if the graph has no cycle, i.e., it's a DAG. Connectivity is irrelevant; disconnected DAGs have valid topo orders (multiple independent components each get ordered)."
+/>
+
+<QuizBox
+    question="In Kahn's algorithm, how does it detect a cycle?"
+    options={[
+        "By using a visited set",
+        "By comparing the number of nodes emitted to the total number of nodes — if a cycle exists, some nodes never reach indegree 0 and are never emitted",
+        "By running a separate DFS",
+        "It can't detect cycles"
+    ]}
+    correctIndex={1}
+    explanation="Nodes inside a cycle have nonzero indegree forever (each member of the cycle has an incoming edge from another cycle member, and those members never get emitted to decrement it). So they never enter the queue, and the emitted count falls short of V. The check is a single comparison at the end."
+/>
+
+<QuizBox
+    question="What's the time complexity of topological sort (either algorithm)?"
+    options={["O(V)", "O(V + E)", "O(V × E)", "O(V log V)"]}
+    correctIndex={1}
+    explanation="We visit each node once and traverse each edge once. Kahn's enqueues every node at most once and decrements each edge once. DFS visits every node and edge exactly once. Both are O(V + E) time and O(V + E) space (for the adjacency list)."
+/>
+
+Next: **Kahn's algorithm** in detail — the BFS-style approach with the indegree counter trick.

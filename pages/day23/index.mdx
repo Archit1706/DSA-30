@@ -1,21 +1,43 @@
 ---
 title: "Day 23 — Topological Sort"
-description: "Topological sorting on DAGs — Kahn's algorithm (BFS, indegree) vs DFS-based, cycle detection, and the course-schedule and build-order patterns."
+description: "Topological sorting on DAGs — Kahn's algorithm (BFS, indegree) vs DFS-based post-order, cycle detection via three-color DFS, and the build-order/course-schedule/spreadsheet-recalc patterns."
 ---
 
 import { Callout } from "nextra/components";
 
 # Day 23 — Topological Sort
 
+Some problems aren't about searching or sorting — they're about **ordering**. Given a set of tasks where some must happen before others, in what sequence should we execute them so that every prerequisite is done first?
+
+That's topological sort. It works on a **directed acyclic graph** (DAG): the nodes are tasks, the edges encode "X must come before Y," and the output is any linear order that respects every edge. There can be many valid orderings; we just need one.
+
+Two algorithms produce it — Kahn's (BFS-style, peel off nodes with no remaining prerequisites) and DFS post-order (recurse, emit nodes as you finish them) — and both run in `O(V + E)`. Both also double as **cycle detectors**: if no valid ordering exists, the graph has a cycle, and the algorithms tell you that with no extra work.
+
+You'll see topological sort whenever there's a "depends on" relation: build systems (`make`, `npm install`), course prerequisites, spreadsheet formula recalculation, instruction scheduling in compilers, package resolution, lifecycle phases in CI pipelines.
+
+## What you'll learn today
+
+- **DAG vs general graph** — why directed and why acyclic, and how each algorithm detects a violation
+- **Kahn's algorithm** — repeatedly extract a node with **indegree 0**, BFS-style; the most intuitive variant
+- **DFS post-order** — recurse, mark, append on the way back; the more elegant variant once you have DFS in your fingers
+- **Cycle detection** via three-color DFS (WHITE / GRAY / BLACK) — the same technique behind dependency-cycle reporting in real package managers
+- **Counting toposorts**, **lexicographically smallest topo order**, **parallel scheduling depth** — variations the standard algorithm enables
+- **Ten interview problems** — Course Schedule, Course Schedule II, Alien Dictionary, Minimum Height Trees, Parallel Courses, and more
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    A topological order exists **if and only if** the graph has no cycle. So **every** topological-sort algorithm is also a cycle detector — if it fails to produce a valid ordering covering all nodes, the graph has a cycle. Many interview problems are phrased as "can this be done?" (Course Schedule) rather than "what's the order?" (Course Schedule II) — same algorithm, different return value.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- What it means for a graph to be a **DAG** (Directed Acyclic Graph)
-- **Kahn's algorithm** — repeatedly take a node with indegree 0, BFS-style
-- **DFS post-order** — recursive variant that's a one-liner once DFS is set up
-- Real-world applications: **build systems (make, npm), task scheduling, course prerequisites, spreadsheet recalculation**
+1. **[Introduction](/day23/introduction)** — DAGs, why a topo order may not exist, the two algorithms at a glance, and the cost-of-edge analysis.
+2. **[Kahn's Algorithm](/day23/kahns_algorithm)** — the BFS-style approach. Compute indegrees, enqueue zero-indegree nodes, peel them off one at a time.
+3. **[DFS Topological Sort](/day23/dfs_topological_sort)** — the recursive approach. Post-order traversal, append to a stack, reverse at the end.
+4. **[Cycle Detection](/day23/cycle_detection)** — three-color DFS (WHITE / GRAY / BLACK), why two-color isn't enough on directed graphs, and how Kahn's detects cycles too (count emitted nodes).
+5. **[Applications](/day23/applications)** — build systems, package managers, spreadsheet recalc, instruction scheduling, lexicographically smallest order, parallel scheduling depth.
+6. **[Basic Questions](/day23/basic_questions)** — warm-ups: detect cycle in a directed graph, find any topo order, count nodes by indegree.
+7. **[Practice Questions](/day23/practice_questions)** — ten interview classics covering both algorithms and the variations.
 
-If there's any ordering at all on your dependencies, topological sort is the algorithm that finds it — and refuses to lie when one doesn't exist (cycle detection).
+Topological sort pairs naturally with [Graphs](/day9) (representation) and [DFS / BFS](/day10) (the two traversals are the engines under both algorithms). It's the bridge between graph theory and real-world scheduling — and one of the highest-value "I actually use this at work" algorithms in the curriculum.
+
+Coming up next: **Day 24 — Sliding Window**, where the focus shifts from graph structure to array structure.

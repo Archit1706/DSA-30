@@ -1,0 +1,166 @@
+---
+title: "Loud and Rich"
+description: "DFS with memoization on a DAG — for each person, find the quietest person at least as rich as them."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Loud and Rich <DifficultyBadge level="medium" />
+
+#### Description
+
+There is a group of `n` people labeled from `0` to `n - 1` where each person has a different amount of money and a different level of quietness.
+
+You are given an array `richer` where `richer[i] = [a_i, b_i]` indicates that `a_i` has more money than `b_i`, and an integer array `quiet` where `quiet[i]` is the quietness of the person labeled `i`. All the given data in `richer` are logically correct (i.e., the data will not lead you to a situation where `x` is richer than `y` and `y` is richer than `x` at the same time).
+
+Return an integer array `answer` where `answer[x] = y` if `y` is the **least quiet person** (that is, the person `y` with the smallest value of `quiet[y]`) among all people who definitely have **equal to or more money than the person `x`**.
+
+#### Examples
+
+```py
+> Case 1:
+    richer = [[1, 0], [2, 1], [3, 1], [3, 7], [4, 3], [5, 3], [6, 3]]
+    quiet  = [3, 2, 5, 4, 6, 1, 7, 0]
+    Output: [5, 5, 2, 5, 4, 5, 6, 7]
+```
+
+#### Constraints
+
+- `n == quiet.length`
+- `1 <= n <= 500`
+- All values in `richer` and `quiet` are distinct.
+
+#### State design
+
+Build a DAG: edge `a → b` for each `[a, b]` in `richer` (meaning "a is richer than b"). The graph is a DAG (we're told no contradictions).
+
+For each person `x`, we want: **among all `y` that are reachable from `x` going up the richer chain (i.e., everyone at-least-as-rich as `x`), which has the smallest quiet value?**
+
+That's a DFS-with-memoization problem on the DAG:
+
+```text
+answer[x] = the person with min quiet[] among {x} ∪ {answer[y] for every edge x -> y reversed}
+```
+
+We reverse the graph so edges point from `x` to people richer than `x`. Then `answer[x]` = the quietest person reachable from `x`, including `x` itself.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> loudAndRich(vector<vector<int>>& richer, vector<int>& quiet) {
+        int n = quiet.size();
+        vector<vector<int>> adj(n);                    // edge x -> y where y is richer
+        for (auto& r : richer) adj[r[1]].push_back(r[0]);
+        vector<int> ans(n, -1);
+        function<int(int)> dfs = [&](int u) -> int {
+            if (ans[u] != -1) return ans[u];
+            int best = u;
+            for (int v : adj[u]) {
+                int cand = dfs(v);
+                if (quiet[cand] < quiet[best]) best = cand;
+            }
+            return ans[u] = best;
+        };
+        for (int i = 0; i < n; i++) dfs(i);
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def loud_and_rich(richer, quiet):
+        n = len(quiet)
+        adj = [[] for _ in range(n)]              # edge x -> y where y is richer than x
+        for a, b in richer:
+            adj[b].append(a)
+        ans = [-1] * n
+        def dfs(u):
+            if ans[u] != -1: return ans[u]
+            best = u
+            for v in adj[u]:
+                cand = dfs(v)
+                if quiet[cand] < quiet[best]:
+                    best = cand
+            ans[u] = best
+            return best
+        for i in range(n):
+            dfs(i)
+        return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] quiet;
+    int[] ans;
+    List<List<Integer>> adj;
+    public int[] loudAndRich(int[][] richer, int[] quiet) {
+        int n = quiet.length;
+        this.quiet = quiet;
+        adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
+        for (int[] r : richer) adj.get(r[1]).add(r[0]);
+        ans = new int[n];
+        Arrays.fill(ans, -1);
+        for (int i = 0; i < n; i++) dfs(i);
+        return ans;
+    }
+    int dfs(int u) {
+        if (ans[u] != -1) return ans[u];
+        int best = u;
+        for (int v : adj.get(u)) {
+            int cand = dfs(v);
+            if (quiet[cand] < quiet[best]) best = cand;
+        }
+        ans[u] = best;
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why no GRAY/BLACK state?** We're told the input is consistent (a DAG), so there can't be cycles. We only need "have I computed this yet?" — the `ans[u] != -1` check serves as memoization. If the input could be cyclic, we'd need full three-color cycle detection.
+</Callout>
+
+#### Alternative — Kahn's-based DP (bottom-up)
+
+Process nodes in topological order (richer-first), propagating the "quietest reachable" answer:
+
+```python
+from collections import deque
+
+def loud_and_rich_kahn(richer, quiet):
+    n = len(quiet)
+    adj = [[] for _ in range(n)]
+    indeg = [0] * n
+    for a, b in richer:               # a richer than b
+        adj[a].append(b); indeg[b] += 1
+    ans = list(range(n))              # ans[u] starts as u itself
+    q = deque(i for i in range(n) if indeg[i] == 0)
+    while q:
+        u = q.popleft()
+        for v in adj[u]:
+            if quiet[ans[u]] < quiet[ans[v]]:
+                ans[v] = ans[u]
+            indeg[v] -= 1
+            if indeg[v] == 0: q.append(v)
+    return ans
+```
+
+Same `O(V + E)` time. The DFS version is usually easier to write; the Kahn's version avoids recursion depth issues on deep chains.
+
+#### Analysis
+
+- **Time:** `O(V + E)`. Each node and edge visited once thanks to memoization.
+- **Space:** `O(V + E)`.
+
+#### Same skin
+
+- **Course Schedule IV** — preprocess to answer "is X a prerequisite of Y" queries.
+- **Loud and Rich II** (hypothetical) — extend with strict-vs-non-strict richer relations.
+- **All Ancestors of a Node** — DFS/BFS from each node on the reversed graph.
+- **Find the Champion** — special case where "everyone richer than x" has a single answer.

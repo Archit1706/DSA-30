@@ -1,0 +1,153 @@
+---
+title: "Sequence Reconstruction"
+description: "Kahn's with uniqueness check — verify whether the original sequence is the only valid topological order of given short constraints."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sequence Reconstruction <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given an integer array `nums` of length `n` where `nums` is a **permutation** of the integers in the range `[1, n]`. You are also given a 2D integer array `sequences` where `sequences[i]` is a subsequence of `nums`.
+
+Check if `nums` is the **shortest possible** and the only supersequence of all the subsequences in `sequences`. The shortest supersequence is a sequence of the **minimum length** that has every subsequence in `sequences` as a subsequence.
+
+Return `true` if `nums` is the unique shortest supersequence for `sequences`, `false` otherwise.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [1, 2, 3],  sequences = [[1, 2], [1, 3]]
+    Output: false
+    Explanation: both [1, 2, 3] and [1, 3, 2] are valid supersequences of the constraints.
+
+> Case 2:
+    nums = [1, 2, 3],  sequences = [[1, 2]]
+    Output: false
+
+> Case 3:
+    nums = [1, 2, 3],  sequences = [[1, 2], [1, 3], [2, 3]]
+    Output: true
+```
+
+#### Constraints
+
+- `n == nums.length`
+- `1 <= n <= 10^4`
+- `nums` is a permutation of all the integers in the range `[1, n]`.
+
+#### State design
+
+Two questions to answer:
+
+1. Is the topo order of the implied DAG equal to `nums`? (Does it agree?)
+2. Is the topo order **unique**? (No other valid order exists?)
+
+The "unique" check is the trick: a topo order is unique iff **at every step of Kahn's, the queue contains exactly one node**. If the queue ever has 2+ zero-indegree nodes simultaneously, multiple valid orderings exist.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool sequenceReconstruction(vector<int>& nums, vector<vector<int>>& sequences) {
+        int n = nums.size();
+        vector<unordered_set<int>> adj(n + 1);
+        vector<int> indeg(n + 1, 0);
+        for (auto& seq : sequences) {
+            for (int i = 0; i + 1 < (int)seq.size(); i++) {
+                int u = seq[i], v = seq[i + 1];
+                if (!adj[u].count(v)) {
+                    adj[u].insert(v);
+                    indeg[v]++;
+                }
+            }
+        }
+        queue<int> q;
+        for (int i = 1; i <= n; i++) if (indeg[i] == 0) q.push(i);
+        int idx = 0;
+        while (!q.empty()) {
+            if (q.size() > 1) return false;                  // not unique
+            int u = q.front(); q.pop();
+            if (idx >= n || nums[idx] != u) return false;    // wrong order
+            idx++;
+            for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);
+        }
+        return idx == n;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def sequence_reconstruction(nums, sequences):
+        n = len(nums)
+        adj = [set() for _ in range(n + 1)]
+        indeg = [0] * (n + 1)
+        for seq in sequences:
+            for i in range(len(seq) - 1):
+                u, v = seq[i], seq[i + 1]
+                if v not in adj[u]:
+                    adj[u].add(v); indeg[v] += 1
+        q = deque(i for i in range(1, n + 1) if indeg[i] == 0)
+        idx = 0
+        while q:
+            if len(q) > 1: return False
+            u = q.popleft()
+            if idx >= n or nums[idx] != u: return False
+            idx += 1
+            for v in adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0: q.append(v)
+        return idx == n
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean sequenceReconstruction(int[] nums, List<List<Integer>> sequences) {
+        int n = nums.length;
+        List<Set<Integer>> adj = new ArrayList<>();
+        int[] indeg = new int[n + 1];
+        for (int i = 0; i <= n; i++) adj.add(new HashSet<>());
+        for (List<Integer> seq : sequences) {
+            for (int i = 0; i + 1 < seq.size(); i++) {
+                int u = seq.get(i), v = seq.get(i + 1);
+                if (adj.get(u).add(v)) indeg[v]++;
+            }
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 1; i <= n; i++) if (indeg[i] == 0) q.offer(i);
+        int idx = 0;
+        while (!q.isEmpty()) {
+            if (q.size() > 1) return false;
+            int u = q.poll();
+            if (idx >= n || nums[idx] != u) return false;
+            idx++;
+            for (int v : adj.get(u)) if (--indeg[v] == 0) q.offer(v);
+        }
+        return idx == n;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The "queue size == 1" uniqueness check is the entire insight.** A topo order is unique iff there's no ambiguity at any step about which node to emit next. Kahn's makes that explicit: if multiple eligible nodes are in the queue at once, ANY of them could be emitted, and a different choice would produce a different valid order. So we check size before each emission.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(V + E)` where `E` is the total length of all sequences.
+- **Space:** `O(V + E)`.
+
+#### Same skin
+
+- **Alien Dictionary** — different framing (characters from word ordering), same algorithmic core.
+- **Course Schedule II** — output the order (without uniqueness check).
+- **Verifying a Topological Order** — given a proposed order, check it's valid (single pass, no topo sort).
+- **Unique Number of Occurrences** — different problem, related "uniqueness" feel.

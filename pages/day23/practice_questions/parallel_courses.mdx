@@ -1,0 +1,169 @@
+---
+title: "Parallel Courses"
+description: "Kahn's-with-rounds — minimum semesters to finish all courses, where any number can run in parallel."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Parallel Courses <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given an integer `n`, which indicates that there are `n` courses labeled from `1` to `n`. You are also given an array `relations` where `relations[i] = [prevCourse_i, nextCourse_i]`, representing a prerequisite relationship between courses `prevCourse_i` and `nextCourse_i`: course `prevCourse_i` has to be taken before course `nextCourse_i`.
+
+In one semester, you can take **any number of courses** as long as you have taken all the prerequisites in the previous semester for the courses you are taking.
+
+Return the **minimum number of semesters** needed to take all courses. If there is no way to take all the courses, return `-1`.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 3,  relations = [[1, 3], [2, 3]]
+    Output: 2
+    Explanation: semester 1: take courses 1 and 2 in parallel; semester 2: take course 3.
+
+> Case 2:
+    n = 3,  relations = [[1, 2], [2, 3], [3, 1]]
+    Output: -1
+    Explanation: cyclic — impossible.
+```
+
+#### Constraints
+
+- `1 <= n <= 5000`
+- `1 <= relations.length <= 5000`
+- `relations[i].length == 2`
+
+#### State design
+
+This is the **Kahn's-with-rounds** variation from the [Kahn's page](/day23/kahns_algorithm#variation-2--parallel-scheduling-depth).
+
+- **Round 0:** every course with no prerequisites.
+- **Round k:** every course whose prerequisites were all completed by round `k - 1`.
+
+The total number of rounds is the minimum number of semesters — equivalent to the **length of the longest path** in the DAG.
+
+If a cycle exists, some courses are never processed → return `-1`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int minimumSemesters(int n, vector<vector<int>>& relations) {
+        vector<vector<int>> adj(n + 1);
+        vector<int> indeg(n + 1, 0);
+        for (auto& r : relations) {
+            adj[r[0]].push_back(r[1]);
+            indeg[r[1]]++;
+        }
+        queue<int> q;
+        for (int i = 1; i <= n; i++) if (indeg[i] == 0) q.push(i);
+        int rounds = 0, done = 0;
+        while (!q.empty()) {
+            rounds++;
+            int sz = q.size();
+            for (int i = 0; i < sz; i++) {
+                int u = q.front(); q.pop(); done++;
+                for (int v : adj[u]) if (--indeg[v] == 0) q.push(v);
+            }
+        }
+        return done == n ? rounds : -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def minimum_semesters(n, relations):
+        adj = [[] for _ in range(n + 1)]
+        indeg = [0] * (n + 1)
+        for u, v in relations:
+            adj[u].append(v); indeg[v] += 1
+        q = deque(i for i in range(1, n + 1) if indeg[i] == 0)
+        rounds = done = 0
+        while q:
+            rounds += 1
+            for _ in range(len(q)):
+                u = q.popleft(); done += 1
+                for v in adj[u]:
+                    indeg[v] -= 1
+                    if indeg[v] == 0: q.append(v)
+        return rounds if done == n else -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int minimumSemesters(int n, int[][] relations) {
+        List<List<Integer>> adj = new ArrayList<>();
+        for (int i = 0; i <= n; i++) adj.add(new ArrayList<>());
+        int[] indeg = new int[n + 1];
+        for (int[] r : relations) {
+            adj.get(r[0]).add(r[1]);
+            indeg[r[1]]++;
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 1; i <= n; i++) if (indeg[i] == 0) q.offer(i);
+        int rounds = 0, done = 0;
+        while (!q.isEmpty()) {
+            rounds++;
+            int sz = q.size();
+            for (int i = 0; i < sz; i++) {
+                int u = q.poll(); done++;
+                for (int v : adj.get(u)) if (--indeg[v] == 0) q.offer(v);
+            }
+        }
+        return done == n ? rounds : -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why does this equal the longest path?** Each "round" processes one level of the DAG. Nodes are placed at level `k` iff their longest predecessor chain has length `k`. The total number of rounds = max level + 1 = (longest chain in the DAG). That's the answer.
+</Callout>
+
+#### Variation — DP-based longest path
+
+You can also compute the answer as a longest-path DP on the DAG:
+
+```python
+def minimum_semesters_dp(n, relations):
+    adj = [[] for _ in range(n + 1)]
+    indeg = [0] * (n + 1)
+    for u, v in relations:
+        adj[u].append(v); indeg[v] += 1
+    # Topo sort
+    from collections import deque
+    q = deque(i for i in range(1, n + 1) if indeg[i] == 0)
+    topo = []
+    while q:
+        u = q.popleft(); topo.append(u)
+        for v in adj[u]:
+            indeg[v] -= 1
+            if indeg[v] == 0: q.append(v)
+    if len(topo) < n: return -1
+    dp = [1] * (n + 1)              # longest path ending at u, including u
+    for u in topo:
+        for v in adj[u]:
+            dp[v] = max(dp[v], dp[u] + 1)
+    return max(dp[1:])
+```
+
+Same `O(V + E)` — different framing, same answer. The longest-path-on-DAG technique is a useful tool to have on its own.
+
+#### Analysis
+
+- **Time:** `O(V + E)`.
+- **Space:** `O(V + E)`.
+
+#### Same skin
+
+- **Parallel Courses II** — same problem with the constraint "at most k courses per semester." NP-hard in general; the LeetCode version uses bitmask DP.
+- **Parallel Courses III** — courses have durations; minimize total time (DAG longest weighted path).
+- **Longest Increasing Path in a Matrix** — DAG longest path applied to grid cells.
+- **Course Schedule III** — different problem entirely (sorting + greedy).
