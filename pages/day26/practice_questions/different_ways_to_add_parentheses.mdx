@@ -1,0 +1,163 @@
+---
+title: "Different Ways to Add Parentheses"
+description: "D&C on operator positions — enumerate every possible parenthesization of an arithmetic expression and the resulting values."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Different Ways to Add Parentheses <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `expression` of numbers and operators, return **all possible results** from computing all the different possible ways to group numbers and operators. You may return the answer in any order.
+
+The expression consists of integers and the operators `+`, `-`, `*`.
+
+#### Examples
+
+```py
+> Case 1:
+    expression = "2-1-1"
+    Output: [0, 2]
+    Explanation:
+        ((2 - 1) - 1) = 0
+        (2 - (1 - 1)) = 2
+
+> Case 2:
+    expression = "2*3-4*5"
+    Output: [-34, -14, -10, -10, 10]
+    Explanation:
+        (2*(3-(4*5))) = -34
+        ((2*3)-(4*5)) = -14
+        ((2*(3-4))*5) = -10
+        (2*((3-4)*5)) = -10
+        (((2*3)-4)*5) = 10
+```
+
+#### Constraints
+
+- `1 <= expression.length <= 20`
+- Expression contains only digits and `+`, `-`, `*`.
+
+#### State design
+
+For each operator in the expression, you can think of it as **the last operation to evaluate**. That gives a D&C split:
+
+- **Divide:** for each operator at position `i`, split the expression into `left = expr[:i]` and `right = expr[i+1:]`.
+- **Conquer:** recursively compute all possible values of `left` and `right`.
+- **Combine:** for every pair `(a, b)` with `a` from `left`'s results and `b` from `right`'s, compute `a op b` and add to the result.
+
+The base case is an expression with no operators — just parse the integer.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> diffWaysToCompute(string expr) {
+        vector<int> res;
+        for (int i = 0; i < (int)expr.size(); i++) {
+            char c = expr[i];
+            if (c == '+' || c == '-' || c == '*') {
+                vector<int> left  = diffWaysToCompute(expr.substr(0, i));
+                vector<int> right = diffWaysToCompute(expr.substr(i + 1));
+                for (int a : left) {
+                    for (int b : right) {
+                        if (c == '+') res.push_back(a + b);
+                        if (c == '-') res.push_back(a - b);
+                        if (c == '*') res.push_back(a * b);
+                    }
+                }
+            }
+        }
+        if (res.empty()) res.push_back(stoi(expr));     // base: pure number
+        return res;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def diff_ways_to_compute(expr):
+        res = []
+        for i, c in enumerate(expr):
+            if c in "+-*":
+                left  = diff_ways_to_compute(expr[:i])
+                right = diff_ways_to_compute(expr[i + 1:])
+                for a in left:
+                    for b in right:
+                        if c == '+': res.append(a + b)
+                        if c == '-': res.append(a - b)
+                        if c == '*': res.append(a * b)
+        if not res:
+            res.append(int(expr))                       # base: pure number
+        return res
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> diffWaysToCompute(String expr) {
+        List<Integer> res = new ArrayList<>();
+        for (int i = 0; i < expr.length(); i++) {
+            char c = expr.charAt(i);
+            if (c == '+' || c == '-' || c == '*') {
+                List<Integer> left  = diffWaysToCompute(expr.substring(0, i));
+                List<Integer> right = diffWaysToCompute(expr.substring(i + 1));
+                for (int a : left) {
+                    for (int b : right) {
+                        if (c == '+') res.add(a + b);
+                        if (c == '-') res.add(a - b);
+                        if (c == '*') res.add(a * b);
+                    }
+                }
+            }
+        }
+        if (res.isEmpty()) res.add(Integer.parseInt(expr));
+        return res;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why does this enumerate every parenthesization?** Choosing which operator to evaluate **last** uniquely determines the outermost parenthesization. Once we fix that choice, the left side and right side are recursively decomposed the same way. The Catalan-number count of possible parenthesizations falls out naturally — there are `C_n` ways to fully parenthesize an expression with `n + 1` operands.
+</Callout>
+
+#### Memoization — optional but valuable
+
+Different recursion paths re-evaluate the same sub-expressions (e.g., `"2-1"` appears as a sub-expression of many larger expressions). Caching results by sub-expression string drops the runtime considerably:
+
+```python
+from functools import lru_cache
+
+def diff_ways_to_compute(expr):
+    @lru_cache(maxsize=None)
+    def solve(s):
+        res = []
+        for i, c in enumerate(s):
+            if c in "+-*":
+                for a in solve(s[:i]):
+                    for b in solve(s[i + 1:]):
+                        if c == '+': res.append(a + b)
+                        if c == '-': res.append(a - b)
+                        if c == '*': res.append(a * b)
+        if not res:
+            res.append(int(s))
+        return res
+    return solve(expr)
+```
+
+This is the canonical "D&C with overlapping subproblems → memoize → it becomes top-down DP" pivot.
+
+#### Analysis
+
+- **Time:** Without memo, `O(C_n)` where `C_n` is the `n`-th Catalan number — exponential in the number of operators. With memo, polynomial in expression length.
+- **Space:** Recursion depth proportional to expression length.
+
+#### Same skin
+
+- **Burst Balloons** — D&C on which balloon to burst **last** in a range.
+- **Unique BSTs II** — D&C on which value is the root.
+- **Boolean Parenthesization** — count parenthesizations that evaluate to True.
+- **Optimal Strategy Game / Stone Game** — interval D&C / DP with two players.

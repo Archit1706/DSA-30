@@ -1,0 +1,61 @@
+---
+title: "Divide & Conquer Practice Questions"
+description: "Ten interview classics for D&C — Pow(x, n), Majority Element, Sort an Array, Kth Largest, Maximum Subarray, Different Ways to Add Parens, Count Smaller After Self, Median of Two Sorted Arrays, The Skyline Problem."
+---
+
+import { Callout } from "nextra/components";
+
+# D&C Practice Questions
+
+Ten interview classics, every D&C shape represented. Each problem is a direct application of one of the [four canonical recurrence forms](/day26/the_template) or an [advanced pattern](/day26/advanced) — once you spot which shape it is, the code writes itself.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the four-question checklist:
+
+    1. **How do I split the input?**
+    2. **What's the base case?**
+    3. **What's the combine step?**
+    4. **What's the recurrence and the runtime?** (Use the [Master Theorem](/day26/master_theorem).)
+
+    The code is a 10-line transcription of those four answers. If you can write the recurrence, you've already solved the analysis.
+</Callout>
+
+## Easy
+
+| Problem                                                                                                        | Pattern                                              | Status     |
+| :------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- | :--------- |
+| [Pow(x, n)](/day26/practice_questions/pow_x_n)                                                                 | Fast exponentiation, `T(n) = T(n/2) + O(1)`          | Available  |
+| [Majority Element](/day26/practice_questions/majority_element)                                                  | `T(n) = 2T(n/2) + O(n)` plus Boyer-Moore alternative | Available  |
+
+## Medium
+
+| Problem                                                                                                        | Pattern                                              | Status     |
+| :------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- | :--------- |
+| [Sort an Array (Merge Sort)](/day26/practice_questions/sort_an_array)                                          | Canonical `T(n) = 2T(n/2) + O(n)`                    | Available  |
+| [Kth Largest Element in an Array](/day26/practice_questions/kth_largest_element)                                | Quickselect, `T(n) = T(n/2) + O(n)` avg              | Available  |
+| [Maximum Subarray (D&C)](/day26/practice_questions/maximum_subarray_dnc)                                       | Left / right / crossing, `T(n) = 2T(n/2) + O(n)`     | Available  |
+| [Different Ways to Add Parentheses](/day26/practice_questions/different_ways_to_add_parentheses)               | D&C on operator positions, exponential branching     | Available  |
+| [Search a 2D Matrix II](/day26/practice_questions/search_a_2d_matrix_ii)                                       | Quadrant-pruning D&C, staircase O(n+m) alternative   | Available  |
+
+## Hard
+
+| Problem                                                                                                        | Pattern                                              | Status     |
+| :------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- | :--------- |
+| [Count of Smaller Numbers After Self](/day26/practice_questions/count_of_smaller_numbers_after_self)           | Merge sort with extra accounting, `O(n log n)`       | Available  |
+| [Median of Two Sorted Arrays](/day26/practice_questions/median_of_two_sorted_arrays)                           | Binary search on partition, `O(log min(m, n))`       | Available  |
+| [The Skyline Problem](/day26/practice_questions/the_skyline_problem)                                           | Merge-style D&C on building outlines, `O(n log n)`   | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                                          | Status        |
+| :------------------------------------- | :----------------------------------------------- | :------------ |
+| Reverse Pairs                          | Merge sort with extra accounting                 | Coming Soon   |
+| Count of Range Sum                     | Merge sort on prefix sums                        | Coming Soon   |
+| Largest Rectangle in Histogram (D&C)   | Recursive on minimum index                       | Coming Soon   |
+| Closest Pair of Points                 | Strip-step D&C                                   | Coming Soon   |
+| Burst Balloons                         | Interval D&C (also DP)                           | Coming Soon   |
+| Find Peak Element                      | Binary-search D&C                                | Coming Soon   |
+| Convex Hull (Quickhull)                | D&C on point positions                           | Coming Soon   |
+| K Closest Points to Origin             | Quickselect by distance                          | Coming Soon   |
+| Construct BST from Preorder            | Recursive split on first element                 | Coming Soon   |
+| Beautiful Array                        | Constructive D&C                                 | Coming Soon   |

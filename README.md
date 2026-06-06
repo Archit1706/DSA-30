@@ -82,7 +82,7 @@ The goal: make DSA feel less like a textbook chore and more like something you a
 | :-: | :--- | :--- |
 | 24 | Sliding Window | ✅ Available |
 | 25 | Two Pointers | ✅ Available |
-| 26 | Divide & Conquer | 📋 Coming soon |
+| 26 | Divide & Conquer | ✅ Available |
 | 27 | Advanced Strings | 📋 Coming soon |
 
 ### Phase 8 — Synthesis

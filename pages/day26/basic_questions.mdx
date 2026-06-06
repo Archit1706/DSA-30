@@ -1,0 +1,240 @@
+---
+title: "Basic D&C Questions"
+description: "Warm-up problems for the D&C template — power function, find max in array, sum recursively, recursive binary search, count nodes in a tree."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic D&C Questions
+
+Six warm-ups to lock the split/conquer/combine pattern into muscle memory. Each one is a direct application of one of the [four canonical recurrence shapes](/day26/the_template) — by the end you should be able to write the recurrence for a new problem before you write any code.
+
+<Steps>
+
+### 1. Power function `pow(x, n)`
+
+> Compute `x^n` for integer `n`.
+
+**Shape:** `T(n) = T(n/2) + O(1)` → `O(log n)`. One recursive call (half the exponent), constant combine.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    double myPow(double x, long long n) {
+        if (n == 0) return 1.0;
+        if (n < 0)  return 1.0 / myPow(x, -n);
+        double half = myPow(x, n / 2);
+        return (n % 2 == 0) ? half * half : half * half * x;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def my_pow(x, n):
+        if n == 0: return 1.0
+        if n < 0:  return 1 / my_pow(x, -n)
+        half = my_pow(x, n // 2)
+        return half * half if n % 2 == 0 else half * half * x
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public double myPow(double x, long n) {
+        if (n == 0) return 1.0;
+        if (n < 0)  return 1.0 / myPow(x, -n);
+        double half = myPow(x, n / 2);
+        return (n % 2 == 0) ? half * half : half * half * x;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(log n)`. **Space:** `O(log n)` recursion stack.
+
+### 2. Find the maximum in an array (recursively)
+
+**Shape:** `T(n) = 2 T(n/2) + O(1)` → `O(n)`. Two recursive calls, constant combine.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def find_max(arr, lo=0, hi=None):
+        if hi is None: hi = len(arr) - 1
+        if lo == hi: return arr[lo]
+        mid = (lo + hi) // 2
+        return max(find_max(arr, lo, mid), find_max(arr, mid + 1, hi))
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(log n)` recursion.
+
+The iterative `for x in arr: best = max(best, x)` is just as good (and uses `O(1)` space). The D&C version is useful when **the combine step is non-trivial** (e.g., "max plus the index of the max") or when **parallelism matters**.
+
+### 3. Recursive sum
+
+> Compute the sum of an array.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def array_sum(arr, lo=0, hi=None):
+        if hi is None: hi = len(arr) - 1
+        if lo == hi: return arr[lo]
+        mid = (lo + hi) // 2
+        return array_sum(arr, lo, mid) + array_sum(arr, mid + 1, hi)
+    ```
+    </Tab>
+</Tabs>
+
+Same `T(n) = 2 T(n/2) + O(1)` → `O(n)`. The recursive version is interesting for the same reason as find-max — it's the building block for parallel sum reductions on GPUs and distributed systems.
+
+### 4. Binary Search (recursive)
+
+> Find a target in a sorted array.
+
+**Shape:** `T(n) = T(n/2) + O(1)` → `O(log n)`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int binarySearch(vector<int>& arr, int target, int lo, int hi) {
+        if (lo > hi) return -1;
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target)  return binarySearch(arr, target, mid + 1, hi);
+        return binarySearch(arr, target, lo, mid - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def binary_search(arr, target, lo=0, hi=None):
+        if hi is None: hi = len(arr) - 1
+        if lo > hi: return -1
+        mid = (lo + hi) // 2
+        if arr[mid] == target: return mid
+        if arr[mid] < target:  return binary_search(arr, target, mid + 1, hi)
+        return binary_search(arr, target, lo, mid - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int binarySearch(int[] arr, int target, int lo, int hi) {
+        if (lo > hi) return -1;
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target)  return binarySearch(arr, target, mid + 1, hi);
+        return binarySearch(arr, target, lo, mid - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(log n)`. **Space:** `O(log n)`.
+
+For production code, prefer the iterative version (see [Day 13](/day13/binary_search_template)).
+
+### 5. Count nodes in a binary tree
+
+**Shape:** `T(n) = 2 T(n/2) + O(1)` (assuming balanced) or `T(n) = T(left) + T(right) + O(1)` (general) → `O(n)`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int countNodes(TreeNode* root) {
+        if (!root) return 0;
+        return 1 + countNodes(root->left) + countNodes(root->right);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def count_nodes(root):
+        if not root: return 0
+        return 1 + count_nodes(root.left) + count_nodes(root.right)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int countNodes(TreeNode root) {
+        if (root == null) return 0;
+        return 1 + countNodes(root.left) + countNodes(root.right);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n)`. **Space:** `O(h)` recursion stack (tree height).
+
+This is the cleanest D&C example in the chapter — three lines, base case + two recursive calls + one-line combine.
+
+### 6. Merge two sorted arrays
+
+> Given two sorted arrays, return the merged sorted result.
+
+Not strictly recursive D&C, but it's the **combine step** of merge sort and the foundation for every "two-pointer on two arrays" problem.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def merge(a, b):
+        out, i, j = [], 0, 0
+        while i < len(a) and j < len(b):
+            if a[i] <= b[j]:
+                out.append(a[i]); i += 1
+            else:
+                out.append(b[j]); j += 1
+        out.extend(a[i:]); out.extend(b[j:])
+        return out
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n + m)`. **Space:** `O(n + m)` for the output.
+
+Reuse this everywhere — sorting, merge-based inversion counting, k-way merges (with a heap), polynomial addition, set union on sorted lists.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="For the recursive find-max algorithm, the recurrence is T(n) = 2 T(n/2) + O(1). Why isn't this O(log n) like binary search?"
+    options={[
+        "Off-by-one",
+        "Because find-max recurses on BOTH halves (a = 2), so the leaves contribute O(n); binary search recurses on ONE half (a = 1), so the leaves contribute O(1)",
+        "Speed",
+        "It IS O(log n)"
+    ]}
+    correctIndex={1}
+    explanation="The recursion tree has n leaves for find-max (one per element, each contributing O(1) work) — total O(n). Binary search's tree has only one path from root to leaf (log_2 n nodes), each O(1) — total O(log n). The branching factor of the recursion is what differentiates them."
+/>
+
+<QuizBox
+    question="In fast exponentiation pow(x, n), what's the harm in using `pow(x, n-1) * x` instead of `pow(x, n/2)`?"
+    options={[
+        "No harm — same correctness",
+        "Same correctness, but the recurrence becomes T(n) = T(n-1) + O(1) = O(n) instead of O(log n) — exponentially slower for large n",
+        "Crashes",
+        "Returns wrong answer"
+    ]}
+    correctIndex={1}
+    explanation="`pow(x, n-1) * x` decrements n by 1 each step → n recursive calls → O(n) time. `pow(x, n/2)` halves n each step → log_2(n) calls → O(log n). For n = 2^30, that's a billion-fold speedup. The choice of how-to-shrink is the entire game."
+/>
+
+<QuizBox
+    question="For count_nodes in a tree, the recurrence is T(n) = T(left_size) + T(right_size) + O(1). Why does this give O(n) regardless of tree shape?"
+    options={[
+        "Magic",
+        "Because every node is visited exactly once, contributing O(1). Sum across all n nodes = O(n). The shape of the tree only affects the recursion depth (space), not the time.",
+        "Only when balanced",
+        "Wrong — it's O(n log n) when balanced"
+    ]}
+    correctIndex={1}
+    explanation="Total work = sum of work at each node = n × O(1) = O(n). This holds for any binary tree shape — balanced, skewed, complete, you name it. Tree shape affects only the recursion stack depth: O(log n) for balanced, O(n) worst case (a linked-list-shaped tree)."
+/>
+
+Next: **the ten practice problems** — every D&C shape represented, with the recurrence written out for each.

@@ -1,21 +1,47 @@
 ---
 title: "Day 26 — Divide and Conquer"
-description: "Divide and conquer — the master theorem, classic recurrences, and the algorithms (merge sort, quick sort, binary search, closest pair) that exemplify the pattern."
+description: "The split-recurse-combine template, the Master Theorem for analyzing recurrences, and the algorithms that exemplify the pattern — merge sort, quicksort, binary search, fast exponentiation, Karatsuba, closest pair."
 ---
 
 import { Callout } from "nextra/components";
 
 # Day 26 — Divide & Conquer
 
+Some problems get smaller in **chunks**, not by one step. Where recursion-with-memoization (DP) is about *reusing answers to subproblems*, divide and conquer is about *cutting the input into pieces, solving each piece independently, and stitching the answers back together*.
+
+Three lines do it:
+
+1. **Divide** — split the input into smaller subproblems (usually two halves).
+2. **Conquer** — recursively solve each subproblem.
+3. **Combine** — merge the subanswers into the answer for the whole.
+
+When the combine step is **cheap** (say `O(n)`), the total work is dominated by the recursion's branching — `O(n log n)` is the classic shape (merge sort, quick sort on average). When the combine step is **trivial** (constant time), you can get `O(log n)` (binary search, fast exponentiation). When the combine step is **expensive**, you'd better hope the recursion shrinks fast enough — that's where the Master Theorem comes in.
+
+This chapter pulls the pattern out from behind its famous instances (merge sort, binary search, quicksort) and names it as a technique you can apply to new problems.
+
+## What you'll learn today
+
+- The **split / conquer / combine** template and how to spot it in problems that don't *look* like sorting or searching
+- The **Master Theorem** — one formula that handles 90% of D&C recurrence analyses
+- **Classical D&C algorithms** — merge sort, quicksort, binary search, fast exponentiation, Karatsuba — viewed as instances of the same shape
+- **The "interesting answer" trick** — when the answer at the boundary between two halves is what makes the combine step nontrivial (Maximum Subarray, Closest Pair)
+- **D&C as the conceptual root of DP** — when subproblems repeat, you memoize and call it DP; when they don't, you call it D&C
+- **Ten interview problems** — Pow(x, n), Majority Element, Sort an Array, Maximum Subarray, Kth Largest, Different Ways to Add Parens, Count Smaller After Self, Median of Two Sorted Arrays, The Skyline Problem, Search a 2D Matrix II
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The unspoken truth of D&C: **most of the algorithm-design effort goes into the combine step**. Splitting is usually trivial (cut in half). Conquering is "recurse." The interesting question on any new D&C problem is: **once I have the answer for the left half and the right half, what extra work do I need to get the answer for the whole?** The cost of that work determines the recurrence — and the recurrence determines the runtime.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- The **split → recurse → combine** template
-- Classics: **merge sort, quicksort, fast exponentiation, Karatsuba multiplication, closest pair of points**
-- The **Master Theorem** for analyzing divide-and-conquer recurrences
-- When divide & conquer **beats** iteration, and when it just adds overhead
+1. **[Introduction](/day26/introduction)** — what makes a problem a D&C problem, the relationship to recursion and DP, and the cost-of-combine analysis.
+2. **[The Template](/day26/the_template)** — the three-line skeleton plus the four canonical recurrence shapes (`T(n) = 2T(n/2) + n`, `T(n) = T(n/2) + 1`, etc.) you'll see again and again.
+3. **[The Master Theorem](/day26/master_theorem)** — one formula, three cases, every D&C recurrence in the chapter analyzed by hand.
+4. **[Classical Algorithms](/day26/classical_algorithms)** — merge sort, quicksort, binary search, fast exponentiation walked through as D&C instances.
+5. **[Advanced Patterns](/day26/advanced)** — Karatsuba multiplication, Strassen's matrix multiply, closest pair of points, the FFT preview.
+6. **[Basic Questions](/day26/basic_questions)** — warm-ups: power function, maximum, sum, binary search recursion.
+7. **[Practice Questions](/day26/practice_questions)** — ten interview classics with the recurrence written out for each.
 
-We already used divide-and-conquer in [Pow(x, n)](/day5/practice_questions/pow_x_n) and you'll have seen it in merge sort. This chapter pulls the pattern out and names it.
+D&C is foundational. Once you see it, you start spotting it everywhere — and you'll recognize that techniques you already know (binary search, merge sort, quickselect) are all just particular shapes of the same template.
+
+Coming up next: **Day 27 — Advanced Strings**, where pattern matching algorithms (KMP, Rabin-Karp, Z-algorithm) lean on string structure the way today's techniques lean on array structure.

@@ -1,0 +1,150 @@
+---
+title: "Search a 2D Matrix II"
+description: "Quadrant-pruning D&C — search a matrix sorted along rows and columns; with the O(n + m) staircase comparison."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Search a 2D Matrix II <DifficultyBadge level="medium" />
+
+#### Description
+
+Write an efficient algorithm that searches for a value `target` in an `m × n` integer matrix `matrix`. This matrix has the following properties:
+
+- Integers in each row are sorted in ascending order from left to right.
+- Integers in each column are sorted in ascending order from top to bottom.
+
+#### Examples
+
+```py
+> Case 1:
+    matrix = [
+        [1,  4,  7,  11, 15],
+        [2,  5,  8,  12, 19],
+        [3,  6,  9,  16, 22],
+        [10, 13, 14, 17, 24],
+        [18, 21, 23, 26, 30]
+    ]
+    target = 5
+    Output: true
+
+> Case 2:
+    Same matrix, target = 20
+    Output: false
+```
+
+#### Constraints
+
+- `m == matrix.length`
+- `n == matrix[i].length`
+- `1 <= n, m <= 300`
+- `-10^9 <= matrix[i][j] <= 10^9`
+- Each row and column is sorted.
+
+#### Solution 1 — Staircase (the "real" answer)
+
+Start at the **top-right** corner. The element there is the maximum of its row and the minimum of its column. Use this to decide which direction to move:
+
+- If `matrix[r][c] == target` → found.
+- If `matrix[r][c] > target` → the target can't be in this column (everything below is larger). Move left.
+- If `matrix[r][c] < target` → the target can't be in this row (everything to the left is smaller). Move down.
+
+**`O(m + n)`** time, `O(1)` space.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool searchMatrix(vector<vector<int>>& matrix, int target) {
+        int m = matrix.size(), n = matrix[0].size();
+        int r = 0, c = n - 1;
+        while (r < m && c >= 0) {
+            if (matrix[r][c] == target) return true;
+            if (matrix[r][c] > target) c--;
+            else                       r++;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def search_matrix(matrix, target):
+        m, n = len(matrix), len(matrix[0])
+        r, c = 0, n - 1
+        while r < m and c >= 0:
+            if matrix[r][c] == target: return True
+            if matrix[r][c] > target:  c -= 1
+            else:                      r += 1
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean searchMatrix(int[][] matrix, int target) {
+        int m = matrix.length, n = matrix[0].length;
+        int r = 0, c = n - 1;
+        while (r < m && c >= 0) {
+            if (matrix[r][c] == target) return true;
+            if (matrix[r][c] > target) c--;
+            else                       r++;
+        }
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This is the textbook answer for the problem in production. The D&C version below is theoretically interesting but practically slower.
+
+#### Solution 2 — Quadrant D&C (the D&C answer)
+
+Pick the middle element of the search region. Then:
+
+- If `matrix[mid_r][mid_c] == target` → found.
+- If `target < matrix[mid_r][mid_c]` → target can't be in the bottom-right quadrant (everything there is larger). Recurse on the **other three** quadrants.
+- If `target > matrix[mid_r][mid_c]` → target can't be in the top-left quadrant (everything there is smaller). Recurse on the **other three** quadrants.
+
+**Recurrence:** `T(n) = 3 T(n/2) + O(1)` → `O(n^log₂ 3) ≈ O(n^1.585)`.
+
+That's **worse than `O(n + m)`** for typical inputs. The staircase wins in practice. Still, knowing the D&C version is a nice intellectual exercise and a good interview talking point.
+
+```python
+def search_matrix_dnc(matrix, target):
+    def search(r1, c1, r2, c2):
+        if r1 > r2 or c1 > c2: return False
+        if target < matrix[r1][c1] or target > matrix[r2][c2]: return False
+        mid_r = (r1 + r2) // 2
+        mid_c = (c1 + c2) // 2
+        if matrix[mid_r][mid_c] == target: return True
+        if matrix[mid_r][mid_c] < target:
+            return (search(mid_r + 1, c1, r2, mid_c) or
+                    search(r1, mid_c + 1, mid_r, c2) or
+                    search(mid_r + 1, mid_c + 1, r2, c2))
+        else:
+            return (search(r1, c1, mid_r - 1, c2) or
+                    search(r1, c1, r2, mid_c - 1) or
+                    search(mid_r + 1, c1, r2, mid_c - 1) or
+                    search(r1, mid_c + 1, mid_r - 1, c2))
+    return search(0, 0, len(matrix) - 1, len(matrix[0]) - 1)
+```
+
+#### Solution 3 — Binary search each row
+
+For each row, binary search for `target`. `O(m log n)`. Slower than the staircase, faster than the D&C version on most inputs.
+
+#### Comparison
+
+| Approach              | Time             | Space      | Notes                       |
+| :-------------------- | :--------------- | :--------- | :-------------------------- |
+| Staircase             | `O(m + n)`       | `O(1)`     | The expected interview answer |
+| Quadrant D&C          | `O(n^log₂ 3)`    | `O(log n)` | Worse, but interesting       |
+| Binary search per row | `O(m log n)`     | `O(1)`     | Easy, lazy fallback          |
+
+#### Same skin
+
+- **Search a 2D Matrix I** (each row sorted, and rows are concatenated sorted) — flat binary search.
+- **Kth Smallest Element in Sorted Matrix** — binary search on value space + counting.
+- **Find K-th Smallest Pair Distance** — binary search on the answer.
+- **Median of a Row-and-Column-Sorted Matrix** — generalization.

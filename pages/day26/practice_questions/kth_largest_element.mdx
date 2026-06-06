@@ -1,0 +1,162 @@
+---
+title: "Kth Largest Element in an Array"
+description: "Quickselect — D&C with T(n) = T(n/2) + O(n) average — finds the k-th statistic in expected O(n) time."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Kth Largest Element in an Array <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums` and an integer `k`, return the `k`-th largest element in the array.
+
+Note that it is the `k`-th largest element in the **sorted order**, not the `k`-th distinct element.
+
+Can you solve it without sorting?
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [3, 2, 1, 5, 6, 4],  k = 2
+    Output: 5
+
+> Case 2:
+    nums = [3, 2, 3, 1, 2, 4, 5, 5, 6],  k = 4
+    Output: 4
+```
+
+#### Constraints
+
+- `1 <= k <= nums.length <= 10^5`
+- `-10^4 <= nums[i] <= 10^4`
+
+#### Solution 1 — Heap (the "easy" answer)
+
+A min-heap of size `k`. Push everything, pop down to size `k`, and the root is the answer.
+
+```python
+import heapq
+
+def find_kth_largest(nums, k):
+    return heapq.nlargest(k, nums)[-1]
+```
+
+`O(n log k)` time, `O(k)` space. Cleanest one-liner, but doesn't hit the `O(n)` target.
+
+#### Solution 2 — Quickselect (the D&C answer)
+
+Adapt quicksort's partition step: after partitioning, the pivot is in its final sorted position. If that position is the target, return the pivot. Otherwise recurse on **only the half** that contains the target.
+
+- **Divide:** partition around a pivot.
+- **Conquer:** recurse on the half containing the answer.
+- **Combine:** nothing.
+
+**Recurrence (average):** `T(n) = T(n / 2) + O(n)` → **`O(n)`** by case 3 of the Master Theorem.
+**Worst:** `T(n) = T(n - 1) + O(n)` → **`O(n²)`** (e.g., always-bad pivot).
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int partition(vector<int>& nums, int lo, int hi) {
+        int pivot = nums[hi];
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (nums[j] <= pivot) swap(nums[++i], nums[j]);
+        }
+        swap(nums[i + 1], nums[hi]);
+        return i + 1;
+    }
+    int quickselect(vector<int>& nums, int lo, int hi, int targetIdx) {
+        if (lo == hi) return nums[lo];
+        int p = partition(nums, lo, hi);
+        if (p == targetIdx) return nums[p];
+        if (targetIdx < p)  return quickselect(nums, lo, p - 1, targetIdx);
+        return quickselect(nums, p + 1, hi, targetIdx);
+    }
+    int findKthLargest(vector<int>& nums, int k) {
+        // k-th largest = (n - k)-th smallest (0-indexed)
+        return quickselect(nums, 0, nums.size() - 1, nums.size() - k);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import random
+
+    def find_kth_largest(nums, k):
+        target_idx = len(nums) - k
+        def quickselect(lo, hi):
+            if lo == hi: return nums[lo]
+            pivot_idx = random.randint(lo, hi)
+            nums[pivot_idx], nums[hi] = nums[hi], nums[pivot_idx]
+            pivot = nums[hi]
+            i = lo - 1
+            for j in range(lo, hi):
+                if nums[j] <= pivot:
+                    i += 1
+                    nums[i], nums[j] = nums[j], nums[i]
+            i += 1
+            nums[i], nums[hi] = nums[hi], nums[i]
+            if i == target_idx: return nums[i]
+            if target_idx < i:  return quickselect(lo, i - 1)
+            return quickselect(i + 1, hi)
+        return quickselect(0, len(nums) - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int partition(int[] nums, int lo, int hi) {
+        int pivot = nums[hi];
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (nums[j] <= pivot) {
+                i++;
+                int t = nums[i]; nums[i] = nums[j]; nums[j] = t;
+            }
+        }
+        int t = nums[i + 1]; nums[i + 1] = nums[hi]; nums[hi] = t;
+        return i + 1;
+    }
+    int quickselect(int[] nums, int lo, int hi, int targetIdx) {
+        if (lo == hi) return nums[lo];
+        int p = partition(nums, lo, hi);
+        if (p == targetIdx) return nums[p];
+        if (targetIdx < p)  return quickselect(nums, lo, p - 1, targetIdx);
+        return quickselect(nums, p + 1, hi, targetIdx);
+    }
+    public int findKthLargest(int[] nums, int k) {
+        return quickselect(nums, 0, nums.length - 1, nums.length - k);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Random pivot is essential.** Without it, sorted (or reverse-sorted) input gives `O(n²)`. The Python version above does this; the C++ / Java versions use the last element as pivot for clarity, which has the same worst case. In a real interview, mention the random-pivot variant explicitly.
+</Callout>
+
+#### Solution 3 — Median of Medians (the `O(n)` guarantee)
+
+If you need `O(n)` worst case (not just average), use median-of-medians to pick the pivot. It guarantees a pivot that's between the 30th and 70th percentile, which gives `T(n) <= T(n/5) + T(7n/10) + O(n) = O(n)` by Akra-Bazzi.
+
+In practice, randomized quickselect is faster — median-of-medians is for theoretical guarantees only.
+
+#### Analysis
+
+| Approach        | Time average | Time worst | Space          |
+| :-------------- | :----------- | :--------- | :------------- |
+| Heap            | `O(n log k)` | `O(n log k)` | `O(k)`       |
+| Quickselect     | `O(n)`       | `O(n²)`    | `O(log n)` avg |
+| Sort + index    | `O(n log n)` | `O(n log n)` | `O(1)`-ish |
+| Median of medians | `O(n)`     | `O(n)`     | `O(log n)`     |
+
+#### Same skin
+
+- **Top K Frequent Elements** — quickselect over frequency counts.
+- **K Closest Points to Origin** — quickselect by distance.
+- **Median of an Unsorted Array** — `k = n / 2` quickselect.
+- **Wiggle Sort II** — quickselect plus a reorder step.

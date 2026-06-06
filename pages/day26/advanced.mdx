@@ -1,0 +1,227 @@
+---
+title: "Advanced D&C Patterns"
+description: "Karatsuba multiplication, Strassen's matrix multiply, closest pair of points, FFT preview, and the merge-with-extra-accounting pattern."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Advanced D&C Patterns
+
+The classical D&C algorithms (merge sort, quicksort, binary search, fast pow) carry most interview problems. The five techniques on this page show up in the harder ones — competitive-programming flavored questions, the "now beat the obvious cubic" follow-ups, and the algorithms that built modern numerical computing.
+
+## 1. Karatsuba multiplication — three sub-multiplies instead of four
+
+> Multiply two `n`-digit numbers `x · y`.
+
+The grade-school algorithm is `O(n²)`. Karatsuba (1960) does it in `O(n^log₂ 3) ≈ O(n^1.585)` with a clever combine step.
+
+Split each number in half:
+
+```
+x = x1 · B + x0          (x1 = high digits, x0 = low; B = 10^(n/2))
+y = y1 · B + y0
+```
+
+Then:
+
+```
+x · y = (x1 · B + x0)(y1 · B + y0)
+       = x1·y1 · B²  +  (x1·y0 + x0·y1) · B  +  x0·y0
+```
+
+The middle term needs `x1·y0 + x0·y1`. Naïvely that's two multiplications, total four (`x1·y1`, `x0·y0`, `x1·y0`, `x0·y1`). Karatsuba's trick:
+
+```
+(x1 + x0)(y1 + y0) = x1·y1 + x1·y0 + x0·y1 + x0·y0
+```
+
+So `x1·y0 + x0·y1 = (x1 + x0)(y1 + y0) − x1·y1 − x0·y0`. We've replaced two multiplies with one multiply plus a subtraction. **Three sub-multiplies total**, not four.
+
+**Recurrence:** `T(n) = 3 T(n / 2) + O(n)` → **`O(n^log₂ 3) ≈ O(n^1.585)`**.
+
+```python
+def karatsuba(x, y):
+    if x < 10 or y < 10: return x * y
+    n = max(len(str(x)), len(str(y)))
+    half = n // 2
+    B = 10 ** half
+    x1, x0 = divmod(x, B)
+    y1, y0 = divmod(y, B)
+    z2 = karatsuba(x1, y1)
+    z0 = karatsuba(x0, y0)
+    z1 = karatsuba(x1 + x0, y1 + y0) - z2 - z0
+    return z2 * B * B + z1 * B + z0
+```
+
+Real big-number libraries use Karatsuba for moderate sizes and Schönhage-Strassen (or, since 2019, the Harvey-van der Hoeven `O(n log n)` algorithm) for truly enormous numbers.
+
+## 2. Strassen's matrix multiplication — 7 multiplies instead of 8
+
+> Multiply two `n × n` matrices `A · B`.
+
+Naïve: `O(n³)` — three nested loops. Recursive block multiplication ("treat as 2×2 of `(n/2) × (n/2)` blocks") gives `T(n) = 8 T(n/2) + O(n²) = O(n³)` — same asymptotic.
+
+Strassen (1969) showed how to do the `2 × 2` block multiplication with **7 sub-multiplies** instead of 8. The result:
+
+**Recurrence:** `T(n) = 7 T(n / 2) + O(n²)` → **`O(n^log₂ 7) ≈ O(n^2.807)`**.
+
+That's the first algorithm to break the cubic barrier — every subsequent improvement (Coppersmith-Winograd at `O(n^2.376)`, the current best at around `O(n^2.371552)`) refined the same idea of reducing the number of sub-multiplies via clever linear combinations.
+
+In practice, Strassen has large hidden constants and worse cache behavior than the naïve algorithm. It only wins for **very large dense matrices** (typically `n >= ~1000`).
+
+## 3. Closest Pair of Points
+
+> Given `n` points in the plane, find the pair with the smallest Euclidean distance.
+
+Brute force: check every pair. `O(n²)`. D&C: `O(n log n)`.
+
+The algorithm:
+
+1. **Sort by x-coordinate.**
+2. **Divide:** split into left and right halves by x.
+3. **Conquer:** recursively find the closest pair in each half.
+4. **Combine:** let `δ` be the smaller of the two half-answers. Check all pairs straddling the dividing line that are within `δ` of it. **Crucially**, you only need to check the next few points (a constant number, at most 7 in any geometric configuration) sorted by y-coordinate within the strip.
+
+```python
+def closest_pair(points):
+    points.sort()                                             # by x
+    def dist(p, q):
+        return ((p[0] - q[0])**2 + (p[1] - q[1])**2) ** 0.5
+    def solve(lo, hi):
+        if hi - lo <= 3:                                       # base: brute force
+            best = float('inf')
+            for i in range(lo, hi):
+                for j in range(i + 1, hi):
+                    best = min(best, dist(points[i], points[j]))
+            return best
+        mid = (lo + hi) // 2
+        mid_x = points[mid][0]
+        d_left  = solve(lo, mid)
+        d_right = solve(mid, hi)
+        delta = min(d_left, d_right)
+        strip = sorted([p for p in points[lo:hi] if abs(p[0] - mid_x) < delta], key=lambda p: p[1])
+        for i in range(len(strip)):
+            for j in range(i + 1, min(i + 8, len(strip))):     # at most 7 neighbors
+                delta = min(delta, dist(strip[i], strip[j]))
+        return delta
+    return solve(0, len(points))
+```
+
+**Recurrence:** `T(n) = 2 T(n/2) + O(n)` (the strip step is `O(n)` with a clever proof). → **`O(n log n)`** total. (The sort itself adds `O(n log n)`, which doesn't change the bound.)
+
+The geometric insight — "only the nearest 7 in the strip can possibly be closer than `δ`" — is the heart of the algorithm. Without it, the strip step is `O(n²)` and the whole thing collapses to `O(n²)`.
+
+## 4. The merge-with-extra-accounting pattern
+
+Already glimpsed in inversion counting. Generalized: **the merge step of merge sort lets you compute any quantity that depends on cross-pairs between left and right halves**, while you sort.
+
+Examples:
+
+- **Count Inversions:** count pairs `(i < j)` with `nums[i] > nums[j]`.
+- **Count of Smaller Numbers After Self:** for each `i`, count `j > i` with `nums[j] < nums[i]`.
+- **Reverse Pairs:** count pairs `(i < j)` with `nums[i] > 2 · nums[j]`.
+
+All three solve in `O(n log n)` via merge sort, by adding a counting step during the merge.
+
+For Reverse Pairs, the counting step is a separate two-pointer pass **before** the merge:
+
+```python
+def reverse_pairs(nums):
+    def merge_count(arr):
+        if len(arr) <= 1: return arr, 0
+        mid = len(arr) // 2
+        left,  c1 = merge_count(arr[:mid])
+        right, c2 = merge_count(arr[mid:])
+        # count reverse pairs across the boundary
+        c3 = 0
+        j = 0
+        for i in range(len(left)):
+            while j < len(right) and left[i] > 2 * right[j]:
+                j += 1
+            c3 += j
+        # standard merge
+        out, i, j = [], 0, 0
+        while i < len(left) and j < len(right):
+            if left[i] <= right[j]:
+                out.append(left[i]); i += 1
+            else:
+                out.append(right[j]); j += 1
+        out.extend(left[i:]); out.extend(right[j:])
+        return out, c1 + c2 + c3
+    _, total = merge_count(nums)
+    return total
+```
+
+`O(n log n)` — the count step is amortized `O(n)` (the `j` pointer is monotonic across the outer loop).
+
+## 5. FFT preview — multiplying polynomials in O(n log n)
+
+> Given two polynomials of degree `n`, compute their product (degree `2n`).
+
+Naïve: distribute, summing `n²` products. `O(n²)`.
+
+The **Fast Fourier Transform** uses D&C to do it in `O(n log n)`:
+
+1. **Evaluate** each polynomial at `2n` cleverly-chosen complex roots of unity (this is the "DFT").
+2. **Multiply** pointwise — `O(n)` multiplications.
+3. **Interpolate** back to coefficients (inverse DFT).
+
+Steps 1 and 3 are each `O(n log n)` via D&C. The same algorithm underlies digital signal processing, JPEG / MP3 compression, big-integer multiplication (Schönhage-Strassen), and convolutional neural networks.
+
+The recurrence: `T(n) = 2 T(n / 2) + O(n)` → `O(n log n)`. Same shape as merge sort, applied to a completely different problem.
+
+We won't implement FFT here — it's a chapter unto itself. But knowing **it exists** and **it's D&C** is useful framing for the rest of CS.
+
+## Choosing the right tool
+
+| Symptom                                                          | Reach for                              |
+| :--------------------------------------------------------------- | :------------------------------------- |
+| Multiply very large integers                                     | Karatsuba (or, for huge: Schönhage)    |
+| Multiply very large dense matrices                               | Strassen (or naïve for `n < ~1000`)    |
+| Closest pair of `n` points in 2D                                 | The strip-step D&C, `O(n log n)`       |
+| Count cross-pairs satisfying some property                       | Merge sort with extra counting step    |
+| Polynomial multiplication / convolution / signal processing      | FFT                                    |
+| Sort an array, stable, parallelizable                            | Merge sort                             |
+| Sort an array, in place, fast on most inputs                     | Quicksort / introsort                  |
+
+## Quick check
+
+<QuizBox
+    question="Karatsuba's algorithm cuts the recurrence from T(n) = 4T(n/2) + O(n) to T(n) = 3T(n/2) + O(n). Asymptotically, the new runtime is:"
+    options={[
+        "O(n)",
+        "O(n^log_2(3)) ≈ O(n^1.585) — case 1 of the Master Theorem with c = log_2(3) > 1",
+        "O(n log n)",
+        "O(n^2)"
+    ]}
+    correctIndex={1}
+    explanation="By Master Theorem: a = 3, b = 2, c = log_2(3) ≈ 1.585, n^c ≈ n^1.585. f(n) = n is O(n^(c - ε)) for ε ≈ 0.585 — case 1 — so T(n) = Θ(n^log_2(3)). Cutting one sub-multiply from four to three changed the asymptotic exponent of integer multiplication."
+/>
+
+<QuizBox
+    question="In Closest Pair, why does the strip step only check the next 7 points in the y-sorted strip?"
+    options={[
+        "Arbitrary cutoff",
+        "Geometric proof: within a strip of width δ on each side of the dividing line, you can fit at most 8 points each at distance >= δ from each other (a 2δ × δ rectangle holds at most ~8 disjoint δ-radius regions). So we only need to check 7 neighbors.",
+        "Convention",
+        "Performance only"
+    ]}
+    correctIndex={1}
+    explanation="The proof: consider a 2δ × δ rectangle around any point in the strip. Any point closer than δ must be inside this box. The box can fit at most 8 mutually-at-least-δ-apart points (a packing argument). So checking the 7 nearest y-neighbors covers all candidates. Without this bound, the strip step would be O(n²)."
+/>
+
+<QuizBox
+    question="The 'merge step with extra accounting' pattern works for problems where:"
+    options={[
+        "The answer depends on triplets",
+        "The answer counts/computes something across pairs that span the left and right halves of a merge — the merge step lets you count these cross-pairs in amortized O(n) while sorting",
+        "The array is already sorted",
+        "The problem is symmetric"
+    ]}
+    correctIndex={1}
+    explanation="Inversions, reverse pairs, count smaller after self, and 'sum of (a[i] - a[j])² for i < j' all share this property: the answer decomposes into 'pairs within left' + 'pairs within right' + 'cross pairs'. The first two are recursive subproblems; the third is computed during the merge. Total: O(n log n)."
+/>
+
+Next: **basic warm-up questions** — power function, find max/min, search in a sorted array, count nodes in a tree.

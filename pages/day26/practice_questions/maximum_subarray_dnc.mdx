@@ -1,0 +1,163 @@
+---
+title: "Maximum Subarray (D&C)"
+description: "The textbook D&C exercise — find the maximum subarray sum by considering left, right, and crossing cases."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Maximum Subarray (D&C) <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums`, find the contiguous subarray (containing at least one number) which has the **largest sum** and return its sum.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]
+    Output: 6
+    Explanation: [4, -1, 2, 1] has the largest sum = 6.
+
+> Case 2:
+    nums = [1]
+    Output: 1
+
+> Case 3:
+    nums = [5, 4, -1, 7, 8]
+    Output: 23
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- `-10^4 <= nums[i] <= 10^4`
+
+**Follow-up:** if you have figured out the `O(n)` solution (Kadane's), try the divide and conquer approach.
+
+#### Why this is a D&C classic
+
+The `O(n)` Kadane's algorithm (covered on [Day 14](/day14/basic_questions)) is the right interview answer. But the D&C formulation is a textbook example of the "left / right / crossing" pattern.
+
+#### State design
+
+The max subarray is one of three things:
+
+1. **Entirely in the left half.**
+2. **Entirely in the right half.**
+3. **Crosses the midpoint** — starts somewhere in the left, ends somewhere in the right.
+
+Cases 1 and 2 are recursive subproblems. Case 3 requires computing the **best suffix of the left half ending at mid** plus the **best prefix of the right half starting at mid + 1**. Both can be done in one pass through the relevant half.
+
+**Recurrence:** `T(n) = 2 T(n / 2) + O(n)` → **`O(n log n)`**.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int solve(vector<int>& nums, int lo, int hi) {
+        if (lo == hi) return nums[lo];
+        int mid = lo + (hi - lo) / 2;
+        int leftMax  = solve(nums, lo, mid);
+        int rightMax = solve(nums, mid + 1, hi);
+        // crossing
+        int s = 0, leftSuffix = INT_MIN;
+        for (int i = mid; i >= lo; i--) {
+            s += nums[i];
+            leftSuffix = max(leftSuffix, s);
+        }
+        s = 0;
+        int rightPrefix = INT_MIN;
+        for (int i = mid + 1; i <= hi; i++) {
+            s += nums[i];
+            rightPrefix = max(rightPrefix, s);
+        }
+        int crossMax = leftSuffix + rightPrefix;
+        return max({leftMax, rightMax, crossMax});
+    }
+    int maxSubArray(vector<int>& nums) {
+        return solve(nums, 0, nums.size() - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def max_subarray(nums):
+        def solve(lo, hi):
+            if lo == hi: return nums[lo]
+            mid = (lo + hi) // 2
+            left_max  = solve(lo, mid)
+            right_max = solve(mid + 1, hi)
+            # crossing
+            s, left_suffix = 0, float('-inf')
+            for i in range(mid, lo - 1, -1):
+                s += nums[i]
+                left_suffix = max(left_suffix, s)
+            s, right_prefix = 0, float('-inf')
+            for i in range(mid + 1, hi + 1):
+                s += nums[i]
+                right_prefix = max(right_prefix, s)
+            cross_max = left_suffix + right_prefix
+            return max(left_max, right_max, cross_max)
+        return solve(0, len(nums) - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int solve(int[] nums, int lo, int hi) {
+        if (lo == hi) return nums[lo];
+        int mid = lo + (hi - lo) / 2;
+        int leftMax  = solve(nums, lo, mid);
+        int rightMax = solve(nums, mid + 1, hi);
+        int s = 0, leftSuffix = Integer.MIN_VALUE;
+        for (int i = mid; i >= lo; i--) {
+            s += nums[i];
+            leftSuffix = Math.max(leftSuffix, s);
+        }
+        s = 0;
+        int rightPrefix = Integer.MIN_VALUE;
+        for (int i = mid + 1; i <= hi; i++) {
+            s += nums[i];
+            rightPrefix = Math.max(rightPrefix, s);
+        }
+        int crossMax = leftSuffix + rightPrefix;
+        return Math.max(leftMax, Math.max(rightMax, crossMax));
+    }
+    public int maxSubArray(int[] nums) {
+        return solve(nums, 0, nums.length - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why is the crossing computed by scanning from the midpoint outward?** Because the crossing subarray *must* include the midpoint (it crosses there). So the best left part is the best suffix of `[lo..mid]` ending at `mid`, and the best right part is the best prefix of `[mid+1..hi]` starting at `mid+1`. Both can be computed in one linear pass through the relevant half.
+</Callout>
+
+#### Comparison to Kadane's
+
+```python
+def max_subarray_kadane(nums):
+    best = cur = nums[0]
+    for x in nums[1:]:
+        cur = max(x, cur + x)
+        best = max(best, cur)
+    return best
+```
+
+`O(n)` time, `O(1)` space. Strictly better than D&C for this specific problem. **The D&C version is worth knowing because the "left / right / crossing" framing generalizes** to problems where Kadane's `O(n)` trick doesn't apply — for example, when you also need to track positions, or when you're working on a 2D grid.
+
+#### Analysis
+
+- **Time:** `O(n log n)`.
+- **Space:** `O(log n)` recursion.
+
+#### Same skin
+
+- **Maximum Subarray Sum on 2D Matrix** — D&C on rows + Kadane on columns.
+- **Closest Pair of Points** — same "left / right / crossing" framing, with a different combine.
+- **Inversion Counting** — left / right / cross, with the cross step counting pairs straddling the midpoint.
+- **Counting Inversions Beyond a Threshold** — same framing.

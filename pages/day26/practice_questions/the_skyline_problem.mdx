@@ -1,0 +1,193 @@
+---
+title: "The Skyline Problem"
+description: "Merge-style D&C — combine two building outlines into one in O(n) per merge, yielding O(n log n) overall."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### The Skyline Problem <DifficultyBadge level="hard" />
+
+#### Description
+
+A city's skyline is the outer contour of the silhouette formed by all the buildings in that city when viewed from a distance. Given the locations and heights of all the buildings, return the skyline formed by these buildings collectively.
+
+The geometric information of each building is given in the array `buildings` where `buildings[i] = [left_i, right_i, height_i]`:
+
+- `left_i` is the x-coordinate of the left edge of the `i`-th building.
+- `right_i` is the x-coordinate of the right edge of the `i`-th building.
+- `height_i` is the height of the `i`-th building.
+
+You may assume all buildings are perfect rectangles grounded on an absolutely flat surface at height 0.
+
+The skyline should be represented as a list of "key points" sorted by their x-coordinate in the form `[[x1, y1], [x2, y2], ...]`. Each key point is the left endpoint of some horizontal segment in the skyline. The last point in the list should have a y-coordinate of `0`.
+
+There must be no consecutive horizontal lines of equal height in the output skyline.
+
+#### Examples
+
+```py
+> Case 1:
+    buildings = [[2, 9, 10], [3, 7, 15], [5, 12, 12], [15, 20, 10], [19, 24, 8]]
+    Output: [[2, 10], [3, 15], [7, 12], [12, 0], [15, 10], [20, 8], [24, 0]]
+```
+
+#### Constraints
+
+- `1 <= buildings.length <= 10^4`
+- `0 <= left_i < right_i <= 2 × 10^9`
+- `1 <= height_i <= 10^4`
+- Buildings are given sorted by `left_i`.
+
+#### The D&C insight
+
+The skyline of two buildings can be computed by:
+
+- Splitting the input into two halves.
+- Recursively computing each half's skyline.
+- **Merging** the two skylines.
+
+The merge is the heart of the algorithm: walk through both skylines simultaneously, maintaining current heights `h1` and `h2`, and emit a new keypoint whenever `max(h1, h2)` changes.
+
+**Recurrence:** `T(n) = 2 T(n / 2) + O(n)` → **`O(n log n)`**.
+
+#### Code
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def get_skyline(buildings):
+        def merge(left, right):
+            h1 = h2 = 0
+            i = j = 0
+            out = []
+            while i < len(left) and j < len(right):
+                lx, lh = left[i]
+                rx, rh = right[j]
+                if lx < rx:
+                    x = lx; h1 = lh; i += 1
+                elif lx > rx:
+                    x = rx; h2 = rh; j += 1
+                else:
+                    x = lx; h1 = lh; h2 = rh; i += 1; j += 1
+                new_h = max(h1, h2)
+                if not out or out[-1][1] != new_h:
+                    out.append([x, new_h])
+            out.extend(left[i:])
+            out.extend(right[j:])
+            return out
+
+        def solve(lo, hi):
+            if lo == hi:
+                l, r, h = buildings[lo]
+                return [[l, h], [r, 0]]
+            mid = (lo + hi) // 2
+            return merge(solve(lo, mid), solve(mid + 1, hi))
+
+        if not buildings: return []
+        return solve(0, len(buildings) - 1)
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The merge step's invariant:** at any moment, `h1` is the most-recent height contributed by the left skyline at the current x-cursor, and `h2` is the most-recent for the right. The current emitted skyline height is `max(h1, h2)`. When either changes (because we just consumed a keypoint from one side), we check if the new max differs from the last emitted height — if so, emit a new keypoint.
+
+    This is exactly the merge-step pattern from merge sort, generalized from "pick the smaller front element" to "track the current max contribution from each side."
+</Callout>
+
+#### C++ / Java
+
+<Tabs items={['C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<vector<int>> merge(vector<vector<int>>& left, vector<vector<int>>& right) {
+        int h1 = 0, h2 = 0;
+        int i = 0, j = 0;
+        vector<vector<int>> out;
+        while (i < (int)left.size() && j < (int)right.size()) {
+            int x;
+            if (left[i][0] < right[j][0]) {
+                x = left[i][0]; h1 = left[i][1]; i++;
+            } else if (left[i][0] > right[j][0]) {
+                x = right[j][0]; h2 = right[j][1]; j++;
+            } else {
+                x = left[i][0]; h1 = left[i][1]; h2 = right[j][1]; i++; j++;
+            }
+            int h = max(h1, h2);
+            if (out.empty() || out.back()[1] != h) out.push_back({x, h});
+        }
+        while (i < (int)left.size())  out.push_back(left[i++]);
+        while (j < (int)right.size()) out.push_back(right[j++]);
+        return out;
+    }
+    vector<vector<int>> solve(vector<vector<int>>& buildings, int lo, int hi) {
+        if (lo == hi) return {{buildings[lo][0], buildings[lo][2]}, {buildings[lo][1], 0}};
+        int mid = (lo + hi) / 2;
+        auto left  = solve(buildings, lo, mid);
+        auto right = solve(buildings, mid + 1, hi);
+        return merge(left, right);
+    }
+    vector<vector<int>> getSkyline(vector<vector<int>>& buildings) {
+        if (buildings.empty()) return {};
+        return solve(buildings, 0, buildings.size() - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<List<Integer>> getSkyline(int[][] buildings) {
+        if (buildings.length == 0) return new ArrayList<>();
+        return solve(buildings, 0, buildings.length - 1);
+    }
+    List<List<Integer>> solve(int[][] buildings, int lo, int hi) {
+        if (lo == hi) {
+            List<List<Integer>> base = new ArrayList<>();
+            base.add(Arrays.asList(buildings[lo][0], buildings[lo][2]));
+            base.add(Arrays.asList(buildings[lo][1], 0));
+            return base;
+        }
+        int mid = (lo + hi) / 2;
+        return merge(solve(buildings, lo, mid), solve(buildings, mid + 1, hi));
+    }
+    List<List<Integer>> merge(List<List<Integer>> left, List<List<Integer>> right) {
+        int h1 = 0, h2 = 0, i = 0, j = 0;
+        List<List<Integer>> out = new ArrayList<>();
+        while (i < left.size() && j < right.size()) {
+            int x;
+            if (left.get(i).get(0) < right.get(j).get(0)) {
+                x = left.get(i).get(0); h1 = left.get(i).get(1); i++;
+            } else if (left.get(i).get(0) > right.get(j).get(0)) {
+                x = right.get(j).get(0); h2 = right.get(j).get(1); j++;
+            } else {
+                x = left.get(i).get(0); h1 = left.get(i).get(1); h2 = right.get(j).get(1); i++; j++;
+            }
+            int h = Math.max(h1, h2);
+            if (out.isEmpty() || out.get(out.size() - 1).get(1) != h) out.add(Arrays.asList(x, h));
+        }
+        while (i < left.size())  out.add(left.get(i++));
+        while (j < right.size()) out.add(right.get(j++));
+        return out;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Alternative — sweep line with a max-heap
+
+The "production" answer to this problem uses an event-based sweep with a max-heap of active building heights. `O(n log n)` time, same asymptotic, but easier to implement correctly under time pressure. The D&C version is the textbook one and is often the version tested in algorithm courses.
+
+#### Analysis
+
+- **Time:** `O(n log n)`.
+- **Space:** `O(n)` for the recursion and intermediate skylines.
+
+#### Same skin
+
+- **Rectangle Area II** (compute the area of the union of axis-aligned rectangles) — different sweep, related "merge outlines" feel.
+- **Merge K Sorted Lists** — same D&C merge shape applied to lists.
+- **Closest Pair of Points** — D&C with a clever merge step.
+- **Find Intersection of Two Sorted Lists** — two-pointer merge.
+
+The skyline problem is the canonical "D&C with a non-trivial merge step" interview problem. It tests whether you understand that the merge in merge sort is the *abstraction*, not the *concrete operation* — once you grasp that, you can adapt the pattern to any problem with a "combine two ordered things" feel.

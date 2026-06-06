@@ -1,0 +1,163 @@
+---
+title: "Majority Element"
+description: "Find the element appearing more than n/2 times — three solutions including the divide-and-conquer approach."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Majority Element <DifficultyBadge level="easy" />
+
+#### Description
+
+Given an array `nums` of size `n`, return the **majority element** — the element that appears more than `n / 2` times.
+
+You may assume the majority element always exists.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [3, 2, 3]
+    Output: 3
+
+> Case 2:
+    nums = [2, 2, 1, 1, 1, 2, 2]
+    Output: 2
+```
+
+#### Constraints
+
+- `n == nums.length`
+- `1 <= n <= 5 × 10^4`
+- `-10^9 <= nums[i] <= 10^9`
+
+**Follow-up:** solve in `O(n)` time and `O(1)` extra space.
+
+#### Solution 1 — Divide and Conquer
+
+The recursive observation: **if `x` is the majority element of the whole array, then `x` is the majority element of the left half, or the right half, or both.**
+
+So:
+
+- **Divide:** halve the array.
+- **Conquer:** recursively find the majority of each half.
+- **Combine:** if both halves agree on a candidate, return it. Otherwise count both candidates in the full range and return whichever wins.
+
+**Recurrence:** `T(n) = 2 T(n / 2) + O(n)` → **`O(n log n)`**.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int count(vector<int>& nums, int lo, int hi, int val) {
+        int c = 0;
+        for (int i = lo; i <= hi; i++) if (nums[i] == val) c++;
+        return c;
+    }
+    int majorityDC(vector<int>& nums, int lo, int hi) {
+        if (lo == hi) return nums[lo];
+        int mid = lo + (hi - lo) / 2;
+        int left  = majorityDC(nums, lo, mid);
+        int right = majorityDC(nums, mid + 1, hi);
+        if (left == right) return left;
+        return count(nums, lo, hi, left) > count(nums, lo, hi, right) ? left : right;
+    }
+    int majorityElement(vector<int>& nums) {
+        return majorityDC(nums, 0, nums.size() - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def majority_element(nums):
+        def majority_dc(lo, hi):
+            if lo == hi: return nums[lo]
+            mid = (lo + hi) // 2
+            left  = majority_dc(lo, mid)
+            right = majority_dc(mid + 1, hi)
+            if left == right: return left
+            cl = sum(1 for i in range(lo, hi + 1) if nums[i] == left)
+            cr = sum(1 for i in range(lo, hi + 1) if nums[i] == right)
+            return left if cl > cr else right
+        return majority_dc(0, len(nums) - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int count(int[] nums, int lo, int hi, int val) {
+        int c = 0;
+        for (int i = lo; i <= hi; i++) if (nums[i] == val) c++;
+        return c;
+    }
+    int majorityDC(int[] nums, int lo, int hi) {
+        if (lo == hi) return nums[lo];
+        int mid = lo + (hi - lo) / 2;
+        int left  = majorityDC(nums, lo, mid);
+        int right = majorityDC(nums, mid + 1, hi);
+        if (left == right) return left;
+        return count(nums, lo, hi, left) > count(nums, lo, hi, right) ? left : right;
+    }
+    public int majorityElement(int[] nums) {
+        return majorityDC(nums, 0, nums.length - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(n log n)`. **Space:** `O(log n)`.
+
+#### Solution 2 — Boyer-Moore Voting (the "real" answer)
+
+A genius `O(n)` time, `O(1)` space algorithm. Maintain a candidate and a counter:
+
+- If counter is `0`, set the candidate to the current element.
+- Otherwise, increment counter if the current element matches the candidate; decrement if not.
+
+After the pass, the candidate is the majority.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def majority_element(nums):
+        candidate = None
+        count = 0
+        for x in nums:
+            if count == 0:
+                candidate = x
+                count = 1
+            elif x == candidate:
+                count += 1
+            else:
+                count -= 1
+        return candidate
+    ```
+    </Tab>
+</Tabs>
+
+**Why it works:** every time the counter decrements, we're "cancelling out" one non-majority vote against one majority vote. Since the majority element appears more than `n / 2` times, there are too many of its votes to be fully cancelled — it survives as the candidate at the end.
+
+#### Solution 3 — Sort + Pick the Middle
+
+```python
+def majority_element(nums):
+    nums.sort()
+    return nums[len(nums) // 2]
+```
+
+`O(n log n)` time, `O(1)` extra space. If the majority element appears more than `n/2` times, after sorting it must occupy the middle position. The cleanest one-liner — but doesn't generalize when the majority guarantee is weaker.
+
+#### Analysis comparison
+
+| Approach           | Time         | Space     | Notes                                          |
+| :----------------- | :----------- | :-------- | :--------------------------------------------- |
+| Divide & Conquer   | `O(n log n)` | `O(log n)` | Pedagogically clean; not the optimal answer    |
+| Boyer-Moore voting | `O(n)`       | `O(1)`    | The "real" answer; usually expected            |
+| Sort + middle      | `O(n log n)` | `O(1)`    | One line; works because majority is `> n/2`    |
+| Hash map count     | `O(n)`       | `O(n)`    | Lazy fallback; works for non-majority variants |
+
+#### Same skin
+
+- **Majority Element II** (appears more than `n/3` times) — extended Boyer-Moore with two candidates.
+- **Find Two Numbers with Frequencies above n/3** — multi-candidate variant.
+- **Find the Duplicate Number** — different shape but similar "single special element" feel.

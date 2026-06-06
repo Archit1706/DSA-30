@@ -1,0 +1,175 @@
+---
+title: "Median of Two Sorted Arrays"
+description: "Binary search on partition — find the median of two sorted arrays in O(log min(m, n)) time."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Median of Two Sorted Arrays <DifficultyBadge level="hard" />
+
+#### Description
+
+Given two sorted arrays `nums1` and `nums2` of size `m` and `n` respectively, return the **median** of the two sorted arrays.
+
+The overall run time complexity should be `O(log (m + n))`.
+
+#### Examples
+
+```py
+> Case 1:
+    nums1 = [1, 3],  nums2 = [2]
+    Output: 2.00000
+    Explanation: merged = [1, 2, 3]; median = 2.
+
+> Case 2:
+    nums1 = [1, 2],  nums2 = [3, 4]
+    Output: 2.50000
+    Explanation: merged = [1, 2, 3, 4]; median = (2 + 3) / 2.
+```
+
+#### Constraints
+
+- `nums1.length == m`
+- `nums2.length == n`
+- `0 <= m, n <= 1000`
+- `1 <= m + n <= 2000`
+- `-10^6 <= nums1[i], nums2[i] <= 10^6`
+
+#### Why this is the boss-level D&C problem
+
+The `O(m + n)` merge is easy. The `O(log(m + n))` solution is the hardest binary-search problem in the entire interview canon. We bring it here because:
+
+1. The split insight — binary search on a *partition* of one array — is the deepest D&C-style move in the chapter.
+2. The runtime `O(log min(m, n))` is achieved via classic "discard half each step" recursion.
+
+#### The partition insight
+
+For the merged sorted array of size `m + n`, the median is determined by **where the array splits in half**. Specifically, if we pick a split `i` in `nums1` (`0 <= i <= m`), then the corresponding split in `nums2` is `j = (m + n + 1) / 2 - i` (to put exactly half the elements on the left).
+
+We have a valid median split when:
+
+- `nums1[i - 1] <= nums2[j]` AND
+- `nums2[j - 1] <= nums1[i]`
+
+(treating out-of-bound as `±∞`).
+
+If `nums1[i - 1] > nums2[j]`, then `i` is too big. Move left.
+If `nums2[j - 1] > nums1[i]`, then `i` is too small. Move right.
+
+This is a **binary search on `i`** within `[0, m]`, with `j` derived from `i`. To minimize the search range, **binary-search the SHORTER array**.
+
+#### Code
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def find_median_sorted_arrays(nums1, nums2):
+        # Ensure nums1 is the shorter array
+        if len(nums1) > len(nums2):
+            nums1, nums2 = nums2, nums1
+        m, n = len(nums1), len(nums2)
+        total = m + n
+        half = (total + 1) // 2
+
+        lo, hi = 0, m
+        while lo <= hi:
+            i = (lo + hi) // 2
+            j = half - i
+            n1_left  = nums1[i - 1] if i > 0 else float('-inf')
+            n1_right = nums1[i]     if i < m else float('inf')
+            n2_left  = nums2[j - 1] if j > 0 else float('-inf')
+            n2_right = nums2[j]     if j < n else float('inf')
+
+            if n1_left <= n2_right and n2_left <= n1_right:
+                # valid split
+                if total % 2 == 1:
+                    return max(n1_left, n2_left)
+                return (max(n1_left, n2_left) + min(n1_right, n2_right)) / 2
+            if n1_left > n2_right:
+                hi = i - 1
+            else:
+                lo = i + 1
+    ```
+    </Tab>
+</Tabs>
+
+#### C++ / Java
+
+<Tabs items={['C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    double findMedianSortedArrays(vector<int>& nums1, vector<int>& nums2) {
+        if (nums1.size() > nums2.size()) swap(nums1, nums2);
+        int m = nums1.size(), n = nums2.size();
+        int total = m + n, half = (total + 1) / 2;
+        int lo = 0, hi = m;
+        while (lo <= hi) {
+            int i = (lo + hi) / 2;
+            int j = half - i;
+            int n1L = (i > 0) ? nums1[i - 1] : INT_MIN;
+            int n1R = (i < m) ? nums1[i]     : INT_MAX;
+            int n2L = (j > 0) ? nums2[j - 1] : INT_MIN;
+            int n2R = (j < n) ? nums2[j]     : INT_MAX;
+            if (n1L <= n2R && n2L <= n1R) {
+                if (total % 2 == 1) return max(n1L, n2L);
+                return (max(n1L, n2L) + min(n1R, n2R)) / 2.0;
+            }
+            if (n1L > n2R) hi = i - 1;
+            else           lo = i + 1;
+        }
+        return 0.0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public double findMedianSortedArrays(int[] nums1, int[] nums2) {
+        if (nums1.length > nums2.length) { int[] t = nums1; nums1 = nums2; nums2 = t; }
+        int m = nums1.length, n = nums2.length;
+        int total = m + n, half = (total + 1) / 2;
+        int lo = 0, hi = m;
+        while (lo <= hi) {
+            int i = (lo + hi) / 2;
+            int j = half - i;
+            int n1L = (i > 0) ? nums1[i - 1] : Integer.MIN_VALUE;
+            int n1R = (i < m) ? nums1[i]     : Integer.MAX_VALUE;
+            int n2L = (j > 0) ? nums2[j - 1] : Integer.MIN_VALUE;
+            int n2R = (j < n) ? nums2[j]     : Integer.MAX_VALUE;
+            if (n1L <= n2R && n2L <= n1R) {
+                if (total % 2 == 1) return Math.max(n1L, n2L);
+                return (Math.max(n1L, n2L) + Math.min(n1R, n2R)) / 2.0;
+            }
+            if (n1L > n2R) hi = i - 1;
+            else           lo = i + 1;
+        }
+        return 0.0;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Three classic bugs in this problem:**
+    1. **Forgetting to swap to make nums1 the shorter array** — runtime degrades from `O(log min(m, n))` to `O(log max(m, n))`. Functionally correct, asymptotically wrong claim.
+    2. **Off-by-one on `half`** — use `(m + n + 1) // 2`, not `(m + n) // 2`, so the left half is **at least as big as** the right half. That way the median (for odd totals) is the max of the left.
+    3. **Out-of-bound sentinels** — when `i == 0`, treat `n1_left` as `-∞`. When `i == m`, treat `n1_right` as `+∞`. Same for `j`. Forgetting these gives index-out-of-bounds errors on edge cases.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(log min(m, n))`.
+- **Space:** `O(1)`.
+
+#### Why is this D&C?
+
+Strictly speaking, this problem is binary-search-shaped rather than two-recursive-call D&C. But the binary-search-on-partition idea — "find the right place to cut, derive the rest" — is a deep D&C move, and the algorithm is `T(n) = T(n / 2) + O(1) = O(log n)` in classic D&C form.
+
+#### Same skin
+
+- **Find K-th Smallest Element in Two Sorted Arrays** — generalization; binary-search on the split that puts `k` elements on the left.
+- **Median of a Stream** — different setup (heaps); same "balanced partition" insight.
+- **Wiggle Sort II** — uses median (via quickselect or this trick) plus a reorder step.
+
+This problem belongs to the "you-either-see-the-trick-or-you-don't" club. The partition insight is the entire algorithm — once you have it, the code is 20 lines; without it, no amount of effort produces `O(log)` time.

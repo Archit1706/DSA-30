@@ -1,0 +1,225 @@
+---
+title: "The D&C Template"
+description: "The split/recurse/combine skeleton, the four canonical recurrence shapes, and a recipe for spotting D&C in new problems."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# The D&C Template
+
+Every divide-and-conquer algorithm fits the same skeleton. Once you can write it from memory, the work on any new problem is filling in three blanks:
+
+1. **How to split the input.**
+2. **What the base case looks like.**
+3. **How to combine the subanswers.**
+
+That's it. The recurrence — and therefore the runtime — falls out of those three choices automatically.
+
+## The skeleton
+
+```text
+def solve(input):
+    if input is small enough:
+        return brute_force(input)              # base case
+
+    parts = split(input)                        # divide
+
+    sub_answers = [solve(p) for p in parts]    # conquer
+
+    return combine(sub_answers, input)          # combine
+```
+
+Four lines. Most D&C problems hide their interesting work in the **combine** step.
+
+## The four canonical recurrence shapes
+
+You'll see these four over and over. Memorize them.
+
+### Shape 1: `T(n) = T(n / 2) + O(1)` → `O(log n)`
+
+One recursive call, half the size, constant combine. Binary search. Fast exponentiation (`pow(x, n)` viewed by halving `n`).
+
+```python
+def binary_search(arr, target, lo, hi):
+    if lo > hi: return -1
+    mid = (lo + hi) // 2
+    if arr[mid] == target: return mid
+    if arr[mid] < target: return binary_search(arr, target, mid + 1, hi)
+    else:                 return binary_search(arr, target, lo, mid - 1)
+```
+
+The trick: **one of the two halves is discarded** entirely. Each level of recursion halves the problem; there are `log n` levels.
+
+### Shape 2: `T(n) = T(n / 2) + O(n)` → `O(n)`
+
+One recursive call, half the size, linear combine. Quickselect (when the pivot is good). Counting inversions in a half (with appropriate setup).
+
+```python
+def quickselect(nums, k, lo, hi):
+    if lo == hi: return nums[lo]
+    p = partition(nums, lo, hi)                # O(n) combine
+    if p == k: return nums[p]
+    if k < p:  return quickselect(nums, k, lo, p - 1)
+    else:      return quickselect(nums, k, p + 1, hi)
+```
+
+The combine cost dominates: `O(n) + O(n/2) + O(n/4) + ... = O(2n) = O(n)`.
+
+### Shape 3: `T(n) = 2 T(n / 2) + O(1)` → `O(n)`
+
+Two recursive calls, half-size each, constant combine. Counting nodes in a balanced binary tree. Computing the maximum of an array.
+
+```python
+def tree_size(node):
+    if not node: return 0
+    return 1 + tree_size(node.left) + tree_size(node.right)
+```
+
+The recursion tree has `O(n)` leaves; each does constant work. Total `O(n)`.
+
+### Shape 4: `T(n) = 2 T(n / 2) + O(n)` → `O(n log n)`
+
+Two recursive calls, half-size each, linear combine. **Merge sort**. D&C Maximum Subarray. Closest Pair of Points. Inversion counting via merge sort.
+
+```python
+def merge_sort(arr):
+    if len(arr) <= 1: return arr
+    mid = len(arr) // 2
+    left  = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)                  # O(n) combine
+```
+
+The most common D&C shape in interviews. `O(n log n)` time, `log n` recursion depth.
+
+## The recipe — putting it all together
+
+When you see a new problem and suspect D&C, run this:
+
+<Steps>
+
+### Can the problem be solved by combining answers from independent sub-instances?
+
+If the answer for the whole can be expressed as a function of the answers for two (or more) halves, plus some extra "boundary" work — D&C applies.
+
+### What's the natural split?
+
+Sorted array → midpoint. Tree → left subtree / right subtree. Interval → split index. 2D grid → quadrants. Matrix → block partitioning.
+
+### What's the base case?
+
+Smallest non-trivial instance. Usually `n = 1` (single element), `n = 0` (empty), or the case where brute force is `O(1)`.
+
+### What's the combine step?
+
+This is the heart of the algorithm. For merge sort, it's "merge two sorted lists." For Maximum Subarray, it's "best left suffix + best right prefix." For Closest Pair, it's "look at points within delta of the dividing line." If the combine step is `O(n)`, you'll likely get `O(n log n)`. If it's `O(1)`, you might get `O(log n)`. If it's `O(n²)`, you're getting nowhere.
+
+### Write the recurrence and verify
+
+Write `T(n) = a · T(n / b) + f(n)` where:
+- `a` = number of recursive calls,
+- `b` = how much smaller each subcall is,
+- `f(n)` = combine cost.
+
+Then apply the [Master Theorem](/day26/master_theorem) to get the asymptotic time.
+
+</Steps>
+
+If you can answer all five, the code writes itself.
+
+## A worked example: counting inversions via merge sort
+
+> An inversion is a pair `(i, j)` with `i < j` and `nums[i] > nums[j]`. Count the total number of inversions in `nums`.
+
+The brute force is `O(n²)` — check every pair. The D&C trick: **merge sort, with an inversion counter added to the merge step**.
+
+- **Split:** halve the array.
+- **Conquer:** recursively count inversions in each half, returning the sorted half.
+- **Combine:** count *cross-inversions* (pairs with `i` in left, `j` in right) while merging. When taking `right[j]` before `left[i]`, every remaining element in `left` forms an inversion with `right[j]`.
+
+```python
+def count_inversions(nums):
+    def merge_count(arr):
+        if len(arr) <= 1: return arr, 0
+        mid = len(arr) // 2
+        left,  c1 = merge_count(arr[:mid])
+        right, c2 = merge_count(arr[mid:])
+        merged, c3 = [], 0
+        i = j = 0
+        while i < len(left) and j < len(right):
+            if left[i] <= right[j]:
+                merged.append(left[i]); i += 1
+            else:
+                merged.append(right[j]); j += 1
+                c3 += len(left) - i                       # every remaining left elt > right[j]
+        merged.extend(left[i:]); merged.extend(right[j:])
+        return merged, c1 + c2 + c3
+    _, total = merge_count(nums)
+    return total
+```
+
+**Recurrence:** `T(n) = 2 T(n / 2) + O(n)` → `O(n log n)`. Same recurrence as plain merge sort; the inversion count is "free" in the combine step.
+
+This pattern — **piggyback extra accounting onto the merge step** — is the engine behind a whole family of inversion / pair-counting problems.
+
+## The four shapes one more time
+
+| Recurrence                | Total                  | Examples                                       |
+| :------------------------ | :--------------------- | :--------------------------------------------- |
+| `T(n) = T(n/2) + O(1)`    | `O(log n)`             | Binary search, fast exponentiation             |
+| `T(n) = T(n/2) + O(n)`    | `O(n)`                 | Quickselect (avg), median-of-medians           |
+| `T(n) = 2 T(n/2) + O(1)`  | `O(n)`                 | Tree size, find max in array (recursive)       |
+| `T(n) = 2 T(n/2) + O(n)`  | `O(n log n)`           | Merge sort, D&C max subarray, closest pair     |
+
+Plus two notable cousins:
+
+| Recurrence                       | Total                   | Examples                            |
+| :------------------------------- | :---------------------- | :---------------------------------- |
+| `T(n) = 2 T(n/2) + O(n²)`        | `O(n²)`                 | Naïve matrix multiply, recursive    |
+| `T(n) = 7 T(n/2) + O(n²)`        | `O(n^log₂ 7) ≈ O(n^2.807)` | Strassen                       |
+| `T(n) = 3 T(n/2) + O(n)`         | `O(n^log₂ 3) ≈ O(n^1.585)` | Karatsuba                      |
+
+## Common bugs the template helps you avoid
+
+- **Forgetting the base case** → infinite recursion / stack overflow.
+- **Wrong base case (`n == 0` vs `n == 1`)** → off-by-one in the final answer.
+- **Including the dividing line in both halves** → cubic blowup.
+- **Forgetting the combine step** → returns the wrong half's answer.
+- **Underestimating the combine cost** → wrong runtime claim.
+
+## Quick check
+
+<QuizBox
+    question="The recurrence T(n) = 2 T(n/2) + O(n) gives:"
+    options={["O(n)", "O(n log n)", "O(n^2)", "O(log n)"]}
+    correctIndex={1}
+    explanation="By the Master Theorem (case 2): a = 2, b = 2, f(n) = n. log_b(a) = log_2(2) = 1, and f(n) = n^1. So f(n) = O(n^log_b(a)) — case 2 — gives O(n log n). This is the merge-sort recurrence."
+/>
+
+<QuizBox
+    question="In the inversion-counting merge step, why does taking right[j] before left[i] add `len(left) - i` to the count?"
+    options={[
+        "Coincidence",
+        "Because left is sorted and left[i] > right[j]; that means every remaining left element (positions i, i+1, ..., end) also > right[j], forming an inversion with right[j]",
+        "Off-by-one",
+        "It's wrong — should be 1"
+    ]}
+    correctIndex={1}
+    explanation="Since left is sorted in ascending order, if left[i] > right[j], then left[i+1] >= left[i] > right[j], left[i+2] >= left[i] > right[j], etc. All remaining left elements are > right[j]. Each pair (left[k], right[j]) for k in [i, end) is an inversion — that's len(left) - i inversions added in one step."
+/>
+
+<QuizBox
+    question="You have a recursive function with no shared subproblems and a heavy combine step. Should you memoize?"
+    options={[
+        "Yes, always",
+        "No — memoization only helps when subproblems repeat. Without overlap, the cache wastes memory without saving time.",
+        "Only on every other call",
+        "Yes, but only the top-level call"
+    ]}
+    correctIndex={1}
+    explanation="The whole point of memoization is to avoid recomputing the same subproblem. If each subcall is unique (the D&C property), the cache never gets a hit. You'd pay the memory cost for zero benefit. Memoize only when you observe (or prove) that subproblems repeat."
+/>
+
+Next: **the Master Theorem** — the formula that handles 90% of D&C runtime analyses in one line.

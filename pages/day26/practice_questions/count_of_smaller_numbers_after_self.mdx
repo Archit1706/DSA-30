@@ -1,0 +1,200 @@
+---
+title: "Count of Smaller Numbers After Self"
+description: "Merge sort with extra accounting — for each index, count how many smaller elements lie to its right, in O(n log n)."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Count of Smaller Numbers After Self <DifficultyBadge level="hard" />
+
+#### Description
+
+Given an integer array `nums`, return an integer array `counts` where `counts[i]` is the number of smaller elements to the **right** of `nums[i]`.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [5, 2, 6, 1]
+    Output: [2, 1, 1, 0]
+    Explanation:
+        To the right of 5 there are 2 smaller (2, 1).
+        To the right of 2 there is 1 smaller (1).
+        To the right of 6 there is 1 smaller (1).
+        To the right of 1 there is 0 smaller.
+
+> Case 2:
+    nums = [-1]
+    Output: [0]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 10^5`
+- `-10^4 <= nums[i] <= 10^4`
+
+#### Why brute force is too slow
+
+```python
+counts = [sum(1 for j in range(i + 1, len(nums)) if nums[j] < nums[i]) for i in range(len(nums))]
+```
+
+`O(n²)` — TLE for `n = 10^5`.
+
+#### The merge-sort-with-extra-accounting approach
+
+Recall from the [advanced page](/day26/advanced): the merge step of merge sort can compute any quantity that depends on cross-pairs between the left and right halves. Here, the quantity is "how many right-half elements are smaller than each left-half element."
+
+**Key insight:** during the merge of two sorted halves, when we place a right-half element into the output (before some left-half element), we know that right-half element is smaller than every remaining left-half element. So we **add the number of right-half elements moved so far to each left-half element's count** as we place it.
+
+To preserve the original index → count mapping, work on **indices** instead of values. Sort an index array; the values are looked up by index.
+
+**Recurrence:** `T(n) = 2 T(n / 2) + O(n)` → **`O(n log n)`**.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def count_smaller(nums):
+        n = len(nums)
+        counts = [0] * n
+        indices = list(range(n))                 # we sort indices, not values
+        def merge_sort(lo, hi):
+            if hi - lo <= 1: return
+            mid = (lo + hi) // 2
+            merge_sort(lo, mid)
+            merge_sort(mid, hi)
+            # merge: when a right-side element is placed before a left-side element,
+            # that right element is smaller than the left ones still to be placed
+            merged = []
+            i, j = lo, mid
+            right_placed = 0
+            while i < mid and j < hi:
+                if nums[indices[i]] <= nums[indices[j]]:
+                    counts[indices[i]] += right_placed
+                    merged.append(indices[i]); i += 1
+                else:
+                    right_placed += 1
+                    merged.append(indices[j]); j += 1
+            while i < mid:
+                counts[indices[i]] += right_placed
+                merged.append(indices[i]); i += 1
+            while j < hi:
+                merged.append(indices[j]); j += 1
+            indices[lo:hi] = merged
+        merge_sort(0, n)
+        return counts
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why count when placing the LEFT element (not when placing the right element)?**
+
+    When we move a right-half element into the output, we know it's smaller than every left-half element STILL waiting in `indices[i..mid)`. But we don't yet know which left elements those are — by the time we place each left element, we know "how many right elements were placed before me" = `right_placed`. That value is exactly the count to add for that left element.
+
+    Putting the count update on the left-placement step lets us record the contribution in one O(1) addition per left element, rather than adding 1 to many left counts per right placement.
+</Callout>
+
+#### C++ / Java versions
+
+The Python version is the cleanest exposition. C++ / Java versions use the same algorithm but get noisier due to manual index handling — included for completeness:
+
+<Tabs items={['C++', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        vector<int> counts;
+        vector<int>* nums;
+        void mergeSort(vector<int>& idx, int lo, int hi) {
+            if (hi - lo <= 1) return;
+            int mid = (lo + hi) / 2;
+            mergeSort(idx, lo, mid);
+            mergeSort(idx, mid, hi);
+            vector<int> merged;
+            int i = lo, j = mid, rightPlaced = 0;
+            while (i < mid && j < hi) {
+                if ((*nums)[idx[i]] <= (*nums)[idx[j]]) {
+                    counts[idx[i]] += rightPlaced;
+                    merged.push_back(idx[i++]);
+                } else {
+                    rightPlaced++;
+                    merged.push_back(idx[j++]);
+                }
+            }
+            while (i < mid) { counts[idx[i]] += rightPlaced; merged.push_back(idx[i++]); }
+            while (j < hi)  { merged.push_back(idx[j++]); }
+            for (int k = 0; k < (int)merged.size(); k++) idx[lo + k] = merged[k];
+        }
+    public:
+        vector<int> countSmaller(vector<int>& nums_) {
+            int n = nums_.size();
+            counts.assign(n, 0);
+            nums = &nums_;
+            vector<int> idx(n);
+            iota(idx.begin(), idx.end(), 0);
+            mergeSort(idx, 0, n);
+            return counts;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        int[] counts;
+        int[] nums;
+        public List<Integer> countSmaller(int[] nums) {
+            this.nums = nums;
+            int n = nums.length;
+            counts = new int[n];
+            Integer[] idx = new Integer[n];
+            for (int i = 0; i < n; i++) idx[i] = i;
+            mergeSort(idx, 0, n);
+            List<Integer> out = new ArrayList<>();
+            for (int c : counts) out.add(c);
+            return out;
+        }
+        void mergeSort(Integer[] idx, int lo, int hi) {
+            if (hi - lo <= 1) return;
+            int mid = (lo + hi) / 2;
+            mergeSort(idx, lo, mid);
+            mergeSort(idx, mid, hi);
+            Integer[] merged = new Integer[hi - lo];
+            int i = lo, j = mid, k = 0, rightPlaced = 0;
+            while (i < mid && j < hi) {
+                if (nums[idx[i]] <= nums[idx[j]]) {
+                    counts[idx[i]] += rightPlaced;
+                    merged[k++] = idx[i++];
+                } else {
+                    rightPlaced++;
+                    merged[k++] = idx[j++];
+                }
+            }
+            while (i < mid) { counts[idx[i]] += rightPlaced; merged[k++] = idx[i++]; }
+            while (j < hi)  { merged[k++] = idx[j++]; }
+            for (int x = 0; x < merged.length; x++) idx[lo + x] = merged[x];
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Alternative — Fenwick tree (BIT)
+
+Coordinate-compress the values, then iterate from right to left maintaining a Fenwick tree over the value space. For each `nums[i]`, query the prefix sum strictly below it, then insert. `O(n log n)` time, `O(n)` space. This approach generalizes to other "count something to the right" problems.
+
+#### Analysis
+
+- **Time:** `O(n log n)`.
+- **Space:** `O(n)` for the index array, merge buffer, and recursion stack.
+
+#### Same skin
+
+- **Count Inversions** — `T(n) = 2 T(n / 2) + O(n)` via merge sort.
+- **Reverse Pairs** — count pairs `(i, j)` with `i < j` and `nums[i] > 2 · nums[j]`.
+- **Count of Range Sum** — merge sort on prefix sums.
+- **Number of Pairs Satisfying Inequality** — similar merge-with-counting framework.
+
+The "merge step with extra accounting" pattern is one of the most powerful D&C techniques. Once it clicks, an entire family of cross-pair counting problems becomes routine.

@@ -1,0 +1,363 @@
+---
+title: "Classical D&C Algorithms"
+description: "Merge sort, quicksort, binary search, and fast exponentiation walked through as instances of the same template."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Classical D&C Algorithms
+
+Four algorithms cover most of what gets taught under "divide and conquer." All four are direct applications of the [template](/day26/the_template) — once you see them through the D&C lens, the structure is identical.
+
+## 1. Merge Sort
+
+> Sort an array.
+
+- **Divide:** cut the array in half.
+- **Conquer:** recursively sort each half.
+- **Combine:** merge the two sorted halves.
+
+The merge step is the heart of the algorithm. Two-pointer pass over both halves, picking the smaller front element each time.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void merge(vector<int>& arr, int lo, int mid, int hi) {
+        vector<int> tmp(hi - lo + 1);
+        int i = lo, j = mid + 1, k = 0;
+        while (i <= mid && j <= hi) {
+            tmp[k++] = (arr[i] <= arr[j]) ? arr[i++] : arr[j++];
+        }
+        while (i <= mid) tmp[k++] = arr[i++];
+        while (j <= hi)  tmp[k++] = arr[j++];
+        for (int x = 0; x < (int)tmp.size(); x++) arr[lo + x] = tmp[x];
+    }
+    void mergeSort(vector<int>& arr, int lo, int hi) {
+        if (lo >= hi) return;
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(arr, lo, mid);
+        mergeSort(arr, mid + 1, hi);
+        merge(arr, lo, mid, hi);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def merge_sort(arr):
+        if len(arr) <= 1: return arr
+        mid = len(arr) // 2
+        left  = merge_sort(arr[:mid])
+        right = merge_sort(arr[mid:])
+        return merge(left, right)
+
+    def merge(left, right):
+        out, i, j = [], 0, 0
+        while i < len(left) and j < len(right):
+            if left[i] <= right[j]:
+                out.append(left[i]); i += 1
+            else:
+                out.append(right[j]); j += 1
+        out.extend(left[i:]); out.extend(right[j:])
+        return out
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void mergeSort(int[] arr, int lo, int hi) {
+        if (lo >= hi) return;
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(arr, lo, mid);
+        mergeSort(arr, mid + 1, hi);
+        merge(arr, lo, mid, hi);
+    }
+    void merge(int[] arr, int lo, int mid, int hi) {
+        int[] tmp = new int[hi - lo + 1];
+        int i = lo, j = mid + 1, k = 0;
+        while (i <= mid && j <= hi) tmp[k++] = (arr[i] <= arr[j]) ? arr[i++] : arr[j++];
+        while (i <= mid) tmp[k++] = arr[i++];
+        while (j <= hi)  tmp[k++] = arr[j++];
+        for (int x = 0; x < tmp.length; x++) arr[lo + x] = tmp[x];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Recurrence:** `T(n) = 2 T(n/2) + O(n)` → **`O(n log n)`**.
+**Space:** `O(n)` for the temp buffer, `O(log n)` for the recursion stack.
+**Stable:** yes (use `<=` not `<` in the merge tie-break).
+
+### Why merge sort is worth knowing even when sort libraries exist
+
+- It's the foundation for **inversion counting**, **count smaller after self**, **reverse pairs** — all problems that piggyback extra accounting on the merge step.
+- It's the canonical **stable** comparison sort.
+- It parallelizes naturally — the left and right halves are independent.
+- It's used in external sorting (sorting data that doesn't fit in memory).
+
+## 2. Quicksort
+
+> Sort an array, in place.
+
+- **Divide:** pick a pivot, partition the array so elements `< pivot` come first, `> pivot` last.
+- **Conquer:** recursively sort the left and right partitions.
+- **Combine:** nothing — the partition step has already sorted across the pivot.
+
+The combine is trivial (the partition does the work). The "real" cost is in the partition.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int partition(vector<int>& arr, int lo, int hi) {
+        int pivot = arr[hi];                                    // last as pivot
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (arr[j] <= pivot) swap(arr[++i], arr[j]);
+        }
+        swap(arr[i + 1], arr[hi]);
+        return i + 1;
+    }
+    void quickSort(vector<int>& arr, int lo, int hi) {
+        if (lo < hi) {
+            int p = partition(arr, lo, hi);
+            quickSort(arr, lo, p - 1);
+            quickSort(arr, p + 1, hi);
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def quick_sort(arr, lo=0, hi=None):
+        if hi is None: hi = len(arr) - 1
+        if lo < hi:
+            p = partition(arr, lo, hi)
+            quick_sort(arr, lo, p - 1)
+            quick_sort(arr, p + 1, hi)
+
+    def partition(arr, lo, hi):
+        pivot = arr[hi]
+        i = lo - 1
+        for j in range(lo, hi):
+            if arr[j] <= pivot:
+                i += 1
+                arr[i], arr[j] = arr[j], arr[i]
+        arr[i + 1], arr[hi] = arr[hi], arr[i + 1]
+        return i + 1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void quickSort(int[] arr, int lo, int hi) {
+        if (lo < hi) {
+            int p = partition(arr, lo, hi);
+            quickSort(arr, lo, p - 1);
+            quickSort(arr, p + 1, hi);
+        }
+    }
+    int partition(int[] arr, int lo, int hi) {
+        int pivot = arr[hi];
+        int i = lo - 1;
+        for (int j = lo; j < hi; j++) {
+            if (arr[j] <= pivot) {
+                i++;
+                int t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+            }
+        }
+        int t = arr[i + 1]; arr[i + 1] = arr[hi]; arr[hi] = t;
+        return i + 1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Recurrence (average):** `T(n) = 2 T(n/2) + O(n)` → **`O(n log n)`**.
+**Recurrence (worst):** `T(n) = T(n - 1) + O(n)` → **`O(n²)`** (e.g., already-sorted input with a bad pivot choice).
+**Space:** `O(log n)` recursion stack on average; `O(n)` worst case.
+**Stable:** no.
+
+### Pivot selection — the practical knob
+
+Bad pivot choice ruins quicksort. Three common strategies:
+
+- **Last element as pivot** (Lomuto, shown above) — `O(n²)` on sorted input.
+- **Random pivot** — `O(n log n)` expected.
+- **Median-of-three** — middle of first/middle/last; cheap heuristic that empirically avoids most worst cases.
+
+Library implementations (C++ `std::sort`, Java `Arrays.sort`) use **introsort** — quicksort that bails to heapsort if the recursion goes too deep, guaranteeing `O(n log n)` worst-case.
+
+## 3. Binary Search
+
+> Find a target in a sorted array.
+
+- **Divide:** look at the middle element.
+- **Conquer:** if not the target, recurse on the half that could contain it.
+- **Combine:** nothing — just return the answer from the conquer step.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int binarySearch(vector<int>& arr, int target, int lo, int hi) {
+        if (lo > hi) return -1;
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target)  return binarySearch(arr, target, mid + 1, hi);
+        return binarySearch(arr, target, lo, mid - 1);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def binary_search(arr, target, lo, hi):
+        if lo > hi: return -1
+        mid = (lo + hi) // 2
+        if arr[mid] == target: return mid
+        if arr[mid] < target:  return binary_search(arr, target, mid + 1, hi)
+        return binary_search(arr, target, lo, mid - 1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int binarySearch(int[] arr, int target, int lo, int hi) {
+        if (lo > hi) return -1;
+        int mid = lo + (hi - lo) / 2;
+        if (arr[mid] == target) return mid;
+        if (arr[mid] < target)  return binarySearch(arr, target, mid + 1, hi);
+        return binarySearch(arr, target, lo, mid - 1);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Recurrence:** `T(n) = T(n/2) + O(1)` → **`O(log n)`**.
+**Space:** `O(log n)` recursion (or `O(1)` if iterative).
+
+### The iterative version is almost always preferred
+
+In production code, binary search is written iteratively to avoid recursion overhead. We covered the full iterative template — including the unified "find first true" approach — in [Day 13](/day13/binary_search_template). The recursive form is here to make the D&C shape explicit; the iterative form is what you'd ship.
+
+## 4. Fast Exponentiation
+
+> Compute `x^n` for integer `n`.
+
+Naïve: multiply `x` by itself `n` times. `O(n)`.
+D&C: `x^n = (x^(n/2))² · (x if n is odd else 1)`.
+
+- **Divide:** compute `x^(n/2)`.
+- **Conquer:** recurse.
+- **Combine:** square and (optionally) multiply by `x` once more.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    double myPow(double x, int n) {
+        if (n == 0) return 1.0;
+        long long N = n;
+        if (N < 0) { x = 1.0 / x; N = -N; }
+        double half = myPow(x, N / 2);
+        double result = half * half;
+        if (N % 2 == 1) result *= x;
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def my_pow(x, n):
+        if n == 0: return 1.0
+        if n < 0: x, n = 1 / x, -n
+        half = my_pow(x, n // 2)
+        result = half * half
+        if n % 2 == 1: result *= x
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public double myPow(double x, int n) {
+        if (n == 0) return 1.0;
+        long N = n;
+        if (N < 0) { x = 1 / x; N = -N; }
+        double half = myPow(x, (int)(N / 2));
+        double result = half * half;
+        if (N % 2 == 1) result *= x;
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Recurrence:** `T(n) = T(n / 2) + O(1)` → **`O(log n)`**.
+**Space:** `O(log n)` recursion.
+
+<Callout type="warning">
+    **Always promote `n` to a wider type before negating.** `INT_MIN` is `-2^31`; `-INT_MIN` overflows `int`. Use `long long` in C++/Java, or rely on Python's unbounded ints. This is a very-common, easy-to-miss bug.
+</Callout>
+
+### The iterative bit-shift version
+
+For modular arithmetic (`x^n mod p` with `n` up to `10^18`), the iterative bit-shift form is more common:
+
+```python
+def pow_mod(x, n, mod):
+    result = 1
+    x %= mod
+    while n > 0:
+        if n & 1: result = (result * x) % mod
+        x = (x * x) % mod
+        n >>= 1
+    return result
+```
+
+Same `O(log n)` time, `O(1)` space.
+
+## A side-by-side summary
+
+| Algorithm        | Recurrence                       | Time           | Space      | Stable | Notes                              |
+| :--------------- | :------------------------------- | :------------- | :--------- | :----- | :--------------------------------- |
+| Merge sort       | `T(n) = 2T(n/2) + O(n)`          | `O(n log n)`   | `O(n)`     | Yes    | Foundation for inversion counting  |
+| Quicksort        | `T(n) = 2T(n/2) + O(n)` avg      | `O(n log n)` avg, `O(n²)` worst | `O(log n)` avg | No | In place; pivot choice matters |
+| Binary search    | `T(n) = T(n/2) + O(1)`           | `O(log n)`     | `O(log n)` recursive, `O(1)` iterative | — | Requires sorted input |
+| Fast exponentiation | `T(n) = T(n/2) + O(1)`        | `O(log n)`     | `O(log n)` recursive, `O(1)` iterative | — | Watch for INT_MIN overflow |
+
+All four are instances of the same template. The variation comes entirely from **how many recursive calls** and **how expensive the combine step is**.
+
+## Quick check
+
+<QuizBox
+    question="In merge sort, why is the merge step's stability (using <= instead of <) important?"
+    options={[
+        "Performance",
+        "It preserves the relative order of equal elements — needed when sorting by one key but wanting to preserve the original order of records with the same key",
+        "Correctness of the sort itself",
+        "It doesn't matter"
+    ]}
+    correctIndex={1}
+    explanation="Sorting is stable when equal elements stay in their original relative order. For sorting records by a secondary key (e.g., sort by name, then by age), you'd run two stable sorts in succession. Merge sort with `<=` is stable; with `<`, it's not. The sort still finishes correctly either way — but downstream code might break."
+/>
+
+<QuizBox
+    question="Quicksort's worst case is O(n²). Why isn't it disqualified from real-world use?"
+    options={[
+        "Because no one cares about correctness",
+        "Because (a) random pivots make the worst case astronomically unlikely, (b) in-place memory usage matters, and (c) cache behavior is excellent. Library implementations use introsort (quicksort + heapsort fallback) to guarantee O(n log n) worst case.",
+        "It's not used — heap sort is",
+        "Because quick sort is actually O(n log n) worst case"
+    ]}
+    correctIndex={1}
+    explanation="Quicksort's average case is faster than merge sort's average case by a constant factor (smaller hidden constants, better cache behavior, in-place memory). The worst case is real but vanishingly rare in practice with randomized pivots. Production sorts like libc's qsort, C++'s std::sort, and Java's Arrays.sort(int[]) all use quicksort variants with safety nets to guarantee worst-case O(n log n)."
+/>
+
+<QuizBox
+    question="Fast exponentiation: computing x^n by halving n. Why is the recursion depth O(log n), not O(n)?"
+    options={[
+        "Magic",
+        "Each recursive call halves n, so it takes log_2(n) calls to reach n = 0. That's O(log n) levels of recursion.",
+        "Tail recursion",
+        "Memoization"
+    ]}
+    correctIndex={1}
+    explanation="Each call computes x^(n/2). Starting at x^n: n → n/2 → n/4 → ... → 1 → 0. That's log_2(n) halvings. Each level does O(1) work (one multiplication, one square). Total work: O(log n). This is the same shape as binary search — one recursive call per level, constant combine."
+/>
+
+Next: **advanced patterns** — Karatsuba multiplication, Strassen's matrix multiply, closest pair of points, and the FFT preview.

@@ -1,0 +1,157 @@
+---
+title: "Sort an Array (Merge Sort)"
+description: "The canonical T(n) = 2 T(n/2) + O(n) D&C — implement merge sort from scratch with the merge step inlined."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Sort an Array (Merge Sort) <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an array of integers `nums`, sort the array in ascending order **without using any built-in functions** in `O(n log n)` time and with the smallest space complexity possible.
+
+#### Examples
+
+```py
+> Case 1:
+    nums = [5, 2, 3, 1]
+    Output: [1, 2, 3, 5]
+
+> Case 2:
+    nums = [5, 1, 1, 2, 0, 0]
+    Output: [0, 0, 1, 1, 2, 5]
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 5 × 10^4`
+- `-5 × 10^4 <= nums[i] <= 5 × 10^4`
+
+#### State design
+
+The canonical D&C algorithm:
+
+1. **Divide:** halve the array.
+2. **Conquer:** recursively sort each half.
+3. **Combine:** merge the two sorted halves.
+
+**Recurrence:** `T(n) = 2 T(n / 2) + O(n)` → **`O(n log n)`**.
+
+#### Code — top-down merge sort
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void merge(vector<int>& arr, int lo, int mid, int hi) {
+        vector<int> tmp(hi - lo + 1);
+        int i = lo, j = mid + 1, k = 0;
+        while (i <= mid && j <= hi)
+            tmp[k++] = (arr[i] <= arr[j]) ? arr[i++] : arr[j++];
+        while (i <= mid) tmp[k++] = arr[i++];
+        while (j <= hi)  tmp[k++] = arr[j++];
+        for (int x = 0; x < (int)tmp.size(); x++) arr[lo + x] = tmp[x];
+    }
+    void mergeSort(vector<int>& arr, int lo, int hi) {
+        if (lo >= hi) return;
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(arr, lo, mid);
+        mergeSort(arr, mid + 1, hi);
+        merge(arr, lo, mid, hi);
+    }
+    vector<int> sortArray(vector<int>& nums) {
+        mergeSort(nums, 0, nums.size() - 1);
+        return nums;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def sort_array(nums):
+        def merge_sort(lo, hi):
+            if lo >= hi: return
+            mid = (lo + hi) // 2
+            merge_sort(lo, mid)
+            merge_sort(mid + 1, hi)
+            merge(lo, mid, hi)
+
+        def merge(lo, mid, hi):
+            tmp = []
+            i, j = lo, mid + 1
+            while i <= mid and j <= hi:
+                if nums[i] <= nums[j]:
+                    tmp.append(nums[i]); i += 1
+                else:
+                    tmp.append(nums[j]); j += 1
+            tmp.extend(nums[i:mid + 1])
+            tmp.extend(nums[j:hi + 1])
+            nums[lo:hi + 1] = tmp
+
+        merge_sort(0, len(nums) - 1)
+        return nums
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void merge(int[] arr, int lo, int mid, int hi) {
+        int[] tmp = new int[hi - lo + 1];
+        int i = lo, j = mid + 1, k = 0;
+        while (i <= mid && j <= hi)
+            tmp[k++] = (arr[i] <= arr[j]) ? arr[i++] : arr[j++];
+        while (i <= mid) tmp[k++] = arr[i++];
+        while (j <= hi)  tmp[k++] = arr[j++];
+        for (int x = 0; x < tmp.length; x++) arr[lo + x] = tmp[x];
+    }
+    void mergeSort(int[] arr, int lo, int hi) {
+        if (lo >= hi) return;
+        int mid = lo + (hi - lo) / 2;
+        mergeSort(arr, lo, mid);
+        mergeSort(arr, mid + 1, hi);
+        merge(arr, lo, mid, hi);
+    }
+    public int[] sortArray(int[] nums) {
+        mergeSort(nums, 0, nums.length - 1);
+        return nums;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The `<=` in the merge tie-break makes the sort stable.** Equal elements from the left half are placed before equal elements from the right half, preserving their original order. Use `<` and the sort is no longer stable — still correct, but loses a useful property.
+</Callout>
+
+#### Code — bottom-up (iterative) merge sort
+
+Pretty for production: no recursion, easier to reason about cache.
+
+```python
+def sort_array(nums):
+    n = len(nums)
+    size = 1
+    while size < n:
+        for lo in range(0, n, 2 * size):
+            mid = min(lo + size - 1, n - 1)
+            hi  = min(lo + 2 * size - 1, n - 1)
+            merge(nums, lo, mid, hi)
+        size *= 2
+    return nums
+```
+
+Same `O(n log n)` time, same `O(n)` auxiliary space, no recursion stack.
+
+#### Analysis
+
+- **Time:** `O(n log n)`.
+- **Space:** `O(n)` for the merge buffer. `O(log n)` recursion stack on top.
+
+Compare to quicksort: same average time, worse space, worse constant factors, but **stable** and **predictable** worst case (no `O(n²)` worst case).
+
+#### Same skin
+
+- **Count Inversions** — same algorithm, count during merge.
+- **Count of Smaller Numbers After Self** — merge sort with index tracking.
+- **Reverse Pairs** — merge sort with a separate count step.
+- **Sort a Linked List** — merge sort with linked-list splitting (no extra `O(n)` space).

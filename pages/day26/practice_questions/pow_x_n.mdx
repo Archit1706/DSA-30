@@ -1,0 +1,118 @@
+---
+title: "Pow(x, n)"
+description: "Fast exponentiation by halving — compute x^n in O(log n) instead of O(n)."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Pow(x, n) <DifficultyBadge level="medium" />
+
+#### Description
+
+Implement `pow(x, n)`, which calculates `x` raised to the power `n` (i.e., `x^n`).
+
+#### Examples
+
+```py
+> Case 1:
+    x = 2.00000, n = 10
+    Output: 1024.00000
+
+> Case 2:
+    x = 2.10000, n = 3
+    Output: 9.26100
+
+> Case 3:
+    x = 2.00000, n = -2
+    Output: 0.25000
+    Explanation: 2^-2 = 1 / 2^2 = 1 / 4 = 0.25
+```
+
+#### Constraints
+
+- `-100.0 < x < 100.0`
+- `-2^31 <= n <= 2^31 - 1`
+- `n` is an integer.
+- Either `x != 0` or `n > 0`.
+- `-10^4 <= x^n <= 10^4`
+
+#### Recurrence
+
+`T(n) = T(n / 2) + O(1)` → **`O(log n)`**.
+
+#### Code (recursive)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    double myPow(double x, int n) {
+        long long N = n;
+        if (N < 0) { x = 1.0 / x; N = -N; }
+        return helper(x, N);
+    }
+    double helper(double x, long long n) {
+        if (n == 0) return 1.0;
+        double half = helper(x, n / 2);
+        return (n % 2 == 0) ? half * half : half * half * x;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def my_pow(x, n):
+        if n < 0: x, n = 1 / x, -n
+        def helper(n):
+            if n == 0: return 1.0
+            half = helper(n // 2)
+            return half * half if n % 2 == 0 else half * half * x
+        return helper(n)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public double myPow(double x, int n) {
+        long N = n;
+        if (N < 0) { x = 1.0 / x; N = -N; }
+        return helper(x, N);
+    }
+    double helper(double x, long n) {
+        if (n == 0) return 1.0;
+        double half = helper(x, n / 2);
+        return (n % 2 == 0) ? half * half : half * half * x;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Code (iterative — bit-shift trick)
+
+```python
+def my_pow(x, n):
+    if n < 0: x, n = 1 / x, -n
+    result = 1.0
+    while n > 0:
+        if n & 1: result *= x
+        x *= x
+        n >>= 1
+    return result
+```
+
+`O(log n)` time, `O(1)` space — strictly better than the recursive version for production code. The recursive version is more pedagogically transparent for explaining D&C.
+
+<Callout type="warning">
+    **The `INT_MIN` trap.** `n = -2^31`. Naïvely negating it (`-n`) overflows a 32-bit `int`. The fix: promote to `long long` (C++/Java) before negating. Python integers are unbounded, so the bug doesn't surface there — but it bites in interviews when you say "Python" but the interviewer asks "what about C++?"
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(log n)` — each call halves `n`.
+- **Space:** `O(log n)` recursion (recursive version) or `O(1)` (iterative).
+
+#### Same skin
+
+- **Sqrt(x)** — same shape with a binary search instead of an exponent.
+- **Multiply by a power of 2** — `x << k` is `x · 2^k` in `O(1)` for integers.
+- **Modular exponentiation** — `pow(x, n, m)` for big-number cryptography. Same algorithm, mod at every step.
+- **Matrix exponentiation** — apply fast exponentiation to matrices. Used to compute Fibonacci numbers in `O(log n)`.

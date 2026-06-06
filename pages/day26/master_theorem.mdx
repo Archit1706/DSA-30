@@ -1,0 +1,161 @@
+---
+title: "The Master Theorem"
+description: "One formula, three cases — analyze any T(n) = a T(n/b) + f(n) D&C recurrence in a single step."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# The Master Theorem
+
+If you only learn one piece of math from this chapter, learn this one. The **Master Theorem** is a recipe for solving any recurrence of the form:
+
+```text
+T(n) = a · T(n / b) + f(n)
+```
+
+with `a >= 1`, `b > 1`, and `f(n)` a positive function. It covers 90% of D&C algorithms you'll see in interviews and most of standard textbook content.
+
+## The three cases
+
+Let `c = log_b(a)`. (For `T(n) = 2 T(n / 2) + ...`, `c = log_2(2) = 1`. For `T(n) = 4 T(n / 2) + ...`, `c = log_2(4) = 2`.)
+
+Compare `f(n)` to `n^c`:
+
+| Case | Condition                                       | Result                  |
+| :--- | :---------------------------------------------- | :---------------------- |
+| 1    | `f(n) = O(n^(c - ε))` for some `ε > 0`          | `T(n) = Θ(n^c)`         |
+| 2    | `f(n) = Θ(n^c)`                                 | `T(n) = Θ(n^c · log n)` |
+| 3    | `f(n) = Ω(n^(c + ε))` for some `ε > 0` (and regularity) | `T(n) = Θ(f(n))` |
+
+In plain English:
+
+- **Case 1** — the combine step is **cheaper** than the cost of all the leaves. The recursion tree's bottom dominates; total is `Θ(n^c)`.
+- **Case 2** — the combine step **matches** the leaf cost. Each of the `log n` levels does `Θ(n^c)` work. Total: `Θ(n^c log n)`.
+- **Case 3** — the combine step **dominates** the leaves. The root level does the most work; total is `Θ(f(n))`.
+
+## Worked examples
+
+### Merge sort: `T(n) = 2 T(n / 2) + O(n)`
+
+`a = 2, b = 2`. So `c = log_2(2) = 1`, and `n^c = n`.
+`f(n) = n = n^1 = Θ(n^c)`. → **Case 2**: `T(n) = Θ(n log n)`.
+
+### Binary search: `T(n) = T(n / 2) + O(1)`
+
+`a = 1, b = 2`. So `c = log_2(1) = 0`, and `n^c = 1`.
+`f(n) = 1 = Θ(1) = Θ(n^c)`. → **Case 2**: `T(n) = Θ(log n)`.
+
+### Quickselect (avg): `T(n) = T(n / 2) + O(n)`
+
+`a = 1, b = 2`. So `c = log_2(1) = 0`, and `n^c = 1`.
+`f(n) = n`, which is `Ω(n^(0 + ε))` for `ε = 1`. → **Case 3**: `T(n) = Θ(n)`.
+
+(Regularity condition: `a · f(n / b) <= k · f(n)` for some `k < 1`. Here `1 · (n / 2) = n / 2 <= (1/2) · n`, so regularity holds with `k = 1/2`.)
+
+### Strassen's matrix multiply: `T(n) = 7 T(n / 2) + O(n²)`
+
+`a = 7, b = 2`. So `c = log_2(7) ≈ 2.807`, and `n^c ≈ n^2.807`.
+`f(n) = n²`, which is `O(n^(2.807 - ε))` for any `ε < 0.807`. → **Case 1**: `T(n) = Θ(n^log_2(7)) ≈ Θ(n^2.807)`.
+
+That tiny `2.807` instead of `3` is what made Strassen famous — it broke the cubic barrier for matrix multiplication and showed that clever combine steps can change the exponent itself.
+
+### Karatsuba multiplication: `T(n) = 3 T(n / 2) + O(n)`
+
+`a = 3, b = 2`. So `c = log_2(3) ≈ 1.585`, and `n^c ≈ n^1.585`.
+`f(n) = n = O(n^(1.585 - ε))` for `ε ≈ 0.585`. → **Case 1**: `T(n) = Θ(n^log_2(3)) ≈ Θ(n^1.585)`.
+
+The story: Karatsuba reduced the four sub-multiplies of grade-school multiplication to three with a clever trick, beating the naïve `O(n²)`.
+
+### Naïve recursive matrix multiply: `T(n) = 8 T(n / 2) + O(n²)`
+
+`a = 8, b = 2`. So `c = log_2(8) = 3`, and `n^c = n³`.
+`f(n) = n²`, which is `O(n^(3 - 1)) = O(n^2)`. → **Case 1**: `T(n) = Θ(n³)`.
+
+Same `O(n³)` you'd expect from straight nested-loop matrix multiplication — the recursion doesn't help when each split costs the full multiplication tree below.
+
+## The recursion-tree view
+
+If you forget the Master Theorem at 2am during a contest, you can always reconstruct the answer by drawing the recursion tree and adding up the work per level:
+
+```text
+Level 0:  f(n)                                  ← root
+Level 1:  a · f(n / b)
+Level 2:  a^2 · f(n / b^2)
+...
+Level k:  a^k · f(n / b^k)
+...
+Level L:  a^L · f(1)     where L = log_b(n)     ← leaves
+```
+
+- **Total leaves:** `a^L = a^log_b(n) = n^log_b(a) = n^c`.
+- **Work per level:** `a^k · f(n / b^k)`.
+
+If `f` grows slower than `n^c` (case 1), the leaves dominate. If equal (case 2), each level does the same `Θ(n^c)` work, and there are `log n` levels. If faster (case 3), the root dominates.
+
+This view makes the three cases intuitive: **whoever does the most work wins**.
+
+<Callout type="info">
+    The Master Theorem doesn't cover *every* recurrence. Common exceptions:
+    - **Unequal-sized subproblems**: `T(n) = T(n/3) + T(2n/3) + O(n)` (this is `O(n log n)` by the **Akra-Bazzi** theorem, a generalization).
+    - **Subtractive recurrences**: `T(n) = T(n - 1) + O(1)` (give `O(n)` directly, no Master Theorem).
+    - **Polylog factors in `f`**: `T(n) = 2T(n/2) + O(n log n)` (this is `O(n log² n)` by the extended Master Theorem).
+
+    For interviews, the three cases above cover essentially everything you'll be asked.
+</Callout>
+
+## A cheat sheet of common D&C recurrences
+
+| Algorithm                                | Recurrence                          | Runtime                |
+| :--------------------------------------- | :---------------------------------- | :--------------------- |
+| Binary search                            | `T(n) = T(n/2) + O(1)`              | `O(log n)`             |
+| Fast exponentiation                      | `T(n) = T(n/2) + O(1)`              | `O(log n)`             |
+| Quickselect (avg)                        | `T(n) = T(n/2) + O(n)`              | `O(n)`                 |
+| Merge sort                               | `T(n) = 2T(n/2) + O(n)`             | `O(n log n)`           |
+| Quicksort (avg)                          | `T(n) = 2T(n/2) + O(n)`             | `O(n log n)`           |
+| Quicksort (worst)                        | `T(n) = T(n-1) + O(n)`              | `O(n²)`                |
+| Closest Pair of Points                   | `T(n) = 2T(n/2) + O(n)`             | `O(n log n)`           |
+| D&C Maximum Subarray                     | `T(n) = 2T(n/2) + O(n)`             | `O(n log n)`           |
+| Inversion counting (via merge)           | `T(n) = 2T(n/2) + O(n)`             | `O(n log n)`           |
+| Strassen matrix multiplication           | `T(n) = 7T(n/2) + O(n²)`            | `O(n^log₂ 7) ≈ O(n^2.81)` |
+| Karatsuba multiplication                 | `T(n) = 3T(n/2) + O(n)`             | `O(n^log₂ 3) ≈ O(n^1.59)` |
+| Naïve recursive matrix multiply          | `T(n) = 8T(n/2) + O(n²)`            | `O(n³)`                |
+| Median of medians                        | `T(n) = T(n/5) + T(7n/10) + O(n)`   | `O(n)` (Akra-Bazzi)    |
+
+If you can identify which row of this table your problem fits, you have the runtime in five seconds.
+
+## Quick check
+
+<QuizBox
+    question="For T(n) = 2 T(n / 2) + O(n²), what's the asymptotic time?"
+    options={["O(n log n)", "O(n²)", "O(n³)", "O(n^2 log n)"]}
+    correctIndex={1}
+    explanation="a = 2, b = 2, so c = log_2(2) = 1 and n^c = n. f(n) = n². f(n) = Ω(n^(1 + 1)) = Ω(n²) — case 3. Regularity: 2 · (n/2)² = n²/2 = (1/2) · f(n) — holds with k = 1/2. So T(n) = Θ(n²) — the combine step dominates."
+/>
+
+<QuizBox
+    question="For T(n) = T(n / 2) + O(n), why is the runtime O(n) and not O(n log n)?"
+    options={[
+        "The Master Theorem is wrong",
+        "Because there's only ONE recursive call (a = 1), so the total leaves contribute O(1), not O(n). The combine step dominates and gives geometric sum O(n) + O(n/2) + O(n/4) + ... = O(2n) = O(n).",
+        "Off-by-one",
+        "It's actually O(n log n)"
+    ]}
+    correctIndex={1}
+    explanation="The Master Theorem confirms: a = 1, b = 2, c = log_2(1) = 0. f(n) = n is Ω(n^(0 + ε)) for any ε <= 1 — case 3 — so T(n) = Θ(n). The intuition: with only one recursive call, the recursion is a single path of length log n; the work at each level halves, summing to a geometric series bounded by 2n."
+/>
+
+<QuizBox
+    question="Strassen's beats naïve recursive matrix multiplication asymptotically because:"
+    options={[
+        "It uses better cache",
+        "It reduces the recursive branching factor from 8 sub-multiplies to 7, changing the exponent in n^log₂(a) from 3 to ~2.807",
+        "It avoids the combine step",
+        "It uses constants better"
+    ]}
+    correctIndex={1}
+    explanation="The naïve algorithm has T(n) = 8 T(n/2) + O(n²) → O(n³). Strassen has T(n) = 7 T(n/2) + O(n²) → O(n^log₂ 7) ≈ O(n^2.807). Cutting one sub-multiply by inventing a clever combine step is what changed the exponent. In practice Strassen has large hidden constants and is only used for VERY large matrices — but theoretically it broke a barrier and inspired decades of follow-up work."
+/>
+
+Next: **classical algorithms** — merge sort, quicksort, binary search, fast exponentiation walked through as D&C instances.

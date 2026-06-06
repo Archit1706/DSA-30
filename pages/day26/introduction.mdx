@@ -1,0 +1,208 @@
+---
+title: "Introduction to Divide and Conquer"
+description: "What makes a problem a D&C problem — the split/conquer/combine shape, the cost-of-combine analysis, and how D&C relates to recursion and DP."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { RecursionTreeVisualizer } from "../../components/RecursionTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Introduction to Divide and Conquer
+
+Divide and conquer is recursion with a particular flavor: **the recursive calls operate on independent, non-overlapping sub-instances of the original problem**. There's no shared work between the subcalls — each one solves a distinct piece, and the combine step stitches the pieces.
+
+That non-overlapping property is what separates D&C from dynamic programming. DP exploits *repeated* subproblems; D&C exploits *independent* ones. Same recursive shape, opposite philosophical move.
+
+## The signature shape
+
+Every D&C algorithm looks like this:
+
+```text
+solve(problem):
+    if problem is small enough:
+        return brute_force(problem)               # base case
+    a, b = split(problem)                          # divide
+    answer_a = solve(a)                            # conquer
+    answer_b = solve(b)                            # conquer
+    return combine(answer_a, answer_b, problem)    # combine
+```
+
+Three knobs to tune problem-to-problem:
+
+1. **How do I split?** (Usually in half. Sometimes by pivot value. Sometimes by digit position. Sometimes "all binary splits.")
+2. **What's the base case?** (Usually `n <= 1`.)
+3. **How do I combine?** (This is where the algorithm lives. Merge sort's combine is "merge two sorted arrays." Quicksort's combine is "do nothing — the split already sorted everything across the boundary.")
+
+## A worked example: merge sort viewed as D&C
+
+> Sort an array of `n` integers.
+
+- **Split:** cut the array in half.
+- **Conquer:** recursively sort each half.
+- **Combine:** merge the two sorted halves into one sorted result.
+
+<RecursionTreeVisualizer
+    root={8}
+    expand={(n) => (n <= 1 ? null : [Math.ceil(n / 2), Math.floor(n / 2)])}
+    label={(n) => `n=${n}`}
+    maxDepth={6}
+    title="Merge sort recursion tree on n=8 — each node splits its work into two halves"
+/>
+
+The recurrence:
+
+```text
+T(n) = 2 T(n / 2) + O(n)
+```
+
+Two recursive calls on `n / 2` each, plus an `O(n)` merge step. By the Master Theorem (next page), this is `O(n log n)`.
+
+## A different worked example: binary search
+
+> Find a target in a sorted array of length `n`.
+
+- **Split:** look at the middle element. Either it's the target, or the target is strictly in the left half, or strictly in the right half.
+- **Conquer:** recurse on the correct half.
+- **Combine:** nothing — just return the answer from the conquer step.
+
+The recurrence:
+
+```text
+T(n) = T(n / 2) + O(1)
+```
+
+**Only one** recursive call (we discard the other half), plus a constant comparison. That gives `O(log n)`.
+
+Binary search and merge sort have the same "split in half" division, but **wildly different runtimes** because:
+
+- Merge sort recurses on **both halves** (the `2` in `2 T(n/2)`).
+- Binary search recurses on **one half** (the `1` in `T(n/2)`).
+- Merge sort's combine is `O(n)`; binary search's is `O(1)`.
+
+Same template, different parameters, different complexity. That's the unifying lesson.
+
+## The cost-of-combine analysis
+
+A useful mental shortcut for **estimating runtime** before you write any code:
+
+| Subcalls | Each subproblem size | Combine cost | Total                  |
+| :------- | :------------------- | :----------- | :--------------------- |
+| 1        | `n / 2`              | `O(1)`       | `O(log n)`             |
+| 1        | `n / 2`              | `O(n)`       | `O(n)`                 |
+| 2        | `n / 2`              | `O(1)`       | `O(n)`                 |
+| 2        | `n / 2`              | `O(n)`       | `O(n log n)`           |
+| 2        | `n / 2`              | `O(n²)`      | `O(n²)`                |
+| 2        | `n / 2`              | `O(n³)`      | `O(n³)`                |
+| 8        | `n / 2`              | `O(n²)`      | `O(n³)`                |
+| 7        | `n / 2`              | `O(n²)`      | `O(n^log₂ 7) ≈ O(n^2.807)` (Strassen) |
+
+The cost-of-combine is usually what you control as the algorithm designer. **Merge sort's combine is the entire reason it's `O(n log n)` and not `O(n²)`.** Strassen beat the natural `O(n³)` for matrix multiplication by inventing a clever combine step that used 7 sub-multiplies instead of 8 — that single optimization changed the asymptotic exponent.
+
+## The relationship to recursion
+
+D&C is recursion. Specifically:
+
+- **Recursion** = any function that calls itself. No constraints on subproblem structure.
+- **D&C** = recursion where the subproblems are **independent** (no shared work) and **smaller versions of the original** (same problem, smaller input).
+- **DP** = recursion where the subproblems **overlap** and you cache the answers.
+
+If you write a recursive function and the subcalls repeat, memoize → it's DP. If they don't repeat → it's D&C. If you can't tell, it's still a valid algorithm; the label is just a teaching aid.
+
+<Callout type="info">
+    The most important sentence in this chapter: **D&C is what you get when you take recursion seriously about subproblem independence**. Merge sort's left-half-sort doesn't depend on anything the right-half-sort does, so we can solve them in parallel (in fact, merge sort parallelizes embarrassingly well). DP's subproblems share work, so they have to be ordered. D&C's don't — that's the freedom you trade for not getting memoization for free.
+</Callout>
+
+## When D&C is the right tool
+
+The tell-tale signs:
+
+- **The problem has a natural binary split** — sorted array (midpoint), tree (left subtree / right subtree), interval (split point), grid (quadrants).
+- **The combine step is doable in time bounded by `f(n)` where the recurrence still gives a reasonable bound** — typically `O(n)` for `O(n log n)` algorithms, `O(1)` for `O(log n)` algorithms.
+- **The subproblems don't repeat** (otherwise you're really doing DP and should memoize).
+- **The answer for the whole is constructible from the answers for the parts** (some way).
+
+## When D&C is *not* the right tool
+
+- **The combine step is too expensive** — if the recurrence comes out worse than just doing it iteratively, skip the recursion overhead.
+- **The subproblems massively overlap** — you'd be re-computing the same work in different branches. Memoize (or use iterative DP).
+- **The problem is inherently sequential** — running the recursion adds nothing.
+
+## A worked example end-to-end: Maximum Subarray (D&C)
+
+> Find the contiguous subarray with the maximum sum.
+
+The standard solution is **Kadane's algorithm** — an `O(n)` 1D DP we covered on [Day 14](/day14/basic_questions). But Maximum Subarray is also the textbook D&C exercise.
+
+Three observations make D&C work:
+
+1. The max subarray is either **entirely in the left half**, **entirely in the right half**, or **crosses the midpoint**.
+2. The left-half and right-half cases are recursive subproblems.
+3. The crossing case requires extra work: find the best suffix of the left half plus the best prefix of the right half, both anchored at the midpoint. That's `O(n)`.
+
+```python
+def max_subarray(nums):
+    def solve(lo, hi):
+        if lo == hi: return nums[lo]
+        mid = (lo + hi) // 2
+        left  = solve(lo, mid)
+        right = solve(mid + 1, hi)
+        # crossing
+        left_max = float('-inf'); s = 0
+        for i in range(mid, lo - 1, -1):
+            s += nums[i]; left_max = max(left_max, s)
+        right_max = float('-inf'); s = 0
+        for i in range(mid + 1, hi + 1):
+            s += nums[i]; right_max = max(right_max, s)
+        cross = left_max + right_max
+        return max(left, right, cross)
+    return solve(0, len(nums) - 1)
+```
+
+Recurrence: `T(n) = 2 T(n / 2) + O(n)` → `O(n log n)`.
+
+**Worse than Kadane's `O(n)`**. So why teach the D&C version? Because:
+
+1. The framing — "left, right, or crossing" — generalizes to problems where there *isn't* a Kadane-style trick.
+2. It's a classic interview question precisely because it tests whether you can think D&C-shaped.
+3. The crossing-step idea (anchor at the midpoint, scan outward) reappears in Closest Pair of Points, in the merge step of merge-sort-based inversion counting, and elsewhere.
+
+## Quick check
+
+<QuizBox
+    question="What's the defining property that distinguishes D&C from DP?"
+    options={[
+        "D&C is faster",
+        "D&C subproblems are independent (no shared work); DP subproblems overlap and benefit from caching",
+        "D&C is recursive; DP is iterative",
+        "D&C uses arrays; DP uses tables"
+    ]}
+    correctIndex={1}
+    explanation="Both are recursive in shape. The difference is whether subproblems repeat. If they do, memoizing pays for itself — that's DP. If they don't, memoization wastes memory — that's D&C. Many problems can be framed either way; the choice tells you whether to optimize for cache or for parallel execution."
+/>
+
+<QuizBox
+    question="Binary search uses the same 'split in half' division as merge sort but runs in O(log n) instead of O(n log n). Why?"
+    options={[
+        "Binary search has smaller constants",
+        "Binary search recurses on ONE half (discarding the other), and its combine step is O(1); merge sort recurses on BOTH halves and combines in O(n)",
+        "Merge sort uses arrays; binary search uses pointers",
+        "Random chance"
+    ]}
+    correctIndex={1}
+    explanation="The recurrence shapes differ: binary search is T(n) = T(n/2) + O(1) = O(log n); merge sort is T(n) = 2 T(n/2) + O(n) = O(n log n). The number of recursive calls (the branching factor of the recursion tree) and the combine cost are the two knobs that determine D&C runtime."
+/>
+
+<QuizBox
+    question="In Maximum Subarray D&C, why is the 'crossing' case necessary?"
+    options={[
+        "Style — both halves alone suffice",
+        "Because the max subarray might span the midpoint, with no single half containing the entire optimal range; we have to consider that case separately",
+        "Performance",
+        "Off-by-one"
+    ]}
+    correctIndex={1}
+    explanation="If the optimal subarray crosses the midpoint, neither the left-half nor the right-half recursion sees it whole. We have to explicitly compute 'best suffix ending at mid' + 'best prefix starting at mid + 1' = the best crossing subarray. Without it, we'd miss any answer that straddles the boundary."
+/>
+
+Next: **the template** — the canonical D&C skeleton plus the four recurrence shapes you'll see again and again.
