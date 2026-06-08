@@ -1,0 +1,128 @@
+---
+title: "Repeated Substring Pattern"
+description: "Determine if a string is constructed by repeating a shorter substring — solved elegantly via the KMP failure function."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Repeated Substring Pattern <DifficultyBadge level="easy" />
+
+#### Description
+
+Given a string `s`, check if it can be constructed by taking a substring of it and appending multiple copies of the substring together.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "abab"
+    Output: true
+    Explanation: It is the substring "ab" twice.
+
+> Case 2:
+    s = "aba"
+    Output: false
+
+> Case 3:
+    s = "abcabcabcabc"
+    Output: true
+    Explanation: It is the substring "abc" four times.
+```
+
+#### Constraints
+
+- `1 <= s.length <= 10^4`
+- `s` consists of lowercase English letters.
+
+#### State design / Intuition
+
+**Approach 1: Rotation trick (O(n))**
+
+If `s` is formed by repeating substring `t`, then `s + s` (with the first and last character removed) still contains `s` as a substring. This is because the "seam" between the two copies always contains the original `s`. Checking if `s` appears in `(s + s)[1:-1]` is a clean O(n) solution.
+
+```python
+return s in (s + s)[1:-1]
+```
+
+**Approach 2: KMP failure function (O(n))**
+
+The KMP failure function directly encodes the **period** of the string. For `fail = build_fail(s)`:
+
+- `fail[-1]` = the length of the longest proper prefix of `s` that is also a suffix.
+- Let `k = n - fail[-1]`. If `n % k == 0`, then `k` is the minimal period of `s` — and `s` is a repetition of its length-`k` prefix.
+
+This is the cleanest O(n) approach with no string concatenation.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool repeatedSubstringPattern(string s) {
+        int n = s.size();
+        // Build KMP failure function
+        vector<int> fail(n, 0);
+        for (int k = 0, j = 1; j < n; j++) {
+            while (k > 0 && s[k] != s[j]) k = fail[k - 1];
+            if (s[k] == s[j]) k++;
+            fail[j] = k;
+        }
+        int period = n - fail[n - 1];
+        return fail[n - 1] > 0 && n % period == 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def repeatedSubstringPattern(s: str) -> bool:
+        n = len(s)
+        # Build KMP failure function
+        fail = [0] * n
+        k = 0
+        for j in range(1, n):
+            while k > 0 and s[k] != s[j]:
+                k = fail[k - 1]
+            if s[k] == s[j]:
+                k += 1
+            fail[j] = k
+
+        period = n - fail[-1]
+        return fail[-1] > 0 and n % period == 0
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean repeatedSubstringPattern(String s) {
+        int n = s.length();
+        int[] fail = new int[n];
+        for (int k = 0, j = 1; j < n; j++) {
+            while (k > 0 && s.charAt(k) != s.charAt(j)) k = fail[k - 1];
+            if (s.charAt(k) == s.charAt(j)) k++;
+            fail[j] = k;
+        }
+        int period = n - fail[n - 1];
+        return fail[n - 1] > 0 && n % period == 0;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The condition `fail[-1] > 0` ensures the string has a non-trivial border (a proper prefix equal to a suffix). Without it, `period = n` and the only "repeating unit" is the whole string — not a valid repetition. The condition `n % period == 0` ensures the period divides evenly — for `"abab"`, `period = 2`, `4 % 2 == 0` → valid.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n) — one pass to build the failure function.
+- **Space:** O(n) — the failure function array.
+
+The rotation trick `s in (s+s)[1:-1]` is equally O(n) if using KMP for the `in` check. Python's `in` for strings is O(nm) in the worst case (same as naive search), so for strictness, the KMP failure function approach is cleaner.
+
+#### Same skin
+
+- **Smallest period of a string** — `n - fail[-1]` gives the length of the minimal period.
+- **Longest repeated prefix** — `fail[-1]` gives the length of the longest prefix that also appears as a suffix.
+- **Check if string can be halved** — the rotation trick `s in (s+s)[1:-1]` generalizes to checking string rotation equivalence.
+- **Count of distinct rotations** — related to the number of distinct periods.

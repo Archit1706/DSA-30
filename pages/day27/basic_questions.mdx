@@ -1,0 +1,334 @@
+---
+title: "Basic String Questions"
+description: "Six warm-up string problems — strStr, anagram check, count vowels, compress, reverse words, and longest common prefix."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic String Questions
+
+Six warm-ups. The first two are direct applications of algorithms from this chapter; the rest are building-block patterns you need to have in muscle memory before attempting the practice problems.
+
+<Steps>
+
+### 1. Implement strStr (naive, then KMP)
+
+> Return the index of the first occurrence of `needle` in `haystack`, or -1 if not found.
+
+Start with the naive implementation for clarity, then upgrade to KMP.
+
+**Naive O(nm):**
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def str_str_naive(haystack, needle):
+        n, m = len(haystack), len(needle)
+        if m == 0: return 0
+        for i in range(n - m + 1):
+            if haystack[i:i+m] == needle:
+                return i
+        return -1
+    ```
+    </Tab>
+</Tabs>
+
+**KMP O(n + m):**
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int strStr(string haystack, string needle) {
+        int n = haystack.size(), m = needle.size();
+        if (m == 0) return 0;
+        vector<int> fail(m, 0);
+        for (int k = 0, j = 1; j < m; j++) {
+            while (k > 0 && needle[k] != needle[j]) k = fail[k - 1];
+            if (needle[k] == needle[j]) k++;
+            fail[j] = k;
+        }
+        for (int j = 0, i = 0; i < n; i++) {
+            while (j > 0 && haystack[i] != needle[j]) j = fail[j - 1];
+            if (haystack[i] == needle[j]) j++;
+            if (j == m) return i - m + 1;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def str_str(haystack, needle):
+        n, m = len(haystack), len(needle)
+        if m == 0: return 0
+        fail = [0] * m
+        k = 0
+        for j in range(1, m):
+            while k > 0 and needle[k] != needle[j]: k = fail[k - 1]
+            if needle[k] == needle[j]: k += 1
+            fail[j] = k
+        j = 0
+        for i in range(n):
+            while j > 0 and haystack[i] != needle[j]: j = fail[j - 1]
+            if haystack[i] == needle[j]: j += 1
+            if j == m: return i - m + 1
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int strStr(String haystack, String needle) {
+        int n = haystack.length(), m = needle.length();
+        if (m == 0) return 0;
+        int[] fail = new int[m];
+        for (int k = 0, j = 1; j < m; j++) {
+            while (k > 0 && needle.charAt(k) != needle.charAt(j)) k = fail[k - 1];
+            if (needle.charAt(k) == needle.charAt(j)) k++;
+            fail[j] = k;
+        }
+        for (int j = 0, i = 0; i < n; i++) {
+            while (j > 0 && haystack.charAt(i) != needle.charAt(j)) j = fail[j - 1];
+            if (haystack.charAt(i) == needle.charAt(j)) j++;
+            if (j == m) return i - m + 1;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n + m) KMP. **Space:** O(m).
+
+### 2. Valid Anagram
+
+> Given two strings `s` and `t`, return true if `t` is an anagram of `s`.
+
+Anagram = same characters with the same frequencies. Classic frequency-array trick.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isAnagram(string s, string t) {
+        if (s.size() != t.size()) return false;
+        int freq[26] = {};
+        for (char c : s) freq[c - 'a']++;
+        for (char c : t) {
+            if (--freq[c - 'a'] < 0) return false;
+        }
+        return true;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import Counter
+    def is_anagram(s, t):
+        return Counter(s) == Counter(t)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isAnagram(String s, String t) {
+        if (s.length() != t.length()) return false;
+        int[] freq = new int[26];
+        for (char c : s.toCharArray()) freq[c - 'a']++;
+        for (char c : t.toCharArray())
+            if (--freq[c - 'a'] < 0) return false;
+        return true;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n). **Space:** O(1) — the 26-element array is constant-size.
+
+### 3. String compression (run-length encoding)
+
+> Compress `['a','a','b','b','c','c','c']` to `['a','2','b','2','c','3']` in-place. If compressed length is not shorter, return the original.
+
+Classic two-pointer compression.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def compress(chars):
+        write = 0
+        i = 0
+        while i < len(chars):
+            ch = chars[i]
+            count = 0
+            while i < len(chars) and chars[i] == ch:
+                i += 1
+                count += 1
+            chars[write] = ch
+            write += 1
+            if count > 1:
+                for digit in str(count):
+                    chars[write] = digit
+                    write += 1
+        return write
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n). **Space:** O(1) extra.
+
+The two-pointer structure (read at `i`, write at `write`) is the template for all in-place string mutation problems.
+
+### 4. Reverse words in a string
+
+> Given `"  the sky is  blue  "`, return `"blue is sky the"` — reverse word order, strip extra spaces.
+
+Classic three-step approach: reverse all chars, then reverse each word.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string reverseWords(string s) {
+        // Step 1: tokenize
+        istringstream iss(s);
+        vector<string> words;
+        string w;
+        while (iss >> w) words.push_back(w);
+        // Step 2: reverse
+        reverse(words.begin(), words.end());
+        // Step 3: join
+        string res;
+        for (int i = 0; i < words.size(); i++) {
+            if (i) res += ' ';
+            res += words[i];
+        }
+        return res;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def reverse_words(s):
+        return ' '.join(reversed(s.split()))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String reverseWords(String s) {
+        String[] words = s.trim().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (int i = words.length - 1; i >= 0; i--) {
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(words[i]);
+        }
+        return sb.toString();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n). **Space:** O(n) for the word list.
+
+### 5. Longest common prefix
+
+> Given `["flower","flow","flight"]`, return `"fl"`.
+
+Vertical scan: compare the k-th character across all strings.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string longestCommonPrefix(vector<string>& strs) {
+        if (strs.empty()) return "";
+        for (int i = 0; i < strs[0].size(); i++) {
+            char c = strs[0][i];
+            for (auto& s : strs)
+                if (i >= s.size() || s[i] != c)
+                    return strs[0].substr(0, i);
+        }
+        return strs[0];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longest_common_prefix(strs):
+        if not strs: return ""
+        for i, chars in enumerate(zip(*strs)):
+            if len(set(chars)) > 1:
+                return strs[0][:i]
+        return min(strs, key=len)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String longestCommonPrefix(String[] strs) {
+        if (strs.length == 0) return "";
+        String prefix = strs[0];
+        for (String s : strs) {
+            while (!s.startsWith(prefix))
+                prefix = prefix.substring(0, prefix.length() - 1);
+        }
+        return prefix;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(S) where S is total characters across all strings. **Space:** O(1) extra.
+
+### 6. Rolling hash from scratch
+
+> Implement a rolling hash: given `s` and a window size `k`, return a list of hashes for each window of size `k` in O(n) total.
+
+This locks in the Rabin-Karp computation before the practice problems.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def rolling_hashes(s, k, B=131, Q=10**9 + 7):
+        n = len(s)
+        if k > n: return []
+        h = 0
+        high = pow(B, k - 1, Q)
+        for i in range(k):
+            h = (h * B + ord(s[i])) % Q
+        hashes = [h]
+        for i in range(k, n):
+            h = (h - ord(s[i - k]) * high) % Q
+            h = (h * B + ord(s[i])) % Q
+            hashes.append(h)
+        return hashes
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(n). **Space:** O(n) for output, O(1) rolling work.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="In valid anagram checking, why does a 26-element frequency array work even if the alphabet has millions of Unicode characters?"
+    options={[
+        "It doesn't — you need a HashMap for non-ASCII",
+        "It works for ASCII lowercase because there are exactly 26 possible characters. For Unicode, you'd replace the array with a HashMap, but the logic is identical.",
+        "The array implicitly handles Unicode",
+        "Anagram only applies to lowercase ASCII"
+    ]}
+    correctIndex={1}
+    explanation="The frequency-array approach is O(alphabet size) space. For lowercase ASCII, that's 26 — effectively O(1). For Unicode (up to 1.1 million code points), a HashMap gives O(n) space and time but the same logic: count characters in s, decrement for each character in t, return false on any negative. The HashMap version is strictly more general."
+/>
+
+<QuizBox
+    question="In the string compression problem, why is the two-pointer approach (read pointer i, write pointer write) necessary?"
+    options={[
+        "It's not — can use extra space",
+        "In-place modification requires two pointers because the write pointer always stays behind (or equal to) the read pointer. We read ahead to count consecutive characters, then write the compressed form. The write pointer can never overtake the read pointer because compression never expands the array.",
+        "Performance",
+        "Language requirement"
+    ]}
+    correctIndex={1}
+    explanation="After compressing 'aaa' to 'a3', the write pointer moves 2 positions while the read pointer moves 3. The write pointer is always <= the read pointer (because RLE compression never expands the data — a run of k identical characters is written as 1 or at most 1 + digits(k) characters, which for k >= 2 is always less than k). This monotone relationship guarantees the in-place write never overwrites unread data."
+/>
+
+Next: **the ten practice problems** — every algorithm in the chapter represented, in order of difficulty.

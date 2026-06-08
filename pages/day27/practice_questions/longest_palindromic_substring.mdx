@@ -1,0 +1,169 @@
+---
+title: "Longest Palindromic Substring"
+description: "Expand around center for O(n²) clarity; Manacher's for O(n) — the canonical palindrome problem."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Palindromic Substring <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a string `s`, return the **longest palindromic substring** in `s`.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "babad"
+    Output: "bab"
+    Explanation: "aba" is also a valid answer.
+
+> Case 2:
+    s = "cbbd"
+    Output: "bb"
+```
+
+#### Constraints
+
+- `1 <= s.length <= 1000`
+- `s` consists of only digits and English letters.
+
+#### State design / Intuition
+
+**Approach 1: Expand around center — O(n²) time, O(1) space**
+
+Every palindrome has a center. For odd-length palindromes the center is a single character; for even-length it's the gap between two characters. There are `2n - 1` centers to try. For each center, expand outward while characters match.
+
+This is the cleanest approach for interviews. Simple, correct, and clearly O(n²).
+
+**Approach 2: Manacher's algorithm — O(n) time**
+
+Augment `s` with `#` separators (so all palindromes become odd-length), then use the mirror trick to extend the palindrome radius array `p` in amortized O(1) per center. Details on the [Advanced Patterns page](/day27/advanced).
+
+For `s.length <= 1000` (the constraint here), the O(n²) approach is perfectly fine. Present both in the interview; implement Manacher's if asked for the optimal.
+
+#### Code — Expand around center (O(n²))
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string longestPalindrome(string s) {
+        int n = s.size();
+        int best_start = 0, best_len = 1;
+
+        auto expand = [&](int lo, int hi) {
+            while (lo >= 0 && hi < n && s[lo] == s[hi]) {
+                lo--; hi++;
+            }
+            // palindrome is s[lo+1..hi-1]
+            if (hi - lo - 1 > best_len) {
+                best_len = hi - lo - 1;
+                best_start = lo + 1;
+            }
+        };
+
+        for (int i = 0; i < n; i++) {
+            expand(i, i);      // odd
+            expand(i, i + 1);  // even
+        }
+        return s.substr(best_start, best_len);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longestPalindrome(s: str) -> str:
+        n = len(s)
+        best = s[0]
+
+        def expand(lo, hi):
+            nonlocal best
+            while lo >= 0 and hi < n and s[lo] == s[hi]:
+                lo -= 1
+                hi += 1
+            if hi - lo - 1 > len(best):
+                best = s[lo + 1: hi]
+
+        for i in range(n):
+            expand(i, i)        # odd-length center
+            expand(i, i + 1)    # even-length center
+
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String longestPalindrome(String s) {
+        int n = s.length();
+        int bestStart = 0, bestLen = 1;
+
+        for (int i = 0; i < n; i++) {
+            // Odd
+            int lo = i, hi = i;
+            while (lo > 0 && hi < n - 1 && s.charAt(lo - 1) == s.charAt(hi + 1)) {
+                lo--; hi++;
+            }
+            if (hi - lo + 1 > bestLen) { bestLen = hi - lo + 1; bestStart = lo; }
+
+            // Even
+            if (i + 1 < n && s.charAt(i) == s.charAt(i + 1)) {
+                lo = i; hi = i + 1;
+                while (lo > 0 && hi < n - 1 && s.charAt(lo - 1) == s.charAt(hi + 1)) {
+                    lo--; hi++;
+                }
+                if (hi - lo + 1 > bestLen) { bestLen = hi - lo + 1; bestStart = lo; }
+            }
+        }
+        return s.substring(bestStart, bestStart + bestLen);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Code — Manacher's O(n)
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def longestPalindrome_manacher(s: str) -> str:
+        T = '#' + '#'.join(s) + '#'
+        n = len(T)
+        p = [0] * n
+        c = r = 0
+        for i in range(1, n - 1):
+            mirror = 2 * c - i
+            if i < r:
+                p[i] = min(r - i, p[mirror])
+            while i + p[i] + 1 < n and i - p[i] - 1 >= 0 and T[i + p[i] + 1] == T[i - p[i] - 1]:
+                p[i] += 1
+            if i + p[i] > r:
+                c, r = i, i + p[i]
+        center = p.index(max(p))
+        radius = p[center]
+        start = (center - radius) // 2
+        return s[start: start + radius]
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    For the interview, lead with expand-around-center. It's short, obviously correct, and handles all cases without special-casing. Only pivot to Manacher's if the interviewer asks for O(n). Manacher's has more moving parts and is harder to debug under pressure.
+</Callout>
+
+#### Analysis
+
+| Approach | Time | Space |
+| :--- | :--- | :--- |
+| Expand around center | O(n²) | O(1) |
+| Manacher's | O(n) | O(n) |
+| DP (2D table) | O(n²) | O(n²) |
+
+#### Same skin
+
+- **Count Palindromic Substrings** — same expand-around-center, count instead of track maximum.
+- **Palindromic Substrings (LC 647)** — direct application of Manacher's `p` array.
+- **Shortest Palindrome** — find the longest palindrome prefix, then prepend the reverse of the suffix.
+- **Palindrome Pairs** — combine with a trie; different technique but palindrome structure matters.

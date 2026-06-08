@@ -1,0 +1,284 @@
+---
+title: "Rabin-Karp Algorithm"
+description: "Rolling polynomial hash, O(1) window comparison, collision handling, and the duplicate-substring applications that make Rabin-Karp uniquely powerful."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { StringVisualizer } from "../../components/StringVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Rabin-Karp Algorithm
+
+KMP beats the naive matcher by remembering structural information about the pattern. Rabin-Karp takes a completely different route: instead of comparing character-by-character, it **converts each window of the text into a number (a hash)** and compares numbers. If the pattern's hash doesn't match the window's hash, the window can't match — skip it without any character comparisons. Only when hashes match do we verify character-by-character.
+
+The magic is in the **rolling hash**: updating the hash for window `T[i+1..i+m]` from the hash of `T[i..i+m-1]` takes **O(1)**, so we scan the entire text in O(n) time on average.
+
+## The polynomial hash
+
+The standard choice is a polynomial hash over the characters:
+
+```
+hash(s[0..m-1]) = s[0]·B^(m-1) + s[1]·B^(m-2) + ... + s[m-1]·B^0  (mod Q)
+```
+
+where `B` is a base (typically a small prime like 31 for lowercase letters, or 131 for the full ASCII range) and `Q` is a large prime modulus (to keep numbers manageable and reduce collisions).
+
+### Rolling the hash
+
+When the window slides right by one position (dropping `T[i]` and adding `T[i+m]`):
+
+```
+hash(T[i+1..i+m]) = (hash(T[i..i+m-1]) - T[i]·B^(m-1)) · B + T[i+m]   (mod Q)
+```
+
+Three operations: subtract the leftmost character's contribution, multiply by `B` (shift everything left), and add the new rightmost character. **O(1) per slide.**
+
+The term `B^(m-1) mod Q` is precomputed once before the search loop.
+
+## The algorithm
+
+<Steps>
+
+### Precompute the pattern hash
+
+```python
+def poly_hash(s, B, Q):
+    h = 0
+    for ch in s:
+        h = (h * B + ord(ch)) % Q
+    return h
+```
+
+O(m) upfront.
+
+### Compute the first window hash
+
+```python
+window_hash = poly_hash(T[:m], B, Q)
+pattern_hash = poly_hash(P, B, Q)
+high = pow(B, m - 1, Q)          # B^(m-1) mod Q — the "leading coefficient"
+```
+
+### Slide and compare
+
+```python
+for i in range(n - m + 1):
+    if window_hash == pattern_hash:
+        if T[i:i+m] == P:         # verify to rule out hash collision
+            matches.append(i)
+    if i < n - m:
+        # roll the hash: drop T[i], add T[i+m]
+        window_hash = (window_hash - ord(T[i]) * high) % Q
+        window_hash = (window_hash * B + ord(T[i + m])) % Q
+```
+
+</Steps>
+
+## Full implementation
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> rabinKarp(const string& T, const string& P, long long B = 131, long long Q = 1e9 + 7) {
+        int n = T.size(), m = P.size();
+        if (m > n) return {};
+
+        long long patHash = 0, winHash = 0, high = 1;
+        for (int i = 0; i < m; i++) {
+            patHash = (patHash * B + P[i]) % Q;
+            winHash = (winHash * B + T[i]) % Q;
+            if (i < m - 1) high = high * B % Q;
+        }
+
+        vector<int> matches;
+        for (int i = 0; i <= n - m; i++) {
+            if (winHash == patHash && T.substr(i, m) == P)
+                matches.push_back(i);
+            if (i < n - m) {
+                winHash = (winHash - T[i] * high % Q + Q) % Q;
+                winHash = (winHash * B + T[i + m]) % Q;
+            }
+        }
+        return matches;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def rabin_karp(T, P, B=131, Q=10**9 + 7):
+        n, m = len(T), len(P)
+        if m > n:
+            return []
+
+        pat_hash = win_hash = 0
+        high = 1
+        for i in range(m):
+            pat_hash = (pat_hash * B + ord(P[i])) % Q
+            win_hash = (win_hash * B + ord(T[i])) % Q
+            if i < m - 1:
+                high = high * B % Q
+
+        matches = []
+        for i in range(n - m + 1):
+            if win_hash == pat_hash and T[i:i+m] == P:
+                matches.append(i)
+            if i < n - m:
+                win_hash = (win_hash - ord(T[i]) * high) % Q
+                win_hash = (win_hash * B + ord(T[i + m])) % Q
+        return matches
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    List<Integer> rabinKarp(String T, String P, long B, long Q) {
+        int n = T.length(), m = P.length();
+        List<Integer> matches = new ArrayList<>();
+        if (m > n) return matches;
+
+        long patHash = 0, winHash = 0, high = 1;
+        for (int i = 0; i < m; i++) {
+            patHash = (patHash * B + P.charAt(i)) % Q;
+            winHash = (winHash * B + T.charAt(i)) % Q;
+            if (i < m - 1) high = high * B % Q;
+        }
+
+        for (int i = 0; i <= n - m; i++) {
+            if (winHash == patHash && T.substring(i, i + m).equals(P))
+                matches.add(i);
+            if (i < n - m) {
+                winHash = (winHash - T.charAt(i) * high % Q + Q) % Q;
+                winHash = (winHash * B + T.charAt(i + m)) % Q;
+            }
+        }
+        return matches;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Hash collisions and correctness
+
+A **false positive** occurs when the window hash equals the pattern hash but the strings differ. The character-level comparison `T[i:i+m] == P` catches this and rejects the false match. So the algorithm is **always correct** — the hash is only a filter.
+
+A **false negative** is impossible: if `T[i:i+m] == P` then their hashes must match (hash functions are deterministic). The algorithm never misses a real match.
+
+**Collision probability:** with a random prime `Q ≈ n²`, the probability that any particular window gives a false positive is `1/Q ≈ 1/n²`. Over `n` windows, expected false positives ≈ `n × 1/n² = 1/n → 0`. In practice, collisions are very rare.
+
+<Callout type="warning">
+    **Negative modulo trap.** When rolling the hash, `(winHash - T[i] * high) % Q` can be negative in languages where `%` can return negatives (C++, Java). Always add `Q` before taking the modulus: `(winHash - T[i] * high % Q + Q) % Q`. Python's `%` always returns non-negative, so this isn't needed there — but it bites in every other language.
+</Callout>
+
+## Where Rabin-Karp shines: duplicate substring detection
+
+The polynomial hash is a **content fingerprint** — windows with the same content have the same hash (with high probability). This makes Rabin-Karp the natural choice for problems that ask about **substrings of a specific length that appear more than once**.
+
+### Longest Duplicate Substring (binary search + Rabin-Karp)
+
+> Find the longest substring that appears at least twice.
+
+The length of the answer is monotone: if a substring of length `k` appears twice, any shorter substring also appears (at least) twice. This means we can **binary search on the length** and check existence.
+
+```python
+def longest_duplicate_substring(s):
+    def has_dup(length):
+        if length == 0: return True
+        B, Q = 131, 10**9 + 7
+        h = 0
+        high = pow(B, length - 1, Q)
+        seen = set()
+        for i in range(length):
+            h = (h * B + ord(s[i])) % Q
+        seen.add(h)
+        for i in range(1, len(s) - length + 1):
+            h = (h - ord(s[i - 1]) * high) % Q
+            h = (h * B + ord(s[i + length - 1])) % Q
+            if h in seen:
+                return True
+            seen.add(h)
+        return False
+
+    lo, hi = 0, len(s) - 1
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if has_dup(mid): lo = mid
+        else: hi = mid - 1
+    return lo
+```
+
+**Time:** O(n log n) — O(log n) binary search iterations, each scanning O(n) with rolling hash.
+**Space:** O(n) for the hash set.
+
+This is faster than the O(n²) suffix array construction (though suffix arrays can also solve it in O(n log n) with more implementation effort).
+
+<Callout type="info">
+    With double hashing (using two independent (B, Q) pairs), the collision probability drops from `1/Q` to `1/(Q1 × Q2) ≈ 1/10^18`. For competitive programming where reliability is critical, double hashing is the standard approach. For interviews, single hashing with a large prime is usually enough.
+</Callout>
+
+## Multi-pattern search with Rabin-Karp
+
+The standard Rabin-Karp finds one pattern. With a set of patterns, hash all patterns into a set `S` and check if each window's hash is in `S`:
+
+```python
+def multi_pattern_search(T, patterns):
+    B, Q = 131, 10**9 + 7
+    m = len(patterns[0])  # assume all same length
+    pat_hashes = {poly_hash(p, B, Q): p for p in patterns}
+    # ... slide window, check hash in pat_hashes, verify on hit
+```
+
+For patterns of different lengths, group by length and run one pass per length. This is O(n × num\_lengths + total\_pattern\_length), which beats running KMP separately for each pattern.
+
+For many patterns of varying lengths simultaneously, [Aho-Corasick](/day27/advanced) is even better.
+
+## Complexity
+
+| Operation | Time | Notes |
+| :--- | :--- | :--- |
+| Hash the pattern | O(m) | one-time |
+| Hash first window | O(m) | one-time |
+| Each slide | O(1) | rolling hash |
+| Total slides | O(n - m) | |
+| Verification on match | O(m) | amortized rare |
+| **Total (average)** | **O(n + m)** | with few collisions |
+| Total (worst case) | O(nm) | pathological collisions |
+
+## Quick check
+
+<QuizBox
+    question="How does rolling the hash when sliding the window by one position work?"
+    options={[
+        "Recompute from scratch each time — O(m) per slide",
+        "Subtract the contribution of the leftmost character (T[i] × B^(m-1)), multiply by B to shift positions, then add the new rightmost character T[i+m]. All mod Q. This is O(1).",
+        "XOR the dropped character with the new one",
+        "Divide the hash by B"
+    ]}
+    correctIndex={1}
+    explanation="hash(T[i+1..i+m]) = (hash(T[i..i+m-1]) - T[i] × B^(m-1)) × B + T[i+m]. The subtract removes T[i]'s leading contribution, the multiply shifts all remaining characters one position left (increasing their power of B by 1), and the add inserts T[i+m] at the trailing position. B^(m-1) is precomputed once."
+/>
+
+<QuizBox
+    question="Rabin-Karp always does a character comparison when a hash match is found. Why is this necessary?"
+    options={[
+        "It's not necessary — hash equality proves string equality",
+        "Hash collisions: two different strings can have the same hash. The character comparison is needed to rule out false positives and guarantee correctness.",
+        "Only needed for Unicode strings",
+        "It's a historical artifact"
+    ]}
+    correctIndex={1}
+    explanation="A hash function maps infinitely many strings to finitely many hash values, so collisions are inevitable. Two windows with the same hash value might not be equal. The character comparison confirms equality and rejects false positives. Without it, the algorithm would produce wrong answers on inputs designed to collide."
+/>
+
+<QuizBox
+    question="Why is binary search + Rabin-Karp a valid approach for the Longest Duplicate Substring problem?"
+    options={[
+        "It's not valid — needs a different approach",
+        "The existence of a duplicate of length k implies duplicates of all lengths < k exist too (any shorter duplicate is a substring). This monotone property means binary search on k is valid. For each candidate length, a single rolling-hash scan finds a duplicate in O(n).",
+        "Rabin-Karp only works for single patterns",
+        "Binary search requires a sorted array"
+    ]}
+    correctIndex={1}
+    explanation="If strings s[i..i+k-1] and s[j..j+k-1] are equal, then s[i..i+k-2] and s[j..j+k-2] are also equal (take one less character). So 'has a duplicate of length k' is a monotone predicate: true for all lengths ≤ answer, false for all lengths > answer. Binary search on a monotone predicate is valid and runs in O(log n) iterations. Each iteration uses O(n) rolling hash. Total: O(n log n)."
+/>
+
+Next: **Z-algorithm** — a clean linear matcher with a simpler correctness proof and a direct relationship to suffix arrays.

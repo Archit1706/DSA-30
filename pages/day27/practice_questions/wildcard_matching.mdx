@@ -1,0 +1,190 @@
+---
+title: "Wildcard Matching"
+description: "Match a string against a pattern with '?' (any single char) and '*' (any sequence) — 2D DP or greedy two-pointer."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Wildcard Matching <DifficultyBadge level="hard" />
+
+#### Description
+
+Given an input string `s` and a pattern `p`, implement wildcard pattern matching with support for `'?'` and `'*'` where:
+
+- `'?'` matches any **single** character.
+- `'*'` matches any **sequence of characters** (including the empty sequence).
+
+The matching should cover the **entire** input string (not partial).
+
+#### Examples
+
+```py
+> Case 1:
+    s = "aa",  p = "a"
+    Output: false
+    Explanation: "a" does not match the entire string "aa".
+
+> Case 2:
+    s = "aa",  p = "*"
+    Output: true
+    Explanation: '*' matches any sequence.
+
+> Case 3:
+    s = "cb",  p = "?a"
+    Output: false
+    Explanation: '?' matches 'c', but the second letter is 'b', not 'a'.
+
+> Case 4:
+    s = "adceb",  p = "*a*b"
+    Output: true
+    Explanation: first '*' matches empty, 'a' matches 'a', second '*' matches "dce", 'b' matches 'b'.
+```
+
+#### Constraints
+
+- `0 <= s.length, p.length <= 2000`
+- `s` contains only lowercase English letters.
+- `p` contains only lowercase English letters, `'?'` or `'*'`.
+
+#### State design / Intuition
+
+**Approach 1: 2D DP (O(nm) time, O(nm) space)**
+
+Let `dp[i][j]` = true if `s[0..i-1]` matches `p[0..j-1]`.
+
+Transitions:
+- `p[j-1] == s[i-1]` or `p[j-1] == '?'` → `dp[i][j] = dp[i-1][j-1]`
+- `p[j-1] == '*'` → two choices:
+  - `'*'` matches empty: `dp[i][j] |= dp[i][j-1]`
+  - `'*'` matches `s[i-1]`: `dp[i][j] |= dp[i-1][j]`
+
+Base cases:
+- `dp[0][0] = true` (empty matches empty)
+- `dp[0][j] = true` if `p[0..j-1]` is all `'*'`s
+- `dp[i][0] = false` for `i > 0`
+
+**Approach 2: Greedy two-pointer (O(nm) worst case, O(1) space)**
+
+Track the last seen `'*'` position in `p` (`star`) and the corresponding position in `s` (`match`). On mismatch with no `'*'` in view, fall back to the `'*'` and have it consume one more character of `s`.
+
+This is the classic "greedy wildcard" algorithm that runs in O(n + m) average time but O(nm) worst case (requires careful analysis).
+
+#### Code — 2D DP
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool isMatch(string s, string p) {
+        int m = s.size(), n = p.size();
+        vector<vector<bool>> dp(m + 1, vector<bool>(n + 1, false));
+        dp[0][0] = true;
+        for (int j = 1; j <= n; j++)
+            dp[0][j] = dp[0][j - 1] && p[j - 1] == '*';
+
+        for (int i = 1; i <= m; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (p[j - 1] == '*') {
+                    dp[i][j] = dp[i][j - 1] || dp[i - 1][j];
+                } else if (p[j - 1] == '?' || p[j - 1] == s[i - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                }
+            }
+        }
+        return dp[m][n];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def isMatch(s: str, p: str) -> bool:
+        m, n = len(s), len(p)
+        dp = [[False] * (n + 1) for _ in range(m + 1)]
+        dp[0][0] = True
+        for j in range(1, n + 1):
+            dp[0][j] = dp[0][j - 1] and p[j - 1] == '*'
+
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if p[j - 1] == '*':
+                    dp[i][j] = dp[i][j - 1] or dp[i - 1][j]
+                elif p[j - 1] == '?' or p[j - 1] == s[i - 1]:
+                    dp[i][j] = dp[i - 1][j - 1]
+
+        return dp[m][n]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean isMatch(String s, String p) {
+        int m = s.length(), n = p.length();
+        boolean[][] dp = new boolean[m + 1][n + 1];
+        dp[0][0] = true;
+        for (int j = 1; j <= n; j++)
+            dp[0][j] = dp[0][j - 1] && p.charAt(j - 1) == '*';
+
+        for (int i = 1; i <= m; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (p.charAt(j - 1) == '*') {
+                    dp[i][j] = dp[i][j - 1] || dp[i - 1][j];
+                } else if (p.charAt(j - 1) == '?' || p.charAt(j - 1) == s.charAt(i - 1)) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                }
+            }
+        }
+        return dp[m][n];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Code — Greedy two-pointer (O(1) space)
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def isMatch_greedy(s: str, p: str) -> bool:
+        si = pi = 0
+        star = match = -1
+
+        while si < len(s):
+            if pi < len(p) and (p[pi] == s[si] or p[pi] == '?'):
+                si += 1
+                pi += 1
+            elif pi < len(p) and p[pi] == '*':
+                star = pi         # record '*' position
+                match = si        # '*' initially matches empty
+                pi += 1
+            elif star != -1:
+                pi = star + 1     # backtrack: '*' consumes one more char
+                match += 1
+                si = match
+            else:
+                return False
+
+        while pi < len(p) and p[pi] == '*':
+            pi += 1
+        return pi == len(p)
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The difference between Wildcard Matching (`'*'` = any sequence) and Regular Expression Matching (`'*'` = zero or more of the preceding element) is subtle but important. In regex matching, `a*` matches "a" zero or more times. In wildcard matching, `*` alone matches anything. The DP transitions differ: regex matching needs `dp[i][j] |= dp[i][j-2]` (zero matches) while wildcard matching sets `dp[0][j] = dp[0][j-1]` for `'*'`.
+</Callout>
+
+#### Analysis
+
+| Approach | Time | Space |
+| :--- | :--- | :--- |
+| 2D DP | O(nm) | O(nm) |
+| Space-optimized DP | O(nm) | O(n) |
+| Greedy two-pointer | O(nm) worst | O(1) |
+
+#### Same skin
+
+- **Regular Expression Matching (LC 10)** — similar DP structure, but `'*'` refers to the preceding element.
+- **Edit Distance** — 2D DP on two strings; the transition logic is closely related.
+- **Distinct Subsequences** — another 2D string DP with different transitions.
+- **Grep / fnmatch** — the real-world versions of this exact problem.

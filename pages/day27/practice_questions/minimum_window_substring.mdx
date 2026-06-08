@@ -1,0 +1,163 @@
+---
+title: "Minimum Window Substring"
+description: "The classic variable-length sliding window — find the smallest window in s that contains all characters of t."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Minimum Window Substring <DifficultyBadge level="medium" />
+
+#### Description
+
+Given two strings `s` and `t` of lengths `m` and `n` respectively, return the **minimum window substring** of `s` such that every character in `t` (including duplicates) is included in the window. If there is no such substring, return the empty string `""`.
+
+The test cases are generated such that the answer is **unique**.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "ADOBECODEBANC",  t = "ABC"
+    Output: "BANC"
+    Explanation: Minimum window is "BANC" (length 4).
+
+> Case 2:
+    s = "a",  t = "a"
+    Output: "a"
+
+> Case 3:
+    s = "a",  t = "aa"
+    Output: ""
+    Explanation: Both 'a's from t must be in the window; "a" has only one.
+```
+
+#### Constraints
+
+- `m == s.length`
+- `n == t.length`
+- `1 <= m, n <= 10^5`
+- `s` and `t` consist of uppercase and lowercase English letters.
+
+#### State design / Intuition
+
+The variable-length two-pointer (shrink/expand) pattern:
+
+1. Expand the right pointer until the window contains all characters of `t` ("valid window").
+2. Contract the left pointer as far as possible while the window remains valid.
+3. Record the minimum valid window found.
+4. Expand again from the current right.
+
+"Valid" means: every character required by `t` has sufficient count in the current window. Track this with a `need` frequency map and a `have` counter (number of distinct characters meeting their required frequency).
+
+The key trick: when `have == len(required)`, the window is valid. Each character at most enters and exits the window once — O(n) total.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string minWindow(string s, string t) {
+        unordered_map<char, int> need, window;
+        for (char c : t) need[c]++;
+
+        int have = 0, total = need.size();
+        int lo = 0, minLen = INT_MAX, minStart = 0;
+
+        for (int hi = 0; hi < s.size(); hi++) {
+            char c = s[hi];
+            window[c]++;
+            if (need.count(c) && window[c] == need[c]) have++;
+
+            while (have == total) {
+                if (hi - lo + 1 < minLen) {
+                    minLen = hi - lo + 1;
+                    minStart = lo;
+                }
+                char left = s[lo++];
+                window[left]--;
+                if (need.count(left) && window[left] < need[left]) have--;
+            }
+        }
+        return minLen == INT_MAX ? "" : s.substr(minStart, minLen);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import Counter, defaultdict
+
+    def minWindow(s: str, t: str) -> str:
+        if not t or not s:
+            return ""
+
+        need = Counter(t)
+        window = defaultdict(int)
+        have, total = 0, len(need)
+        lo = 0
+        min_len, min_start = float('inf'), 0
+
+        for hi, c in enumerate(s):
+            window[c] += 1
+            if c in need and window[c] == need[c]:
+                have += 1
+
+            while have == total:
+                if hi - lo + 1 < min_len:
+                    min_len = hi - lo + 1
+                    min_start = lo
+                left = s[lo]
+                window[left] -= 1
+                if left in need and window[left] < need[left]:
+                    have -= 1
+                lo += 1
+
+        return "" if min_len == float('inf') else s[min_start: min_start + min_len]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String minWindow(String s, String t) {
+        Map<Character, Integer> need = new HashMap<>(), window = new HashMap<>();
+        for (char c : t.toCharArray()) need.merge(c, 1, Integer::sum);
+
+        int have = 0, total = need.size();
+        int lo = 0, minLen = Integer.MAX_VALUE, minStart = 0;
+
+        for (int hi = 0; hi < s.length(); hi++) {
+            char c = s.charAt(hi);
+            window.merge(c, 1, Integer::sum);
+            if (need.containsKey(c) && window.get(c).equals(need.get(c))) have++;
+
+            while (have == total) {
+                if (hi - lo + 1 < minLen) {
+                    minLen = hi - lo + 1;
+                    minStart = lo;
+                }
+                char left = s.charAt(lo++);
+                window.merge(left, -1, Integer::sum);
+                if (need.containsKey(left) && window.get(left) < need.get(left)) have--;
+            }
+        }
+        return minLen == Integer.MAX_VALUE ? "" : s.substring(minStart, minStart + minLen);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The `have == total` condition is the right check — not comparing entire maps. Two windows with different absolute character counts can both be "valid" as long as every required character has sufficient count. The `have` counter tracks only the distinct characters that have reached their required frequency, not the sum of all counts.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(m + n) — each character enters and exits the window exactly once.
+- **Space:** O(n) for the frequency maps (bounded by the size of the character set, which is O(1) for ASCII).
+
+#### Same skin
+
+- **Find All Anagrams** — fixed-size window version of this exact pattern.
+- **Longest Substring Without Repeating Characters** — variable window where "valid" means no duplicates.
+- **Longest Substring with At Most K Distinct Characters** — variable window with a different validity condition.
+- **Substring with Concatenation of All Words** — same idea, but each "character" is a word of fixed length.

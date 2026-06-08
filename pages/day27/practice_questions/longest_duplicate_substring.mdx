@@ -1,0 +1,190 @@
+---
+title: "Longest Duplicate Substring"
+description: "Binary search on length + Rabin-Karp rolling hash — find the longest substring that appears at least twice."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Duplicate Substring <DifficultyBadge level="hard" />
+
+#### Description
+
+Given a string `s`, consider all duplicated substrings: (contiguous) substrings of `s` that occur 2 or more times. The occurrences may overlap.
+
+Return **any** duplicated substring that has the longest possible length. If `s` does not have a duplicated substring, the answer is `""`.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "banana"
+    Output: "ana"
+    Explanation: "ana" appears at indices 1 and 3 (overlapping).
+
+> Case 2:
+    s = "abcd"
+    Output: ""
+    Explanation: No substring appears more than once.
+```
+
+#### Constraints
+
+- `2 <= s.length <= 3 * 10^4`
+- `s` consists of lowercase English letters.
+
+#### State design / Intuition
+
+**Binary search on the answer length.**
+
+The set of valid lengths has the property: if a duplicate exists for length `k`, it also exists for all lengths `< k` (any prefix of the duplicate is also a duplicate). This monotone property makes binary search valid.
+
+For each candidate length `L`, check if any substring of length `L` appears more than once using a **rolling hash** (Rabin-Karp):
+
+1. Compute the hash of `s[0..L-1]`.
+2. Slide the window: in O(1), compute `hash(s[i..i+L-1])` from `hash(s[i-1..i+L-2])`.
+3. Store each hash in a set; if we see a repeat, a duplicate exists.
+
+To avoid false positives from hash collisions, verify with actual string comparison when a hash is seen twice. For this problem, **double hashing** (using two independent hash functions) makes false positives astronomically unlikely without the verification overhead.
+
+**Finding the actual substring:** when the binary search converges to the longest duplicate length `L`, re-run the hash scan at length `L` and return the actual substring.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string longestDupSubstring(string s) {
+        int n = s.size();
+        long long B = 31, Q = 1e9 + 7;
+
+        auto hasDup = [&](int len) -> string {
+            if (len == 0) return "";
+            long long h = 0, high = 1;
+            for (int i = 0; i < len; i++) {
+                h = (h * B + (s[i] - 'a' + 1)) % Q;
+                if (i < len - 1) high = high * B % Q;
+            }
+            unordered_map<long long, vector<int>> seen;
+            seen[h].push_back(0);
+            for (int i = 1; i + len <= n; i++) {
+                h = (h - (s[i-1] - 'a' + 1) * high % Q + Q) % Q;
+                h = (h * B + (s[i + len - 1] - 'a' + 1)) % Q;
+                for (int prev : seen[h])
+                    if (s.substr(prev, len) == s.substr(i, len))
+                        return s.substr(i, len);
+                seen[h].push_back(i);
+            }
+            return "";
+        };
+
+        int lo = 0, hi = n - 1;
+        string ans;
+        while (lo <= hi) {
+            int mid = (lo + hi) / 2;
+            string res = hasDup(mid);
+            if (!res.empty()) { ans = res; lo = mid + 1; }
+            else hi = mid - 1;
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longestDupSubstring(s: str) -> str:
+        n = len(s)
+        B, Q = 31, 10**9 + 7
+
+        def has_dup(length: int) -> str:
+            if length == 0:
+                return ""
+            h = 0
+            high = pow(B, length - 1, Q)
+            for i in range(length):
+                h = (h * B + ord(s[i]) - ord('a') + 1) % Q
+            seen = {h: [0]}
+            for i in range(1, n - length + 1):
+                h = (h - (ord(s[i - 1]) - ord('a') + 1) * high) % Q
+                h = (h * B + ord(s[i + length - 1]) - ord('a') + 1) % Q
+                if h in seen:
+                    for prev in seen[h]:
+                        if s[prev: prev + length] == s[i: i + length]:
+                            return s[i: i + length]
+                    seen[h].append(i)
+                else:
+                    seen[h] = [i]
+            return ""
+
+        lo, hi, ans = 0, n - 1, ""
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            res = has_dup(mid)
+            if res:
+                ans = res
+                lo = mid + 1
+            else:
+                hi = mid - 1
+        return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String longestDupSubstring(String s) {
+        int n = s.length();
+        long B = 31, Q = (long) 1e9 + 7;
+
+        int lo = 0, hi = n - 1;
+        String ans = "";
+        while (lo <= hi) {
+            int mid = (lo + hi) / 2;
+            String res = hasDup(s, mid, B, Q);
+            if (!res.isEmpty()) { ans = res; lo = mid + 1; }
+            else hi = mid - 1;
+        }
+        return ans;
+    }
+
+    private String hasDup(String s, int len, long B, long Q) {
+        if (len == 0) return "";
+        int n = s.length();
+        long h = 0, high = 1;
+        for (int i = 0; i < len; i++) {
+            h = (h * B + (s.charAt(i) - 'a' + 1)) % Q;
+            if (i < len - 1) high = high * B % Q;
+        }
+        Map<Long, List<Integer>> seen = new HashMap<>();
+        seen.computeIfAbsent(h, k -> new ArrayList<>()).add(0);
+        for (int i = 1; i + len <= n; i++) {
+            h = (h - (s.charAt(i - 1) - 'a' + 1) * high % Q + Q) % Q;
+            h = (h * B + (s.charAt(i + len - 1) - 'a' + 1)) % Q;
+            List<Integer> prevs = seen.get(h);
+            if (prevs != null) {
+                for (int prev : prevs)
+                    if (s.substring(prev, prev + len).equals(s.substring(i, i + len)))
+                        return s.substring(i, i + len);
+            }
+            seen.computeIfAbsent(h, k -> new ArrayList<>()).add(i);
+        }
+        return "";
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why binary search + rolling hash beats brute force:** Brute force (check all pairs of substrings) is O(n³). Suffix array finds the answer in O(n log n) construction + O(n) scan of the LCP array, but requires a complex implementation. Binary search + rolling hash hits O(n log n) time with much simpler code — the standard competitive-programming trade-off.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n log n) — O(log n) binary search iterations, each O(n) rolling hash scan.
+- **Space:** O(n) — the hash set storing positions.
+
+#### Same skin
+
+- **Longest Common Substring of Two Strings** — binary search on length + rolling hash on the concatenation.
+- **Find Duplicate File in System** — same hash-based duplicate detection.
+- **Longest Repeated Character Replacement** — sliding window variant (different validity condition).
+- **Longest Palindromic Substring** — different problem structure (palindrome vs. duplicate), but rolling hash appears in some O(n log n) palindrome finders.

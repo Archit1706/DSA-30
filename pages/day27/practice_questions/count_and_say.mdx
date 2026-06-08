@@ -1,0 +1,139 @@
+---
+title: "Count and Say"
+description: "Run-length encoding applied recursively — read off the previous term to produce the next."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Count and Say <DifficultyBadge level="medium" />
+
+#### Description
+
+The **count-and-say** sequence is a sequence of digit strings defined by the recursive formula:
+
+- `countAndSay(1) = "1"`
+- `countAndSay(n)` is the way you would "say" the digit string `countAndSay(n - 1)`, which is then converted into a different digit string.
+
+To describe a string, you scan from left to right, group consecutive equal digits, and say "count digit" for each group.
+
+For example, `"3322251"`:
+- `33` → two 3s → `"23"`
+- `222` → three 2s → `"32"`
+- `5` → one 5 → `"15"`
+- `1` → one 1 → `"11"`
+- Result: `"23321511"`
+
+#### Examples
+
+```py
+> Case 1:
+    n = 1
+    Output: "1"
+
+> Case 2:
+    n = 4
+    Output: "1211"
+    Explanation:
+        countAndSay(1) = "1"
+        countAndSay(2) = say "1" = one 1 = "11"
+        countAndSay(3) = say "11" = two 1s = "21"
+        countAndSay(4) = say "21" = one 2, one 1 = "1211"
+```
+
+#### Constraints
+
+- `1 <= n <= 30`
+
+#### State design / Intuition
+
+Pure string simulation. Start with `"1"` and repeatedly apply the run-length encoding step. The encoding step groups consecutive equal characters and writes `count + char`.
+
+Two implementation styles:
+
+1. **Iterative:** build the sequence one step at a time, using a scan-and-group inner loop.
+2. **Regex:** Python's `re.sub` can group consecutive characters cleanly.
+
+The iterative approach is more interview-friendly because it makes the logic explicit.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string countAndSay(int n) {
+        string curr = "1";
+        for (int i = 1; i < n; i++) {
+            string next;
+            int j = 0;
+            while (j < curr.size()) {
+                char ch = curr[j];
+                int count = 0;
+                while (j < curr.size() && curr[j] == ch) {
+                    j++; count++;
+                }
+                next += to_string(count) + ch;
+            }
+            curr = next;
+        }
+        return curr;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def countAndSay(n: int) -> str:
+        curr = "1"
+        for _ in range(n - 1):
+            nxt = []
+            i = 0
+            while i < len(curr):
+                ch = curr[i]
+                count = 0
+                while i < len(curr) and curr[i] == ch:
+                    i += 1
+                    count += 1
+                nxt.append(str(count) + ch)
+            curr = ''.join(nxt)
+        return curr
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String countAndSay(int n) {
+        String curr = "1";
+        for (int i = 1; i < n; i++) {
+            StringBuilder next = new StringBuilder();
+            int j = 0;
+            while (j < curr.length()) {
+                char ch = curr.charAt(j);
+                int count = 0;
+                while (j < curr.length() && curr.charAt(j) == ch) {
+                    j++; count++;
+                }
+                next.append(count).append(ch);
+            }
+            curr = next.toString();
+        }
+        return curr;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The inner while loop moves `j` to the end of each run of equal characters. The outer while loop ensures we cover the entire string. This two-level scan is the same "run-length encoding" pattern used in string compression (see [Basic Questions](/day27/basic_questions)).
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n × L) where L is the average length of terms. The length grows roughly by a constant factor per step; for `n = 30`, the string can reach ~20,000 characters.
+- **Space:** O(L) — the current term (we only need the previous term to build the next).
+
+#### Same skin
+
+- **String Compression** — same run-length encoding, applied once to a given string.
+- **Encode and Decode Strings** — related serialization idea.
+- **RLE encode/decode** — the count-and-say step is exactly one application of run-length encoding.
+- **Look-and-say sequence** — same as count-and-say (different name in number theory).

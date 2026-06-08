@@ -1,0 +1,138 @@
+---
+title: "Implement strStr"
+description: "Find the first occurrence of needle in haystack — naive O(nm) and KMP O(n+m)."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Implement strStr <DifficultyBadge level="easy" />
+
+#### Description
+
+Given two strings `haystack` and `needle`, return the index of the first occurrence of `needle` in `haystack`, or `-1` if `needle` is not part of `haystack`.
+
+#### Examples
+
+```py
+> Case 1:
+    haystack = "sadbutsad",  needle = "sad"
+    Output: 0
+    Explanation: "sad" occurs at index 0 and index 6. First is 0.
+
+> Case 2:
+    haystack = "leetcode",  needle = "leeto"
+    Output: -1
+    Explanation: "leeto" did not occur in "leetcode".
+```
+
+#### Constraints
+
+- `1 <= haystack.length, needle.length <= 10^4`
+- `haystack` and `needle` consist of only lowercase English letters.
+
+#### State design / Intuition
+
+The naive approach slides `needle` across `haystack` and compares character-by-character at each position. This is O(nm) — acceptable for the given constraints, but a good interview response mentions KMP and explains why.
+
+The KMP approach:
+1. Build the failure function for `needle` in O(m).
+2. Scan `haystack` with two pointers (one for the text, one for the pattern position), using the failure function to avoid re-scanning.
+3. The text pointer never moves backward — O(n) total.
+
+For this problem the naive approach passes within the constraints (`n, m <= 10^4` means at most `10^8` comparisons, which is borderline). KMP is the correct answer if asked for the optimal solution.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int strStr(string haystack, string needle) {
+        int n = haystack.size(), m = needle.size();
+        if (m == 0) return 0;
+
+        // Build failure function
+        vector<int> fail(m, 0);
+        for (int k = 0, j = 1; j < m; j++) {
+            while (k > 0 && needle[k] != needle[j]) k = fail[k - 1];
+            if (needle[k] == needle[j]) k++;
+            fail[j] = k;
+        }
+
+        // Search
+        int j = 0;
+        for (int i = 0; i < n; i++) {
+            while (j > 0 && haystack[i] != needle[j]) j = fail[j - 1];
+            if (haystack[i] == needle[j]) j++;
+            if (j == m) return i - m + 1;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def strStr(haystack: str, needle: str) -> int:
+        n, m = len(haystack), len(needle)
+        if m == 0:
+            return 0
+
+        # Build failure function
+        fail = [0] * m
+        k = 0
+        for j in range(1, m):
+            while k > 0 and needle[k] != needle[j]:
+                k = fail[k - 1]
+            if needle[k] == needle[j]:
+                k += 1
+            fail[j] = k
+
+        # Search
+        j = 0
+        for i in range(n):
+            while j > 0 and haystack[i] != needle[j]:
+                j = fail[j - 1]
+            if haystack[i] == needle[j]:
+                j += 1
+            if j == m:
+                return i - m + 1
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int strStr(String haystack, String needle) {
+        int n = haystack.length(), m = needle.length();
+        if (m == 0) return 0;
+
+        int[] fail = new int[m];
+        for (int k = 0, j = 1; j < m; j++) {
+            while (k > 0 && needle.charAt(k) != needle.charAt(j)) k = fail[k - 1];
+            if (needle.charAt(k) == needle.charAt(j)) k++;
+            fail[j] = k;
+        }
+
+        int j = 0;
+        for (int i = 0; i < n; i++) {
+            while (j > 0 && haystack.charAt(i) != needle.charAt(j)) j = fail[j - 1];
+            if (haystack.charAt(i) == needle.charAt(j)) j++;
+            if (j == m) return i - m + 1;
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** O(n + m) — O(m) to build the failure function, O(n) for the search.
+- **Space:** O(m) — the failure function array.
+
+#### Same skin
+
+- **Find all occurrences** — modify to collect all matches: after `j == m`, record `i - m + 1` then set `j = fail[j - 1]` and continue.
+- **Longest Happy Prefix** — building only the failure function, return `fail[m - 1]`.
+- **Shortest Palindrome** — use KMP on `s + '#' + reverse(s)` to find the longest palindrome prefix.
+- **Count occurrences of pattern** — KMP with overlap counting via `j = fail[j-1]` after each match.

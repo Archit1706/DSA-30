@@ -1,0 +1,115 @@
+---
+title: "Longest Happy Prefix"
+description: "A string's longest prefix that is also a suffix — the KMP failure function, directly."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Happy Prefix <DifficultyBadge level="medium" />
+
+#### Description
+
+A string is called a **happy prefix** if it is a non-empty prefix which is also a suffix (excluding itself).
+
+Given a string `s`, return the **longest happy prefix** of `s`. Return an empty string `""` if no such prefix exists.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "level"
+    Output: "l"
+    Explanation: prefix "l" is also a suffix.
+
+> Case 2:
+    s = "ababab"
+    Output: "abab"
+    Explanation: "abab" is both a prefix and suffix.
+```
+
+#### Constraints
+
+- `1 <= s.length <= 10^5`
+- `s` contains only lowercase English letters.
+
+#### State design / Intuition
+
+This is literally asking for `fail[n-1]` — the final value of the KMP failure function. Build the failure function for `s` and return `s[:fail[n-1]]`.
+
+The failure function `fail[j]` is defined as the length of the longest proper prefix of `s[0..j]` that is also a suffix. So `fail[n-1]` is exactly the length of the longest happy prefix.
+
+This problem is a direct test of whether you understand what the KMP failure function computes — not just how to implement it for search.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string longestPrefix(string s) {
+        int n = s.size();
+        vector<int> fail(n, 0);
+        for (int k = 0, j = 1; j < n; j++) {
+            while (k > 0 && s[k] != s[j]) k = fail[k - 1];
+            if (s[k] == s[j]) k++;
+            fail[j] = k;
+        }
+        return s.substr(0, fail[n - 1]);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longestPrefix(s: str) -> str:
+        n = len(s)
+        fail = [0] * n
+        k = 0
+        for j in range(1, n):
+            while k > 0 and s[k] != s[j]:
+                k = fail[k - 1]
+            if s[k] == s[j]:
+                k += 1
+            fail[j] = k
+        return s[:fail[-1]]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String longestPrefix(String s) {
+        int n = s.length();
+        int[] fail = new int[n];
+        for (int k = 0, j = 1; j < n; j++) {
+            while (k > 0 && s.charAt(k) != s.charAt(j)) k = fail[k - 1];
+            if (s.charAt(k) == s.charAt(j)) k++;
+            fail[j] = k;
+        }
+        return s.substring(0, fail[n - 1]);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    Walk through `s = "ababab"` manually:
+    - `fail[0] = 0` (base)
+    - `fail[1] = 0` ("ab": no proper prefix = suffix)
+    - `fail[2] = 1` ("aba": "a" is both prefix and suffix)
+    - `fail[3] = 2` ("abab": "ab" is both prefix and suffix)
+    - `fail[4] = 3` ("ababa": "aba" is both)
+    - `fail[5] = 4` ("ababab": "abab" is both)
+
+    `fail[5] = 4` → return `s[:4] = "abab"`. Correct.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n) — one pass for the failure function.
+- **Space:** O(n) — the failure function array.
+
+#### Same skin
+
+- **Implement strStr** — use the failure function for full KMP search.
+- **Repeated Substring Pattern** — check if `n % (n - fail[-1]) == 0`.
+- **Border of a string** — same concept: the longest non-trivial border (= longest happy prefix).
+- **Shortest palindrome** — use the failure function on `s + '#' + rev(s)` to find the longest palindrome prefix.
