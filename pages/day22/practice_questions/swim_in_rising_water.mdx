@@ -1,0 +1,196 @@
+---
+title: "Swim in Rising Water"
+description: "Minimize the maximum elevation on any path from top-left to bottom-right — binary search + BFS, or min-max path via modified Dijkstra."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Swim in Rising Water <DifficultyBadge level="hard" />
+
+#### Description
+
+You are given an `n x n` integer matrix `grid` where each value `grid[i][j]` represents the elevation at that point `(i, j)`.
+
+The rain starts to fall. At time `t`, the depth of the water everywhere is `t`. You can swim from a square to another 4-directionally adjacent square if and only if the elevation of both squares is individually **less than or equal to** `t`. You can swim infinite distances in zero time. Of course, you must stay within the boundaries of the grid during your swim.
+
+Return the **least time** until you can reach the bottom right square `(n - 1, n - 1)` if you start at the top left square `(0, 0)`.
+
+#### Examples
+
+```py
+> Case 1:
+    grid = [[0,2],[1,3]]
+    Output: 3
+    Explanation: At time 3, we can go (0,0) → (0,1) → (1,1), all elevations ≤ 3.
+
+> Case 2:
+    grid = [[0,1,2,3,4],[24,23,22,21,5],[12,13,14,15,16],[11,17,18,19,20],[10,9,8,7,6]]
+    Output: 16
+```
+
+#### Constraints
+
+- `n == grid.length`
+- `n == grid[i].length`
+- `1 <= n <= 50`
+- `0 <= grid[i][j] < n^2`
+- Each value in `grid` is **unique**.
+
+#### State design / Intuition
+
+We want the minimum `t` such that there exists a path from `(0,0)` to `(n-1, n-1)` using only cells with elevation `<= t`.
+
+**Approach 1: Binary search + BFS — O(n² log n)**
+
+The answer is monotone: if we can reach the destination at time `t`, we can also at time `t+1`. Binary search on `t` (range `[0, n²-1]`). For each candidate `t`, BFS/DFS to check if a path exists.
+
+**Approach 2: Min-max path — Dijkstra variant — O(n² log n)**
+
+The "cost" of a path is the maximum elevation on that path (the bottleneck). We want to minimize this bottleneck. Use a min-heap where `(max_elevation_so_far, row, col)`. At each step, greedily expand to the neighbor that minimizes the maximum elevation seen.
+
+This is equivalent to finding the MST path from `(0,0)` to `(n-1, n-1)` in the grid graph where edge weights are `max(grid[u], grid[v])`. The MST minimizes the maximum edge on any path — this is the [minimum bottleneck spanning tree](/day22/advanced) property.
+
+**Approach 3: Union-Find — O(n² log n)**
+
+Sort all cells by elevation. Add them in order (like Kruskal's). When `(0,0)` and `(n-1,n-1)` become connected, the current cell's elevation is the answer.
+
+#### Code — Dijkstra variant (most elegant)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int swimInWater(vector<vector<int>>& grid) {
+        int n = grid.size();
+        vector<vector<int>> dist(n, vector<int>(n, INT_MAX));
+        priority_queue<tuple<int,int,int>, vector<tuple<int,int,int>>, greater<>> pq;
+        pq.push({grid[0][0], 0, 0});
+        dist[0][0] = grid[0][0];
+        int dirs[4][2] = {{0,1},{0,-1},{1,0},{-1,0}};
+
+        while (!pq.empty()) {
+            auto [t, r, c] = pq.top(); pq.pop();
+            if (r == n-1 && c == n-1) return t;
+            if (t > dist[r][c]) continue;
+            for (auto& d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+                int nt = max(t, grid[nr][nc]);
+                if (nt < dist[nr][nc]) {
+                    dist[nr][nc] = nt;
+                    pq.push({nt, nr, nc});
+                }
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    def swimInWater(grid: list[list[int]]) -> int:
+        n = len(grid)
+        dist = [[float('inf')] * n for _ in range(n)]
+        dist[0][0] = grid[0][0]
+        heap = [(grid[0][0], 0, 0)]  # (max_elev_so_far, row, col)
+        dirs = [(0,1),(0,-1),(1,0),(-1,0)]
+
+        while heap:
+            t, r, c = heapq.heappop(heap)
+            if r == n - 1 and c == n - 1:
+                return t
+            if t > dist[r][c]:
+                continue
+            for dr, dc in dirs:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < n and 0 <= nc < n:
+                    nt = max(t, grid[nr][nc])
+                    if nt < dist[nr][nc]:
+                        dist[nr][nc] = nt
+                        heapq.heappush(heap, (nt, nr, nc))
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int swimInWater(int[][] grid) {
+        int n = grid.length;
+        int[][] dist = new int[n][n];
+        for (int[] row : dist) Arrays.fill(row, Integer.MAX_VALUE);
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{grid[0][0], 0, 0});
+        dist[0][0] = grid[0][0];
+        int[][] dirs = {{0,1},{0,-1},{1,0},{-1,0}};
+
+        while (!pq.isEmpty()) {
+            int[] cur = pq.poll();
+            int t = cur[0], r = cur[1], c = cur[2];
+            if (r == n - 1 && c == n - 1) return t;
+            if (t > dist[r][c]) continue;
+            for (int[] d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+                int nt = Math.max(t, grid[nr][nc]);
+                if (nt < dist[nr][nc]) {
+                    dist[nr][nc] = nt;
+                    pq.offer(new int[]{nt, nr, nc});
+                }
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Code — Union-Find (Kruskal flavor)
+
+```python
+def swimInWater_uf(grid):
+    n = len(grid)
+    cells = sorted((grid[i][j], i, j) for i in range(n) for j in range(n))
+    parent = list(range(n * n))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def unite(x, y):
+        parent[find(x)] = find(y)
+
+    dirs = [(0,1),(0,-1),(1,0),(-1,0)]
+    for t, r, c in cells:
+        for dr, dc in dirs:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] <= t:
+                unite(r * n + c, nr * n + nc)
+        if find(0) == find(n * n - 1):
+            return t
+    return -1
+```
+
+<Callout type="info">
+    The Dijkstra variant treats the problem as "find the path minimizing the maximum elevation" — a min-max path problem. The key insight: instead of accumulating sum along the path, accumulate the running maximum. The priority queue always expands the node reachable with the smallest bottleneck elevation, which is greedy-optimal by the same argument as Dijkstra's (no negative costs, and the bottleneck only increases or stays the same as we go deeper).
+</Callout>
+
+#### Analysis
+
+| Approach | Time | Space |
+| :--- | :--- | :--- |
+| Binary search + BFS | O(n² log n) | O(n²) |
+| Dijkstra (min-max) | O(n² log n) | O(n²) |
+| Union-Find (Kruskal flavor) | O(n² log n) | O(n²) |
+
+All three approaches have the same asymptotic complexity. The Dijkstra variant is the most natural extension of skills from [Day 21](/day21) (Shortest Paths).
+
+#### Same skin
+
+- **Path With Minimum Effort (LC 1631)** — identical structure with `abs(height difference)` as the bottleneck.
+- **Minimum Bottleneck Path** — same min-max path problem in general graphs.
+- **Cheapest Flights Within K Stops** — related but uses sum + constraint, not max bottleneck.
+- **Minimum Spanning Tree** — the MST contains the minimum bottleneck path between every pair of vertices.

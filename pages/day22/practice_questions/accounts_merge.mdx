@@ -1,0 +1,208 @@
+---
+title: "Accounts Merge"
+description: "Union-Find on email strings — group accounts that share any email, then reconstruct merged account lists."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Accounts Merge <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a list of `accounts` where each element `accounts[i]` is a list of strings, where the first element `accounts[i][0]` is a name, and the rest are **emails** representing emails of the account.
+
+Two accounts definitely belong to the same person if there is some common email to both accounts. Note that even if two accounts have the same name, they may belong to different people as people could have the same name. A person can have any number of accounts initially, but all of their accounts definitely have the same name.
+
+Merge all the accounts and return them in the following format: the first element is the name, and the rest of the list are emails in **sorted order**. The accounts themselves can be returned in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    accounts = [["John","johnsmith@mail.com","john_newyork@mail.com"],
+                ["John","johnsmith@mail.com","john00@mail.com"],
+                ["Mary","mary@mail.com"],
+                ["John","johnnybravo@mail.com"]]
+    Output: [["John","john00@mail.com","john_newyork@mail.com","johnsmith@mail.com"],
+             ["Mary","mary@mail.com"],
+             ["John","johnnybravo@mail.com"]]
+
+> Case 2:
+    accounts = [["Gabe","Gabe0@m.co","Gabe3@m.co","Gabe1@m.co"],
+                ["Kevin","Kevin3@m.co","Kevin5@m.co"],
+                ["Ethan","Ethan5@m.co","Ethan4@m.co"],
+                ["Hanzo","Hanzo3@m.co","Hanzo1@m.co","Hanzo0@m.co"],
+                ["Fern","Fern5@m.co","Fern1@m.co","Fern0@m.co"]]
+    Output: [["Ethan","Ethan4@m.co","Ethan5@m.co"],["Gabe","Gabe0@m.co","Gabe1@m.co","Gabe3@m.co"],
+             ["Hanzo","Hanzo0@m.co","Hanzo1@m.co","Hanzo3@m.co"],["Kevin","Kevin3@m.co","Kevin5@m.co"],
+             ["Fern","Fern0@m.co","Fern1@m.co","Fern5@m.co"]]
+```
+
+#### Constraints
+
+- `1 <= accounts.length <= 1000`
+- `2 <= accounts[i].length <= 10`
+- `1 <= accounts[i][j].length <= 30`
+- `accounts[i][0]` consists of English letters.
+- `accounts[i][j] (for j > 0)` is a valid email.
+
+#### State design / Intuition
+
+**Union accounts by shared emails:**
+
+1. Map each email to an account index (`email_to_id`).
+2. For each account, union its index with all previous accounts that share any of its emails.
+3. Group account indices by their root in the union-find.
+4. For each group, collect all emails from all grouped accounts, sort them, and prepend the name.
+
+The union-find merges accounts; the reconstruction step assembles the final output.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> parent, rnk;
+    int find(int x) { return parent[x] == x ? x : parent[x] = find(parent[x]); }
+    void unite(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px == py) return;
+        if (rnk[px] < rnk[py]) swap(px, py);
+        parent[py] = px;
+        if (rnk[px] == rnk[py]) rnk[px]++;
+    }
+
+    vector<vector<string>> accountsMerge(vector<vector<string>>& accounts) {
+        int n = accounts.size();
+        parent.resize(n); rnk.resize(n, 0);
+        iota(parent.begin(), parent.end(), 0);
+
+        unordered_map<string, int> emailToId;
+        for (int i = 0; i < n; i++) {
+            for (int j = 1; j < accounts[i].size(); j++) {
+                const string& email = accounts[i][j];
+                if (emailToId.count(email)) unite(i, emailToId[email]);
+                else emailToId[email] = i;
+            }
+        }
+
+        unordered_map<int, set<string>> groups;
+        for (auto& [email, id] : emailToId)
+            groups[find(id)].insert(email);
+
+        vector<vector<string>> result;
+        for (auto& [root, emails] : groups) {
+            vector<string> acc = {accounts[root][0]};
+            acc.insert(acc.end(), emails.begin(), emails.end());
+            result.push_back(acc);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import defaultdict
+
+    def accountsMerge(accounts: list[list[str]]) -> list[list[str]]:
+        n = len(accounts)
+        parent = list(range(n))
+        rank = [0] * n
+
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def unite(x, y):
+            px, py = find(x), find(y)
+            if px == py:
+                return
+            if rank[px] < rank[py]:
+                px, py = py, px
+            parent[py] = px
+            if rank[px] == rank[py]:
+                rank[px] += 1
+
+        # Map each email to the first account that contains it
+        email_to_id = {}
+        for i, account in enumerate(accounts):
+            for email in account[1:]:
+                if email in email_to_id:
+                    unite(i, email_to_id[email])
+                else:
+                    email_to_id[email] = i
+
+        # Group all emails by their root account
+        groups = defaultdict(set)
+        for email, i in email_to_id.items():
+            groups[find(i)].add(email)
+
+        return [
+            [accounts[root][0]] + sorted(emails)
+            for root, emails in groups.items()
+        ]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] parent, rank;
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+    void unite(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px == py) return;
+        if (rank[px] < rank[py]) { int t = px; px = py; py = t; }
+        parent[py] = px;
+        if (rank[px] == rank[py]) rank[px]++;
+    }
+
+    public List<List<String>> accountsMerge(List<List<String>> accounts) {
+        int n = accounts.size();
+        parent = new int[n]; rank = new int[n];
+        for (int i = 0; i < n; i++) parent[i] = i;
+
+        Map<String, Integer> emailToId = new HashMap<>();
+        for (int i = 0; i < n; i++)
+            for (int j = 1; j < accounts.get(i).size(); j++) {
+                String email = accounts.get(i).get(j);
+                if (emailToId.containsKey(email)) unite(i, emailToId.get(email));
+                else emailToId.put(email, i);
+            }
+
+        Map<Integer, TreeSet<String>> groups = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : emailToId.entrySet())
+            groups.computeIfAbsent(find(entry.getValue()), k -> new TreeSet<>()).add(entry.getKey());
+
+        List<List<String>> result = new ArrayList<>();
+        for (Map.Entry<Integer, TreeSet<String>> entry : groups.entrySet()) {
+            List<String> acc = new ArrayList<>();
+            acc.add(accounts.get(entry.getKey()).get(0));
+            acc.addAll(entry.getValue());
+            result.add(acc);
+        }
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The `email_to_id` map serves two purposes: (1) quickly detecting shared emails between accounts, and (2) storing all emails (as keys) for the reconstruction step. By iterating over `email_to_id` at the end, we naturally visit every unique email exactly once.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n × k × α(n) + E log E) where k = average emails per account and E = total emails. The sort dominates.
+- **Space:** O(n + E).
+
+#### Same skin
+
+- **Most Stones Removed** — union by row/column index instead of email strings.
+- **Redundant Connection** — simpler variant, just detect the redundant edge.
+- **Smallest String With Swaps** — union indices by swap pairs, then sort characters within each component.
+- **Number of Provinces** — same connected component counting.

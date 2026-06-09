@@ -1,0 +1,210 @@
+---
+title: "Advanced MST Patterns"
+description: "Borůvka's algorithm, minimum bottleneck spanning trees, the second-best MST, virtual nodes, and real-world applications of MSTs."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Advanced MST Patterns
+
+The previous two pages covered the two canonical MST algorithms. This page covers the techniques that separate a solid MST foundation from competitive programming fluency: Borůvka's (the parallel-friendly algorithm), the minimum bottleneck problem, finding the second-best MST, and two classic interview tricks (virtual nodes and the offline Kruskal reversal).
+
+## 1. Borůvka's Algorithm
+
+Borůvka's (1926 — older than both Kruskal's and Prim's!) runs in **O(E log V)** and is uniquely suited to parallel computation.
+
+**The idea:** In each phase, every component simultaneously finds its cheapest outgoing edge and adds it. After each phase, the number of components at least halves. So after O(log V) phases, the MST is complete.
+
+```python
+def boruvka(n, edges):
+    parent = list(range(n))
+    rank = [0] * n
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def unite(x, y):
+        px, py = find(x), find(y)
+        if px == py: return False
+        if rank[px] < rank[py]: px, py = py, px
+        parent[py] = px
+        if rank[px] == rank[py]: rank[px] += 1
+        return True
+
+    total = 0
+    num_components = n
+
+    while num_components > 1:
+        # For each component, find cheapest outgoing edge
+        cheapest = [-1] * n
+        for i, (u, v, w) in enumerate(edges):
+            pu, pv = find(u), find(v)
+            if pu == pv: continue
+            if cheapest[pu] == -1 or edges[cheapest[pu]][2] > w:
+                cheapest[pu] = i
+            if cheapest[pv] == -1 or edges[cheapest[pv]][2] > w:
+                cheapest[pv] = i
+
+        for i in range(n):
+            if cheapest[i] != -1:
+                u, v, w = edges[cheapest[i]]
+                if unite(u, v):
+                    total += w
+                    num_components -= 1
+
+    return total
+```
+
+Borůvka's is the algorithm behind **GHK (Gabow-Galil-Spencer-Tarjan) O(E log log V)** and the basis for many parallel/distributed MST algorithms where you want to process edges in chunks.
+
+## 2. Minimum Bottleneck Spanning Tree
+
+A **minimum bottleneck spanning tree** (MBST) minimizes the **maximum edge weight** in the tree (rather than the sum).
+
+> Find a spanning tree where the heaviest edge is as light as possible.
+
+**Key theorem:** Every MST is also an MBST. (The proof: if some MST had maximum edge weight > the MBST's maximum, you could replace that edge to get a cheaper MST — contradicting minimality.)
+
+So running Kruskal's or Prim's gives you both the minimum sum spanning tree *and* the minimum bottleneck spanning tree.
+
+This observation appears in problems about **maximum flow in undirected graphs**: the maximum flow from s to t equals the maximum "bottleneck path" weight, which is determined by the MST path between s and t.
+
+## 3. The Second-Best MST
+
+> Find the spanning tree with the second-smallest total weight.
+
+The second-best MST differs from the MST in **exactly one edge swap**: we remove one MST edge and add one non-MST edge. The best such swap gives the second-best MST.
+
+```python
+def second_mst(n, edges, mst_edges):
+    # For each non-MST edge (u, v, w):
+    # The cycle created contains the path from u to v in the MST.
+    # Find the maximum-weight MST edge on that path.
+    # Swapping that edge for (u, v, w) gives the cost: mst_cost - max_edge + w.
+    # Minimize over all non-MST edges.
+    pass  # Requires LCA + sparse table for path-max queries — O(E log V) total
+```
+
+This is a hard interview problem (LeetCode 1489 is the "find critical and pseudo-critical edges" version). The key insight is that the optimal swap always involves exactly one non-MST edge.
+
+## 4. Virtual node trick
+
+Some problems have an implicit "free" connection from any node to a virtual source. For example:
+
+> You have n houses. You can connect house i to the water system at cost `wells[i]`, or connect house i to house j at cost `pipes[i][j]`. Find the minimum total cost to connect all houses to water.
+
+**Trick:** Add a virtual node 0 representing "the water system." Add an edge from 0 to each house i with weight `wells[i]`. Now the problem is a standard MST on n+1 nodes.
+
+```python
+def min_cost_supply(n, wells, pipes):
+    edges = [(wells[i], 0, i + 1) for i in range(n)]      # virtual connections
+    for house, neighbor, cost in pipes:
+        edges.append((cost, house, neighbor))
+    edges.sort()
+
+    parent = list(range(n + 1))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    total = added = 0
+    for w, u, v in edges:
+        pu, pv = find(u), find(v)
+        if pu != pv:
+            parent[pu] = pv
+            total += w
+            added += 1
+            if added == n: break
+    return total
+```
+
+This pattern appears in LeetCode 1168 (Optimize Water Distribution — premium), and related problems where one "free" connection is available.
+
+## 5. Offline Kruskal reversal (minimum spanning forest with deletions)
+
+Some problems add constraints like "must include edge X in the MST" or "edge X is forbidden." The techniques:
+
+- **Forced edge:** Add the forced edge first (before sorting), then run Kruskal's normally.
+- **Forbidden edge:** Remove it from the edge list and run Kruskal's normally.
+- **Critical edge detection:** Run Kruskal's with and without each edge to see if the MST weight changes.
+
+For "critical and pseudo-critical edges" (LeetCode 1489):
+- An edge is **critical** if removing it increases the MST weight.
+- An edge is **pseudo-critical** if forcing it into the MST doesn't increase the MST weight (but removing it would).
+
+```python
+def find_critical_pseudo_critical(n, edges):
+    edges = [(w, u, v, i) for i, (u, v, w) in enumerate(edges)]
+    edges.sort()
+    base_mst = kruskal_weight(n, edges, skip=-1, force=-1)
+
+    critical, pseudo = [], []
+    for idx in range(len(edges)):
+        # Check critical: MST weight increases when edge idx is skipped
+        if kruskal_weight(n, edges, skip=idx, force=-1) > base_mst:
+            critical.append(edges[idx][3])
+        # Check pseudo-critical: MST weight stays same when edge idx is forced
+        elif kruskal_weight(n, edges, skip=-1, force=idx) == base_mst:
+            pseudo.append(edges[idx][3])
+    return [critical, pseudo]
+```
+
+## 6. MST applications
+
+| Problem domain | MST application |
+| :--- | :--- |
+| **Network design** | Minimum cost to wire all buildings |
+| **Clustering** | Remove k−1 heaviest MST edges → k clusters |
+| **Image segmentation** | Pixels = nodes, color difference = edge weight, MST partitions regions |
+| **Approximation algorithms** | The MST is a 2-approximation for the Travelling Salesman Problem on Euclidean graphs |
+| **Bottleneck path** | Maximum flow on an MST path = maximum bottleneck path in original graph |
+| **Circuit design** | Minimum wire length to connect circuit components |
+
+### Clustering via MST
+
+Remove the k−1 most expensive edges from the MST → k clusters. This is equivalent to finding the k-clustering that maximizes the minimum inter-cluster distance (complete linkage clustering).
+
+```python
+def cluster(n, edges, k):
+    # Build MST via Kruskal, then drop k-1 heaviest edges
+    mst_edges = kruskal_edges(n, edges)       # sorted ascending
+    mst_edges.sort(key=lambda e: e[2])        # sort by weight
+    keep = mst_edges[:n - k]                  # keep n-k edges → k components
+    return connected_components(n, keep)
+```
+
+## Quick check
+
+<QuizBox
+    question="Why is every MST also a minimum bottleneck spanning tree?"
+    options={[
+        "They're not — different objectives",
+        "The cut property ensures the lightest crossing edge is always chosen. If a spanning tree had a lighter maximum edge, its heaviest edge would dominate some cut and could be replaced by a lighter one, producing a cheaper MST — contradicting MST optimality.",
+        "Only true for complete graphs",
+        "Only true when all weights are distinct"
+    ]}
+    correctIndex={1}
+    explanation="Suppose some spanning tree T has a lighter maximum edge than the MST M. Let e = (u,v) be the heaviest edge of M. In T, there's a path from u to v that avoids e (since T is a spanning tree). All edges on that path are lighter than e (since T's maximum is lighter than M's maximum = e). Replacing e in M with any of those lighter path edges gives a spanning tree with smaller total weight — contradicting that M is the MST. So M's maximum edge is ≤ any other spanning tree's maximum edge — M is the MBST."
+/>
+
+<QuizBox
+    question="In the virtual node trick for water distribution, why can we run a standard MST algorithm after adding the virtual node?"
+    options={[
+        "It doesn't work — virtual nodes violate MST assumptions",
+        "The virtual node 0 with edges (wells[i], 0, i) converts 'connect to the system' choices into regular graph edges. The MST of the augmented graph finds the minimum total cost to connect all houses to node 0 (directly or via neighbors), which is exactly the original problem.",
+        "Only valid when wells cost less than pipes",
+        "The virtual node must be the MST root"
+    ]}
+    correctIndex={1}
+    explanation="The virtual node 0 represents 'the water source.' An edge (wells[i], 0, i) means 'connect house i directly to water at cost wells[i].' The MST finds the cheapest way to connect every house to node 0 — either directly or through a chain of pipe connections that eventually reaches node 0. The MST weight equals the minimum total cost of supplying water to all houses."
+/>
+
+Next: **Basic Questions** — warm-ups to cement the MST algorithms before the practice problems.
