@@ -1,3 +1,93 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Component theme tokens ──────────────────────────────────────── */
+/* Used by inline-style React components (QuizBox, ArrayVisualizer, etc.)
+   so they respond to Nextra's dark-class toggle without needing useTheme. */
+
+:root {
+  --comp-surface: #fafafa;
+  --comp-surface-2: #ffffff;
+  --comp-border: #e5e7eb;
+  --comp-border-interactive: #d1d5db;
+  --comp-text: #1f2937;
+  --comp-text-2: #374151;
+  --comp-text-muted: #6b7280;
+  --comp-index-color: #9ca3af;
+  --comp-label-color: #6366f1;
+
+  --comp-selected-bg: #eef2ff;
+  --comp-selected-border: #6366f1;
+  --comp-selected-text: #4338ca;
+
+  --comp-correct-bg: #f0fdf4;
+  --comp-correct-border: #16a34a;
+  --comp-correct-text: #166534;
+
+  --comp-wrong-bg: #fef2f2;
+  --comp-wrong-border: #dc2626;
+  --comp-wrong-text: #991b1b;
+
+  --comp-cell-bg: #f9fafb;
+  --comp-cell-highlight-bg: #eef2ff;
+  --comp-cell-border: #d1d5db;
+  --comp-cell-highlight-border: #6366f1;
+  --comp-cell-text: #374151;
+  --comp-cell-highlight-text: #4338ca;
+
+  --comp-msg-bg: #f0fdf4;
+  --comp-msg-border: #bbf7d0;
+  --comp-msg-text: #166534;
+
+  --comp-input-bg: #ffffff;
+  --comp-input-border: #d1d5db;
+  --comp-input-text: #111827;
+
+  --comp-btn-text: #374151;
+  --comp-btn-border: #d1d5db;
+  --comp-btn-hover-bg: #f3f4f6;
+}
+
+html.dark {
+  --comp-surface: #1e293b;
+  --comp-surface-2: #0f172a;
+  --comp-border: #334155;
+  --comp-border-interactive: #475569;
+  --comp-text: #f1f5f9;
+  --comp-text-2: #e2e8f0;
+  --comp-text-muted: #94a3b8;
+  --comp-index-color: #64748b;
+  --comp-label-color: #818cf8;
+
+  --comp-selected-bg: #1e1b4b;
+  --comp-selected-border: #818cf8;
+  --comp-selected-text: #c7d2fe;
+
+  --comp-correct-bg: #14532d;
+  --comp-correct-border: #22c55e;
+  --comp-correct-text: #bbf7d0;
+
+  --comp-wrong-bg: #7f1d1d;
+  --comp-wrong-border: #f87171;
+  --comp-wrong-text: #fecaca;
+
+  --comp-cell-bg: #1e293b;
+  --comp-cell-highlight-bg: #1e1b4b;
+  --comp-cell-border: #334155;
+  --comp-cell-highlight-border: #818cf8;
+  --comp-cell-text: #e2e8f0;
+  --comp-cell-highlight-text: #c7d2fe;
+
+  --comp-msg-bg: #14532d;
+  --comp-msg-border: #166534;
+  --comp-msg-text: #bbf7d0;
+
+  --comp-input-bg: #0f172a;
+  --comp-input-border: #334155;
+  --comp-input-text: #f1f5f9;
+
+  --comp-btn-text: #e2e8f0;
+  --comp-btn-border: #475569;
+  --comp-btn-hover-bg: #1e293b;
+}

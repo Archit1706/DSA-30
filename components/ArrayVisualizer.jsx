@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
 function ArrayVisualizer({ initialArray = [10, 20, 30, 40, 50], highlightIndices = [], labels = {} }) {
     const [arr, setArr] = useState(initialArray);
@@ -24,7 +24,7 @@ function ArrayVisualizer({ initialArray = [10, 20, 30, 40, 50], highlightIndices
                                 <span style={{
                                     fontSize: "11px",
                                     fontWeight: 600,
-                                    color: "#6366f1",
+                                    color: "var(--comp-label-color)",
                                     fontFamily: "monospace",
                                 }}>
                                     {label}
@@ -37,13 +37,19 @@ function ArrayVisualizer({ initialArray = [10, 20, 30, 40, 50], highlightIndices
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    border: isHighlighted ? "2px solid #6366f1" : "2px solid #d1d5db",
+                                    border: isHighlighted
+                                        ? "2px solid var(--comp-cell-highlight-border)"
+                                        : "2px solid var(--comp-cell-border)",
                                     borderRadius: "6px",
-                                    background: isHighlighted ? "#eef2ff" : "#f9fafb",
+                                    background: isHighlighted
+                                        ? "var(--comp-cell-highlight-bg)"
+                                        : "var(--comp-cell-bg)",
                                     fontFamily: "monospace",
                                     fontWeight: 600,
                                     fontSize: "16px",
-                                    color: isHighlighted ? "#4338ca" : "#374151",
+                                    color: isHighlighted
+                                        ? "var(--comp-cell-highlight-text)"
+                                        : "var(--comp-cell-text)",
                                     transition: "all 0.2s ease",
                                 }}
                             >
@@ -51,7 +57,7 @@ function ArrayVisualizer({ initialArray = [10, 20, 30, 40, 50], highlightIndices
                             </div>
                             <span style={{
                                 fontSize: "11px",
-                                color: "#9ca3af",
+                                color: "var(--comp-index-color)",
                                 fontFamily: "monospace",
                             }}>
                                 [{i}]
@@ -134,22 +140,24 @@ function InteractiveArray() {
 
     const inputStyle = {
         padding: "6px 10px",
-        border: "1px solid #d1d5db",
+        border: "1px solid var(--comp-input-border)",
         borderRadius: "6px",
         width: "80px",
         fontSize: "13px",
         fontFamily: "monospace",
+        background: "var(--comp-input-bg)",
+        color: "var(--comp-input-text)",
     };
 
     return (
         <div style={{
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--comp-border)",
             borderRadius: "10px",
             padding: "20px",
             margin: "16px 0",
-            background: "#fafafa",
+            background: "var(--comp-surface)",
         }}>
-            <div style={{ fontWeight: 600, marginBottom: "12px", fontSize: "14px", color: "#374151" }}>
+            <div style={{ fontWeight: 600, marginBottom: "12px", fontSize: "14px", color: "var(--comp-text-2)" }}>
                 Try it: Interactive Array
             </div>
             <ArrayVisualizer initialArray={arr} highlightIndices={highlighted} />
@@ -197,12 +205,12 @@ function InteractiveArray() {
                 <div style={{
                     marginTop: "10px",
                     padding: "8px 12px",
-                    background: "#f0fdf4",
-                    border: "1px solid #bbf7d0",
+                    background: "var(--comp-msg-bg)",
+                    border: "1px solid var(--comp-msg-border)",
                     borderRadius: "6px",
                     fontSize: "13px",
                     fontFamily: "monospace",
-                    color: "#166534",
+                    color: "var(--comp-msg-text)",
                 }}>
                     {message}
                 </div>

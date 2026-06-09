@@ -21,18 +21,47 @@ function QuizBox({ question, options, correctIndex, explanation }) {
 
     const isCorrect = selected === correctIndex;
 
+    const getOptionStyle = (i) => {
+        if (showResult && i === correctIndex) {
+            return {
+                borderColor: "var(--comp-correct-border)",
+                background: "var(--comp-correct-bg)",
+                color: "var(--comp-correct-text)",
+            };
+        }
+        if (showResult && selected === i && i !== correctIndex) {
+            return {
+                borderColor: "var(--comp-wrong-border)",
+                background: "var(--comp-wrong-bg)",
+                color: "var(--comp-wrong-text)",
+            };
+        }
+        if (selected === i && !showResult) {
+            return {
+                borderColor: "var(--comp-selected-border)",
+                background: "var(--comp-selected-bg)",
+                color: "var(--comp-selected-text)",
+            };
+        }
+        return {
+            borderColor: "var(--comp-border-interactive)",
+            background: "var(--comp-surface-2)",
+            color: "var(--comp-text-2)",
+        };
+    };
+
     return (
         <div style={{
-            border: "1px solid #e5e7eb",
+            border: "1px solid var(--comp-border)",
             borderRadius: "10px",
             padding: "20px",
             margin: "16px 0",
-            background: "#fafafa",
+            background: "var(--comp-surface)",
         }}>
             <div style={{
                 fontWeight: 600,
                 fontSize: "14px",
-                color: "#1f2937",
+                color: "var(--comp-text)",
                 marginBottom: "14px",
                 lineHeight: "1.5",
             }}>
@@ -40,25 +69,7 @@ function QuizBox({ question, options, correctIndex, explanation }) {
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                 {options.map((opt, i) => {
-                    let borderColor = "#d1d5db";
-                    let bg = "white";
-                    let textColor = "#374151";
-
-                    if (selected === i && !showResult) {
-                        borderColor = "#6366f1";
-                        bg = "#eef2ff";
-                    }
-                    if (showResult && i === correctIndex) {
-                        borderColor = "#16a34a";
-                        bg = "#f0fdf4";
-                        textColor = "#166534";
-                    }
-                    if (showResult && selected === i && i !== correctIndex) {
-                        borderColor = "#dc2626";
-                        bg = "#fef2f2";
-                        textColor = "#991b1b";
-                    }
-
+                    const optStyle = getOptionStyle(i);
                     return (
                         <button
                             key={i}
@@ -68,12 +79,12 @@ function QuizBox({ question, options, correctIndex, explanation }) {
                                 alignItems: "center",
                                 gap: "10px",
                                 padding: "10px 14px",
-                                border: `2px solid ${borderColor}`,
+                                border: `2px solid ${optStyle.borderColor}`,
                                 borderRadius: "8px",
-                                background: bg,
+                                background: optStyle.background,
                                 cursor: showResult ? "default" : "pointer",
                                 fontSize: "14px",
-                                color: textColor,
+                                color: optStyle.color,
                                 textAlign: "left",
                                 fontFamily: "inherit",
                                 transition: "all 0.15s ease",
@@ -84,14 +95,15 @@ function QuizBox({ question, options, correctIndex, explanation }) {
                                 width: "24px",
                                 height: "24px",
                                 borderRadius: "50%",
-                                border: `2px solid ${borderColor}`,
+                                border: `2px solid ${optStyle.borderColor}`,
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 fontSize: "12px",
                                 fontWeight: 600,
                                 flexShrink: 0,
-                                background: selected === i ? (showResult ? bg : "#eef2ff") : "white",
+                                background: selected === i ? optStyle.background : "var(--comp-surface-2)",
+                                color: optStyle.color,
                             }}>
                                 {String.fromCharCode(65 + i)}
                             </span>
@@ -109,7 +121,7 @@ function QuizBox({ question, options, correctIndex, explanation }) {
                             padding: "8px 20px",
                             border: "none",
                             borderRadius: "6px",
-                            background: selected === null ? "#d1d5db" : "#4f46e5",
+                            background: selected === null ? "var(--comp-border-interactive)" : "#4f46e5",
                             color: "white",
                             cursor: selected === null ? "not-allowed" : "pointer",
                             fontWeight: 500,
@@ -125,7 +137,7 @@ function QuizBox({ question, options, correctIndex, explanation }) {
                             padding: "8px 20px",
                             border: "none",
                             borderRadius: "6px",
-                            background: "#6b7280",
+                            background: "var(--comp-text-muted)",
                             color: "white",
                             cursor: "pointer",
                             fontWeight: 500,
@@ -141,11 +153,11 @@ function QuizBox({ question, options, correctIndex, explanation }) {
                     marginTop: "12px",
                     padding: "12px 14px",
                     borderRadius: "8px",
-                    background: isCorrect ? "#f0fdf4" : "#fef2f2",
-                    border: `1px solid ${isCorrect ? "#bbf7d0" : "#fecaca"}`,
+                    background: isCorrect ? "var(--comp-correct-bg)" : "var(--comp-wrong-bg)",
+                    border: `1px solid ${isCorrect ? "var(--comp-correct-border)" : "var(--comp-wrong-border)"}`,
                     fontSize: "13px",
                     lineHeight: "1.6",
-                    color: isCorrect ? "#166534" : "#991b1b",
+                    color: isCorrect ? "var(--comp-correct-text)" : "var(--comp-wrong-text)",
                 }}>
                     <strong>{isCorrect ? "Correct!" : "Not quite."}</strong>{" "}
                     {explanation}
