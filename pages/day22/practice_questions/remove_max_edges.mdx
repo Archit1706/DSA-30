@@ -1,0 +1,202 @@
+---
+title: "Remove Max Number of Edges to Keep Graph Fully Traversable"
+description: "Dual Union-Find — maximize removed edges while keeping Alice and Bob each able to traverse the full graph."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Remove Max Number of Edges to Keep Graph Fully Traversable <DifficultyBadge level="hard" />
+
+#### Description
+
+Alice and Bob have an undirected graph of `n` nodes and three types of edges:
+
+- Type 1: Can be traversed by Alice only.
+- Type 2: Can be traversed by Bob only.
+- Type 3: Can be traversed by both Alice and Bob.
+
+Given an array `edges` where `edges[i] = [typei, ui, vi]` represents a bidirectional edge of type `typei` between nodes `ui` and `vi`, find the **maximum number of edges you can remove** so that after the removal, the graph can still be fully traversed by both Alice and Bob.
+
+Return the maximum number of edges removed, or return `-1` if the graph cannot be fully traversed by both.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 4, edges = [[3,1,2],[3,2,3],[1,1,3],[1,2,4],[1,1,2],[2,3,4]]
+    Output: 2
+
+> Case 2:
+    n = 4, edges = [[3,1,2],[3,2,3],[1,1,4],[2,1,4]]
+    Output: 0
+
+> Case 3:
+    n = 4, edges = [[3,1,2],[3,2,3],[1,2,3],[2,2,3]]
+    Output: -1
+```
+
+#### Constraints
+
+- `1 <= n <= 10^5`
+- `1 <= edges.length <= min(10^5, 3 × n × (n-1) / 2)`
+- `edges[i].length == 3`
+- `1 <= typei <= 3`
+- `1 <= ui < vi <= n`
+
+#### State design / Intuition
+
+**Minimize edges kept = maximize edges removed.**
+
+To keep the graph fully traversable for both Alice and Bob, we need Alice's edges (type 1 + type 3) to form a spanning tree, and Bob's edges (type 2 + type 3) to form a spanning tree.
+
+**Key insight:** Use **two separate Union-Find structures** — one for Alice, one for Bob. Process **type 3 edges first** (shared edges) because they're more valuable — a type 3 edge counts toward both spanning trees simultaneously.
+
+Algorithm:
+1. Process all type 3 edges first: add to **both** Alice's and Bob's union-find. An edge is useful if it connects two previously disconnected components in at least one of them. If it doesn't help either, remove it.
+2. Process type 1 edges (Alice only): add to Alice's union-find. If redundant, remove.
+3. Process type 2 edges (Bob only): add to Bob's union-find. If redundant, remove.
+4. Check both union-finds have exactly 1 component. If not, return -1.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct UF {
+        vector<int> p, r;
+        int comps;
+        UF(int n) : p(n+1), r(n+1,0), comps(n) { iota(p.begin(),p.end(),0); }
+        int find(int x) { return p[x]==x ? x : p[x]=find(p[x]); }
+        bool unite(int x, int y) {
+            int px=find(x), py=find(y);
+            if(px==py) return false;
+            if(r[px]<r[py]) swap(px,py);
+            p[py]=px; if(r[px]==r[py]) r[px]++;
+            comps--; return true;
+        }
+    };
+
+    int maxNumEdgesToRemove(int n, vector<vector<int>>& edges) {
+        UF alice(n), bob(n);
+        int removed = 0;
+        // Type 3 first
+        for (auto& e : edges) if (e[0] == 3) {
+            bool a = alice.unite(e[1], e[2]);
+            bool b = bob.unite(e[1], e[2]);
+            if (!a && !b) removed++;
+        }
+        // Type 1 (Alice)
+        for (auto& e : edges) if (e[0] == 1)
+            if (!alice.unite(e[1], e[2])) removed++;
+        // Type 2 (Bob)
+        for (auto& e : edges) if (e[0] == 2)
+            if (!bob.unite(e[1], e[2])) removed++;
+
+        return (alice.comps == 1 && bob.comps == 1) ? removed : -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class UF:
+        def __init__(self, n):
+            self.parent = list(range(n + 1))
+            self.rank = [0] * (n + 1)
+            self.comps = n
+
+        def find(self, x):
+            if self.parent[x] != x:
+                self.parent[x] = self.find(self.parent[x])
+            return self.parent[x]
+
+        def unite(self, x, y):
+            px, py = self.find(x), self.find(y)
+            if px == py:
+                return False
+            if self.rank[px] < self.rank[py]:
+                px, py = py, px
+            self.parent[py] = px
+            if self.rank[px] == self.rank[py]:
+                self.rank[px] += 1
+            self.comps -= 1
+            return True
+
+    def maxNumEdgesToRemove(n: int, edges: list[list[int]]) -> int:
+        alice, bob = UF(n), UF(n)
+        removed = 0
+
+        for t, u, v in edges:
+            if t == 3:
+                a = alice.unite(u, v)
+                b = bob.unite(u, v)
+                if not a and not b:
+                    removed += 1
+
+        for t, u, v in edges:
+            if t == 1:
+                if not alice.unite(u, v):
+                    removed += 1
+            elif t == 2:
+                if not bob.unite(u, v):
+                    removed += 1
+
+        return removed if alice.comps == 1 and bob.comps == 1 else -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] pA, rA, pB, rB;
+    int cA, cB;
+
+    int find(int[] p, int x) {
+        if (p[x] != x) p[x] = find(p, p[x]);
+        return p[x];
+    }
+    boolean unite(int[] p, int[] r, int x, int y, boolean isAlice) {
+        int px = find(p, x), py = find(p, y);
+        if (px == py) return false;
+        if (r[px] < r[py]) { int t = px; px = py; py = t; }
+        p[py] = px;
+        if (r[px] == r[py]) r[px]++;
+        if (isAlice) cA--; else cB--;
+        return true;
+    }
+
+    public int maxNumEdgesToRemove(int n, int[][] edges) {
+        pA = new int[n+1]; pB = new int[n+1];
+        rA = new int[n+1]; rB = new int[n+1];
+        for (int i = 0; i <= n; i++) { pA[i] = i; pB[i] = i; }
+        cA = cB = n;
+        int removed = 0;
+        for (int[] e : edges) if (e[0] == 3) {
+            boolean a = unite(pA, rA, e[1], e[2], true);
+            boolean b = unite(pB, rB, e[1], e[2], false);
+            if (!a && !b) removed++;
+        }
+        for (int[] e : edges) {
+            if (e[0] == 1 && !unite(pA, rA, e[1], e[2], true)) removed++;
+            if (e[0] == 2 && !unite(pB, rB, e[1], e[2], false)) removed++;
+        }
+        return (cA == 1 && cB == 1) ? removed : -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why process type 3 edges first?** A type 3 edge can help Alice and Bob simultaneously. If we process type 1/2 edges first and "use up" connectivity slots, we might later process a type 3 edge that only helps one of them — forcing us to keep an extra edge. Processing shared edges first maximizes their dual contribution and minimizes the total kept.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(E α(V)) ≈ O(E).
+- **Space:** O(V) for two union-find structures.
+
+#### Same skin
+
+- **Redundant Connection** — single union-find version.
+- **Find Critical Edges** — vary which edges are forced or skipped.
+- **Optimize Water Distribution** — single union-find with a virtual node.
+- **Satisfiability of Equality Equations** — union-find with type-based edge processing.

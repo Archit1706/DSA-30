@@ -1,0 +1,135 @@
+---
+title: "Introduction to Minimum Spanning Trees"
+description: "Spanning trees, MST definition, the cut and cycle properties — the mathematical foundation that proves both greedy algorithms correct."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Introduction to Minimum Spanning Trees
+
+## What is a spanning tree?
+
+Given a connected, undirected graph G = (V, E), a **spanning tree** T is a subgraph that:
+
+1. **Spans** — includes every vertex in V.
+2. **Is a tree** — connected and acyclic.
+
+A tree on n vertices has exactly **n − 1 edges**. That's not a coincidence — it's a theorem. Adding any edge to a spanning tree creates a cycle; removing any edge disconnects it.
+
+<GraphVisualizer
+    nodes={["A","B","C","D","E"]}
+    edges={[["A","B"],["A","C"],["B","D"],["C","E"]]}
+    title="A spanning tree of 5 nodes — 4 edges, no cycles, all vertices connected"
+    highlightEdges={[["A","B"],["A","C"],["B","D"],["C","E"]]}
+/>
+
+A graph can have many different spanning trees. For example, a complete graph on 4 vertices (K₄) has **16 different spanning trees**. The question "which spanning tree is cheapest?" only makes sense when edges have weights.
+
+## The MST problem
+
+Given a connected, weighted, undirected graph G = (V, E, w) where w(e) is the weight of edge e:
+
+> Find a spanning tree T ⊆ E such that the total weight `∑ w(e)` for e in T is minimized.
+
+This tree is the **minimum spanning tree**. If all edge weights are distinct, the MST is **unique**. If some edges have equal weight, there may be multiple MSTs with the same total cost.
+
+### How many edges does an MST have?
+
+Exactly **n − 1** where n = |V|. This is a structural fact about trees, independent of weights.
+
+## The cut property — why greedy works
+
+A **cut** is a partition of the vertices into two non-empty sets S and V − S. A **crossing edge** is any edge with one endpoint in S and the other in V − S.
+
+**Cut Property:** Let S be any subset of vertices, and let e be the **minimum-weight crossing edge** for the cut (S, V − S). Then e belongs to *every* MST.
+
+<Callout type="info">
+    This is the single most important theorem in the chapter. It says: **for any cut you draw across the graph, the lightest edge crossing that cut is guaranteed to be in the MST**. Both Kruskal's and Prim's use this fact — they just choose different cuts to exploit.
+</Callout>
+
+**Proof sketch:** Suppose e = (u, v) is the lightest crossing edge but some MST T doesn't include e. Add e to T — this creates a cycle C (since T is already spanning). The cycle C must cross the cut at least twice (entering and exiting S), so there exists another crossing edge e' in C (and in T). Since e is the lightest crossing edge, w(e) ≤ w(e'). Replace e' with e in T: the result is still a spanning tree, and its total weight is no more than T's weight. Contradiction — T was not minimum if e' ≠ e.
+
+### How Kruskal's uses the cut property
+
+When Kruskal's considers adding edge e = (u, v):
+
+- The two **connected components** containing u and v (tracked by Union Find) form a natural cut: S = component containing u, V − S = everything else.
+- e is the lightest edge crossing this cut (because Kruskal's processes edges in sorted order, and no cheaper edge has connected these components yet).
+- By the cut property, e is safe to add.
+
+### How Prim's uses the cut property
+
+At each step of Prim's, the partially built tree T and the remaining vertices V − T form a cut:
+
+- S = vertices already in T, V − S = not yet in T.
+- Prim's always adds the cheapest edge crossing this cut.
+- By the cut property, that edge is safe.
+
+## The cycle property — the dual view
+
+**Cycle Property:** For any cycle C in G, the **maximum-weight edge** in C is *not* in any MST (assuming distinct edge weights).
+
+**Proof:** If the heaviest edge e in cycle C were in some MST T, remove it — T splits into two components. But since C contains e, there exists another path through C connecting those two components, using only lighter edges. Replacing e with any of those lighter edges produces a spanning tree with smaller total weight — contradicting that T is an MST.
+
+The cycle property gives us another perspective: **Kruskal's algorithm is also a cycle-avoidance strategy**. When it rejects an edge, it's because adding it would form a cycle and — by the cycle property — that edge is the heaviest in that cycle, so it's safely excluded.
+
+## MST vs shortest paths
+
+A common confusion: the MST minimizes total edge weight, not path length between vertices.
+
+| Goal | Algorithm |
+| :--- | :--- |
+| Connect all vertices with minimum total wire | MST (Kruskal / Prim) |
+| Shortest path from one source to all others | Dijkstra |
+| Shortest path between all pairs | Floyd-Warshall |
+| Minimum bottleneck path | Modified Dijkstra / MST |
+
+The MST of a graph is **not** a shortest-path tree (except in degenerate cases). Don't conflate them.
+
+## Uniqueness
+
+An MST is **unique** if and only if all edge weights are distinct. When edge weights may be equal, there can be multiple MSTs all with the same total cost.
+
+For problems that ask for "the MST weight" (not the tree itself), all MSTs give the same answer. For problems asking about specific edges (are they always in the MST? sometimes? never?), the non-unique case matters — see [Find Critical and Pseudo-Critical Edges](/day22/practice_questions/find_critical_pseudo_critical_edges).
+
+## The weight-uniqueness trick
+
+When an MST algorithm needs to break ties and you want uniqueness, add a tiny perturbation: replace weight `w` with `(w, index)` and compare lexicographically. This makes all edge weights distinct without changing which MST is optimal for the original weights.
+
+## Quick check
+
+<QuizBox
+    question="A spanning tree of a graph with 8 vertices always has exactly how many edges?"
+    options={["6","7","8","Depends on the graph"]}
+    correctIndex={1}
+    explanation="A tree on n vertices has exactly n − 1 edges, regardless of the original graph's structure. This is a fundamental property of trees: connected + acyclic implies exactly n − 1 edges. For 8 vertices, that's always 7 edges."
+/>
+
+<QuizBox
+    question="The cut property says the minimum-weight crossing edge for any cut is in every MST. What makes this a 'greedy' justification?"
+    options={[
+        "It doesn't — greedy can't be optimal here",
+        "It says that at each step of the MST construction, choosing the locally cheapest safe edge is globally optimal — you never need to backtrack or reconsider that choice",
+        "It only applies when edge weights are distinct",
+        "It applies only to Kruskal's, not Prim's"
+    ]}
+    correctIndex={1}
+    explanation="Greedy algorithms make the locally optimal choice at each step and never reconsider. The cut property justifies this for MSTs: any minimum crossing edge you add will be in some MST. You never need to undo the choice. This is what makes both Kruskal's and Prim's — two different greedy strategies — provably correct."
+/>
+
+<QuizBox
+    question="Can a minimum spanning tree and a shortest-path tree from a source vertex be the same tree?"
+    options={[
+        "Never",
+        "Yes — on some graphs they coincide, but they solve different problems and will generally differ",
+        "Always on complete graphs",
+        "Only when all edge weights are equal"
+    ]}
+    correctIndex={1}
+    explanation="Yes, they can coincide. For example, on a simple path graph A-B-C-D, any spanning tree IS a path, and the MST and the shortest-path tree from A are the same. But in general they differ: the MST minimizes total edge weight across all connections; the shortest-path tree minimizes distance from one source. They optimize different objectives."
+/>
+
+Next: **Kruskal's algorithm** — the sort-and-union-find approach with a full implementation and the amortized complexity analysis.

@@ -1,0 +1,295 @@
+---
+title: "Basic MST Questions"
+description: "Six warm-up exercises — Union-Find from scratch, manual Kruskal trace, Prim's step-by-step, count components, detect cycles, and minimum cost spanning."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic MST Questions
+
+Six warm-ups. The first three exercises build the data structures you'll rely on in all MST problems; the last three are direct algorithm applications.
+
+<Steps>
+
+### 1. Union-Find from scratch
+
+> Implement a Union-Find (disjoint-set) data structure with path compression and union by rank. Support `find(x)` and `unite(x, y)`.
+
+This is the backbone of Kruskal's algorithm. Write it from memory before every MST problem.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct UnionFind {
+        vector<int> parent, rank;
+        int components;
+
+        UnionFind(int n) : parent(n), rank(n, 0), components(n) {
+            iota(parent.begin(), parent.end(), 0);
+        }
+
+        int find(int x) {
+            if (parent[x] != x) parent[x] = find(parent[x]);
+            return parent[x];
+        }
+
+        bool unite(int x, int y) {
+            int px = find(x), py = find(y);
+            if (px == py) return false;
+            if (rank[px] < rank[py]) swap(px, py);
+            parent[py] = px;
+            if (rank[px] == rank[py]) rank[px]++;
+            components--;
+            return true;
+        }
+
+        bool connected(int x, int y) { return find(x) == find(y); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class UnionFind:
+        def __init__(self, n):
+            self.parent = list(range(n))
+            self.rank = [0] * n
+            self.components = n
+
+        def find(self, x):
+            if self.parent[x] != x:
+                self.parent[x] = self.find(self.parent[x])
+            return self.parent[x]
+
+        def unite(self, x, y):
+            px, py = self.find(x), self.find(y)
+            if px == py:
+                return False
+            if self.rank[px] < self.rank[py]:
+                px, py = py, px
+            self.parent[py] = px
+            if self.rank[px] == self.rank[py]:
+                self.rank[px] += 1
+            self.components -= 1
+            return True
+
+        def connected(self, x, y):
+            return self.find(x) == self.find(y)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class UnionFind {
+        int[] parent, rank;
+        int components;
+
+        UnionFind(int n) {
+            parent = new int[n];
+            rank = new int[n];
+            components = n;
+            for (int i = 0; i < n; i++) parent[i] = i;
+        }
+
+        int find(int x) {
+            if (parent[x] != x) parent[x] = find(parent[x]);
+            return parent[x];
+        }
+
+        boolean unite(int x, int y) {
+            int px = find(x), py = find(y);
+            if (px == py) return false;
+            if (rank[px] < rank[py]) { int t = px; px = py; py = t; }
+            parent[py] = px;
+            if (rank[px] == rank[py]) rank[px]++;
+            components--;
+            return true;
+        }
+
+        boolean connected(int x, int y) { return find(x) == find(y); }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `find` and `unite` both run in O(α(n)) ≈ O(1). **Space:** O(n).
+
+### 2. Count connected components
+
+> Given `n` nodes and a list of edges, return the number of connected components.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int countComponents(int n, vector<vector<int>>& edges) {
+        UnionFind uf(n);
+        for (auto& e : edges) uf.unite(e[0], e[1]);
+        return uf.components;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def count_components(n, edges):
+        uf = UnionFind(n)
+        for u, v in edges:
+            uf.unite(u, v)
+        return uf.components
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int countComponents(int n, int[][] edges) {
+        UnionFind uf = new UnionFind(n);
+        for (int[] e : edges) uf.unite(e[0], e[1]);
+        return uf.components;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(E α(V)) ≈ O(E). **Space:** O(V).
+
+### 3. Detect cycle in undirected graph
+
+> Given an undirected graph, return true if it contains a cycle.
+
+With Union-Find: adding an edge (u, v) creates a cycle iff `find(u) == find(v)`.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    bool hasCycle(int n, vector<vector<int>>& edges) {
+        UnionFind uf(n);
+        for (auto& e : edges) {
+            if (!uf.unite(e[0], e[1])) return true;  // already connected
+        }
+        return false;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def has_cycle(n, edges):
+        uf = UnionFind(n)
+        for u, v in edges:
+            if not uf.unite(u, v):
+                return True    # u and v already in same component
+        return False
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    boolean hasCycle(int n, int[][] edges) {
+        UnionFind uf = new UnionFind(n);
+        for (int[] e : edges)
+            if (!uf.unite(e[0], e[1])) return true;
+        return false;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** O(E α(V)). Same as Union-Find operations.
+
+### 4. Manual Kruskal trace
+
+> Trace Kruskal's on the graph: 4 nodes, edges `{(A,B,3), (A,C,1), (B,C,4), (B,D,2), (C,D,5)}`. Write the MST edges in order added.
+
+Work through it:
+
+1. Sort: (A,C,1), (B,D,2), (A,B,3), (B,C,4), (C,D,5)
+2. Add (A,C,1) — no cycle. MST: `[AC]`
+3. Add (B,D,2) — no cycle (B and D disconnected). MST: `[AC, BD]`
+4. Add (A,B,3) — A is in component `[A,C]`, B is in `[B,D]` — no cycle. MST: `[AC, BD, AB]`
+5. (B,C,4) — B and C now connected via A. Skip.
+6. (C,D,5) — C and D now connected via A-B-D. Skip.
+
+MST: `[AC, BD, AB]`, total weight = 1 + 2 + 3 = **6**.
+
+```python
+edges = [(1,"A","C"),(2,"B","D"),(3,"A","B"),(4,"B","C"),(5,"C","D")]
+# After Kruskal's: total = 6
+```
+
+### 5. MST minimum cost
+
+> Implement a complete `mst_cost(n, edges)` function that returns the minimum spanning tree weight, or -1 if the graph is not connected.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def mst_cost(n, edges):
+        # edges: list of [u, v, weight]
+        edges.sort(key=lambda e: e[2])
+        uf = UnionFind(n)
+        total = added = 0
+        for u, v, w in edges:
+            if uf.unite(u, v):
+                total += w
+                added += 1
+                if added == n - 1:
+                    return total
+        return -1   # graph not fully connected
+    ```
+    </Tab>
+</Tabs>
+
+Test cases:
+```python
+# Connected graph
+mst_cost(4, [[0,1,1],[0,2,4],[1,2,2],[1,3,6],[2,3,3]])  # → 1+2+3 = 6
+
+# Disconnected graph
+mst_cost(3, [[0,1,1]])  # → -1 (node 2 unreachable)
+```
+
+### 6. Check if adding an edge would create a cycle
+
+> Given a partially built spanning tree (list of edges) and a new edge (u, v), determine if adding (u, v) would create a cycle. O(V) time.
+
+Simple Union-Find application: build the union-find from existing edges, then check `find(u) == find(v)`.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def would_create_cycle(n, tree_edges, new_u, new_v):
+        uf = UnionFind(n)
+        for u, v in tree_edges:
+            uf.unite(u, v)
+        return uf.find(new_u) == uf.find(new_v)
+    ```
+    </Tab>
+</Tabs>
+
+This is exactly the check Kruskal's performs for each candidate edge.
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="Path compression in Union-Find's 'find' makes each subsequent find faster. What does 'path compression' actually do?"
+    options={[
+        "Deletes intermediate nodes",
+        "After find(x) returns the root r, sets parent[x] = r (and all ancestors on the path too). Future finds on x go directly to the root in O(1) instead of traversing the whole path.",
+        "Sorts the tree by rank",
+        "Splits long chains into balanced trees"
+    ]}
+    correctIndex={1}
+    explanation="Path compression is a simple optimization: on the way back up from find(x), set each node's parent pointer directly to the root. Next time find is called on any node on that path, it takes O(1). Combined with union by rank, the amortized cost per operation drops to O(α(n)) — effectively constant."
+/>
+
+<QuizBox
+    question="After running Kruskal's on a disconnected graph with k components, what does the result look like?"
+    options={[
+        "Returns -1 always",
+        "Produces k separate spanning trees — one per connected component — together forming a minimum spanning forest. The total edges added = n - k (not n - 1).",
+        "Kruskal's fails on disconnected graphs",
+        "Adds extra zero-weight edges to connect components"
+    ]}
+    correctIndex={1}
+    explanation="Kruskal's processes edges and skips any that would form a cycle. On a disconnected graph, some components can never be connected, so the final number of edges added is n - k where k is the number of components. The result is k trees — a minimum spanning forest. The check 'added == n - 1' at the end tells you whether the graph was connected."
+/>
+
+Next: **the eight practice problems** — every MST technique from the chapter applied to classic interview questions.

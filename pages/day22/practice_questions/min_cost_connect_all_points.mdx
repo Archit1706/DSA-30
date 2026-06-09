@@ -1,0 +1,184 @@
+---
+title: "Min Cost to Connect All Points"
+description: "Prim's dense O(V²) or Kruskal on Manhattan distances — the classic geometric MST problem."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Min Cost to Connect All Points <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given an array `points` representing integer coordinates of some points on a 2D plane, where `points[i] = [xi, yi]`.
+
+The cost of connecting two points `[xi, yi]` and `[xj, yj]` is the **Manhattan distance** between them: `|xi - xj| + |yi - yj|`.
+
+Return the **minimum cost** to make all points connected. All points will be connected if there is exactly one simple path between any two points.
+
+#### Examples
+
+```py
+> Case 1:
+    points = [[0,0],[2,2],[3,10],[5,2],[7,0]]
+    Output: 20
+
+> Case 2:
+    points = [[3,12],[-2,5],[-4,1]]
+    Output: 18
+```
+
+#### Constraints
+
+- `1 <= points.length <= 1000`
+- `-10^6 <= xi, yi <= 10^6`
+- All pairs of points are distinct.
+
+#### State design / Intuition
+
+This is a pure MST problem on a **complete graph** where edge weight = Manhattan distance between every pair. With n ≤ 1000, the complete graph has up to n(n-1)/2 ≈ 500,000 edges — Kruskal's with sorting all edges works (O(n² log n)) but **Prim's dense O(n²) variant is cleaner** and faster by a log factor.
+
+**Prim's dense approach:**
+- Maintain `key[v]` = the minimum distance from v to the current tree.
+- At each step, pick the unvisited vertex with the smallest key.
+- Update neighbors' keys with the distance to the newly added vertex.
+
+No need to explicitly store all edges — distances are computed on the fly.
+
+#### Code — Prim's O(n²)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int minCostConnectPoints(vector<vector<int>>& pts) {
+        int n = pts.size();
+        auto dist = [&](int i, int j) {
+            return abs(pts[i][0] - pts[j][0]) + abs(pts[i][1] - pts[j][1]);
+        };
+
+        vector<int> key(n, INT_MAX);
+        vector<bool> inTree(n, false);
+        key[0] = 0;
+        int total = 0;
+
+        for (int iter = 0; iter < n; iter++) {
+            // Pick vertex with minimum key not yet in tree
+            int u = -1;
+            for (int v = 0; v < n; v++)
+                if (!inTree[v] && (u == -1 || key[v] < key[u])) u = v;
+
+            inTree[u] = true;
+            total += key[u];
+
+            // Update keys of u's neighbors
+            for (int v = 0; v < n; v++)
+                if (!inTree[v])
+                    key[v] = min(key[v], dist(u, v));
+        }
+        return total;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def minCostConnectPoints(points: list[list[int]]) -> int:
+        n = len(points)
+
+        def dist(i, j):
+            return abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
+
+        key = [float('inf')] * n
+        in_tree = [False] * n
+        key[0] = 0
+        total = 0
+
+        for _ in range(n):
+            # Pick min-key vertex not in tree
+            u = min((i for i in range(n) if not in_tree[i]), key=lambda i: key[i])
+            in_tree[u] = True
+            total += key[u]
+            for v in range(n):
+                if not in_tree[v]:
+                    key[v] = min(key[v], dist(u, v))
+
+        return total
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int minCostConnectPoints(int[][] pts) {
+        int n = pts.length;
+        int[] key = new int[n];
+        boolean[] inTree = new boolean[n];
+        Arrays.fill(key, Integer.MAX_VALUE);
+        key[0] = 0;
+        int total = 0;
+
+        for (int iter = 0; iter < n; iter++) {
+            int u = -1;
+            for (int v = 0; v < n; v++)
+                if (!inTree[v] && (u == -1 || key[v] < key[u])) u = v;
+
+            inTree[u] = true;
+            total += key[u];
+
+            for (int v = 0; v < n; v++) {
+                if (!inTree[v]) {
+                    int d = Math.abs(pts[u][0] - pts[v][0]) + Math.abs(pts[u][1] - pts[v][1]);
+                    if (d < key[v]) key[v] = d;
+                }
+            }
+        }
+        return total;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Code — Kruskal's O(n² log n)
+
+For reference — works but slower:
+
+```python
+def minCostConnectPoints_kruskal(points):
+    n = len(points)
+    edges = []
+    for i in range(n):
+        for j in range(i + 1, n):
+            d = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
+            edges.append((d, i, j))
+    edges.sort()
+
+    parent = list(range(n))
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    total = added = 0
+    for d, u, v in edges:
+        pu, pv = find(u), find(v)
+        if pu != pv:
+            parent[pu] = pv
+            total += d
+            added += 1
+            if added == n - 1: break
+    return total
+```
+
+#### Analysis
+
+| Approach | Time | Space |
+| :--- | :--- | :--- |
+| Prim's dense | O(n²) | O(n) |
+| Kruskal's | O(n² log n) | O(n²) for edge list |
+
+For n ≤ 1000, both pass. Prim's is preferred since it avoids allocating and sorting O(n²) edges.
+
+#### Same skin
+
+- **Euclidean MST** — same structure with `sqrt((dx)² + (dy)²)` instead of Manhattan distance.
+- **Minimum cost to connect islands** — BFS/DFS to find island cells, then MST on island centroids.
+- **Clustering k groups** — run Prim's MST, then remove the k−1 heaviest edges.

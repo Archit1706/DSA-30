@@ -1,0 +1,149 @@
+---
+title: "Most Stones Removed with Same Row or Column"
+description: "Union-Find on row and column indices — count connected components, then stones - components = max removable."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Most Stones Removed with Same Row or Column <DifficultyBadge level="medium" />
+
+#### Description
+
+On a 2D plane, we place `n` stones at some integer coordinate points. Each coordinate point may have at most one stone.
+
+A stone can be removed if it shares either the **same row** or the **same column** as another stone that has not been removed.
+
+Return the **largest possible number of stones that can be removed**.
+
+#### Examples
+
+```py
+> Case 1:
+    stones = [[0,0],[0,1],[1,0],[1,2],[2,1],[2,2]]
+    Output: 5
+
+> Case 2:
+    stones = [[0,0],[0,2],[1,1],[2,0],[2,2]]
+    Output: 3
+
+> Case 3:
+    stones = [[0,0]]
+    Output: 0
+```
+
+#### Constraints
+
+- `1 <= stones.length <= 1000`
+- `0 <= xi, yi <= 10^4`
+- No two stones are at the same coordinate point.
+
+#### State design / Intuition
+
+**Key insight:** All stones in the same connected component can be reduced to exactly one (the last remaining stone). So the answer is `n − (number of connected components)`.
+
+Two stones are "connected" if they share a row or column. Transitivity means if A shares a row with B, and B shares a column with C, then A, B, C are in the same component — even if A and C share nothing.
+
+**Union-Find trick:** Union stones by row and column. We can treat rows and columns as nodes in the union-find. A stone at (r, c) connects row r to column c. To avoid index collision between rows and columns, offset columns by a fixed amount (e.g., `col + 10001`).
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    unordered_map<int,int> parent;
+
+    int find(int x) {
+        if (!parent.count(x)) parent[x] = x;
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+
+    void unite(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px != py) parent[px] = py;
+    }
+
+    int removeStones(vector<vector<int>>& stones) {
+        for (auto& s : stones)
+            unite(s[0], s[1] + 10001);   // row and col+offset into same space
+
+        unordered_set<int> roots;
+        for (auto& s : stones)
+            roots.insert(find(s[0]));
+
+        return stones.size() - roots.size();
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def removeStones(stones: list[list[int]]) -> int:
+        parent = {}
+
+        def find(x):
+            if x not in parent:
+                parent[x] = x
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def unite(x, y):
+            parent[find(x)] = find(y)
+
+        for r, c in stones:
+            unite(r, c + 10001)   # offset columns to avoid collision with row indices
+
+        # Count unique roots among stone positions
+        roots = {find(r) for r, c in stones}
+        return len(stones) - len(roots)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    Map<Integer,Integer> parent = new HashMap<>();
+
+    int find(int x) {
+        parent.putIfAbsent(x, x);
+        if (!parent.get(x).equals(x))
+            parent.put(x, find(parent.get(x)));
+        return parent.get(x);
+    }
+
+    void unite(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px != py) parent.put(px, py);
+    }
+
+    public int removeStones(int[][] stones) {
+        for (int[] s : stones)
+            unite(s[0], s[1] + 10001);
+
+        Set<Integer> roots = new HashSet<>();
+        for (int[] s : stones)
+            roots.add(find(s[0]));
+
+        return stones.length - roots.size();
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    The `+ 10001` offset maps column indices into a disjoint range from row indices (rows: 0–10000, cols: 10001–20001). Without this, row 5 and column 5 would be treated as the same node, merging unrelated stones. The offset ensures a stone at (5, 3) correctly merges row 5 with column 3 (represented as 10004) rather than rows 5 and 3.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n α(max\_coord)) ≈ O(n).
+- **Space:** O(n + max\_coord) for the hash map.
+
+Alternative using an array instead of a map if max coordinate is bounded.
+
+#### Same skin
+
+- **Accounts Merge** — union-find on email strings; same "group by shared attribute" pattern.
+- **Number of Islands II** — dynamic union-find as stones are added one by one.
+- **Largest Component Size by Common Factor** — union-find grouping numbers by shared prime factor.
+- **Satisfiability of Equality Equations** — union-find with constraint validation.

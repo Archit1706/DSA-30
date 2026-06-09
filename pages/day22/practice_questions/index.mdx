@@ -1,0 +1,57 @@
+---
+title: "MST Practice Questions"
+description: "Eight interview problems — min cost connect points, redundant connection, network connected, remove max edges, stones removed, accounts merge, critical edges, swim in rising water."
+---
+
+import { Callout } from "nextra/components";
+
+# MST Practice Questions
+
+Eight problems covering every algorithm and pattern in the chapter. The easy problems test pure union-find; the medium ones require recognizing the MST framing; the hard ones combine techniques.
+
+<Callout type="info">
+    Before reading any solution, ask:
+
+    1. **Is this a "connect all nodes at minimum cost" problem?** → MST (Kruskal or Prim).
+    2. **Does it ask about connectivity or cycles?** → Union-Find.
+    3. **Is the graph implicitly complete (all pairs connected)?** → Prim's dense O(V²) variant.
+    4. **Does it involve two types of edges or constraints?** → Dual union-find or virtual node trick.
+
+    The pattern is almost always visible once you squint at the problem the right way.
+</Callout>
+
+## Easy
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Min Cost to Connect All Points](/day22/practice_questions/min_cost_connect_all_points) | Prim's dense O(V²) on implicit complete graph | Available |
+| [Redundant Connection](/day22/practice_questions/redundant_connection) | Union-Find — detect the first cycle-forming edge | Available |
+
+## Medium
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Number of Operations to Make Network Connected](/day22/practice_questions/network_connected) | Union-Find — count components and spare cables | Available |
+| [Remove Max Number of Edges to Keep Graph Fully Traversable](/day22/practice_questions/remove_max_edges) | Dual Union-Find (Alice + Bob) | Available |
+| [Most Stones Removed with Same Row or Column](/day22/practice_questions/most_stones_removed) | Union-Find on row/column indices | Available |
+| [Accounts Merge](/day22/practice_questions/accounts_merge) | Union-Find on email strings | Available |
+
+## Hard
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Find Critical and Pseudo-Critical Edges in MST](/day22/practice_questions/find_critical_pseudo_critical_edges) | Kruskal with force/skip per edge | Available |
+| [Swim in Rising Water](/day22/practice_questions/swim_in_rising_water) | Binary search + BFS, or min-max path (MST-adjacent) | Available |
+
+## More Practice (Coming Soon)
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| Optimize Water Distribution in a Village | Virtual node + Kruskal | Coming Soon |
+| Minimum Spanning Tree (generic) | Kruskal / Prim | Coming Soon |
+| Connecting Cities With Minimum Cost | Standard Kruskal | Coming Soon |
+| Min Cost to Repair Edges | Modified Kruskal | Coming Soon |
+| Minimum Cost to Connect Two Groups | DP on subsets + MST | Coming Soon |
+| Smallest String With Swaps | Union-Find on index pairs | Coming Soon |
+| Satisfiability of Equality Equations | Union-Find on variables | Coming Soon |
+| Largest Component Size by Common Factor | Union-Find with factor grouping | Coming Soon |

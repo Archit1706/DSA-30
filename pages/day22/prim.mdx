@@ -1,0 +1,219 @@
+---
+title: "Prim's Algorithm"
+description: "Grow the MST one vertex at a time with a priority queue — lazy vs eager Prim's, dense-graph O(V²) optimization, and the key differences from Kruskal's."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Prim's Algorithm
+
+Prim's algorithm (1957) takes a different angle: instead of sorting all edges globally, it **grows the MST one vertex at a time** from an arbitrary starting node. At each step it asks: "what's the cheapest edge connecting the current tree to a vertex not yet in the tree?"
+
+This is also justified by the cut property: at every step, S = the set of vertices already in the tree and V − S = the rest. Prim's always picks the minimum crossing edge — the cut property guarantees this is the right move.
+
+## The algorithm
+
+<Steps>
+
+### Initialize
+
+Mark all vertices as "not in tree." Put the start vertex in the tree with cost 0. Push all edges of the start vertex into a min-heap (priority queue keyed by edge weight).
+
+### Greedy extension loop
+
+While the tree has fewer than n vertices:
+
+1. Pop the cheapest edge (w, u, v) from the heap.
+2. If v is already in the tree — skip (this edge would create a cycle).
+3. Otherwise, add v to the tree. Record w as v's "key" (its contribution to the MST cost). Push all edges of v into the heap.
+
+### Done
+
+When n vertices are in the tree, the MST is complete.
+
+</Steps>
+
+## Worked example
+
+Same graph as before. Starting from vertex A.
+
+| Step | Heap top | Action | Tree |
+| :--- | :--- | :--- | :--- |
+| Init | — | Add A, push A's edges: (4,A→B), (2,A→C) | A |
+| 1 | (2, A→C) | Add C, push C's edges: (1,C→B), (8,C→E) | A, C |
+| 2 | (1, C→B) | Add B, push B's edges: (5,B→D) | A, C, B |
+| 3 | (4, A→B) | B already in tree — skip | A, C, B |
+| 4 | (5, B→D) | Add D, push D's edges: (2,D→E), (6,D→F) | A, C, B, D |
+| 5 | (2, D→E) | Add E, push E's edges: (3,E→F) | A, C, B, D, E |
+| 6 | (3, E→F) | Add F | A, C, B, D, E, F |
+
+MST edges: A-C(2), C-B(1), B-D(5), D-E(2), E-F(3). Total: **13**. Same MST as Kruskal's.
+
+<GraphVisualizer
+    nodes={["A","B","C","D","E","F"]}
+    edges={[["A","B"],["A","C"],["B","C"],["B","D"],["C","E"],["D","E"],["D","F"],["E","F"]]}
+    weighted={true}
+    weights={{"A-B":4,"A-C":2,"B-C":1,"B-D":5,"C-E":8,"D-E":2,"D-F":6,"E-F":3}}
+    highlightEdges={[["A","C"],["B","C"],["B","D"],["D","E"],["E","F"]]}
+    title="Prim's MST (starting from A) — same edges, total weight 13"
+/>
+
+## Implementation — lazy Prim's (heap of edges)
+
+The "lazy" variant pushes all edges of a newly added vertex into the heap without removing stale entries. Stale entries (edges to already-added vertices) are detected and skipped when popped.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int primLazy(int n, vector<vector<pair<int,int>>>& adj) {
+        // adj[u] = {(v, weight), ...}
+        vector<bool> inTree(n, false);
+        priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> pq;
+        pq.push({0, 0});  // {cost, vertex}, start at vertex 0
+
+        int total = 0, added = 0;
+        while (!pq.empty() && added < n) {
+            auto [w, u] = pq.top(); pq.pop();
+            if (inTree[u]) continue;
+            inTree[u] = true;
+            total += w;
+            added++;
+            for (auto [v, wv] : adj[u])
+                if (!inTree[v])
+                    pq.push({wv, v});
+        }
+        return added == n ? total : -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    def prim_lazy(n, adj):
+        # adj[u] = [(weight, v), ...]
+        in_tree = [False] * n
+        heap = [(0, 0)]  # (cost, vertex), start at 0
+        total = added = 0
+
+        while heap and added < n:
+            w, u = heapq.heappop(heap)
+            if in_tree[u]:
+                continue
+            in_tree[u] = True
+            total += w
+            added += 1
+            for wv, v in adj[u]:
+                if not in_tree[v]:
+                    heapq.heappush(heap, (wv, v))
+
+        return total if added == n else -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int primLazy(int n, List<int[]>[] adj) {
+        // adj[u] = list of {v, weight}
+        boolean[] inTree = new boolean[n];
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{0, 0});  // {cost, vertex}
+
+        int total = 0, added = 0;
+        while (!pq.isEmpty() && added < n) {
+            int[] top = pq.poll();
+            int w = top[0], u = top[1];
+            if (inTree[u]) continue;
+            inTree[u] = true;
+            total += w;
+            added++;
+            for (int[] edge : adj[u])
+                if (!inTree[edge[0]])
+                    pq.offer(new int[]{edge[1], edge[0]});
+        }
+        return added == n ? total : -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Eager Prim's — fewer heap entries
+
+The lazy version may put O(E) entries in the heap. The "eager" variant maintains, for each unvisited vertex v, only the **current best edge** connecting it to the tree. When a shorter edge is found, it decreases the key in the heap (a "decrease-key" operation).
+
+With a Fibonacci heap, eager Prim's runs in O(E + V log V). With a standard binary heap, decrease-key is O(log V) per update, giving O(E log V) — same asymptotic as the lazy version but with a smaller heap.
+
+For competitive programming and interviews, **lazy Prim's is almost always sufficient**. Implement eager only if explicitly asked for the Fibonacci-heap version.
+
+## Dense-graph Prim's: O(V²) with an array
+
+For **dense graphs** (E ≈ V²), using an adjacency matrix and scanning all vertices instead of a heap gives O(V²) — better than O(E log E) = O(V² log V).
+
+```python
+def prim_dense(n, dist_matrix):
+    # dist_matrix[i][j] = edge weight, float('inf') if no edge
+    key = [float('inf')] * n
+    in_tree = [False] * n
+    key[0] = 0
+    total = 0
+
+    for _ in range(n):
+        # Find the unvisited vertex with the smallest key
+        u = min((i for i in range(n) if not in_tree[i]), key=lambda i: key[i])
+        in_tree[u] = True
+        total += key[u]
+        for v in range(n):
+            if not in_tree[v] and dist_matrix[u][v] < key[v]:
+                key[v] = dist_matrix[u][v]
+    return total
+```
+
+This `O(V²)` version is the right choice for:
+- **Complete graphs** (every pair of vertices connected)
+- **Min Cost to Connect All Points** (LC 1584), where the graph is implicitly complete
+
+## Kruskal's vs Prim's
+
+| Property | Kruskal's | Prim's (lazy) |
+| :--- | :--- | :--- |
+| Approach | Global edge sort + union-find | Local greedy growth from one vertex |
+| Time (sparse) | O(E log E) | O(E log V) |
+| Time (dense) | O(E log E) = O(V² log V) | O(V²) with array |
+| Data structure | Union-Find | Priority queue |
+| Handles disconnected graphs | Yes (spanning forest) | No (stays in one component) |
+| Implementation | Often shorter | More intuitive for some |
+| Best for | Sparse graphs, edge-list input | Dense graphs, adjacency matrix |
+
+<Callout type="info">
+    In practice, for most interview problems (sparse graphs, edge list given): use **Kruskal's**. For geometric problems where every pair of points is connected (like Min Cost to Connect All Points): use **Prim's dense variant** with O(V²), which avoids explicitly creating all O(V²) edges.
+</Callout>
+
+## Quick check
+
+<QuizBox
+    question="In lazy Prim's, what causes 'stale' entries in the heap, and how are they handled?"
+    options={[
+        "Stale entries don't occur",
+        "When a vertex v is added to the tree, all existing heap entries (w, v) become stale because v is now in the tree. They're detected when popped: if in_tree[v] is true, skip the entry.",
+        "The heap is cleared each iteration",
+        "Stale entries are removed with decrease-key"
+    ]}
+    correctIndex={1}
+    explanation="Each time we add a vertex u to the tree, we push all u's neighbors into the heap. Some neighbors may already be in the tree (if they were added between when we pushed the entry and when we pop it). When we pop an entry (w, v), we check in_tree[v] — if true, the entry is stale (v was already added via a cheaper path). We just discard it and pop the next one."
+/>
+
+<QuizBox
+    question="Why is dense Prim's O(V²) faster than Kruskal's on a complete graph?"
+    options={[
+        "It's not — Kruskal's is always O(E log E)",
+        "On a complete graph E = V(V-1)/2 ≈ V². Kruskal's sorts all E edges: O(E log E) = O(V² log V). Dense Prim's does V iterations each scanning V vertices: O(V²). The log factor is the difference.",
+        "Kruskal's doesn't work on complete graphs",
+        "Dense Prim's uses O(1) space"
+    ]}
+    correctIndex={1}
+    explanation="On a complete graph with V² edges, Kruskal's sort step costs O(V² log V²) = O(V² log V). Dense Prim's replaces the heap with a simple V-element 'key' array and a linear scan per step: V iterations × O(V) scan = O(V²) total. The heap-free scan eliminates the log factor entirely — a significant win for V = 1000, irrelevant for V = 10."
+/>
+
+Next: **Advanced Patterns** — Borůvka's algorithm, minimum bottleneck spanning trees, second-best MST, and real-world MST applications.

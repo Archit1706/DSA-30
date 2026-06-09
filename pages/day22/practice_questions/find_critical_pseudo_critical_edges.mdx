@@ -1,0 +1,198 @@
+---
+title: "Find Critical and Pseudo-Critical Edges in MST"
+description: "Force or skip each edge and compare MST weights — O(E² α(V)) with Kruskal's as the subroutine."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find Critical and Pseudo-Critical Edges in Minimum Spanning Tree <DifficultyBadge level="hard" />
+
+#### Description
+
+Given a weighted undirected connected graph with `n` vertices numbered from `0` to `n - 1`, and an array `edges` where `edges[i] = [ai, bi, weighti]` represents a bidirectional and weighted edge between nodes `ai` and `bi`. A minimum spanning tree (MST) is a subset of the graph's edges that connects all vertices without cycles and with the minimum possible total edge weight.
+
+Find all the **critical** and **pseudo-critical** edges in the given graph's minimum spanning tree (MST). An MST edge whose deletion from the graph would cause the MST weight to increase is called a **critical edge**. On the other hand, a pseudo-critical edge is an edge that can appear in some MSTs but not all.
+
+Note that you can return the indices of the edges in any order.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 5, edges = [[0,1,1],[1,2,1],[2,3,2],[0,3,2],[0,4,3],[3,4,3],[1,4,6]]
+    Output: [[0,1],[2,3,4,5]]
+
+> Case 2:
+    n = 4, edges = [[0,1,1],[1,2,1],[0,2,1],[2,3,1]]
+    Output: [[3],[0,1,2]]
+```
+
+#### Constraints
+
+- `2 <= n <= 100`
+- `1 <= edges.length <= min(200, n*(n-1)/2)`
+- `edges[i].length == 3`
+- `0 <= ai < bi < n`
+- `1 <= weighti <= 1000`
+- All pairs `(ai, bi)` are distinct.
+
+#### State design / Intuition
+
+**Definitions:**
+- **Critical edge:** removing it from the graph increases the MST weight (or disconnects the graph).
+- **Pseudo-critical edge:** it appears in some MST but not all — forcing it in gives the same MST weight, but skipping it still allows a valid MST.
+
+**Algorithm:**
+
+For each edge i, run two experiments with Kruskal's as the subroutine:
+
+1. **Skip test:** Run Kruskal's on all edges except i. If the resulting weight > base MST weight (or the graph is disconnected), edge i is **critical**.
+2. **Force test:** Force edge i into the MST (add it first, then run Kruskal's on the rest). If the resulting weight == base MST weight, edge i is **pseudo-critical**.
+
+**Key:** An edge cannot be both critical and pseudo-critical. The classification is mutual.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int kruskal(int n, vector<array<int,4>>& edges, int skip, int force) {
+        vector<int> p(n); iota(p.begin(), p.end(), 0);
+        function<int(int)> find = [&](int x) {
+            return p[x] == x ? x : p[x] = find(p[x]);
+        };
+        auto unite = [&](int x, int y) {
+            int px = find(x), py = find(y);
+            if (px == py) return false;
+            p[px] = py; return true;
+        };
+        int total = 0, added = 0;
+        if (force >= 0) { unite(edges[force][1], edges[force][2]); total += edges[force][0]; added++; }
+        for (int i = 0; i < (int)edges.size(); i++) {
+            if (i == skip) continue;
+            if (unite(edges[i][1], edges[i][2])) { total += edges[i][0]; added++; }
+        }
+        return added == n - 1 ? total : INT_MAX;
+    }
+
+    vector<vector<int>> findCriticalAndPseudoCriticalEdges(int n, vector<vector<int>>& edges) {
+        vector<array<int,4>> sorted_edges;
+        for (int i = 0; i < (int)edges.size(); i++)
+            sorted_edges.push_back({edges[i][2], edges[i][0], edges[i][1], i});
+        sort(sorted_edges.begin(), sorted_edges.end());
+
+        int base = kruskal(n, sorted_edges, -1, -1);
+        vector<int> critical, pseudo;
+        for (int i = 0; i < (int)sorted_edges.size(); i++) {
+            if (kruskal(n, sorted_edges, i, -1) > base)
+                critical.push_back(sorted_edges[i][3]);
+            else if (kruskal(n, sorted_edges, -1, i) == base)
+                pseudo.push_back(sorted_edges[i][3]);
+        }
+        return {critical, pseudo};
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def findCriticalAndPseudoCriticalEdges(n: int, edges: list[list[int]]) -> list[list[int]]:
+        # Attach original index before sorting
+        indexed = sorted(enumerate(edges), key=lambda x: x[1][2])
+
+        def kruskal(skip=-1, force=-1):
+            parent = list(range(n))
+            def find(x):
+                while parent[x] != x:
+                    parent[x] = parent[parent[x]]
+                    x = parent[x]
+                return x
+            def unite(x, y):
+                px, py = find(x), find(y)
+                if px == py: return False
+                parent[px] = py; return True
+
+            total = added = 0
+            if force >= 0:
+                oi, (u, v, w) = indexed[force]
+                unite(u, v); total += w; added += 1
+
+            for i, (oi, (u, v, w)) in enumerate(indexed):
+                if i == skip: continue
+                if unite(u, v): total += w; added += 1
+
+            return total if added == n - 1 else float('inf')
+
+        base = kruskal()
+        critical, pseudo = [], []
+        for i, (oi, _) in enumerate(indexed):
+            if kruskal(skip=i) > base:
+                critical.append(oi)
+            elif kruskal(force=i) == base:
+                pseudo.append(oi)
+
+        return [critical, pseudo]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int n;
+    int[][] sortedEdges;  // {weight, u, v, originalIndex}
+
+    int kruskal(int skip, int force) {
+        int[] p = new int[n];
+        for (int i = 0; i < n; i++) p[i] = i;
+        // find with path compression
+        // (lambda not shown — use helper method in practice)
+        int total = 0, added = 0;
+        if (force >= 0) {
+            union(p, sortedEdges[force][1], sortedEdges[force][2]);
+            total += sortedEdges[force][0]; added++;
+        }
+        for (int i = 0; i < sortedEdges.length; i++) {
+            if (i == skip) continue;
+            if (union(p, sortedEdges[i][1], sortedEdges[i][2])) {
+                total += sortedEdges[i][0]; added++;
+            }
+        }
+        return added == n - 1 ? total : Integer.MAX_VALUE;
+    }
+
+    public int[][] findCriticalAndPseudoCriticalEdges(int n, int[][] edges) {
+        this.n = n;
+        sortedEdges = new int[edges.length][4];
+        for (int i = 0; i < edges.length; i++)
+            sortedEdges[i] = new int[]{edges[i][2], edges[i][0], edges[i][1], i};
+        Arrays.sort(sortedEdges, (a, b) -> a[0] - b[0]);
+
+        int base = kruskal(-1, -1);
+        List<Integer> critical = new ArrayList<>(), pseudo = new ArrayList<>();
+        for (int i = 0; i < sortedEdges.length; i++) {
+            if (kruskal(i, -1) > base) critical.add(sortedEdges[i][3]);
+            else if (kruskal(-1, i) == base) pseudo.add(sortedEdges[i][3]);
+        }
+        int[][] res = new int[2][];
+        res[0] = critical.stream().mapToInt(x->x).toArray();
+        res[1] = pseudo.stream().mapToInt(x->x).toArray();
+        return res;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Why does the force test correctly identify pseudo-critical edges?** If forcing edge i into the MST gives the same total weight as the base MST, then there exists an MST that includes edge i (the one produced by the force test). If some MSTs don't include it (i.e., it's not critical — removing it doesn't increase the weight), then it's pseudo-critical: present in some MSTs but not all.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(E² α(V)) — E experiments, each running Kruskal's in O(E α(V)). For E ≤ 200, this is fast enough.
+- **Space:** O(V + E).
+
+#### Same skin
+
+- **Second-Best MST** — one specific skip+replace to find the next-best spanning tree.
+- **Minimum Spanning Tree with Forbidden Edge** — Kruskal's with skip=-1 for forbidden edge.
+- **Forced-Edge MST** — Kruskal's with force for the required edge.
+- **Sensitivity Analysis** — determining which edges are robust to weight perturbations.

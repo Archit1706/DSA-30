@@ -1,21 +1,48 @@
 ---
 title: "Day 22 — Minimum Spanning Trees"
-description: "Minimum spanning trees with Kruskal's and Prim's algorithms — the cut property, union-find vs priority-queue implementations, and classic MST problems."
+description: "Kruskal's and Prim's algorithms — the cut property that proves greedy works, union-find vs priority-queue implementations, and classic MST interview problems."
 ---
 
 import { Callout } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
 
 # Day 22 — Minimum Spanning Trees
 
+A **spanning tree** of a connected graph is a subgraph that includes every vertex and is acyclic — a tree. A **minimum spanning tree** (MST) is the spanning tree with the lowest total edge weight.
+
+That sounds narrow. It isn't. MSTs show up whenever you want to connect things cheaply: fiber networks, water pipes, electrical grids, road systems, clustering algorithms in machine learning, and image segmentation. The problem is also one of the few optimization problems where a greedy algorithm is provably optimal — and understanding *why* the greedy works (the cut property) is as important as knowing the code.
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E", "F"]}
+    edges={[["A","B"],["A","C"],["B","C"],["B","D"],["C","E"],["D","E"],["D","F"],["E","F"]]}
+    weighted={true}
+    weights={{"A-B":4,"A-C":2,"B-C":1,"B-D":5,"C-E":8,"D-E":2,"D-F":6,"E-F":3}}
+    title="A weighted undirected graph — MST uses edges {B-C, A-C, D-E, E-F, B-D} with total weight 13"
+/>
+
+## What you'll learn today
+
+- The **spanning tree** and **MST** definitions — why cycles are excluded, why all vertices must appear
+- The **cut property** — the mathematical justification for why both greedy MST algorithms are correct
+- The **cycle property** — the dual view: the heaviest edge in any cycle is never in the MST
+- **Kruskal's algorithm** — sort all edges by weight, add the cheapest that doesn't form a cycle, powered by Union Find from [Day 20](/day20)
+- **Prim's algorithm** — grow the MST one vertex at a time using a priority queue from [Day 7](/day7)
+- **When to use which** — Kruskal wins on sparse graphs; Prim wins on dense ones
+- **Eight interview problems** — Min Cost to Connect All Points, Redundant Connection, Network Connected, Remove Max Edges, Most Stones Removed, Accounts Merge, Critical Edges, Swim in Rising Water
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The secret that makes MSTs feel magical: **both Kruskal's and Prim's are greedy algorithms that are provably correct**. In most optimization problems, greedy fails — the locally best choice isn't globally best. MSTs are the exception. The cut property is the proof that "always pick the cheapest safe edge" never leads you astray.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Kruskal's algorithm** — sort edges, add the cheapest that doesn't form a cycle (relies on [Union Find](/day20))
-- **Prim's algorithm** — grow the tree out from one vertex using a priority queue
-- The **cut property** and the **cycle property** — why both greedy approaches actually work
-- Applications: **network design, clustering, image segmentation**
+1. **[Introduction](/day22/introduction)** — spanning trees, MST definition, the cut and cycle properties, and uniqueness conditions.
+2. **[Kruskal's Algorithm](/day22/kruskal)** — sort-and-union-find implementation, correctness proof via the cut property, and complexity.
+3. **[Prim's Algorithm](/day22/prim)** — priority-queue growing, lazy vs eager variants, dense-graph O(V²) optimization.
+4. **[Advanced Patterns](/day22/advanced)** — Borůvka's, minimum bottleneck spanning trees, second-best MST, and real-world applications.
+5. **[Basic Questions](/day22/basic_questions)** — warm-ups: manual Kruskal, Prim step-by-step, union-find from scratch, component counting.
+6. **[Practice Questions](/day22/practice_questions)** — eight interview problems covering every MST and union-find technique in the chapter.
 
-An MST connects every vertex with the minimum total edge weight — and it's one of the rare optimization problems where a greedy algorithm is provably optimal.
+MSTs bridge the gap between graph theory and practical algorithms. They share Union Find with [Day 20](/day20) and priority queues with [Day 7](/day7) — if either feels shaky, revisit those chapters first.
+
+Coming up: **Day 23 — Topological Sort**, where directed acyclic graphs replace undirected ones and dependency ordering replaces weight minimization.

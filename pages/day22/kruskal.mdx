@@ -1,0 +1,245 @@
+---
+title: "Kruskal's Algorithm"
+description: "Sort edges by weight, add the cheapest that doesn't form a cycle — O(E log E) with union-find, correctness via the cut property."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Kruskal's Algorithm
+
+Kruskal's algorithm (1956) builds the MST by processing edges in order of increasing weight. At each step it asks: **does adding this edge create a cycle?** If not, add it; if yes, skip it.
+
+This is a direct application of the cut property. When Kruskal's adds edge (u, v), the two connected components containing u and v form a natural cut. The edge being considered is the lightest crossing edge for that cut (since all cheaper edges were already processed). By the cut property, it's safe.
+
+## The algorithm
+
+<Steps>
+
+### Sort all edges by weight
+
+E.g., for a graph with edges:
+```
+(A,B,4), (A,C,2), (B,C,1), (B,D,5), (C,E,8), (D,E,2), (D,F,6), (E,F,3)
+```
+Sorted: `(B,C,1), (A,C,2), (D,E,2), (E,F,3), (A,B,4), (B,D,5), (D,F,6), (C,E,8)`
+
+### Initialize Union-Find on all vertices
+
+Each vertex starts in its own component.
+
+### Process edges in sorted order
+
+For each edge (u, v, w):
+- If `find(u) != find(v)` → different components → adding (u,v) won't form a cycle → **add it**, `union(u, v)`.
+- If `find(u) == find(v)` → same component → adding (u,v) would form a cycle → **skip**.
+
+### Stop when n − 1 edges have been added
+
+The MST is complete.
+
+</Steps>
+
+## Worked example
+
+Graph: 6 vertices A–F, edges as above.
+
+| Step | Edge | Weight | Action | MST edges |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | (B,C) | 1 | Add | B-C |
+| 2 | (A,C) | 2 | Add | B-C, A-C |
+| 3 | (D,E) | 2 | Add | B-C, A-C, D-E |
+| 4 | (E,F) | 3 | Add | B-C, A-C, D-E, E-F |
+| 5 | (A,B) | 4 | **Skip** — A and B are already connected via C | no change |
+| 6 | (B,D) | 5 | Add — connects A-B-C to D-E-F | B-C, A-C, D-E, E-F, B-D |
+| 7 | — | — | 5 edges added, n−1=5, stop | **MST complete** |
+
+Total weight: 1 + 2 + 2 + 3 + 5 = **13**.
+
+<GraphVisualizer
+    nodes={["A","B","C","D","E","F"]}
+    edges={[["A","B"],["A","C"],["B","C"],["B","D"],["C","E"],["D","E"],["D","F"],["E","F"]]}
+    weighted={true}
+    weights={{"A-B":4,"A-C":2,"B-C":1,"B-D":5,"C-E":8,"D-E":2,"D-F":6,"E-F":3}}
+    highlightEdges={[["B","C"],["A","C"],["D","E"],["E","F"],["B","D"]]}
+    title="MST edges highlighted (total weight 13) — {B-C, A-C, D-E, E-F, B-D}"
+/>
+
+## Implementation
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct UnionFind {
+        vector<int> parent, rank;
+        UnionFind(int n) : parent(n), rank(n, 0) {
+            iota(parent.begin(), parent.end(), 0);
+        }
+        int find(int x) {
+            if (parent[x] != x) parent[x] = find(parent[x]);  // path compression
+            return parent[x];
+        }
+        bool unite(int x, int y) {
+            int px = find(x), py = find(y);
+            if (px == py) return false;
+            if (rank[px] < rank[py]) swap(px, py);
+            parent[py] = px;
+            if (rank[px] == rank[py]) rank[px]++;
+            return true;
+        }
+    };
+
+    int kruskal(int n, vector<tuple<int,int,int>>& edges) {
+        // edges: (weight, u, v)
+        sort(edges.begin(), edges.end());
+        UnionFind uf(n);
+        int totalWeight = 0, edgesAdded = 0;
+        for (auto [w, u, v] : edges) {
+            if (uf.unite(u, v)) {
+                totalWeight += w;
+                edgesAdded++;
+                if (edgesAdded == n - 1) break;
+            }
+        }
+        return edgesAdded == n - 1 ? totalWeight : -1;  // -1 if not connected
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def kruskal(n, edges):
+        # edges: list of (weight, u, v)
+        parent = list(range(n))
+        rank = [0] * n
+
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])  # path compression
+            return parent[x]
+
+        def unite(x, y):
+            px, py = find(x), find(y)
+            if px == py:
+                return False
+            if rank[px] < rank[py]:
+                px, py = py, px
+            parent[py] = px
+            if rank[px] == rank[py]:
+                rank[px] += 1
+            return True
+
+        edges.sort()
+        total = edges_added = 0
+        for w, u, v in edges:
+            if unite(u, v):
+                total += w
+                edges_added += 1
+                if edges_added == n - 1:
+                    break
+        return total if edges_added == n - 1 else -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] parent, rank;
+
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+
+    boolean unite(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px == py) return false;
+        if (rank[px] < rank[py]) { int tmp = px; px = py; py = tmp; }
+        parent[py] = px;
+        if (rank[px] == rank[py]) rank[px]++;
+        return true;
+    }
+
+    int kruskal(int n, int[][] edges) {
+        // edges[i] = {weight, u, v}
+        Arrays.sort(edges, (a, b) -> a[0] - b[0]);
+        parent = new int[n];
+        rank = new int[n];
+        for (int i = 0; i < n; i++) parent[i] = i;
+
+        int total = 0, added = 0;
+        for (int[] e : edges) {
+            if (unite(e[1], e[2])) {
+                total += e[0];
+                if (++added == n - 1) break;
+            }
+        }
+        return added == n - 1 ? total : -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Correctness
+
+At every step, the edge added by Kruskal's satisfies the cut property:
+
+- Let S = the component containing u (before the union).
+- Let V − S = everything else (includes v's component).
+- The edge (u, v) is the lightest crossing edge for this cut — all lighter edges were already processed, and since none of them connected u's component to v's component (they were either inside a single component or already added), (u, v) is cheapest.
+- By the cut property, (u, v) is in some MST. Since we greedily add the globally cheapest safe edge at each step, the result is the MST.
+
+## Complexity
+
+| Phase | Time | Space |
+| :--- | :--- | :--- |
+| Sort edges | O(E log E) | O(E) |
+| Union-Find operations | O(E α(V)) ≈ O(E) | O(V) |
+| **Total** | **O(E log E)** | **O(V + E)** |
+
+α is the inverse Ackermann function — effectively constant (≤ 5 for any realistic input). The sort dominates. Note that O(E log E) = O(E log V) because E ≤ V² so log E ≤ 2 log V.
+
+## When to use Kruskal's
+
+Kruskal's is optimal for **sparse graphs** where E ≈ V:
+
+- Road networks (roughly planar — E ≈ 3V by Euler's formula)
+- Network cable layout with a given list of possible connections
+- When edges are given as a list (not an adjacency matrix)
+
+For **dense graphs** where E ≈ V², Prim's with an adjacency matrix is faster: O(V²) vs Kruskal's O(E log E) = O(V² log V).
+
+<Callout type="warning">
+    **The disconnected-graph case.** If the graph isn't connected, no spanning tree exists. Kruskal's will process all edges and end up with `edgesAdded < n − 1`. Always check this! In MST problems framed as "minimum cost to connect all nodes," an impossible case means the graph has multiple connected components that can't be bridged with the given edges.
+</Callout>
+
+## Kruskal's for minimum spanning forest
+
+If the graph isn't connected, Kruskal's naturally builds a **minimum spanning forest** — one MST for each connected component. Just remove the `edgesAdded == n - 1` early exit condition.
+
+## Quick check
+
+<QuizBox
+    question="In Kruskal's algorithm, why does Union-Find's 'find' operation correctly detect cycle formation?"
+    options={[
+        "It doesn't — you need DFS to detect cycles",
+        "Adding edge (u, v) creates a cycle if and only if u and v are already in the same connected component. Union-Find tracks components — if find(u) == find(v), they're connected, so adding (u, v) would create a cycle.",
+        "Union-Find detects cycles by counting edges",
+        "Kruskal's uses BFS to check"
+    ]}
+    correctIndex={1}
+    explanation="A cycle is created iff there's already a path between u and v. In the partially-built MST, a path between u and v exists iff they're in the same connected component. Union-Find answers 'are u and v in the same component?' in near-O(1) per query. This is exactly the cycle detection Kruskal's needs."
+/>
+
+<QuizBox
+    question="Kruskal's processes edges sorted by weight. What happens if two edges have the same weight and we process them in either order?"
+    options={[
+        "The result may be incorrect",
+        "The result is always an MST, but may be a different valid MST (when edge weights aren't distinct, multiple MSTs can exist with the same total cost)",
+        "We must break ties by index",
+        "The algorithm becomes O(E²)"
+    ]}
+    correctIndex={1}
+    explanation="When all edges have distinct weights, the MST is unique. When edges share weights, there may be multiple MSTs with the same minimum cost. Kruskal's finds one of them — the choice between equal-weight edges affects which MST, not whether the result is optimal. The total weight is always the same."
+/>
+
+Next: **Prim's algorithm** — the priority-queue alternative that grows the MST vertex by vertex from a starting node.

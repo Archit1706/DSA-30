@@ -1,0 +1,158 @@
+---
+title: "Redundant Connection"
+description: "Find the edge that completes a cycle in a tree — union-find's cycle detection in one pass."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Redundant Connection <DifficultyBadge level="medium" />
+
+#### Description
+
+In this problem, a tree is an **undirected graph** that is connected and has no cycles.
+
+You are given a graph that started as a tree with `n` nodes labeled from `1` to `n`, with one additional edge added. The added edge has two different vertices chosen from `1` to `n`, and was not an edge that already existed. The graph is represented as an array `edges` where `edges[i] = [ai, bi]` indicates that there is an edge between nodes `ai` and `bi` in the graph.
+
+Return an edge that can be removed so that the resulting graph is a tree. If there are multiple answers, return the **last** edge that appears in the input.
+
+#### Examples
+
+```py
+> Case 1:
+    edges = [[1,2],[1,3],[2,3]]
+    Output: [2,3]
+
+> Case 2:
+    edges = [[1,2],[2,3],[3,4],[1,4],[1,5]]
+    Output: [1,4]
+```
+
+#### Constraints
+
+- `n == edges.length`
+- `3 <= n <= 1000`
+- `edges[i].length == 2`
+- `1 <= ai < bi <= edges.length`
+- `ai != bi`
+- There are no repeated edges.
+- The given graph is connected.
+
+#### State design / Intuition
+
+Process edges one by one. Use Union-Find to track connected components. The **first edge where both endpoints are already in the same component** is the redundant one — adding it would create the cycle.
+
+Because the problem guarantees exactly one extra edge and asks for the **last** one in the input if there are multiple options, the first cycle-forming edge encountered when processing in order is our answer.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> parent, rnk;
+
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+
+    bool unite(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px == py) return false;
+        if (rnk[px] < rnk[py]) swap(px, py);
+        parent[py] = px;
+        if (rnk[px] == rnk[py]) rnk[px]++;
+        return true;
+    }
+
+    vector<int> findRedundantConnection(vector<vector<int>>& edges) {
+        int n = edges.size();
+        parent.resize(n + 1);
+        rnk.resize(n + 1, 0);
+        iota(parent.begin(), parent.end(), 0);
+
+        for (auto& e : edges) {
+            if (!unite(e[0], e[1]))
+                return e;          // cycle detected
+        }
+        return {};
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def findRedundantConnection(edges: list[list[int]]) -> list[int]:
+        n = len(edges)
+        parent = list(range(n + 1))
+        rank = [0] * (n + 1)
+
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def unite(x, y):
+            px, py = find(x), find(y)
+            if px == py:
+                return False
+            if rank[px] < rank[py]:
+                px, py = py, px
+            parent[py] = px
+            if rank[px] == rank[py]:
+                rank[px] += 1
+            return True
+
+        for u, v in edges:
+            if not unite(u, v):
+                return [u, v]
+        return []
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] parent, rank;
+
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+
+    boolean unite(int x, int y) {
+        int px = find(x), py = find(y);
+        if (px == py) return false;
+        if (rank[px] < rank[py]) { int t = px; px = py; py = t; }
+        parent[py] = px;
+        if (rank[px] == rank[py]) rank[px]++;
+        return true;
+    }
+
+    public int[] findRedundantConnection(int[][] edges) {
+        int n = edges.length;
+        parent = new int[n + 1];
+        rank = new int[n + 1];
+        for (int i = 0; i <= n; i++) parent[i] = i;
+
+        for (int[] e : edges)
+            if (!unite(e[0], e[1])) return e;
+        return new int[]{};
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    This is also solvable with DFS: find a cycle in the graph, then return the last edge in the cycle that appears in the input. Union-Find is faster (O(n α(n)) vs O(n²)) and simpler to implement correctly.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n α(n)) ≈ O(n) — n Union-Find operations.
+- **Space:** O(n) — parent and rank arrays.
+
+#### Same skin
+
+- **Redundant Connection II (LC 685)** — directed graph version; need to handle multiple cases (incoming degree 2, or a cycle without a double-in-degree node).
+- **Number of Connected Components** — same union-find, count components.
+- **Graph Valid Tree (LC 261)** — same check: n nodes, n−1 edges, no cycles = valid tree.
+- **Accounts Merge** — union-find on email strings; same component = same person.
