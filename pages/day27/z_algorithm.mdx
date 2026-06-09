@@ -1,0 +1,227 @@
+---
+title: "Z-Algorithm"
+description: "The Z-array, the Z-box maintenance trick, and applications — linear pattern matching, string periodicity, and the connection to suffix arrays."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { StringVisualizer } from "../../components/StringVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Z-Algorithm
+
+The Z-algorithm constructs an array `Z` where `Z[i]` is the **length of the longest substring starting at position `i` that is also a prefix of the whole string**. With this array in hand, finding a pattern in a text becomes a single linear scan.
+
+It's arguably the cleanest of the three linear matchers: one array, one linear scan, a clear loop invariant. Many competitive programmers prefer it over KMP precisely because the code is shorter and easier to remember.
+
+## The Z-array
+
+For a string `S` of length `n`, define:
+
+```
+Z[0] = n   (by convention, or sometimes left as 0)
+Z[i] = length of the longest string starting at S[i] that matches a prefix of S
+```
+
+### Example: `S = "AABXAABXCAABXAABXAY"`
+
+| i | S[i..] | Matches prefix of length | Z[i] |
+| :- | :----- | :----------------------- | :--- |
+| 0 | AABXAABXCAABXAABXAY | — | 19 |
+| 1 | ABXAABXCAABXAABXAY | A? AA? No — "A" but then "B"≠"A" | 1 |
+| 2 | BXAABXCAABXAABXAY | "B" ≠ "A" | 0 |
+| 3 | XAABXCAABXAABXAY | "X" ≠ "A" | 0 |
+| 4 | AABXCAABXAABXAY | "AABX" then "C"≠"A" | 4 |
+| 5 | ABXCAABXAABXAY | "A" matches, then "B"≠"A" | 1 |
+| ... | ... | | ... |
+
+The Z-array is `[19, 1, 0, 0, 4, 1, 0, 0, 0, 8, 1, 0, 0, 4, 1, 0, 0, 1, 0]`.
+
+Notice `Z[9] = 8`: the suffix starting at position 9 shares an 8-character prefix with the full string. That means `S[9..16] == S[0..7]` — a useful structural fact.
+
+## Constructing the Z-array: the Z-box trick
+
+The naive approach — for each `i`, count matching characters from position `i` and from 0 — is O(n²) in the worst case. The Z-algorithm maintains a **Z-box**: the interval `[l, r]` corresponding to the rightmost Z-value computed so far. Specifically, `S[l..r]` is the window that was matched to produce the current rightmost known prefix extension.
+
+The loop invariant: `S[l..r] == S[0..r-l]` (i.e., the substring `S[l..r]` matches the prefix `S[0..r-l]`).
+
+For each position `i`:
+
+- **Case 1: `i > r`** — `i` is outside the current Z-box. We have no free information. Start comparing `S[i]` with `S[0]`, `S[i+1]` with `S[1]`, etc. Update `[l, r]` if we find a match.
+- **Case 2: `i <= r`** — `i` is inside the Z-box. Since `S[l..r] == S[0..r-l]`, position `i` corresponds to position `i - l` inside the prefix. We know `Z[i-l]` characters match from there.
+  - **Sub-case 2a:** `Z[i-l] < r - i + 1` (the known match doesn't reach the Z-box boundary). Then `Z[i] = Z[i-l]` — exactly as much match as the interior position, no extension needed.
+  - **Sub-case 2b:** `Z[i-l] >= r - i + 1` (the known match reaches or exceeds the boundary). Then `Z[i] >= r - i + 1`, and we try to extend further from `r + 1`.
+
+In both sub-cases of Case 2, we either directly read off `Z[i]` or start extending from a position we've already reached. The `r` pointer never decreases. Since `r` increases by at most `n` total across all iterations, the total work is **O(n)**.
+
+## Implementation
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> zArray(const string& S) {
+        int n = S.size();
+        vector<int> Z(n, 0);
+        Z[0] = n;
+        int l = 0, r = 0;
+        for (int i = 1; i < n; i++) {
+            if (i < r) Z[i] = min(r - i, Z[i - l]);
+            while (i + Z[i] < n && S[Z[i]] == S[i + Z[i]])
+                Z[i]++;
+            if (i + Z[i] > r) { l = i; r = i + Z[i]; }
+        }
+        return Z;
+    }
+
+    vector<int> zSearch(const string& T, const string& P) {
+        string S = P + "#" + T;     // '#' must not appear in T or P
+        auto Z = zArray(S);
+        int m = P.size();
+        vector<int> matches;
+        for (int i = m + 1; i < (int)S.size(); i++)
+            if (Z[i] == m)
+                matches.push_back(i - m - 1);
+        return matches;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def z_array(S):
+        n = len(S)
+        Z = [0] * n
+        Z[0] = n
+        l = r = 0
+        for i in range(1, n):
+            if i < r:
+                Z[i] = min(r - i, Z[i - l])
+            while i + Z[i] < n and S[Z[i]] == S[i + Z[i]]:
+                Z[i] += 1
+            if i + Z[i] > r:
+                l, r = i, i + Z[i]
+        return Z
+
+    def z_search(T, P):
+        S = P + "#" + T        # '#' sentinel separates P from T
+        Z = z_array(S)
+        m = len(P)
+        return [i - m - 1 for i in range(m + 1, len(S)) if Z[i] == m]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] zArray(String S) {
+        int n = S.length();
+        int[] Z = new int[n];
+        Z[0] = n;
+        int l = 0, r = 0;
+        for (int i = 1; i < n; i++) {
+            if (i < r) Z[i] = Math.min(r - i, Z[i - l]);
+            while (i + Z[i] < n && S.charAt(Z[i]) == S.charAt(i + Z[i]))
+                Z[i]++;
+            if (i + Z[i] > r) { l = i; r = i + Z[i]; }
+        }
+        return Z;
+    }
+
+    List<Integer> zSearch(String T, String P) {
+        String S = P + "#" + T;
+        int[] Z = zArray(S);
+        int m = P.length();
+        List<Integer> matches = new ArrayList<>();
+        for (int i = m + 1; i < S.length(); i++)
+            if (Z[i] == m) matches.add(i - m - 1);
+        return matches;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Why the concatenation trick works
+
+When we form `S = P + "#" + T`, the Z-values in the `T` portion tell us exactly how many characters of `T[i..]` match a prefix of `S` — which is the same as a prefix of `P` (since `"#"` can't appear in either, it caps all Z-values at `m`). If `Z[m + 1 + i] == m`, then `T[i..i+m-1] == P[0..m-1]` — a full match.
+
+The `"#"` separator is critical: without it, the pattern characters might blend into the text characters and inflate Z-values spuriously.
+
+## Applications
+
+### String periodicity
+
+A string `s` has period `p` if `s[i] == s[i+p]` for all valid `i`. The Z-array directly exposes this:
+
+```python
+def find_period(s):
+    Z = z_array(s)
+    n = len(s)
+    for p in range(1, n):
+        if Z[p] >= n - p:    # S[p..n-1] matches S[0..n-p-1]
+            return p
+    return n                 # period is the full length (no repetition)
+```
+
+If `Z[p] >= n - p`, then every suffix of `s` starting at a multiple of `p` matches the prefix — the string has period `p`.
+
+### Counting distinct substrings with suffix arrays
+
+The Z-array on each suffix can count how many of its characters are "new" (not overlapping with any shorter suffix match). This is the core idea behind the **LCP array** in suffix arrays — but that's covered in [Advanced Patterns](/day27/advanced).
+
+### Z vs KMP vs Rabin-Karp
+
+| Property | KMP | Z-algorithm | Rabin-Karp |
+| :--- | :--- | :--- | :--- |
+| Preprocessing | Failure fn O(m) | Z-array O(n+m) | Hash O(m) |
+| Search | O(n) | O(n) | O(n) avg |
+| Space | O(m) | O(n+m) | O(1) |
+| Code complexity | Medium | Low | Low |
+| Multiple patterns | No (use A-C) | No (use A-C) | Yes (hash set) |
+| Worst case guarantee | Yes | Yes | No |
+| Natural extension | Aho-Corasick | Suffix arrays | Double hashing |
+
+For a clean interview implementation of single-pattern search, Z-algorithm is often the quickest to write correctly. For the structural application (failure function, Aho-Corasick, palindrome tricks), KMP's failure function is more useful.
+
+## Complexity
+
+| Phase | Time | Space |
+| :--- | :--- | :--- |
+| Build Z-array | O(n) | O(n) |
+| Search via concatenation | O(n + m) | O(n + m) |
+
+## Quick check
+
+<QuizBox
+    question="In the Z-algorithm, what does the sentinel '#' in the concatenation P + '#' + T prevent?"
+    options={[
+        "Nothing — it's decorative",
+        "It prevents Z-values from 'bleeding' across the boundary: since '#' can't appear in P or T, any Z-box that reaches '#' stops there. This ensures Z[i] for positions in the T portion is at most m (the length of P), so Z[i] == m means an exact match.",
+        "It speeds up the algorithm",
+        "It prevents duplicate characters"
+    ]}
+    correctIndex={1}
+    explanation="Without '#', a character sequence at the junction of P and T could give artificially inflated Z-values. The sentinel is a character guaranteed not to appear in either P or T, so any potential prefix match stops at position m at the latest. This means Z[i] = m is a necessary and sufficient condition for a full match of P starting at position i - m - 1 in T."
+/>
+
+<QuizBox
+    question="In the Z-box maintenance, when i <= r and Z[i - l] < r - i + 1, why can we set Z[i] = Z[i - l] without any extension?"
+    options={[
+        "Guess",
+        "Because S[l..r] = S[0..r-l] (the Z-box invariant). Position i maps to position i - l in that prefix. We know Z[i - l] characters match from i - l. Since Z[i - l] < r - i + 1, the match ends strictly inside the Z-box — we know both the match and the mismatch character from our prior work. No new comparisons needed.",
+        "Optimization only — must verify",
+        "Only works for binary strings"
+    ]}
+    correctIndex={1}
+    explanation="The Z-box invariant guarantees S[l..r] = S[0..r-l]. Position i is inside the box, so S[i..r] = S[i-l..r-l]. We know Z[i-l] characters from position i-l match the prefix. If Z[i-l] < r - i + 1, the mismatch at position i-l+Z[i-l] is also inside the box, meaning we know it mismatches. So Z[i] = Z[i-l] exactly — no extension possible, no extension needed."
+/>
+
+<QuizBox
+    question="Why does the Z-algorithm run in O(n) even though the inner while loop can repeat multiple times per iteration?"
+    options={[
+        "The while loop runs O(1) per iteration",
+        "The r pointer never decreases, and each while loop iteration increments r by 1. Since r can be incremented at most n times total, the while loop runs at most n times in aggregate — O(n) total across all iterations.",
+        "The algorithm is actually O(n log n)",
+        "Loop unrolling"
+    ]}
+    correctIndex={1}
+    explanation="r is a non-decreasing pointer bounded by n. Every while loop body increments Z[i] by 1 (which also increments r when we update l, r). Since r starts at 0 and ends at most n, the total number of while loop executions across all i is O(n). The outer for loop adds O(n) iterations. Total: O(n)."
+/>
+
+Next: **Advanced Patterns** — Manacher's O(n) palindrome algorithm, the Aho-Corasick multi-pattern machine, and a high-level sketch of suffix arrays.

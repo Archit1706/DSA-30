@@ -1,0 +1,166 @@
+---
+title: "Find All Anagrams in a String"
+description: "Sliding window + frequency array — find all starting indices where p is an anagram of a substring of s."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Find All Anagrams in a String <DifficultyBadge level="medium" />
+
+#### Description
+
+Given two strings `s` and `p`, return an array of all the start indices of `p`'s anagrams in `s`. You may return the answer in **any order**.
+
+An **anagram** is a string formed by rearranging the letters of another string, using all original letters exactly once.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "cbaebabacd",  p = "abc"
+    Output: [0, 6]
+    Explanation:
+        s[0..2] = "cba" is an anagram of "abc".
+        s[6..8] = "bac" is an anagram of "abc".
+
+> Case 2:
+    s = "abab",  p = "ab"
+    Output: [0, 1, 2]
+```
+
+#### Constraints
+
+- `1 <= s.length, p.length <= 3 * 10^4`
+- `s` and `p` consist of lowercase English letters.
+
+#### State design / Intuition
+
+Two strings are anagrams if they have identical character frequency distributions. This is a fixed-size sliding window problem:
+
+1. Build a frequency count for `p`.
+2. Maintain a frequency count for the current window of size `m = len(p)` in `s`.
+3. When you slide the window right: decrement the count for the leaving character, increment for the arriving character.
+4. If the window count matches the pattern count, record the start index.
+
+Comparing two 26-element arrays at each step is O(26) = O(1). Total time: O(n).
+
+**Optimization:** instead of comparing two frequency arrays every step, maintain a `matches` counter that tracks how many of the 26 character frequencies are equal between the window and the pattern. Update `matches` on each window slide by checking only the two affected characters.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> findAnagrams(string s, string p) {
+        int n = s.size(), m = p.size();
+        if (n < m) return {};
+
+        vector<int> pFreq(26, 0), wFreq(26, 0);
+        for (char c : p) pFreq[c - 'a']++;
+        for (int i = 0; i < m; i++) wFreq[s[i] - 'a']++;
+
+        int matches = 0;
+        for (int i = 0; i < 26; i++)
+            if (pFreq[i] == wFreq[i]) matches++;
+
+        vector<int> res;
+        for (int i = m; i < n; i++) {
+            if (matches == 26) res.push_back(i - m);
+
+            // Add new character
+            int add = s[i] - 'a';
+            wFreq[add]++;
+            if (wFreq[add] == pFreq[add]) matches++;
+            else if (wFreq[add] == pFreq[add] + 1) matches--;
+
+            // Remove old character
+            int rem = s[i - m] - 'a';
+            wFreq[rem]--;
+            if (wFreq[rem] == pFreq[rem]) matches++;
+            else if (wFreq[rem] == pFreq[rem] - 1) matches--;
+        }
+        if (matches == 26) res.push_back(n - m);
+        return res;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import Counter
+
+    def findAnagrams(s: str, p: str) -> list[int]:
+        n, m = len(s), len(p)
+        if n < m:
+            return []
+
+        p_count = Counter(p)
+        w_count = Counter(s[:m])
+        result = []
+
+        if w_count == p_count:
+            result.append(0)
+
+        for i in range(m, n):
+            # Slide window
+            new_char = s[i]
+            old_char = s[i - m]
+
+            w_count[new_char] += 1
+            w_count[old_char] -= 1
+            if w_count[old_char] == 0:
+                del w_count[old_char]
+
+            if w_count == p_count:
+                result.append(i - m + 1)
+
+        return result
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public List<Integer> findAnagrams(String s, String p) {
+        List<Integer> result = new ArrayList<>();
+        int n = s.length(), m = p.length();
+        if (n < m) return result;
+
+        int[] pFreq = new int[26], wFreq = new int[26];
+        for (char c : p.toCharArray()) pFreq[c - 'a']++;
+        for (int i = 0; i < m; i++) wFreq[s.charAt(i) - 'a']++;
+
+        int matches = 0;
+        for (int i = 0; i < 26; i++)
+            if (pFreq[i] == wFreq[i]) matches++;
+
+        for (int i = m; i < n; i++) {
+            if (matches == 26) result.add(i - m);
+
+            int add = s.charAt(i) - 'a';
+            wFreq[add]++;
+            if (wFreq[add] == pFreq[add]) matches++;
+            else if (wFreq[add] == pFreq[add] + 1) matches--;
+
+            int rem = s.charAt(i - m) - 'a';
+            wFreq[rem]--;
+            if (wFreq[rem] == pFreq[rem]) matches++;
+            else if (wFreq[rem] == pFreq[rem] - 1) matches--;
+        }
+        if (matches == 26) result.add(n - m);
+        return result;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** O(n + m) — O(m) to initialize frequency arrays, O(n) for the sliding window (each step is O(1) with the `matches` counter).
+- **Space:** O(1) — two 26-element arrays (constant size for lowercase ASCII).
+
+#### Same skin
+
+- **Valid Anagram** — same frequency comparison, no sliding window needed.
+- **Permutation in String (LC 567)** — identical problem with `true/false` output instead of indices.
+- **Minimum Window Substring** — variable-length window version of the same frequency-tracking idea.
+- **Longest Substring with At Most K Distinct Characters** — variable window with a HashMap instead of a fixed array.

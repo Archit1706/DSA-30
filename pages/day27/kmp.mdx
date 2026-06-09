@@ -1,0 +1,288 @@
+---
+title: "KMP Algorithm"
+description: "The failure function, the automaton view, and the amortized argument that proves KMP never does more than 2n comparisons."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { StringPatternMatcher } from "../../components/StringPatternMatcher";
+import { StringVisualizer } from "../../components/StringVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# KMP Algorithm
+
+The Knuth-Morris-Pratt algorithm (1977) solves the pattern-matching problem in **O(n + m)** time — O(m) to preprocess the pattern, O(n) to scan the text — with a guarantee that the text pointer **never moves backward**. Every character is read at most twice.
+
+The key insight: when a mismatch occurs at `T[i]` vs `P[j]`, we don't need to reset `j` to 0. We can reset `j` to a smaller value — the length of the longest proper prefix of `P[0..j-1]` that is also a suffix. That value is precomputed for every `j` and stored in an array called the **failure function** (also called the **prefix function**, or `lps` for "Longest Proper Prefix which is also Suffix").
+
+## The failure function
+
+For a pattern `P` of length `m`, define `fail[j]` as the length of the **longest proper prefix of `P[0..j]` that is also a suffix of `P[0..j]`**.
+
+"Proper" means strictly shorter than the whole string — we don't count `P[0..j]` itself.
+
+### Example: `P = "ABABCABAB"`
+
+| j | P[0..j] | Longest proper prefix = suffix | fail[j] |
+| :- | :------- | :------------------------------ | :------ |
+| 0 | A | (none) | 0 |
+| 1 | AB | (none) | 0 |
+| 2 | ABA | "A" | 1 |
+| 3 | ABAB | "AB" | 2 |
+| 4 | ABABC | (none) | 0 |
+| 5 | ABABCA | "A" | 1 |
+| 6 | ABABCAB | "AB" | 2 |
+| 7 | ABABCABA | "ABA" | 3 |
+| 8 | ABABCABAB | "ABAB" | 4 |
+
+The pattern `fail = [0, 0, 1, 2, 0, 1, 2, 3, 4]`.
+
+### Building the failure function
+
+The failure function can be built in **O(m)** using the observation that `fail[j+1]` can be derived from `fail[j]`:
+
+```python
+def build_fail(P):
+    m = len(P)
+    fail = [0] * m
+    k = 0                         # length of current matching prefix
+    for j in range(1, m):
+        while k > 0 and P[k] != P[j]:
+            k = fail[k - 1]       # fall back
+        if P[k] == P[j]:
+            k += 1
+        fail[j] = k
+    return fail
+```
+
+The outer loop runs `m - 1` times. The inner `while` loop decreases `k` by at least 1 each iteration, and `k` can only increase by 1 per outer loop step. So the total number of `k` decreases is bounded by the total increases — which is at most `m - 1`. **Total work: O(m).**
+
+<Callout type="info">
+    The failure function construction is itself a KMP search: you're searching for each prefix of `P` inside `P` itself. The recursion `fail[k-1]` is the key step — if `P[k] != P[j]`, we fall back to the longest proper prefix-suffix of the shorter prefix, and try matching `P` there. This self-referential property is what makes the analysis non-obvious but the code simple.
+</Callout>
+
+## The KMP search
+
+With `fail` precomputed, the search is clean:
+
+```python
+def kmp_search(T, P):
+    n, m = len(T), len(P)
+    fail = build_fail(P)
+    matches = []
+    j = 0                          # characters matched so far
+    for i in range(n):
+        while j > 0 and T[i] != P[j]:
+            j = fail[j - 1]        # fall back without moving i
+        if T[i] == P[j]:
+            j += 1
+        if j == m:                 # full match
+            matches.append(i - m + 1)
+            j = fail[j - 1]        # continue searching for overlapping matches
+    return matches
+```
+
+The text pointer `i` only moves forward. The pattern pointer `j` can move backward via `fail`, but the total backward movement is bounded by the total forward movement (same amortized argument as above). **Total comparisons: at most `2n`.**
+
+## Walkthrough: `T = "ABABCABABD"`, `P = "ABABD"`
+
+Pattern `fail = [0, 0, 1, 2, 0]`.
+
+<StringPatternMatcher
+    text="ABABCABABD"
+    pattern="ABABD"
+    steps={[
+        { offset: 0, patternIndex: 0, textIndices: [0], description: "T[0]='A' vs P[0]='A'. Match. j=1." },
+        { offset: 0, patternIndex: 1, textIndices: [1], description: "T[1]='B' vs P[1]='B'. Match. j=2." },
+        { offset: 0, patternIndex: 2, textIndices: [2], description: "T[2]='A' vs P[2]='A'. Match. j=3." },
+        { offset: 0, patternIndex: 3, textIndices: [3], description: "T[3]='B' vs P[3]='B'. Match. j=4." },
+        { offset: 0, patternIndex: 4, textIndices: [4], description: "T[4]='C' vs P[4]='D'. Mismatch! fail[3]=2, so j jumps to 2." },
+        { offset: 2, patternIndex: 2, textIndices: [4], description: "KMP: don't move i! T[4]='C' vs P[2]='A'. Mismatch. fail[1]=0, j=0." },
+        { offset: 5, patternIndex: 0, textIndices: [5], description: "T[5]='A' vs P[0]='A'. Match. j=1." },
+        { offset: 5, patternIndex: 1, textIndices: [6], description: "T[6]='B' vs P[1]='B'. Match. j=2." },
+        { offset: 5, patternIndex: 2, textIndices: [7], description: "T[7]='A' vs P[2]='A'. Match. j=3." },
+        { offset: 5, patternIndex: 3, textIndices: [8], description: "T[8]='B' vs P[3]='B'. Match. j=4." },
+        { offset: 5, patternIndex: 4, textIndices: [9], description: "T[9]='D' vs P[4]='D'. Match! j=5. Match found at position 5!", match: true, matchedIndices: [5, 6, 7, 8, 9], matchedPatternIndices: [0, 1, 2, 3, 4] }
+    ]}
+/>
+
+The critical moment is at step 5: after the mismatch at `T[4]='C'` vs `P[4]='D'`, KMP doesn't restart from `T[1]`. It knows that `T[2..3] = "AB" = P[0..1]` (because `fail[3] = 2`), so it resumes matching from `P[2]` — without re-reading any text. The text pointer never moved back.
+
+## Full implementation
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> buildFail(const string& P) {
+        int m = P.size();
+        vector<int> fail(m, 0);
+        int k = 0;
+        for (int j = 1; j < m; j++) {
+            while (k > 0 && P[k] != P[j]) k = fail[k - 1];
+            if (P[k] == P[j]) k++;
+            fail[j] = k;
+        }
+        return fail;
+    }
+
+    vector<int> kmpSearch(const string& T, const string& P) {
+        int n = T.size(), m = P.size();
+        auto fail = buildFail(P);
+        vector<int> matches;
+        int j = 0;
+        for (int i = 0; i < n; i++) {
+            while (j > 0 && T[i] != P[j]) j = fail[j - 1];
+            if (T[i] == P[j]) j++;
+            if (j == m) {
+                matches.push_back(i - m + 1);
+                j = fail[j - 1];
+            }
+        }
+        return matches;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def build_fail(P):
+        m = len(P)
+        fail = [0] * m
+        k = 0
+        for j in range(1, m):
+            while k > 0 and P[k] != P[j]:
+                k = fail[k - 1]
+            if P[k] == P[j]:
+                k += 1
+            fail[j] = k
+        return fail
+
+    def kmp_search(T, P):
+        n, m = len(T), len(P)
+        fail = build_fail(P)
+        matches = []
+        j = 0
+        for i in range(n):
+            while j > 0 and T[i] != P[j]:
+                j = fail[j - 1]
+            if T[i] == P[j]:
+                j += 1
+            if j == m:
+                matches.append(i - m + 1)
+                j = fail[j - 1]
+        return matches
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] buildFail(String P) {
+        int m = P.length();
+        int[] fail = new int[m];
+        int k = 0;
+        for (int j = 1; j < m; j++) {
+            while (k > 0 && P.charAt(k) != P.charAt(j)) k = fail[k - 1];
+            if (P.charAt(k) == P.charAt(j)) k++;
+            fail[j] = k;
+        }
+        return fail;
+    }
+
+    List<Integer> kmpSearch(String T, String P) {
+        int n = T.length(), m = P.length();
+        int[] fail = buildFail(P);
+        List<Integer> matches = new ArrayList<>();
+        int j = 0;
+        for (int i = 0; i < n; i++) {
+            while (j > 0 && T.charAt(i) != P.charAt(j)) j = fail[j - 1];
+            if (T.charAt(i) == P.charAt(j)) j++;
+            if (j == m) {
+                matches.add(i - m + 1);
+                j = fail[j - 1];
+            }
+        }
+        return matches;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## The amortized argument
+
+The `i` pointer strictly increases — `n` increments total. The `j` pointer increases by 1 each time `T[i] == P[j]` (at most `n` times) and decreases via `fail` each mismatch. Since `j` can't go below 0 and every decrease came from a prior increase, the total decreases are at most `n`. Total `j` movements: at most `2n`. Total comparisons: at most `2n`. **KMP is O(n) for the search phase.**
+
+The preprocessing phase runs the same logic on `P` alone — O(m).
+
+**Grand total: O(n + m), O(m) space.**
+
+## Applications beyond simple search
+
+The failure function is powerful beyond pattern matching:
+
+### 1. Does a string have a repeated structure?
+
+A string `s` of length `n` is a repetition of a shorter string of length `k` if and only if `k` divides `n` and `n % (n - fail[n-1]) == 0`.
+
+```python
+def smallest_period(s):
+    fail = build_fail(s)
+    n = len(s)
+    k = n - fail[n - 1]
+    return k if n % k == 0 else n
+```
+
+For `s = "ABABABAB"`, `fail[-1] = 6`, `k = 8 - 6 = 2`. Since `8 % 2 == 0`, the period is 2 (`"AB"`).
+
+### 2. Shortest palindrome by KMP on the reverse
+
+To find the shortest palindrome that starts with `s`, concatenate `s + '#' + reversed(s)` and compute the failure function. `fail[-1]` gives the length of the longest prefix of `s` that is also a palindrome prefix (because it's a prefix of `s` that matches a suffix of `reversed(s)`). This directly solves LeetCode #214 [Shortest Palindrome](/day27/practice_questions/shortest_palindrome).
+
+### 3. Count of pattern occurrences in text including overlapping
+
+The `fail[j-1]` at the end of a full match handles overlapping occurrences automatically. The `kmp_search` above already counts them correctly.
+
+## Complexity
+
+| Phase | Time | Space |
+| :--- | :--- | :--- |
+| Build failure function | O(m) | O(m) |
+| Search | O(n) | O(1) (plus O(m) for fail array) |
+| **Total** | **O(n + m)** | **O(m)** |
+
+## Quick check
+
+<QuizBox
+    question="For pattern P = 'AABAA', what is fail[4]?"
+    options={[
+        "0",
+        "1",
+        "2",
+        "3"
+    ]}
+    correctIndex={2}
+    explanation="P[0..4] = 'AABAA'. The longest proper prefix that is also a suffix: check 'AABA' (no), 'AAB' (no), 'AA' (is 'AA' a suffix of 'AABAA'? Yes, last two chars are 'AA'). So fail[4] = 2."
+/>
+
+<QuizBox
+    question="After a full match at the end of kmp_search, why do we set j = fail[j-1] instead of j = 0?"
+    options={[
+        "Bug — should be j = 0",
+        "To correctly handle overlapping matches: the matched suffix might be a valid start of the next match, and fail[j-1] is the length of the longest prefix of P that equals the current suffix",
+        "Performance only — not needed for correctness",
+        "To avoid the next character comparison"
+    ]}
+    correctIndex={1}
+    explanation="Consider T = 'AABAABAAB', P = 'AABAA'. After matching at position 0, the suffix 'AABAA[0..4]' ends at T[4]. The last two chars 'AA' form a prefix of P of length 2 — a valid start for the next match. Setting j = fail[m-1] picks up where we left off. If we set j = 0, we'd miss overlapping matches."
+/>
+
+<QuizBox
+    question="Why does the failure function run in O(m) even though it contains a while loop inside a for loop?"
+    options={[
+        "The while loop runs at most once per outer iteration",
+        "Amortized: k can only increase by 1 per outer loop step (when P[k]==P[j]), so the total increases across all j are at most m. Each while iteration decreases k by at least 1. Total decreases ≤ total increases ≤ m.",
+        "The compiler optimizes it",
+        "It's actually O(m log m)"
+    ]}
+    correctIndex={1}
+    explanation="This is a classic amortized argument. Track k as a 'bank account': each outer loop step deposits at most 1 (k++ when characters match). Each while loop iteration withdraws at least 1 (k = fail[k-1] strictly decreases k). Withdrawals can't exceed deposits, so the total withdrawals across all j are bounded by m. This makes the while loop O(m) in total, not O(m) per outer step."
+/>
+
+Next: **Rabin-Karp** — rolling polynomial hash, O(1) window comparisons, and why it's the right tool for multi-pattern search and duplicate substring detection.

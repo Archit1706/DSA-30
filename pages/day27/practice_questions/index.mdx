@@ -1,0 +1,61 @@
+---
+title: "Advanced Strings Practice Questions"
+description: "Ten interview classics for advanced strings — strStr, Repeated Substring, Longest Happy Prefix, Find All Anagrams, Minimum Window Substring, Longest Palindromic Substring, Count and Say, Shortest Palindrome, Longest Duplicate Substring, Wildcard Matching."
+---
+
+import { Callout } from "nextra/components";
+
+# Advanced Strings Practice Questions
+
+Ten interview problems, every algorithm in the chapter represented. The easy problems are direct applications; the hard ones require combining multiple techniques — if you're solving them correctly, you've genuinely internalized the material.
+
+<Callout type="info">
+    Before reading any solution, ask yourself:
+
+    1. **Is this a "find pattern in text" problem?** → try KMP or Z-algorithm.
+    2. **Does it involve duplicate / repeated substrings of a specific length?** → try Rabin-Karp rolling hash.
+    3. **Does it involve palindromes?** → expand-around-center for O(n²), Manacher's for O(n).
+    4. **Does it involve a sliding window with character frequencies?** → two-pointer + frequency array.
+
+    The code follows from the right framing.
+</Callout>
+
+## Easy
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Implement strStr](/day27/practice_questions/implement_strstr) | KMP or naive | Available |
+| [Repeated Substring Pattern](/day27/practice_questions/repeated_substring_pattern) | KMP failure function — period detection | Available |
+
+## Medium
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Longest Happy Prefix](/day27/practice_questions/longest_happy_prefix) | KMP failure function directly | Available |
+| [Find All Anagrams in a String](/day27/practice_questions/find_all_anagrams) | Sliding window + frequency array | Available |
+| [Minimum Window Substring](/day27/practice_questions/minimum_window_substring) | Sliding window + two-pointer | Available |
+| [Longest Palindromic Substring](/day27/practice_questions/longest_palindromic_substring) | Expand around center / Manacher's | Available |
+| [Count and Say](/day27/practice_questions/count_and_say) | String simulation / run-length encoding | Available |
+
+## Hard
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Shortest Palindrome](/day27/practice_questions/shortest_palindrome) | KMP on `s + '#' + reverse(s)` | Available |
+| [Longest Duplicate Substring](/day27/practice_questions/longest_duplicate_substring) | Binary search + Rabin-Karp rolling hash | Available |
+| [Wildcard Matching](/day27/practice_questions/wildcard_matching) | DP (2D) or greedy two-pointer | Available |
+
+## More Practice (Coming Soon)
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| Word Search II | Trie + DFS (Aho-Corasick flavor) | Coming Soon |
+| Edit Distance | Classic 2D DP | Coming Soon |
+| Regular Expression Matching | DP with wildcard semantics | Coming Soon |
+| Distinct Subsequences | 2D DP | Coming Soon |
+| Text Justification | String simulation | Coming Soon |
+| Scramble String | Interval DP | Coming Soon |
+| Palindrome Pairs | Trie + KMP | Coming Soon |
+| Count Palindromic Substrings | Manacher's or expand | Coming Soon |
+| String to Integer (atoi) | Careful parsing | Coming Soon |
+| Decode Ways | 1D DP on digits | Coming Soon |

@@ -1,21 +1,41 @@
 ---
 title: "Day 27 — Advanced Strings"
-description: "Beyond basic string matching — suffix arrays, the Z-algorithm, Manacher's, and the advanced patterns that solve hard string interview problems."
+description: "Beyond brute-force matching — KMP, Rabin-Karp, Z-algorithm, and Manacher's — the algorithms that turn O(nm) string problems into O(n+m)."
 ---
 
 import { Callout } from "nextra/components";
 
 # Day 27 — Advanced Strings
 
+Strings are deceptively tricky. Most developers can reverse a string and check a palindrome, but when the interviewer asks you to find all occurrences of a pattern in a text **in linear time**, or find the longest palindromic substring **without an O(n²) loop**, the naive instinct breaks down.
+
+The reason is almost always the same: **the brute-force string algorithm restarts from scratch on every mismatch**. KMP, Rabin-Karp, and the Z-algorithm all fix that in different ways — and each one reveals a different structural insight about strings. Manacher's is its own kind of wizardry.
+
+By the end of today you'll have four algorithms in your toolkit, each of which turns an O(nm) problem into O(n + m) or O(n).
+
+## What you'll learn today
+
+- **Why naive matching fails** — the `O(nm)` trap and the insight that all linear matchers exploit
+- **KMP** — the failure function that tells you how far to slide on a mismatch, and the proof that it never goes backward
+- **Rabin-Karp** — the rolling-hash trick, how to handle collisions, and the duplicate-substring applications that make it unique
+- **Z-algorithm** — a cleaner linear matcher with a simpler correctness argument
+- **Manacher's algorithm** — O(n) longest palindromic substring, leveraging the palindrome mirror property
+- **Ten interview problems** — strStr, Repeated Substring, Longest Happy Prefix, Find All Anagrams, Minimum Window Substring, Longest Palindromic Substring, Shortest Palindrome, Longest Duplicate Substring
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    The unifying insight behind KMP, Rabin-Karp, and Z is this: **when a mismatch occurs, you already know some things about the text from the characters you've already read**. The naive matcher throws that knowledge away. All three algorithms find ways to keep it. The difference between them is *what* they remember and *how* they use it.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **KMP (Knuth-Morris-Pratt)** — the failure function and why pattern matching can run in O(n + m)
-- **Rabin-Karp** — rolling hash for pattern matching and detecting duplicate substrings
-- **Z-algorithm** — another linear-time string matcher with a simpler proof
-- **Suffix arrays** and **tries on suffixes** — when you have one big string and many queries
+1. **[Introduction](/day27/introduction)** — naive matching cost analysis, the mismatch-restart problem, and the shared insight all fast matchers exploit.
+2. **[KMP](/day27/kmp)** — the prefix-suffix failure function, the automaton view, and why the total comparisons across all restarts is bounded by `2n`.
+3. **[Rabin-Karp](/day27/rabin_karp)** — polynomial rolling hash, window sliding, collision handling, and the multi-pattern generalization.
+4. **[Z-Algorithm](/day27/z_algorithm)** — the Z-array, the Z-box maintenance trick, and applications (pattern search, string periodicity).
+5. **[Advanced Patterns](/day27/advanced)** — Manacher's palindrome algorithm, Aho-Corasick for multi-pattern search, and a high-level sketch of suffix arrays.
+6. **[Basic Questions](/day27/basic_questions)** — warm-ups: implement strStr, reverse words, check palindrome, anagram check.
+7. **[Practice Questions](/day27/practice_questions)** — ten interview classics covering every algorithm in the chapter.
 
-Day 2's [String Algorithms](/day2/strings) covered the naive matcher and gave you a taste of KMP and Rabin-Karp. This chapter goes deep into the theory and applications.
+The algorithms here are not just trivia — they come up in LeetCode Hard problems constantly, and understanding *why* they work (not just the code) is the difference between solving variants and being stumped by them.
+
+Coming up next: **Day 28 — System Design 101**, where the focus shifts from algorithmic correctness to scalability, trade-offs, and the design of systems too big for a single machine.

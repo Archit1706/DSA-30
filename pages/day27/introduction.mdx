@@ -1,0 +1,158 @@
+---
+title: "Introduction to Advanced String Matching"
+description: "Why naive matching costs O(nm), the mismatch-restart problem, and the shared structural insight that lets KMP, Rabin-Karp, and Z all achieve O(n+m)."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { StringPatternMatcher } from "../../components/StringPatternMatcher";
+import { StringVisualizer, StringCompare } from "../../components/StringVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Introduction to Advanced String Matching
+
+You already know the string basics from [Day 2](/day2/strings) — character arrays, two-pointer reversal, anagram checking. Today is about a different problem: **finding a pattern inside a much larger text**. This is the core operation behind `grep`, search engines, DNA sequence alignment, and the `String.indexOf` call you've used without thinking.
+
+## The problem
+
+> Given a text string `T` of length `n` and a pattern string `P` of length `m`, find all positions in `T` where `P` occurs.
+
+Formally: find all indices `i` such that `T[i..i+m-1] == P[0..m-1]`.
+
+## Why naive matching is slow
+
+The naive algorithm slides `P` across `T` one position at a time, checking character by character:
+
+```python
+def naive_search(T, P):
+    n, m = len(T), len(P)
+    for i in range(n - m + 1):
+        j = 0
+        while j < m and T[i + j] == P[j]:
+            j += 1
+        if j == m:
+            print(f"Match at {i}")
+```
+
+On typical inputs this is fast. But consider:
+
+```
+T = "AAAAAAAAAB"    (n = 10)
+P = "AAAAB"         (m = 5)
+```
+
+At every position `i = 0, 1, 2, 3, 4, 5`, the first four characters match and only the fifth fails. The inner loop runs 4 times before the restart. For a string of `n` A's followed by a B and a pattern of `m-1` A's followed by a B, the total comparisons are `(n - m + 1) × m` — that's **`O(nm)`**.
+
+For `n = 100,000` and `m = 1,000`, that's 100 million character comparisons. For genome matching (`n = 3 billion`, `m = 100`), it's a problem.
+
+<StringPatternMatcher
+    text="AAAAB"
+    pattern="AAB"
+    steps={[
+        { offset: 0, patternIndex: 0, textIndices: [0], description: "Start at position 0. Compare T[0]='A' with P[0]='A'. Match." },
+        { offset: 0, patternIndex: 1, textIndices: [1], description: "Compare T[1]='A' with P[1]='A'. Match." },
+        { offset: 0, patternIndex: 2, textIndices: [2], description: "Compare T[2]='A' with P[2]='B'. Mismatch! Naive: restart at position 1." },
+        { offset: 1, patternIndex: 0, textIndices: [1], description: "Restart from position 1. Compare T[1]='A' with P[0]='A'. Match." },
+        { offset: 1, patternIndex: 1, textIndices: [2], description: "Compare T[2]='A' with P[1]='A'. Match." },
+        { offset: 1, patternIndex: 2, textIndices: [3], description: "Compare T[3]='A' with P[2]='B'. Mismatch! Restart at position 2." },
+        { offset: 2, patternIndex: 0, textIndices: [2], description: "Restart from position 2. Compare T[2]='A' with P[0]='A'. Match." },
+        { offset: 2, patternIndex: 1, textIndices: [3], description: "Compare T[3]='A' with P[1]='A'. Match." },
+        { offset: 2, patternIndex: 2, textIndices: [4], description: "Compare T[4]='B' with P[2]='B'. Match — found at position 2!", match: true, matchedIndices: [2, 3, 4], matchedPatternIndices: [0, 1, 2] }
+    ]}
+/>
+
+Notice what the naive algorithm wastes: at position 1, it starts comparing `T[1]` and `P[0]`. But we **already know** `T[1] = 'A'` from the previous pass. We compared it with `P[1]` and it matched. Why compare it again?
+
+**That is the core insight every fast matcher exploits.** The question each algorithm answers differently is: *given that we just failed on `T[i+j] != P[j]`, how much text can we skip before the next attempt?*
+
+## The mismatch-restart problem, stated precisely
+
+When the naive matcher fails at position `j` in the pattern (after `j` successes), it:
+
+1. **Forgets** that it matched `T[i+1..i+j-1]` against `P[1..j-1]`.
+2. **Restarts** comparison of `P[0]` against `T[i+1]`.
+
+The waste is in step 1. After matching `j` characters, we know the text window `T[i..i+j-1]` equals `P[0..j-1]`. If we're smart, we can use that knowledge to skip ahead.
+
+The key question: **what is the longest prefix of `P` that is also a suffix of `P[0..j-1]`?** If such a prefix exists, that's exactly where we can resume matching — we don't need to move back in `T` at all.
+
+## The three strategies
+
+All three algorithms answer the skip question, but in different ways:
+
+| Algorithm | What it remembers | How it skips |
+| :--- | :--- | :--- |
+| **KMP** | The longest proper prefix-suffix for each prefix of `P` | On mismatch at `P[j]`, jump to `P[fail[j]]` without moving `T` |
+| **Rabin-Karp** | A rolling hash of the current text window | Compare hashes first; only do character comparison on hash match |
+| **Z-algorithm** | For each position, the longest string starting there that matches a prefix of `T` (or `P` concatenated with `T`) | Extend the Z-box; never re-compare inside it |
+
+They have the same `O(n + m)` worst case, but different constants and different strengths:
+- KMP is the canonical teaching algorithm; its failure function reappears in Aho-Corasick.
+- Rabin-Karp generalizes to **multi-pattern search** and **duplicate detection** (because the hash is the same for both the pattern and any window with that content).
+- Z-algorithm is simpler to prove correct and has a clean relationship to suffix arrays.
+
+## A mental model for all three
+
+Think of sliding a window of width `m` across the text. At each window position, you want to know: **does this window equal the pattern?**
+
+- **Naive:** recompute the comparison from scratch each slide. O(m) per slide, O(nm) total.
+- **KMP:** know exactly where in the pattern you got stuck and resume there; guaranteed progress on every character read.
+- **Rabin-Karp:** compute a hash for each window in O(1) by rolling the previous hash; full comparison only when hashes match.
+- **Z-algorithm:** precompute a map of "prefix match lengths" for every position and read off the answer.
+
+All four views describe the same mathematical fact — **once you've read a character, you don't need to read it again for pattern matching purposes** — but each turns that fact into a different piece of data structure.
+
+## String algorithm complexity landscape
+
+Before diving into each algorithm, here's the full picture:
+
+| Algorithm | Preprocessing | Search | Space | Best for |
+| :--- | :--- | :--- | :--- | :--- |
+| Naive | O(1) | O(nm) worst | O(1) | Short patterns, unlikely worst case |
+| KMP | O(m) | O(n) | O(m) | Single pattern, worst-case guarantee |
+| Rabin-Karp | O(m) | O(n) avg / O(nm) worst | O(1) | Multi-pattern, duplicate detection |
+| Z-algorithm | O(n+m) | O(n+m) | O(n+m) | Clean linear guarantee, many applications |
+| Aho-Corasick | O(m\_total) | O(n + matches) | O(m\_total) | Matching many patterns simultaneously |
+| Suffix array | O(n log n) | O(m log n) | O(n) | Many different queries on the same text |
+
+For a standard interview "find pattern in text" problem, any of KMP, Rabin-Karp, or Z works. The choice matters more when you're doing something fancier: multi-pattern search (Rabin-Karp or Aho-Corasick), palindrome detection (Z-array or Manacher's), or repeated-query substring problems (suffix array).
+
+## Quick check
+
+<QuizBox
+    question="The naive string search algorithm runs in O(nm) in the worst case. What input pattern triggers the worst case?"
+    options={[
+        "Any random text and pattern",
+        "Text is all the same character (e.g., AAAAAB) and the pattern almost matches at every position (e.g., AAAB) — so j comparisons are wasted before each restart",
+        "Text shorter than the pattern",
+        "Pattern of all distinct characters"
+    ]}
+    correctIndex={1}
+    explanation="If T = 'AAA...AB' (n-1 A's then B) and P = 'AA...AB' (m-1 A's then B), the inner loop runs m-1 times before finding the mismatch at every starting position. Total comparisons ≈ (n - m + 1) × (m - 1) = O(nm)."
+/>
+
+<QuizBox
+    question="After matching T[i..i+j-1] == P[0..j-1] and failing on T[i+j] != P[j], why can we sometimes skip ahead by more than 1 position?"
+    options={[
+        "We can't — we always advance by exactly 1",
+        "Because T[i+1..i+j-1] is known (we've seen it), and we can use knowledge of P's own structure to find the farthest start position that could still lead to a match without re-reading those characters",
+        "Random optimization, no guarantee",
+        "Only works for certain alphabets"
+    ]}
+    correctIndex={1}
+    explanation="After j successful matches, we know the text window T[i..i+j-1] = P[0..j-1]. The next valid start position is the farthest position p > i such that P[0..i+j-1-p-1] matches T[p..i+j-1]. This is equivalent to asking: what's the longest proper prefix of P[0..j-1] that also appears as a suffix? That's exactly the KMP failure function."
+/>
+
+<QuizBox
+    question="Rabin-Karp achieves O(n) average time by comparing hashes first. What's its worst-case time?"
+    options={[
+        "O(n)",
+        "O(nm) — if every window hash matches the pattern hash (pathological hash collisions force full comparison every step)",
+        "O(n log n)",
+        "O(m)"
+    ]}
+    correctIndex={1}
+    explanation="If the hash function produces many false positives (hash collisions), Rabin-Karp degenerates to the naive algorithm. In practice, with a good polynomial hash and a large prime modulus, false positives are rare (O(1) per window on average). But the worst case is O(nm), which is why KMP is preferred when a worst-case guarantee is required."
+/>
+
+Next: **KMP** — the failure function that makes pattern matching linear, guaranteed.

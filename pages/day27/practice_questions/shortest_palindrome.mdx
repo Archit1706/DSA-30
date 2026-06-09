@@ -1,0 +1,165 @@
+---
+title: "Shortest Palindrome"
+description: "Find the shortest palindrome by prepending characters to s — solved with KMP on s + '#' + reverse(s)."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Shortest Palindrome <DifficultyBadge level="hard" />
+
+#### Description
+
+You are given a string `s`. You can convert `s` to a palindrome by adding characters **in front of it**.
+
+Return the **shortest palindrome** you can find by performing this transformation.
+
+#### Examples
+
+```py
+> Case 1:
+    s = "aacecaaa"
+    Output: "aaacecaaa"
+    Explanation: Add one 'a' at front.
+
+> Case 2:
+    s = "abcd"
+    Output: "dcbabcd"
+    Explanation: Add "dcb" at front.
+```
+
+#### Constraints
+
+- `0 <= s.length <= 5 * 10^4`
+- `s` consists of lowercase English letters only.
+
+#### State design / Intuition
+
+The key observation: to make a palindrome by prepending characters, we want to **keep as much of `s` as possible from the left**. Specifically, find the longest prefix of `s` that is itself a palindrome. The answer is `reverse(s[len_prefix:]) + s`.
+
+**How to find the longest palindrome prefix?**
+
+Concatenate `s + '#' + reverse(s)`. The KMP failure function on this concatenation gives `fail[-1]` = the length of the longest prefix of `s` that is also a suffix of `reverse(s)` — which is exactly the longest palindrome prefix of `s`.
+
+The `'#'` separator is critical: it prevents the KMP matching from "seeing through" the boundary between `s` and `reverse(s)`.
+
+#### Worked example
+
+`s = "abcd"`:
+- `rev = "dcba"`
+- Concatenate: `"abcd#dcba"`
+- `fail = [0, 0, 0, 0, 0, 0, 0, 0, 1]`
+
+Wait, let me recompute:
+- `fail[-1] = 1` (the prefix "a" matches the suffix "a" in "abcd#dcba").
+- Longest palindrome prefix of `s` = `s[:1] = "a"`.
+- Answer = `reverse(s[1:]) + s = "dcb" + "abcd" = "dcbabcd"`. Correct.
+
+`s = "aacecaaa"`:
+- `rev = "aaacecaa"`
+- Concat: `"aacecaaa#aaacecaa"`
+- `fail[-1] = 7` (longest palindrome prefix of `s` is `"aacecaa"` of length 7)
+- Answer = `reverse(s[7:]) + s = "a" + "aacecaaa" = "aaacecaaa"`. Correct.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string shortestPalindrome(string s) {
+        string rev = s;
+        reverse(rev.begin(), rev.end());
+
+        string t = s + "#" + rev;
+        int n = t.size();
+
+        // KMP failure function
+        vector<int> fail(n, 0);
+        for (int k = 0, j = 1; j < n; j++) {
+            while (k > 0 && t[k] != t[j]) k = fail[k - 1];
+            if (t[k] == t[j]) k++;
+            fail[j] = k;
+        }
+
+        int palLen = fail[n - 1];           // length of longest palindrome prefix
+        return rev.substr(0, s.size() - palLen) + s;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def shortestPalindrome(s: str) -> str:
+        rev = s[::-1]
+        t = s + '#' + rev
+        n = len(t)
+
+        # KMP failure function
+        fail = [0] * n
+        k = 0
+        for j in range(1, n):
+            while k > 0 and t[k] != t[j]:
+                k = fail[k - 1]
+            if t[k] == t[j]:
+                k += 1
+            fail[j] = k
+
+        pal_len = fail[-1]                  # longest palindrome prefix length
+        return rev[:len(s) - pal_len] + s
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String shortestPalindrome(String s) {
+        String rev = new StringBuilder(s).reverse().toString();
+        String t = s + "#" + rev;
+        int n = t.length();
+
+        int[] fail = new int[n];
+        for (int k = 0, j = 1; j < n; j++) {
+            while (k > 0 && t.charAt(k) != t.charAt(j)) k = fail[k - 1];
+            if (t.charAt(k) == t.charAt(j)) k++;
+            fail[j] = k;
+        }
+
+        int palLen = fail[n - 1];
+        return rev.substring(0, s.length() - palLen) + s;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    The `'#'` separator is not optional. Without it, the failure function could "see through" the boundary and match characters from `s` against characters from `rev` in unintended ways, producing a longer-than-valid palindrome prefix length. The separator ensures `fail[-1] <= len(s)`.
+</Callout>
+
+#### Alternative: Z-algorithm
+
+```python
+def shortestPalindrome_z(s):
+    rev = s[::-1]
+    t = s + '#' + rev
+    Z = z_array(t)              # from z_algorithm.py
+    # Find the largest index i in the t portion where Z[i] == len(s) - i
+    # That corresponds to a full match of a suffix of s with a prefix of s
+    n = len(s)
+    for i in range(n, len(t)):
+        if Z[i] == len(t) - i:   # suffix of t starting at i matches a prefix of s
+            pal_len = len(t) - i
+            return rev[:n - pal_len] + s
+    return rev + s
+```
+
+Same O(n) time; the Z-array approach is arguably more direct if you're already using it elsewhere.
+
+#### Analysis
+
+- **Time:** O(n) — one KMP pass on a string of length `2n + 1`.
+- **Space:** O(n) — the failure function array.
+
+#### Same skin
+
+- **Longest Happy Prefix** — same failure function, different question.
+- **Palindrome by appending** — add characters at the end: reverse the problem, find longest palindrome suffix.
+- **Palindrome Partition I/II** — different framing (minimum cuts), but palindrome prefix detection appears in the optimization.
+- **Shortest Palindrome by inserting in middle** — much harder; DP on intervals.

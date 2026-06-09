@@ -1,0 +1,286 @@
+---
+title: "Advanced String Patterns"
+description: "Manacher's O(n) palindrome algorithm, the Aho-Corasick multi-pattern automaton, and a conceptual sketch of suffix arrays."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Advanced String Patterns
+
+The three algorithms on the previous pages (KMP, Rabin-Karp, Z-algorithm) cover single-pattern search in linear time. This page introduces three more techniques that come up in harder problems:
+
+1. **Manacher's algorithm** — longest palindromic substring in O(n). The palindrome version of KMP's "don't restart from scratch."
+2. **Aho-Corasick** — multi-pattern search in O(n + total pattern length + matches). KMP on a trie.
+3. **Suffix arrays** — a sorted array of all suffixes, enabling O(m log n) search for any pattern and O(n log n) construction. The data structure behind many "hard" string problems.
+
+## 1. Manacher's Algorithm
+
+### The palindrome problem
+
+> Find the longest palindromic substring of `s`.
+
+The brute-force expand-around-center approach tries every center, expands while characters match, and is **O(n²)** (n centers × n expansion per center worst case). Manacher's does it in **O(n)** using the same Z-box principle.
+
+### The mirror trick
+
+The key insight: **if you're inside a palindrome, your mirror position around the palindrome's center gives you a free match length**. Specifically, if we're computing the radius `p[i]` at center `i`, and `i` is inside a known palindrome centered at `c` with radius `r` (so `c - r <= i <= c + r`), then `p[i] >= min(p[2*c - i], c + r - i)`.
+
+- `2*c - i` is the mirror of `i` around `c`.
+- `p[2*c - i]` is the known palindrome radius at the mirror.
+- `c + r - i` is how much room we have inside the known palindrome.
+
+We take the minimum because if the mirror's palindrome extends beyond the current palindrome's edge, we can only guarantee matches up to the edge.
+
+### The odd/even unification trick
+
+To handle both odd-length and even-length palindromes with one pass, insert a separator character (e.g., `'#'`) between every character and at both ends:
+
+```
+s = "abacaba"
+T = "#a#b#a#c#a#b#a#"
+```
+
+Now every palindrome in `T` is odd-length (since we inserted characters between every pair), and an even-length palindrome in `s` corresponds to a palindrome centered on a `'#'`.
+
+### Implementation
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    string longestPalindrome(string s) {
+        string T = "#";
+        for (char c : s) { T += c; T += '#'; }
+        int n = T.size();
+        vector<int> p(n, 0);
+        int c = 0, r = 0;
+        for (int i = 1; i < n - 1; i++) {
+            int mirror = 2 * c - i;
+            if (i < r) p[i] = min(r - i, p[mirror]);
+            while (i + p[i] + 1 < n && i - p[i] - 1 >= 0
+                   && T[i + p[i] + 1] == T[i - p[i] - 1])
+                p[i]++;
+            if (i + p[i] > r) { c = i; r = i + p[i]; }
+        }
+        int center = max_element(p.begin(), p.end()) - p.begin();
+        int radius = p[center];
+        return s.substr((center - radius) / 2, radius);
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def longest_palindrome(s):
+        T = '#' + '#'.join(s) + '#'
+        n = len(T)
+        p = [0] * n
+        c = r = 0
+        for i in range(1, n - 1):
+            mirror = 2 * c - i
+            if i < r:
+                p[i] = min(r - i, p[mirror])
+            while i + p[i] + 1 < n and i - p[i] - 1 >= 0 and T[i + p[i] + 1] == T[i - p[i] - 1]:
+                p[i] += 1
+            if i + p[i] > r:
+                c, r = i, i + p[i]
+        center = p.index(max(p))
+        radius = p[center]
+        start = (center - radius) // 2
+        return s[start: start + radius]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public String longestPalindrome(String s) {
+        StringBuilder sb = new StringBuilder("#");
+        for (char c : s.toCharArray()) { sb.append(c); sb.append('#'); }
+        String T = sb.toString();
+        int n = T.length();
+        int[] p = new int[n];
+        int c = 0, r = 0;
+        for (int i = 1; i < n - 1; i++) {
+            int mirror = 2 * c - i;
+            if (i < r) p[i] = Math.min(r - i, p[mirror]);
+            while (i + p[i] + 1 < n && i - p[i] - 1 >= 0
+                   && T.charAt(i + p[i] + 1) == T.charAt(i - p[i] - 1))
+                p[i]++;
+            if (i + p[i] > r) { c = i; r = i + p[i]; }
+        }
+        int center = 0;
+        for (int i = 1; i < n; i++) if (p[i] > p[center]) center = i;
+        int radius = p[center];
+        return s.substring((center - radius) / 2, (center - radius) / 2 + radius);
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time: O(n). Space: O(n).**
+
+The argument is the same as the Z-algorithm: the `r` pointer never decreases, every expansion increments `r` by 1, and `r` is bounded by `|T| = 2n + 1`. Total expansions across all `i`: O(n).
+
+<Callout type="info">
+    Manacher's is the string algorithm most frequently cited as "magic" in interviews. It's not. Once you see the Z-box analogy — "if I'm inside a known palindrome, my mirror tells me a free radius" — the code follows directly. The `#`-insertion trick is just bookkeeping to avoid separate even/odd cases.
+</Callout>
+
+## 2. Aho-Corasick: multi-pattern search
+
+### The problem
+
+> Given a text `T` and a set of patterns `P1, P2, ..., Pk`, find all occurrences of all patterns in `T`.
+
+Running KMP separately for each pattern takes O(n × k + total\_pattern\_length) — linear in the text for each pattern. If `k = 10,000`, that's expensive. Aho-Corasick does it in **O(n + total\_pattern\_length + number\_of\_matches)** — one pass over the text, finding all pattern occurrences simultaneously.
+
+### The idea
+
+Build a **trie** of all patterns. Then build **failure links** on the trie (exactly KMP's failure function, but on the trie structure). Each failure link points from a node back to the longest proper suffix of the current path that is also a prefix of some pattern.
+
+During the search, run the text through the automaton: on each character, follow a trie edge if one exists, or follow failure links until you find a matching edge or reach the root. Every time you reach a node that marks a complete pattern, record a match.
+
+The automaton processes each character in O(1) amortized (same argument as KMP). The total traversal is O(n).
+
+```python
+from collections import deque
+
+def build_aho_corasick(patterns):
+    # Trie: each node is {char: child_idx}, plus fail and output
+    trie = [{'fail': 0, 'output': []}]
+    goto = [{}]
+
+    for pid, p in enumerate(patterns):
+        node = 0
+        for ch in p:
+            if ch not in goto[node]:
+                goto.append({})
+                trie.append({'fail': 0, 'output': []})
+                goto[node][ch] = len(trie) - 1
+            node = goto[node][ch]
+        trie[node]['output'].append(pid)
+
+    q = deque()
+    for ch, child in goto[0].items():
+        trie[child]['fail'] = 0
+        q.append(child)
+
+    while q:
+        u = q.popleft()
+        for ch, v in goto[u].items():
+            fail = trie[u]['fail']
+            while fail and ch not in goto[fail]:
+                fail = trie[fail]['fail']
+            trie[v]['fail'] = goto[fail].get(ch, 0) if fail else goto[0].get(ch, 0)
+            if trie[v]['fail'] == v:
+                trie[v]['fail'] = 0
+            trie[v]['output'] += trie[trie[v]['fail']]['output']
+            q.append(v)
+
+    return trie, goto
+
+def aho_corasick_search(T, patterns):
+    trie, goto = build_aho_corasick(patterns)
+    node, results = 0, []
+    for i, ch in enumerate(T):
+        while node and ch not in goto[node]:
+            node = trie[node]['fail']
+        node = goto[node].get(ch, 0)
+        for pid in trie[node]['output']:
+            results.append((i - len(patterns[pid]) + 1, pid))
+    return results
+```
+
+Aho-Corasick is the algorithm behind Unix `grep` (especially `fgrep`) and many intrusion detection systems.
+
+## 3. Suffix Arrays: a conceptual sketch
+
+### What is a suffix array?
+
+For a string `s` of length `n`, the **suffix array** `SA` is a permutation of `[0, 1, ..., n-1]` such that `s[SA[0]..] < s[SA[1]..] < ... < s[SA[n-1]..]` — the suffixes sorted in lexicographic order.
+
+For `s = "banana"`:
+
+| Rank | Suffix | Starting index |
+| :--- | :----- | :------------- |
+| 0 | a | 5 |
+| 1 | ana | 3 |
+| 2 | anana | 1 |
+| 3 | banana | 0 |
+| 4 | na | 4 |
+| 5 | nana | 2 |
+
+`SA = [5, 3, 1, 0, 4, 2]`.
+
+### Pattern search with a suffix array
+
+To find all occurrences of pattern `P` in `s`, binary search on the suffix array. Any occurrence of `P` in `s` is a prefix of some suffix — so the occurrences form a contiguous range in the sorted suffix array. Two binary searches (lower bound and upper bound) find that range in **O(m log n)**.
+
+### Construction
+
+Naïve construction (sort all suffixes by comparison) is O(n² log n) due to O(n) comparison cost. The standard O(n log n) algorithm uses **prefix doubling**: sort by pairs of length-1, then length-2, then length-4, etc., doubling the comparison key each round. After log n rounds, the full sort is done.
+
+An O(n) construction (SA-IS algorithm) exists but is complex; the O(n log n) version is standard in competitive programming.
+
+### LCP array
+
+The **Longest Common Prefix (LCP) array** `LCP[i]` stores the length of the longest common prefix between `SA[i-1]` and `SA[i]` (adjacent suffixes in sorted order). It can be computed in O(n) from the suffix array using the Kasai algorithm.
+
+Together, the suffix array and LCP array answer many "substring queries" in O(n log n) total preprocessing and O(m log n) per query:
+
+- Find pattern in text
+- Count distinct substrings: `n*(n+1)/2 - sum(LCP)`
+- Longest repeated substring: `max(LCP)`
+- Longest common substring of two strings
+
+For interview purposes, Rabin-Karp + binary search covers most suffix array applications. The suffix array itself appears in competitive programming more than in FAANG interviews.
+
+## Summary: when to use what
+
+| Problem | Best algorithm |
+| :--- | :--- |
+| Find one pattern in text | KMP or Z-algorithm |
+| Find pattern, need multi-pattern generalization | Rabin-Karp |
+| Find all patterns simultaneously | Aho-Corasick |
+| Longest palindromic substring | Manacher's |
+| Duplicate substring detection | Binary search + Rabin-Karp |
+| Many queries on the same text | Suffix array + LCP |
+| Competitive programming string | Suffix array + Aho-Corasick |
+
+## Quick check
+
+<QuizBox
+    question="In Manacher's algorithm, what does the p[i] array represent?"
+    options={[
+        "The position of each character",
+        "The radius of the longest palindrome centered at position i in the augmented string T (with '#' separators). The actual palindrome length in s is p[i].",
+        "The Z-values of T",
+        "The KMP failure function of T"
+    ]}
+    correctIndex={1}
+    explanation="After augmenting s with '#' separators to form T, p[i] is the palindrome radius at center i in T. A radius of r means T[i-r..i+r] is a palindrome. Because T has '#' between every two characters, even-length palindromes in s appear as odd-length palindromes in T centered on '#' characters. The actual palindrome substring in s starts at (i - p[i]) / 2 and has length p[i]."
+/>
+
+<QuizBox
+    question="What is Aho-Corasick's key advantage over running KMP independently for each of k patterns?"
+    options={[
+        "Aho-Corasick is simpler to implement",
+        "Running k KMPs costs O(n × k), which is expensive when k is large. Aho-Corasick processes the text once in O(n + matches), regardless of k. The patterns are compiled into a single automaton upfront in O(total pattern length), and then the single text scan is O(n).",
+        "KMP doesn't work for multiple patterns",
+        "Aho-Corasick uses less memory"
+    ]}
+    correctIndex={1}
+    explanation="With k patterns totalling M characters, building the Aho-Corasick trie takes O(M) and searching the text takes O(n + output). Running k separate KMPs takes O(M) for preprocessing but O(n × k) for the search phase — the text is scanned k times. For k = 1000 and n = 1,000,000, the difference is 1 billion vs 1 million + output."
+/>
+
+<QuizBox
+    question="How does a suffix array enable O(m log n) pattern search (instead of the naïve O(nm))?"
+    options={[
+        "Hash comparison",
+        "Occurrences of P in s are exactly the suffixes whose first m characters equal P — a contiguous block in the sorted suffix array. Binary search finds the start and end of that block in O(log n) steps, each comparing O(m) characters. Total: O(m log n).",
+        "Suffix array search is actually O(m + n)",
+        "Suffix arrays don't support pattern search"
+    ]}
+    correctIndex={1}
+    explanation="In the suffix array, all suffixes starting with the pattern P are adjacent (they share the same prefix, so they're lexicographically grouped). Two binary searches (leftmost and rightmost) find the boundaries of this block. Each binary search step does an O(m) string comparison to decide which half to search. With O(log n) steps, total search cost is O(m log n)."
+/>
+
+Next: **Basic Questions** — warm-up exercises to lock the string patterns into muscle memory.
