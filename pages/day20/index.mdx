@@ -1,21 +1,40 @@
 ---
 title: "Day 20 — Union Find"
-description: "Disjoint Set Union (DSU) — path compression, union by rank, and the connectivity, cycle-detection, and Kruskal's MST patterns it powers."
+description: "Disjoint Set Union (DSU) — union by rank, path compression, and the connectivity, cycle-detection, and Kruskal-style patterns it powers in near-constant amortized time."
 ---
 
 import { Callout } from "nextra/components";
 
 # Day 20 — Union Find (DSU)
 
+Some problems aren't really algorithm problems — they're **bookkeeping** problems. *"Are these two people in the same friend group?"* *"How many connected components are there?"* *"If I add this edge, does it close a cycle?"* The hard part isn't the logic; it's tracking partitions of a set that keep merging as the input streams in.
+
+**Disjoint Set Union (DSU)** — also called **Union Find** — is the data structure built for exactly this. Thirty lines of code, two operations (`find` and `union`), and with two tiny optimizations the amortized cost per operation is *less than the inverse Ackermann function* — effectively constant for any input you'll ever see.
+
+The leverage is wild. Once you know DSU, problems that look like graph search collapse to "scan the edges, union the endpoints, done." Kruskal's MST. Cycle detection. Offline connectivity queries. Equivalence classes. Even some grid problems.
+
+## What you'll learn today
+
+- The **disjoint set** abstraction — what it tracks and what operations it supports
+- The **naive tree** representation and why it can degrade to `O(n)`
+- The two killer optimizations: **union by rank** (or by size) and **path compression**
+- The **inverse Ackermann analysis** — why amortized `O(α(n))` ≈ `O(1)`
+- Applications: **Kruskal's MST, cycle detection, connected components, equivalence classes**
+- Eight interview classics where DSU is the single best tool
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    DSU is one of the highest leverage-per-line-of-code structures in DSA. The base implementation is under 20 lines. With the two optimizations, it's about 30. And it unlocks Kruskal's MST, cycle detection, percolation, and an entire family of "connectivity" interview problems. If a problem says "are these two things in the same group?" — reach for DSU.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Disjoint Set Union (DSU)** — track connected components and equivalence classes
-- Two optimizations: **union by rank** and **path compression** — together they make every operation effectively O(1)
-- Applications: **Kruskal's MST, cycle detection in undirected graphs, percolation, offline queries**
-- The amortized analysis behind the inverse Ackermann function (the slowest-growing function you'll ever see)
+1. **[Introduction](/day20/introduction)** — the disjoint-set abstraction, the partition view, and the two operations every DSU supports.
+2. **[The DSU Template](/day20/the_template)** — the parent-array representation, naive `find` and `union`, and the worst-case `O(n)` chain problem we'll need to fix.
+3. **[Optimizations](/day20/optimizations)** — union by rank, path compression, and the amortized analysis that lands at `O(α(n))` per operation.
+4. **[Applications](/day20/applications)** — Kruskal's MST recap, cycle detection in undirected graphs, connected-components counting, and the "weighted union find" extension for distance / parity tracking.
+5. **[Basic Questions](/day20/basic_questions)** — warm-ups: hand-trace `union`, identify the find-chain, count connected components.
+6. **[Practice Questions](/day20/practice_questions)** — eight interview problems covering every flavor of the pattern.
 
-DSU is one of the most "bang for the buck" structures in DSA — 30 lines of code, near-constant-time operations, and it unlocks half a dozen classical algorithms.
+DSU pairs naturally with **graph problems**: it's the workhorse for [Day 22 — MSTs](/day22) and shows up in [Day 23 — Topological Sort](/day23). It also complements [Day 10 — BFS/DFS](/day10) — for **dynamic connectivity** under edge additions, DSU is faster; for queries that require explicit traversal (shortest path, all paths), BFS/DFS wins.
+
+Coming up: **Day 21 — Shortest Paths**, where BFS, Dijkstra, Bellman-Ford, and Floyd-Warshall split the shortest-path landscape four ways.

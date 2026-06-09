@@ -1,0 +1,243 @@
+---
+title: "DSU Optimizations"
+description: "Union by rank, path compression, and why amortized O(α(n)) is effectively constant — the analysis behind the fastest near-linear data structure in computer science."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# DSU Optimizations
+
+Two ideas. Independently, each speeds DSU up. Together, they produce one of the most elegant amortized-complexity results in computer science.
+
+## Optimization 1 — union by rank
+
+The naive union always re-parents the same way (`parent[rx] = ry`). That's how we got the degenerate chain.
+
+**Union by rank**: track the approximate height of each tree, and **always attach the shorter tree under the taller root**. Heights then grow only when two equal-height trees are joined — and the new height is just one more.
+
+```python
+def union(x, y):
+    rx, ry = find(x), find(y)
+    if rx == ry:
+        return False
+    if rank[rx] < rank[ry]:
+        rx, ry = ry, rx        # swap so rx is the taller (or equal)
+    parent[ry] = rx            # attach shorter under taller
+    if rank[rx] == rank[ry]:
+        rank[rx] += 1          # equal heights merged → height grows by 1
+    return True
+```
+
+`rank[]` is initialized to all zeros.
+
+**The bound:** with union by rank alone, every tree's height is at most `log₂(n)`, so `find` is `O(log n)`. That's already a huge improvement over `O(n)`.
+
+### Union by size (the alternative)
+
+Same idea, but track the **size** (element count) of each tree instead of an abstract rank, and attach the smaller-size tree under the larger:
+
+```python
+def union(x, y):
+    rx, ry = find(x), find(y)
+    if rx == ry:
+        return False
+    if size[rx] < size[ry]:
+        rx, ry = ry, rx
+    parent[ry] = rx
+    size[rx] += size[ry]
+```
+
+Same asymptotic bound (`O(log n)` height), and `size[]` is sometimes useful for other reasons (querying component size). In interviews, either is fine; rank is slightly tighter in theory, size is more readable.
+
+## Optimization 2 — path compression
+
+The other side of the attack: **flatten trees during `find`**.
+
+Every time `find(x)` walks `x → p → pp → ... → root`, **re-point every node on that walk directly to the root**. Next time you `find(x)` (or any node on that walk), it's `O(1)`.
+
+```python
+def find(x):
+    if parent[x] != x:
+        parent[x] = find(parent[x])   # recursively find root AND re-point
+    return parent[x]
+```
+
+The recursive form is the simplest: `find(parent[x])` returns the root, and we assign that root as `x`'s new parent on the way back up. Every node on the walk gets re-parented to the root in a single sweep.
+
+The iterative version is uglier but avoids deep recursion (which can blow the stack for very tall trees in Python/Java):
+
+```python
+def find(x):
+    # find the root
+    root = x
+    while parent[root] != root:
+        root = parent[root]
+    # second pass: re-point everyone on the path
+    while parent[x] != root:
+        parent[x], x = root, parent[x]
+    return root
+```
+
+Both flatten the path. Use whichever you can write cleanly under pressure.
+
+## Both, together
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct DSU {
+        vector<int> parent, rank_;
+        int components;
+        DSU(int n) : parent(n), rank_(n, 0), components(n) {
+            iota(parent.begin(), parent.end(), 0);
+        }
+        int find(int x) {
+            if (parent[x] != x) parent[x] = find(parent[x]); // path compression
+            return parent[x];
+        }
+        bool unite(int x, int y) {
+            int rx = find(x), ry = find(y);
+            if (rx == ry) return false;
+            if (rank_[rx] < rank_[ry]) swap(rx, ry);
+            parent[ry] = rx;
+            if (rank_[rx] == rank_[ry]) rank_[rx]++;
+            components--;
+            return true;
+        }
+        bool connected(int x, int y) { return find(x) == find(y); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class DSU:
+        def __init__(self, n):
+            self.parent = list(range(n))
+            self.rank = [0] * n
+            self.components = n
+
+        def find(self, x):
+            if self.parent[x] != x:
+                self.parent[x] = self.find(self.parent[x])  # path compression
+            return self.parent[x]
+
+        def union(self, x, y):
+            rx, ry = self.find(x), self.find(y)
+            if rx == ry:
+                return False
+            if self.rank[rx] < self.rank[ry]:
+                rx, ry = ry, rx
+            self.parent[ry] = rx
+            if self.rank[rx] == self.rank[ry]:
+                self.rank[rx] += 1
+            self.components -= 1
+            return True
+
+        def connected(self, x, y):
+            return self.find(x) == self.find(y)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class DSU {
+        int[] parent, rank;
+        int components;
+        DSU(int n) {
+            parent = new int[n];
+            rank = new int[n];
+            components = n;
+            for (int i = 0; i < n; i++) parent[i] = i;
+        }
+        int find(int x) {
+            if (parent[x] != x) parent[x] = find(parent[x]);  // path compression
+            return parent[x];
+        }
+        boolean union(int x, int y) {
+            int rx = find(x), ry = find(y);
+            if (rx == ry) return false;
+            if (rank[rx] < rank[ry]) { int t = rx; rx = ry; ry = t; }
+            parent[ry] = rx;
+            if (rank[rx] == rank[ry]) rank[rx]++;
+            components--;
+            return true;
+        }
+        boolean connected(int x, int y) { return find(x) == find(y); }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Thirty lines (rough). This is the version to memorize.
+
+## The amortized complexity — inverse Ackermann
+
+With **both** optimizations, the amortized cost per operation is `O(α(n))`, where `α` is the **inverse Ackermann function**. Tarjan proved this in 1975.
+
+Why "amortized"? Individual finds can still walk a path — but path compression shortens the path so much for future operations that, averaged across `m` operations, the total cost is `O(m · α(n))`.
+
+The Ackermann function grows so fast it makes `2^n` look quaint. Its inverse grows so slowly:
+
+| n                                    | α(n)         |
+| :----------------------------------- | :----------- |
+| 0                                    | 0            |
+| 1                                    | 1            |
+| 4                                    | 2            |
+| 16                                   | 3            |
+| 65,536                               | 4            |
+| 2^65,536                             | 5            |
+
+For any input that fits in the observable universe, `α(n) ≤ 5`. In practice, treat DSU as `O(1)` amortized per operation.
+
+<Callout type="info">
+    The full proof of the α(n) bound is genuinely beautiful and well outside interview scope. The interview-relevant takeaway: **with both optimizations, every DSU operation is essentially constant time, even though individual finds can technically walk a path.** Anyone arguing about "logarithmic vs constant" for DSU is missing the point — it's α(n), which is so close to constant that nobody distinguishes in practice.
+</Callout>
+
+## What if you forget one?
+
+- **Only path compression, no union by rank.** Amortized `O(log n)` per operation. Still very fast. Often acceptable for interviews.
+- **Only union by rank, no path compression.** Worst-case `O(log n)` per operation. Same asymptotic ceiling, but no amortization needed for the bound.
+- **Neither.** `O(n)` worst case per operation. Don't.
+
+In an interview, **write both**. It's only a few extra lines, and you avoid having to explain why you skipped one.
+
+## Quick check
+
+<QuizBox
+    question="What does path compression do during find(x)?"
+    options={[
+        "It compresses the parent array's storage",
+        "It re-parents every node on the path from x to the root, pointing them directly at the root. Future finds on these nodes are O(1).",
+        "It returns the path as a list",
+        "It removes the root"
+    ]}
+    correctIndex={1}
+    explanation="Path compression is a 'free lunch' optimization: the work was already happening (walking up to the root), and you reuse that walk to flatten the tree. A second find on the same node is now constant time."
+/>
+
+<QuizBox
+    question="What's the amortized complexity of DSU with both union by rank AND path compression?"
+    options={[
+        "O(1) exact",
+        "O(log n)",
+        "O(α(n)) — inverse Ackermann, effectively constant for any realistic n",
+        "O(log log n)"
+    ]}
+    correctIndex={2}
+    explanation="Tarjan (1975). α(n) ≤ 5 for any n smaller than 2^65,536. For interview purposes, treat it as O(1) per operation."
+/>
+
+<QuizBox
+    question="If you use path compression but NOT union by rank, what's the amortized complexity?"
+    options={[
+        "O(α(n))",
+        "O(log n) amortized — still fast, but no longer effectively constant",
+        "O(n)",
+        "O(log log n)"
+    ]}
+    correctIndex={1}
+    explanation="Path compression alone is amortized O(log n). Path compression + union-by-rank is what gets you to α(n). Either alone is enough for almost any practical workload, but both is the standard."
+/>
+
+Next: the four canonical **applications** — Kruskal's, cycle detection, component counting, and weighted DSU.

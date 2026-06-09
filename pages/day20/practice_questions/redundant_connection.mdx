@@ -1,0 +1,136 @@
+---
+title: "Redundant Connection"
+description: "Stream edges through DSU; return the first one whose endpoints are already in the same component — that's the cycle-closer."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Redundant Connection <DifficultyBadge level="medium" />
+
+#### Description
+
+In this problem, a tree is an undirected graph that is connected and has no cycles.
+
+You are given a graph that started as a tree with `n` nodes labeled from `1` to `n`, with one **additional edge added**. The added edge has two different vertices chosen from `1` to `n`, and was not an edge that already existed. The resulting graph has exactly one cycle.
+
+Return an edge that can be removed so that the resulting graph is a tree of `n` nodes. If there are multiple answers, return the answer that occurs **last in the input** `edges`.
+
+#### Examples
+
+```py
+> Case 1:
+    edges = [[1,2],[1,3],[2,3]]
+    Output: [2, 3]
+
+> Case 2:
+    edges = [[1,2],[2,3],[3,4],[1,4],[1,5]]
+    Output: [1, 4]
+```
+
+#### Constraints
+
+- `n == edges.length`
+- `3 <= n <= 1000`
+- `1 <= a_i, b_i <= n`
+- `a_i != b_i`
+- No repeated edges.
+
+#### State design
+
+Process edges in order. For each `(u, v)`:
+
+- If `find(u) == find(v)` → adding this edge would create a cycle → it's the redundant one. Return it.
+- Otherwise, `union(u, v)`.
+
+The "if multiple answers, return the **last**" clause is automatically handled — we return the **first** cycle-closing edge we encounter while scanning left-to-right, which is equivalent to "the last edge causing the cycle in the original input order" since by the time we see it, the cycle didn't exist yet.
+
+The vertices are 1-indexed; size the DSU to `n + 1`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> findRedundantConnection(vector<vector<int>>& edges) {
+        int n = edges.size();
+        vector<int> parent(n + 1), rank_(n + 1, 0);
+        iota(parent.begin(), parent.end(), 0);
+        function<int(int)> find = [&](int x) {
+            if (parent[x] != x) parent[x] = find(parent[x]);
+            return parent[x];
+        };
+        for (auto& e : edges) {
+            int rx = find(e[0]), ry = find(e[1]);
+            if (rx == ry) return e;                   // first cycle-closer
+            if (rank_[rx] < rank_[ry]) swap(rx, ry);
+            parent[ry] = rx;
+            if (rank_[rx] == rank_[ry]) rank_[rx]++;
+        }
+        return {};
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def find_redundant_connection(edges):
+        n = len(edges)
+        parent = list(range(n + 1))
+        rank = [0] * (n + 1)
+
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        for u, v in edges:
+            rx, ry = find(u), find(v)
+            if rx == ry:
+                return [u, v]                          # first cycle-closer
+            if rank[rx] < rank[ry]:
+                rx, ry = ry, rx
+            parent[ry] = rx
+            if rank[rx] == rank[ry]:
+                rank[rx] += 1
+        return []
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] parent, rank_;
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+    public int[] findRedundantConnection(int[][] edges) {
+        int n = edges.length;
+        parent = new int[n + 1]; rank_ = new int[n + 1];
+        for (int i = 0; i <= n; i++) parent[i] = i;
+        for (int[] e : edges) {
+            int rx = find(e[0]), ry = find(e[1]);
+            if (rx == ry) return e;
+            if (rank_[rx] < rank_[ry]) { int t = rx; rx = ry; ry = t; }
+            parent[ry] = rx;
+            if (rank_[rx] == rank_[ry]) rank_[rx]++;
+        }
+        return new int[]{};
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O(n · α(n))`.
+- **Space:** `O(n)`.
+
+<Callout type="info">
+    **Why this isn't more general.** This problem guarantees exactly **one extra edge** producing exactly one cycle. Real "find the edge to remove to break a cycle" is harder in a directed graph with multiple cycles — see *Redundant Connection II* (LeetCode 685) for the directed variant, which adds a parent-check twist.
+</Callout>
+
+#### Same skin
+
+- **Redundant Connection II (directed)** — directed version; mix of cycle and 2-parent cases.
+- **Graph Valid Tree** — same DSU shape, but checks the full graph.
+- **Critical Connections in a Network** — bridges via Tarjan's, conceptually opposite (find an edge whose **removal** disconnects).

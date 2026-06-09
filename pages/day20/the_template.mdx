@@ -1,0 +1,195 @@
+---
+title: "The DSU Template"
+description: "Parent-array representation, naive find and union, and the worst-case chain that motivates the optimizations in the next page."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# The DSU Template
+
+The core data structure is a single array.
+
+```
+parent: [0, 1, 2, 3, ..., n-1]
+```
+
+Initially `parent[i] = i` — every element is its own root, in its own singleton tree.
+
+## Naive find
+
+`find(x)` walks parent pointers up to the root:
+
+```python
+def find(x):
+    while parent[x] != x:
+        x = parent[x]
+    return x
+```
+
+The root is the element whose parent is itself.
+
+## Naive union
+
+`union(x, y)` finds the roots of `x` and `y`. If they're different, make one root point at the other:
+
+```python
+def union(x, y):
+    rx, ry = find(x), find(y)
+    if rx == ry:
+        return False            # already in same set
+    parent[rx] = ry
+    return True                 # union happened
+```
+
+Returning `True/False` is a useful convention — it tells the caller whether anything actually merged, which doubles as a cycle-detection signal.
+
+## The naive code, end to end
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    struct DSU {
+        vector<int> parent;
+        DSU(int n) : parent(n) {
+            iota(parent.begin(), parent.end(), 0);
+        }
+        int find(int x) {
+            while (parent[x] != x) x = parent[x];
+            return x;
+        }
+        bool unite(int x, int y) {
+            int rx = find(x), ry = find(y);
+            if (rx == ry) return false;
+            parent[rx] = ry;
+            return true;
+        }
+        bool connected(int x, int y) { return find(x) == find(y); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class DSU:
+        def __init__(self, n):
+            self.parent = list(range(n))
+
+        def find(self, x):
+            while self.parent[x] != x:
+                x = self.parent[x]
+            return x
+
+        def union(self, x, y):
+            rx, ry = self.find(x), self.find(y)
+            if rx == ry:
+                return False
+            self.parent[rx] = ry
+            return True
+
+        def connected(self, x, y):
+            return self.find(x) == self.find(y)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class DSU {
+        int[] parent;
+        DSU(int n) {
+            parent = new int[n];
+            for (int i = 0; i < n; i++) parent[i] = i;
+        }
+        int find(int x) {
+            while (parent[x] != x) x = parent[x];
+            return x;
+        }
+        boolean union(int x, int y) {
+            int rx = find(x), ry = find(y);
+            if (rx == ry) return false;
+            parent[rx] = ry;
+            return true;
+        }
+        boolean connected(int x, int y) {
+            return find(x) == find(y);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+That's it. Functionally correct, easy to read, and **dangerously slow on a bad input**.
+
+## The worst case — a degenerate chain
+
+Build a DSU on `{0, 1, ..., n-1}`, then call:
+
+```
+union(0, 1)
+union(1, 2)
+union(2, 3)
+...
+union(n-2, n-1)
+```
+
+After each union, the smaller-indexed root gets re-parented to the larger one:
+
+```
+After union(0, 1):  0 → 1
+After union(1, 2):  0 → 1 → 2
+After union(2, 3):  0 → 1 → 2 → 3
+...
+After union(n-2, n-1):  0 → 1 → 2 → ... → n-1
+```
+
+The tree is a **linked list**. Now `find(0)` walks all `n` parent pointers — `O(n)`.
+
+`m` operations on a degenerate DSU cost `O(m · n)`. That's worse than naive renaming with a dict. We need to fix this.
+
+## Two complementary fixes
+
+The two optimizations attack the problem from different angles:
+
+1. **Union by rank (or size)** — when uniting two trees, **attach the smaller tree under the larger root**. Trees stay balanced; max depth grows like `log n` instead of `n`.
+2. **Path compression** — every time `find(x)` walks up to the root, **re-point every visited node directly to the root**. Future `find`s on those nodes are `O(1)`.
+
+Each one alone gives a meaningful speedup. Together they're devastating — amortized `O(α(n))` per operation. That's the next page.
+
+<Callout type="warning">
+    Forgetting both optimizations is the easiest correctness-but-not-performance mistake to make in an interview. The code "works," passes the small tests, and times out on the large one. Always write the optimized version from the start.
+</Callout>
+
+## Common variants of the template
+
+A few small extensions show up repeatedly:
+
+- **Component count.** Keep an integer `components` initialized to `n`. Decrement it whenever `union` returns `True`. At the end, `components` is the number of connected groups.
+- **Component sizes.** Maintain a `size[]` array alongside `parent[]`. When uniting, the new root's size is the sum of the two old roots' sizes. Use cases: largest component, query "how big is `x`'s group?".
+- **Weighted DSU.** Store an offset `weight[x]` = "distance from `x` to its parent." Maintained through `find` and `union`. Powers parity-check and equality-with-offset problems.
+
+## Quick check
+
+<QuizBox
+    question="With NAIVE find and union (no optimizations), what's the worst-case time for n operations?"
+    options={[
+        "O(n)",
+        "O(n log n)",
+        "O(n²) — a chain of unions can produce a linked-list-like tree, and each find walks the chain",
+        "O(α(n) · n)"
+    ]}
+    correctIndex={2}
+    explanation="A 'mean' sequence (union(0,1), union(1,2), ...) creates a tree that is one long chain. Find from the deepest node is O(n). Repeating n times gives O(n²)."
+/>
+
+<QuizBox
+    question="In the union() function, why do we always work with the ROOTS of x and y, not x and y themselves?"
+    options={[
+        "It's faster",
+        "Roots are canonical — every element of a set has the same root. Connecting roots merges the entire sets in one pointer change; connecting non-roots could create disjoint sub-trees within the same set, breaking the structure.",
+        "Only roots have parents",
+        "We don't — we work with x and y directly"
+    ]}
+    correctIndex={1}
+    explanation="The whole point of the forest representation is that the root identifies the set. Pointing root_x at root_y merges the entire trees in O(1). Pointing some interior node would leave the rest of x's tree pointing somewhere else entirely."
+/>
+
+Next: the two optimizations and the amortized analysis that makes DSU shockingly fast.

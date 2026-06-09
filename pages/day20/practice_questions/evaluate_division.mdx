@@ -1,0 +1,221 @@
+---
+title: "Evaluate Division"
+description: "Weighted Union Find — store multiplicative offsets in the DSU so that find(x) returns both the root AND x's ratio to the root."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Evaluate Division <DifficultyBadge level="hard" />
+
+#### Description
+
+You are given an array of variable pairs `equations` and an array of real numbers `values`, where `equations[i] = [A_i, B_i]` and `values[i]` represent the equation `A_i / B_i = values[i]`. Each `A_i` or `B_i` is a string that represents a single variable.
+
+You are also given some `queries`, where `queries[j] = [C_j, D_j]` represents the `j`th query where you must find the answer for `C_j / D_j = ?`.
+
+Return the answers to all queries. If a single answer cannot be determined, return `-1.0`.
+
+The input is always valid. You may assume division by zero does not occur, and no contradictions.
+
+#### Examples
+
+```py
+> Case 1:
+    equations = [["a","b"],["b","c"]]
+    values = [2.0, 3.0]
+    queries = [["a","c"],["b","a"],["a","e"],["a","a"],["x","x"]]
+    Output: [6.0, 0.5, -1.0, 1.0, -1.0]
+```
+
+#### Constraints
+
+- `1 <= equations.length <= 20`
+- `equations[i].length == 2`
+- `1 <= A_i.length, B_i.length <= 5`
+- `values[i] > 0.0`
+- `1 <= queries.length <= 20`
+
+#### State design
+
+A division graph: `a / b = 2` is a directed weighted edge `a → b` with weight `2` (and implicitly `b → a` with weight `0.5`). A query `c / d = ?` asks for the product of edge weights along any `c ⤳ d` path. If `c` and `d` are in different components, return `-1.0`.
+
+**DFS approach** is straightforward: build an adjacency map and DFS from `c`, tracking the cumulative product until `d` is reached.
+
+**Weighted Union Find** is more elegant for repeated queries: each `find(x)` returns the root AND maintains `weight[x]` = the multiplicative ratio `x / root(x)`. Then `c / d = weight[c] / weight[d]` whenever they share a root.
+
+The wiring:
+
+- `find(x)` recurses to find the root and accumulates the weight from `x` to the root.
+- `union(x, y, val)` (meaning `x / y = val`) joins the two roots and sets the connecting weight so the invariants stay consistent.
+
+```python
+# find returns root, and updates weight[x] to mean "x / root"
+def find(x):
+    if parent[x] != x:
+        root = find(parent[x])
+        weight[x] *= weight[parent[x]]    # accumulate
+        parent[x] = root
+    return parent[x]
+
+# union(x, y, val): means x = val * y
+def union(x, y, val):
+    rx, ry = find(x), find(y)
+    if rx == ry:
+        return
+    # Want: weight[rx] (= rx / ry once connected) such that
+    #   x / y = (x / rx) * (rx / ry) * (ry / y) = val
+    #   weight[x] * weight[rx] / weight[y] = val
+    parent[rx] = ry
+    weight[rx] = val * weight[y] / weight[x]
+```
+
+For queries: if `find(c) != find(d)` → unknown → `-1.0`. Otherwise → `weight[c] / weight[d]`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        unordered_map<string, string> parent;
+        unordered_map<string, double> weight;
+
+        string find(const string& x) {
+            if (parent[x] != x) {
+                string root = find(parent[x]);
+                weight[x] *= weight[parent[x]];
+                parent[x] = root;
+            }
+            return parent[x];
+        }
+        void unite(const string& x, const string& y, double val) {
+            string rx = find(x), ry = find(y);
+            if (rx == ry) return;
+            parent[rx] = ry;
+            weight[rx] = val * weight[y] / weight[x];
+        }
+        void add(const string& x) {
+            if (!parent.count(x)) { parent[x] = x; weight[x] = 1.0; }
+        }
+    public:
+        vector<double> calcEquation(vector<vector<string>>& eqs, vector<double>& vals,
+                                    vector<vector<string>>& queries) {
+            for (int i = 0; i < (int)eqs.size(); i++) {
+                add(eqs[i][0]); add(eqs[i][1]);
+                unite(eqs[i][0], eqs[i][1], vals[i]);
+            }
+            vector<double> ans;
+            for (auto& q : queries) {
+                if (!parent.count(q[0]) || !parent.count(q[1]) || find(q[0]) != find(q[1])) {
+                    ans.push_back(-1.0);
+                } else {
+                    ans.push_back(weight[q[0]] / weight[q[1]]);
+                }
+            }
+            return ans;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def calc_equation(equations, values, queries):
+        parent = {}
+        weight = {}
+
+        def add(x):
+            if x not in parent:
+                parent[x] = x
+                weight[x] = 1.0
+
+        def find(x):
+            if parent[x] != x:
+                root = find(parent[x])
+                weight[x] *= weight[parent[x]]
+                parent[x] = root
+            return parent[x]
+
+        def union(x, y, val):                     # x / y = val
+            rx, ry = find(x), find(y)
+            if rx == ry:
+                return
+            parent[rx] = ry
+            weight[rx] = val * weight[y] / weight[x]
+
+        for (a, b), v in zip(equations, values):
+            add(a); add(b)
+            union(a, b, v)
+
+        ans = []
+        for c, d in queries:
+            if c not in parent or d not in parent or find(c) != find(d):
+                ans.append(-1.0)
+            else:
+                ans.append(weight[c] / weight[d])
+        return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    Map<String, String> parent = new HashMap<>();
+    Map<String, Double> weight = new HashMap<>();
+
+    String find(String x) {
+        if (!parent.get(x).equals(x)) {
+            String p = parent.get(x);
+            String root = find(p);
+            weight.put(x, weight.get(x) * weight.get(p));
+            parent.put(x, root);
+        }
+        return parent.get(x);
+    }
+    void union(String x, String y, double val) {
+        String rx = find(x), ry = find(y);
+        if (rx.equals(ry)) return;
+        parent.put(rx, ry);
+        weight.put(rx, val * weight.get(y) / weight.get(x));
+    }
+    void add(String x) {
+        if (!parent.containsKey(x)) { parent.put(x, x); weight.put(x, 1.0); }
+    }
+    public double[] calcEquation(List<List<String>> eqs, double[] vals, List<List<String>> queries) {
+        for (int i = 0; i < eqs.size(); i++) {
+            String a = eqs.get(i).get(0), b = eqs.get(i).get(1);
+            add(a); add(b);
+            union(a, b, vals[i]);
+        }
+        double[] ans = new double[queries.size()];
+        for (int i = 0; i < queries.size(); i++) {
+            String c = queries.get(i).get(0), d = queries.get(i).get(1);
+            if (!parent.containsKey(c) || !parent.containsKey(d) || !find(c).equals(find(d))) {
+                ans[i] = -1.0;
+            } else {
+                ans[i] = weight.get(c) / weight.get(d);
+            }
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O((N + Q) · α(N))` — DSU near-constant per operation.
+- **Space:** `O(N)` for the maps.
+
+#### Alternative — DFS / BFS
+
+Plain DFS from `c` chasing the multiplicative chain to `d` works in `O(N · Q)`. Often the more "interview-natural" solution; weighted DSU is the elegant one for follow-up "what if there are many queries?".
+
+<Callout type="info">
+    **Weighted DSU is the lesson.** The technique generalizes to: parity ("is x on the same team as y?"), distance ("how far is x from y?"), and any algebraic offset where the merge can be expressed in the group's operation. Same skeleton, different operator.
+</Callout>
+
+#### Same skin
+
+- **Satisfiability of Equality Equations** — plain DSU (additive equivalence).
+- **Possible Bipartition** — weighted DSU with parity (XOR).
+- **Currency Arbitrage** — multiplicative graph, but with cycle-detection instead of queries.

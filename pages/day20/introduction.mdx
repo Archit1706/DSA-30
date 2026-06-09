@@ -1,0 +1,157 @@
+---
+title: "Introduction to Union Find"
+description: "What a disjoint-set data structure is, why partition tracking matters, and the two operations every DSU supports."
+---
+
+import { Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+
+# Introduction to Union Find
+
+A **disjoint-set data structure** maintains a collection of **non-overlapping** sets. Each element belongs to exactly one set. The structure supports two operations:
+
+- `find(x)` — return a **representative** of the set containing `x`. Two elements are in the same set if and only if their `find` returns the same value.
+- `union(x, y)` — merge the sets containing `x` and `y` into a single set.
+
+That's the entire API. Two operations. Everything else is a clever choice of representation.
+
+## The partition view
+
+Think of the universe as a bag of `n` items, initially each in its own group:
+
+```
+{1}  {2}  {3}  {4}  {5}  {6}  {7}  {8}
+```
+
+As events arrive (edges in a graph, friend pairings, equality assertions), you `union` groups together:
+
+```
+union(1, 2):  {1, 2}  {3}  {4}  {5}  {6}  {7}  {8}
+union(3, 4):  {1, 2}  {3, 4}  {5}  {6}  {7}  {8}
+union(1, 3):  {1, 2, 3, 4}  {5}  {6}  {7}  {8}
+union(5, 6):  {1, 2, 3, 4}  {5, 6}  {7}  {8}
+```
+
+At any point you can ask "are `x` and `y` in the same group?" — that's `find(x) == find(y)`.
+
+A DSU is a **partition tracker**. Items only get merged, never split. (There exist structures that support split too — *link-cut trees* — but they're far more complex and rarely interview material.)
+
+## Why not just use a hash map?
+
+Naive idea: maintain a dict `group_id[x] = id`. To `union(x, y)`, rename every element of `y`'s group to use `x`'s id.
+
+That's `O(group size)` per union. For `n` operations, the total cost is `O(n²)` in the worst case (a long chain of single-element unions). For small inputs it's fine; for any serious workload it falls over.
+
+DSU's brilliance is using a **tree** instead of a flat dict — and choosing the tree structure carefully so that both operations stay fast.
+
+## The forest representation
+
+Represent each set as a **tree**:
+
+- Every element points to a **parent**.
+- The **root** of a tree is the set's representative (its parent is itself).
+- `find(x)` walks parent pointers up to the root.
+- `union(x, y)` makes one root the parent of the other.
+
+```
+parent: [0, 0, 1, 1, 4, 4, 6, 6]
+            ↑   ↑      ↑      ↑
+        root=0  child=2     root=4 (lone tree)
+
+Trees:
+    0           4         6
+   / \         / \         \
+  1   ...     5  ...        7
+ /
+2
+ \
+  3
+```
+
+Note: parent **arrays** are the most common encoding. `parent[i]` = "who's `i`'s parent?" Initially `parent[i] = i` for every `i` (each element is its own root, in its own singleton set).
+
+<Callout type="info">
+    **The trees here have nothing to do with binary search trees.** They're not sorted; they don't represent anything semantic. They're a structural choice that makes the partition-tracking operations cheap. Children of the same parent are *the elements that happened to be unioned with it* — order is incidental.
+</Callout>
+
+## What operations should be fast?
+
+You'll typically run a mix of operations:
+
+| Operation                              | How often you do it       |
+| :------------------------------------- | :------------------------ |
+| `union(x, y)`                          | Once per "merge" event    |
+| `find(x)`                              | Twice per union, plus standalone queries |
+| Count components                       | At the end, or after each event |
+
+`find` runs **more** than `union` — every union calls `find` twice (once for each endpoint). Making `find` fast is the priority.
+
+Naive `find` walks parent pointers up to the root. If the tree is a long chain (worst case after a bad sequence of unions), that's `O(n)` per call. Add `n` operations, and you're back to `O(n²)`.
+
+The two optimizations we'll see in the next two pages — **union by rank** and **path compression** — together flatten the tree so aggressively that the amortized cost per operation is `O(α(n))`, where `α` is the inverse Ackermann function. For any `n` smaller than the number of atoms in the universe, `α(n) ≤ 5`. It's effectively constant.
+
+## A pattern-spotting checklist
+
+<Steps>
+
+### Is the problem about groups / equivalence classes?
+
+"Are X and Y in the same group?" "How many groups are there?" "Does adding this connection merge two groups?" Strong DSU signals.
+
+### Do I only need to ADD edges, never remove them?
+
+DSU is great at edge insertion (`union`). It's bad at edge deletion (the partition can't split easily). If the problem allows or requires deletions, you may need offline trick (process queries in reverse) or a different structure.
+
+### Do I need actual paths, or just connectivity?
+
+DSU tells you "yes, connected" or "no, not." It does NOT give you a path. If the question needs an explicit path (shortest, all, etc.), use BFS/DFS instead.
+
+### Is the input arriving as a stream of pairs?
+
+Edges in a graph. Equality assertions in a constraint problem. Friendship events. Whenever pairs of items keep arriving and you need to track which clump they form, DSU is the answer.
+
+### Could the problem be re-framed as cycle detection?
+
+"Is this graph a tree?" "Does adding this edge create a cycle?" "Are there duplicates in this constraint system?" All map onto DSU's "the two endpoints are already in the same component" check.
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="What does find(x) return in a disjoint-set data structure?"
+    options={[
+        "The parent of x",
+        "A representative element of the set containing x — typically the root of x's tree",
+        "True if x is in some set, false otherwise",
+        "The size of x's set"
+    ]}
+    correctIndex={1}
+    explanation="find(x) returns a *canonical* representative for x's set. Any two elements in the same set return the same representative. This is what lets you check 'same set?' in O(α(n)) by comparing find results."
+/>
+
+<QuizBox
+    question="Why can't we naively use a hash map from element → group_id?"
+    options={[
+        "Hash maps don't support lookup",
+        "Renaming all members of a group on every union is O(group size), which makes n operations cost O(n²) in the worst case",
+        "Hash maps can't store integers",
+        "It works, but the API is ugly"
+    ]}
+    correctIndex={1}
+    explanation="Linear-rename is correct but slow. The whole point of DSU's tree representation is to avoid renaming everyone: you change one pointer per union and let find walk up later."
+/>
+
+<QuizBox
+    question="A DSU is great at adding edges (unions). When is it the wrong tool?"
+    options={[
+        "When you need to query exact paths, not just connectivity",
+        "When edges may be REMOVED — DSU has no efficient split operation",
+        "Both of the above",
+        "Neither — DSU works for any graph operation"
+    ]}
+    correctIndex={2}
+    explanation="DSU returns 'connected, yes/no' — not the path between two vertices. And it can't undo a union efficiently. For deletions, a common workaround is processing queries offline in reverse so deletions become insertions."
+/>
+
+Next: the actual code, starting from the naive parent-array representation.

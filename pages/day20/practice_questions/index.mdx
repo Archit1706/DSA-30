@@ -1,0 +1,58 @@
+---
+title: "Union Find Practice Questions"
+description: "Eight interview classics for DSU — connected components, cycle detection, equality constraints, grid regions, and weighted union-find."
+---
+
+import { Callout } from "nextra/components";
+
+# Union Find Practice Questions
+
+Eight interview classics. Every flavor of the DSU pattern is represented: plain connectivity, cycle detection, weighted offsets, grid encoding, equality constraints.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the [pattern-spotting checklist](/day20/introduction#a-pattern-spotting-checklist):
+
+    1. **Groups / equivalence classes?**
+    2. **Only edge additions (no removals)?**
+    3. **Connectivity, not paths?**
+    4. **Pairs arriving as a stream?**
+    5. **Cycle detection in disguise?**
+
+    Five questions. The whole chapter, condensed.
+</Callout>
+
+## Easy
+
+| Problem                                                                                          | Pattern                                          | Status     |
+| :----------------------------------------------------------------------------------------------- | :----------------------------------------------- | :--------- |
+| [Number of Provinces](/day20/practice_questions/number_of_provinces)                             | Component counting on an adjacency matrix        | Available  |
+| [Number of Connected Components in an Undirected Graph](/day20/practice_questions/number_of_connected_components) | Component counting from edge list      | Available  |
+
+## Medium
+
+| Problem                                                                                                  | Pattern                                          | Status     |
+| :------------------------------------------------------------------------------------------------------- | :----------------------------------------------- | :--------- |
+| [Graph Valid Tree](/day20/practice_questions/graph_valid_tree)                                           | Connectivity + cycle detection                   | Available  |
+| [Redundant Connection](/day20/practice_questions/redundant_connection)                                   | Cycle detection on a stream of edges             | Available  |
+| [Satisfiability of Equality Equations](/day20/practice_questions/satisfiability_equality_equations)      | Equality constraints as unions, contradictions as cross-component checks | Available |
+| [Smallest String With Swaps](/day20/practice_questions/smallest_string_with_swaps)                       | Group indices into equivalence classes, sort within each | Available |
+| [Regions Cut By Slashes](/day20/practice_questions/regions_cut_by_slashes)                               | Subdivide each cell into 4 triangles and DSU them | Available |
+
+## Hard
+
+| Problem                                                                                          | Pattern                                          | Status     |
+| :----------------------------------------------------------------------------------------------- | :----------------------------------------------- | :--------- |
+| [Evaluate Division](/day20/practice_questions/evaluate_division)                                 | **Weighted DSU** — multiplicative offsets        | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                                          | Status        |
+| :------------------------------------- | :----------------------------------------------- | :------------ |
+| Most Stones Removed With Same Row/Col  | Implicit DSU on rows ⊎ columns                   | Coming Soon   |
+| Accounts Merge                         | DSU over accounts indexed by shared email        | Coming Soon   |
+| Number of Islands II                   | Dynamic island merging as cells turn on          | Coming Soon   |
+| Bricks Falling When Hit                | Offline reverse — turn deletions into insertions | Coming Soon   |
+| Possible Bipartition                   | DSU with parity / 2-coloring                     | Coming Soon   |
+| Number of Operations to Make Network Connected | Components vs spare edges                | Coming Soon   |
+| Lexicographically Smallest Equivalent String | DSU keeping the smallest root            | Coming Soon   |
+| Synonymous Sentences                   | DSU on synonym pairs + DFS                       | Coming Soon   |

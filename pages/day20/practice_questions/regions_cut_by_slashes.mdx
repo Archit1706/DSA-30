@@ -1,0 +1,221 @@
+---
+title: "Regions Cut By Slashes"
+description: "Subdivide each grid cell into four triangles, then DSU adjacent triangles together — the canonical 'split-cells' DSU encoding."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Regions Cut By Slashes <DifficultyBadge level="medium" />
+
+#### Description
+
+An `n × n` grid is composed of `1 × 1` squares where each `1 × 1` square consists of a `'/'`, `'\'`, or blank space `' '`. These characters divide the square into contiguous regions.
+
+Given the grid `grid` represented as a string array, return the **number of regions**.
+
+#### Examples
+
+```py
+> Case 1:
+    grid = [" /", "/ "]
+    Output: 2
+
+> Case 2:
+    grid = [" /", "  "]
+    Output: 1
+
+> Case 3:
+    grid = ["/\\", "\\/"]
+    Output: 5
+```
+
+#### Constraints
+
+- `n == grid.length == grid[i].length`
+- `1 <= n <= 30`
+- `grid[i][j]` is either `'/'`, `'\\'`, or `' '`.
+
+#### State design
+
+The classic encoding: **split each cell into 4 triangles** — top (0), right (1), bottom (2), left (3).
+
+```
+   ____
+  |\  /|
+  | \/ |    0 = top
+  | /\ |    1 = right
+  |/  \|    2 = bottom
+   ‾‾‾‾     3 = left
+```
+
+Now apply rules inside each cell:
+- **Blank space** — all 4 triangles are in the same region: union(0,1), union(1,2), union(2,3).
+- **`/`** — separates the cell into `{top, left}` and `{right, bottom}`: `union(0,3)`, `union(1,2)`.
+- **`\\`** — separates into `{top, right}` and `{bottom, left}`: `union(0,1)`, `union(2,3)`.
+
+Then handle inter-cell connections:
+- Cell's **right** triangle (1) connects to right neighbor's **left** triangle (3).
+- Cell's **bottom** triangle (2) connects to bottom neighbor's **top** triangle (0).
+
+Final answer: the DSU's component count.
+
+Triangle index for cell `(r, c)` triangle `t`: `4 * (r * n + c) + t`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int regionsBySlashes(vector<string>& grid) {
+        int n = grid.size();
+        int total = 4 * n * n;
+        vector<int> parent(total), rank_(total, 0);
+        iota(parent.begin(), parent.end(), 0);
+        int components = total;
+        function<int(int)> find = [&](int x) {
+            if (parent[x] != x) parent[x] = find(parent[x]);
+            return parent[x];
+        };
+        auto unite = [&](int x, int y) {
+            int rx = find(x), ry = find(y);
+            if (rx == ry) return;
+            if (rank_[rx] < rank_[ry]) swap(rx, ry);
+            parent[ry] = rx;
+            if (rank_[rx] == rank_[ry]) rank_[rx]++;
+            components--;
+        };
+        auto idx = [&](int r, int c, int t) { return 4 * (r * n + c) + t; };
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+                char ch = grid[r][c];
+                if (ch == ' ') {
+                    unite(idx(r, c, 0), idx(r, c, 1));
+                    unite(idx(r, c, 1), idx(r, c, 2));
+                    unite(idx(r, c, 2), idx(r, c, 3));
+                } else if (ch == '/') {
+                    unite(idx(r, c, 0), idx(r, c, 3));
+                    unite(idx(r, c, 1), idx(r, c, 2));
+                } else { // '\\'
+                    unite(idx(r, c, 0), idx(r, c, 1));
+                    unite(idx(r, c, 2), idx(r, c, 3));
+                }
+                if (c + 1 < n) unite(idx(r, c, 1), idx(r, c + 1, 3));
+                if (r + 1 < n) unite(idx(r, c, 2), idx(r + 1, c, 0));
+            }
+        }
+        return components;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def regions_by_slashes(grid):
+        n = len(grid)
+        total = 4 * n * n
+        parent = list(range(total))
+        rank = [0] * total
+        components = total
+
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+
+        def union(x, y):
+            nonlocal components
+            rx, ry = find(x), find(y)
+            if rx == ry:
+                return
+            if rank[rx] < rank[ry]:
+                rx, ry = ry, rx
+            parent[ry] = rx
+            if rank[rx] == rank[ry]:
+                rank[rx] += 1
+            components -= 1
+
+        def idx(r, c, t):
+            return 4 * (r * n + c) + t
+
+        for r in range(n):
+            for c in range(n):
+                ch = grid[r][c]
+                if ch == ' ':
+                    union(idx(r, c, 0), idx(r, c, 1))
+                    union(idx(r, c, 1), idx(r, c, 2))
+                    union(idx(r, c, 2), idx(r, c, 3))
+                elif ch == '/':
+                    union(idx(r, c, 0), idx(r, c, 3))
+                    union(idx(r, c, 1), idx(r, c, 2))
+                else:                            # '\'
+                    union(idx(r, c, 0), idx(r, c, 1))
+                    union(idx(r, c, 2), idx(r, c, 3))
+                if c + 1 < n:
+                    union(idx(r, c, 1), idx(r, c + 1, 3))
+                if r + 1 < n:
+                    union(idx(r, c, 2), idx(r + 1, c, 0))
+        return components
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] parent, rank_;
+    int components;
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+    void union(int x, int y) {
+        int rx = find(x), ry = find(y);
+        if (rx == ry) return;
+        if (rank_[rx] < rank_[ry]) { int t = rx; rx = ry; ry = t; }
+        parent[ry] = rx;
+        if (rank_[rx] == rank_[ry]) rank_[rx]++;
+        components--;
+    }
+    public int regionsBySlashes(String[] grid) {
+        int n = grid.length;
+        int total = 4 * n * n;
+        parent = new int[total]; rank_ = new int[total];
+        for (int i = 0; i < total; i++) parent[i] = i;
+        components = total;
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+                int base = 4 * (r * n + c);
+                char ch = grid[r].charAt(c);
+                if (ch == ' ') {
+                    union(base + 0, base + 1);
+                    union(base + 1, base + 2);
+                    union(base + 2, base + 3);
+                } else if (ch == '/') {
+                    union(base + 0, base + 3);
+                    union(base + 1, base + 2);
+                } else {
+                    union(base + 0, base + 1);
+                    union(base + 2, base + 3);
+                }
+                if (c + 1 < n) union(base + 1, 4 * (r * n + c + 1) + 3);
+                if (r + 1 < n) union(base + 2, 4 * ((r + 1) * n + c) + 0);
+            }
+        }
+        return components;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O(n² · α(n²))` — every cell does a constant number of unions.
+- **Space:** `O(n²)` for the DSU.
+
+<Callout type="info">
+    **The "split each cell into pieces" technique generalizes.** When the geometry doesn't fit cell-on-cell DSU (e.g. slashes cut cells; brick walls split horizontally), subdivide. Two triangles, four triangles, even nine sub-cells. Once the units are right, plain DSU does the rest.
+</Callout>
+
+#### Same skin
+
+- **Number of Islands** — single-cell DSU on a grid.
+- **Number of Closed Islands** — grid DSU with boundary handling.
+- **Max Area of Island** — grid DSU with size tracking.

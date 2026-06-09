@@ -1,0 +1,178 @@
+---
+title: "Applications of DSU"
+description: "Kruskal's MST, undirected cycle detection, connected-components counting, and the weighted DSU extension for distance / parity tracking."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Applications of DSU
+
+Four canonical uses. Recognize the shape and the code is forty lines.
+
+## 1. Connected components in an undirected graph
+
+Given a graph as a list of edges, how many connected components are there? How big is each?
+
+Plain DSU. For every edge `(u, v)`, call `union(u, v)`. At the end, the number of distinct roots = the number of components.
+
+```python
+def count_components(n, edges):
+    dsu = DSU(n)
+    for u, v in edges:
+        dsu.union(u, v)
+    return dsu.components       # we already maintain this as a counter
+```
+
+`O((V + E) · α(V))`. Linear-ish.
+
+If you want a list of components rather than just a count:
+
+```python
+from collections import defaultdict
+groups = defaultdict(list)
+for i in range(n):
+    groups[dsu.find(i)].append(i)
+```
+
+DFS or BFS would also solve this in `O(V + E)`. DSU wins when the graph is **dynamic** — edges arrive one at a time and you need to answer connectivity queries between them.
+
+## 2. Cycle detection in an undirected graph
+
+For each edge `(u, v)`, before calling `union`, check `find(u) == find(v)`:
+
+- If they're already in the same component, adding `(u, v)` would create a cycle.
+- Otherwise, `union(u, v)` and continue.
+
+```python
+def has_cycle(n, edges):
+    dsu = DSU(n)
+    for u, v in edges:
+        if dsu.connected(u, v):
+            return True
+        dsu.union(u, v)
+    return False
+```
+
+Note: this works for **undirected** graphs only. Directed-graph cycle detection needs DFS with a recursion-stack color (revisit [Day 10](/day10) for the directed case).
+
+This is also how you check whether `n` vertices and `n - 1` edges form a **tree**: connectivity + no cycle.
+
+## 3. Kruskal's MST
+
+Already met in [Day 22](/day22), but worth re-anchoring here as the textbook DSU client.
+
+```python
+def kruskal(n, edges):
+    # edges = list of (weight, u, v)
+    edges.sort()
+    dsu = DSU(n)
+    total = added = 0
+    for w, u, v in edges:
+        if dsu.union(u, v):
+            total += w
+            added += 1
+            if added == n - 1:
+                break
+    return total if added == n - 1 else -1
+```
+
+The cycle-detection-via-union pattern is doing all the work. Without DSU, Kruskal's would be `O(E · V)`; with DSU it's `O(E log E)` (dominated by the sort).
+
+## 4. Weighted DSU — tracking offsets
+
+A subtle but powerful extension: alongside `parent[x]`, store `weight[x]` = some scalar that represents "the relationship between `x` and `parent[x]`."
+
+Common interpretations:
+- **Distance:** `weight[x]` = numeric distance to parent. After path compression, `weight[x]` = distance to root.
+- **Parity:** `weight[x] ∈ {0, 1}` = same-team or other-team. Powers bipartite-checking under merges.
+- **Difference:** for "equality with offset" constraints like `x = y + 5`.
+
+The trick: when you compress the path during `find`, you must **accumulate the weights** so the recomputed `weight[x]` correctly represents the offset to the *new* parent (the root).
+
+```python
+def find(self, x):
+    if self.parent[x] != x:
+        root = self.find(self.parent[x])
+        self.weight[x] += self.weight[self.parent[x]]   # accumulate
+        self.parent[x] = root
+    return self.parent[x]
+```
+
+This pattern shows up in *Satisfiability of Equality Equations*, *Evaluate Division* (LeetCode 399 — actually solvable with weighted DSU instead of DFS), and various competitive-programming problems.
+
+<Callout type="warning">
+    Weighted DSU is conceptually simple but easy to get wrong on order of operations. The accumulation must happen **after** the recursive `find` but **before** re-pointing the parent — otherwise you accumulate against the wrong value. Test it carefully.
+</Callout>
+
+## 5. Implicit DSU on a grid
+
+For grid problems where neighboring cells "merge" under some condition (flood fill, percolation), use a DSU indexed by `r * cols + c`. Each cell is an element; unioning happens when two neighbors satisfy the merge condition.
+
+```python
+def cell_id(r, c, cols):
+    return r * cols + c
+
+dsu = DSU(rows * cols)
+for r in range(rows):
+    for c in range(cols):
+        for dr, dc in ((0, 1), (1, 0)):       # only need right + down to avoid double-counting
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < rows and 0 <= nc < cols and should_merge(r, c, nr, nc):
+                dsu.union(cell_id(r, c, cols), cell_id(nr, nc, cols))
+```
+
+Shows up in *Number of Islands II* (dynamic island merging as cells flip), *Regions Cut by Slashes*, percolation simulations.
+
+## 6. Offline reverse processing
+
+DSU has no efficient "split" (un-union). But many problems with **edge deletions** can be solved by processing the queries in reverse:
+
+> Given a graph with edges and a sequence of edge deletions, answer connectivity queries after each deletion.
+
+Run the queries in reverse: start from the **final** graph (after all deletions), then process events in reverse, which turns deletions into insertions. DSU handles insertions perfectly.
+
+The same trick works for problems like *Bricks Falling When Hit* (LeetCode 803), where bricks are removed and you need to know which other bricks fell — reverse it into "bricks added, what got connected to the roof?"
+
+## Decision table
+
+| Problem shape                                              | DSU? | Alternative                                          |
+| :--------------------------------------------------------- | :--- | :--------------------------------------------------- |
+| Static graph, count components                             | OK   | DFS/BFS is equally fast and gives traversal order    |
+| Dynamic edges added, count components after each           | **Yes** | DFS would have to recompute every time              |
+| Cycle detection in undirected graph (static)               | OK   | DFS                                                  |
+| Cycle detection while building a graph from a stream       | **Yes** | DFS would re-traverse                                |
+| Kruskal's MST                                              | **Yes** | Prim's exists but uses a different idea (heap)      |
+| Equality/parity constraints with merges                    | **Yes** (weighted) | Custom union-find variant                           |
+| Edge **deletions** + connectivity queries                  | **Yes** (offline reverse) | LCA / link-cut trees (way harder)             |
+| Shortest path / actual route                               | No   | BFS / Dijkstra                                       |
+| Cycle detection in directed graph                          | No   | DFS with colors                                      |
+
+## Quick check
+
+<QuizBox
+    question="Why is DSU especially well suited to DYNAMIC connectivity problems where edges arrive over time?"
+    options={[
+        "DSU is faster than DFS in general",
+        "Each new edge can be incorporated with one union call in O(α(n)), and connectivity queries between any two vertices are O(α(n)). With DFS you'd have to re-traverse after every edge addition.",
+        "DSU stores the entire graph",
+        "DSU only works on dynamic problems"
+    ]}
+    correctIndex={1}
+    explanation="DSU is the streaming-friendly choice. Each insertion is essentially constant; each query is essentially constant. DFS/BFS scale per query as O(V + E), so for n edge additions plus n queries you'd pay O(n · (V + E)) — quadratic. DSU stays linear."
+/>
+
+<QuizBox
+    question="Can DSU detect cycles in a DIRECTED graph?"
+    options={[
+        "Yes — the same union-find check works",
+        "No — DSU's 'in the same component' test ignores edge direction. You need DFS with colors (white/grey/black) or Kahn's algorithm to detect cycles in directed graphs.",
+        "Only if the graph is acyclic",
+        "Yes, but it requires the directed extension"
+    ]}
+    correctIndex={1}
+    explanation="DSU treats an edge (u, v) as a merge — direction is irrelevant. A directed graph can have u → v and v → u and DSU sees only one component, missing the cycle. Directed cycle detection requires tracking the recursion stack (DFS colors) or in-degree counting (Kahn's)."
+/>
+
+Next: **basic warm-up questions** to lock in the template, then practice problems.
