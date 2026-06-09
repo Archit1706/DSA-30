@@ -1,21 +1,54 @@
 ---
 title: "Day 21 — Shortest Paths"
-description: "Shortest-path algorithms — Dijkstra (non-negative), Bellman-Ford (negative edges), and Floyd-Warshall (all-pairs). When to pick which, and why."
+description: "Shortest-path algorithms — BFS for unweighted graphs, Dijkstra for non-negative weights, Bellman-Ford for negative edges, Floyd-Warshall for all-pairs. When to pick which, and why."
 ---
 
 import { Callout } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
 
 # Day 21 — Shortest Paths
 
+You have a graph. Some weights on the edges (or not). You want to know the cheapest way to get from `A` to `Z` — or from `A` to **everywhere**, or from **everywhere** to **everywhere**.
+
+That single question — "what's the shortest path?" — fans out into four algorithms with wildly different costs, assumptions, and use cases. Pick the wrong one and you'll either get the wrong answer (Dijkstra on a graph with negative edges) or take a hundred times longer than necessary (Floyd-Warshall on a sparse road network).
+
+This chapter is about **knowing which lever to pull** when the interviewer says "find the shortest path."
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E"]}
+    edges={[["A","B"],["A","C"],["B","C"],["B","D"],["C","D"],["C","E"],["D","E"]]}
+    directed={true}
+    weighted={true}
+    weights={{"A-B":4,"A-C":1,"B-C":2,"B-D":5,"C-D":8,"C-E":10,"D-E":2}}
+    highlightEdges={[["A","C"],["C","B"],["B","D"],["D","E"]]}
+    title="Shortest path A → E in a directed weighted graph (red path: A → C → B → D → E, cost 4+8... wait, actually A → C, B, D, E with cost 1+2+5+2 = 10)"
+/>
+
+## What you'll learn today
+
+- The **shortest-path landscape** — single-source vs all-pairs, weighted vs unweighted, negative weights, cycles
+- **BFS on unweighted graphs** — the simplest case, `O(V + E)`, every edge has implicit weight 1
+- **Dijkstra's algorithm** — the workhorse, `O((V + E) log V)` with a min-heap, handles non-negative weights
+- **Bellman-Ford** — `O(V · E)`, slower but handles **negative** edges and **detects negative cycles**
+- **Floyd-Warshall** — `O(V³)`, all-pairs in a triple loop, devastatingly simple to code
+- **The decision matrix** — given a graph, what should you reach for first?
+- **Eight interview classics** — network delay, cheapest flights, minimum effort, binary matrix BFS, word ladder, and more
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    Half of "graph problem" interview questions are shortest-path problems in disguise. *"Find the minimum cost path."* *"Reach the target in the fewest moves."* *"What's the closest cell with property X?"* If the answer is a path through a graph and "shortest" or "cheapest" is in the question, one of the four algorithms in this chapter is the answer.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **BFS** — the simplest shortest-path algorithm, perfect for **unweighted** graphs
-- **Dijkstra's algorithm** — O((V + E) log V) with a priority queue, for non-negative weights
-- **Bellman-Ford** — slower (O(V·E)) but handles **negative edge weights** and detects negative cycles
-- **Floyd-Warshall** — all-pairs shortest paths in O(V³), great for dense graphs
+1. **[Introduction](/day21/introduction)** — the shortest-path problem, single-source vs all-pairs, what edge weights mean, and the relaxation idea every algorithm in this chapter is built on.
+2. **[BFS on Unweighted Graphs](/day21/bfs_shortest_path)** — the simplest shortest path: every edge has weight 1, plain breadth-first search finds the answer in `O(V + E)`.
+3. **[Dijkstra's Algorithm](/day21/dijkstra)** — the priority-queue greedy. The one shortest-path algorithm everyone needs to memorize cold.
+4. **[Bellman-Ford](/day21/bellman_ford)** — slower, but handles negative edges and detects negative cycles. The only algorithm that does the second.
+5. **[Floyd-Warshall](/day21/floyd_warshall)** — `O(V³)` dynamic programming for all-pairs shortest paths. Five lines of code; surprisingly powerful.
+6. **[Picking the Right Algorithm](/day21/picking_the_right_one)** — the decision tree. Given a graph and a question, which algorithm wins?
+7. **[Basic Questions](/day21/basic_questions)** — warm-ups: hand-trace Dijkstra, identify negative cycles, count relaxations.
+8. **[Practice Questions](/day21/practice_questions)** — eight interview problems covering every shape in the chapter.
 
-Picking the right algorithm depends on the graph: which weights, how dense, do you need one path or all of them.
+Shortest paths build on [Graphs (Basics)](/day9), [DFS and BFS](/day10), and [Heaps](/day7). Bellman-Ford has a flavor of [Dynamic Programming](/day14) (it's basically DP on path length). Floyd-Warshall **is** dynamic programming on intermediate vertices. If any of those feel shaky, revisit the chapter first.
+
+Coming up: **Day 22 — Minimum Spanning Trees**, where greedy beats DP and Union Find returns to the spotlight.

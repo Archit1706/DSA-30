@@ -1,0 +1,175 @@
+---
+title: "Cheapest Flights Within K Stops"
+description: "Bellman-Ford limited to K+1 passes — the cleanest way to encode a 'hop count' constraint into a shortest-path problem."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Cheapest Flights Within K Stops <DifficultyBadge level="medium" />
+
+#### Description
+
+There are `n` cities connected by some number of flights. You are given an array `flights` where `flights[i] = [from_i, to_i, price_i]` indicates a flight from city `from_i` to city `to_i` with cost `price_i`.
+
+You are given three integers `src`, `dst`, and `k`. Return the **cheapest price** from `src` to `dst` with **at most `k` stops**. If there is no such route, return `-1`.
+
+A "stop" is an intermediate city. So `k` stops means at most `k + 1` edges.
+
+#### Examples
+
+```py
+> Case 1:
+    n = 4, flights = [[0,1,100],[1,2,100],[2,0,100],[1,3,600],[2,3,200]]
+    src = 0, dst = 3, k = 1
+    Output: 700
+    # 0 → 1 → 3, cost 100 + 600 = 700 (one stop)
+    # 0 → 1 → 2 → 3 would be 100+100+200=400, but uses TWO stops > k
+
+> Case 2:
+    n = 3, flights = [[0,1,100],[1,2,100],[0,2,500]]
+    src = 0, dst = 2, k = 1
+    Output: 200
+    # 0 → 1 → 2, one stop, cost 200
+
+> Case 3:
+    n = 3, flights = [[0,1,100],[1,2,100],[0,2,500]]
+    src = 0, dst = 2, k = 0
+    Output: 500
+    # k = 0 stops → direct flight only
+```
+
+#### Constraints
+
+- `1 <= n <= 100`
+- `0 <= flights.length <= (n * (n - 1) / 2)`
+- `0 <= src, dst, k < n`
+- `src != dst`
+
+#### State design
+
+Vanilla Dijkstra won't work cleanly. Why? Because the cheapest path might use more than `k + 1` edges; a more-expensive path with fewer edges could be the actual answer. Dijkstra commits to "cheapest-known" early without tracking edge count.
+
+Two clean approaches:
+
+##### Approach 1 — Bellman-Ford limited to K+1 passes
+
+Each Bellman-Ford pass extends every shortest path by one more edge. After pass `i`, `dist[v]` holds the cheapest cost using **at most `i` edges**. Run `k + 1` passes — done.
+
+Critical detail: **use the previous pass's `dist` when relaxing**. If you read the current `dist` you might use two edges within one pass and over-count.
+
+##### Approach 2 — Dijkstra on expanded state
+
+Treat each `(city, edges_used)` as a separate vertex. Push `(cost, city, edges_used)` and skip when `edges_used > k + 1`. Standard Dijkstra on this `n × (k+2)` state space. Cleaner mental model; same asymptotic cost.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    // Bellman-Ford, K+1 passes
+    int findCheapestPrice(int n, vector<vector<int>>& flights, int src, int dst, int k) {
+        const int INF = 1e9;
+        vector<int> dist(n, INF);
+        dist[src] = 0;
+        for (int i = 0; i <= k; i++) {
+            vector<int> next = dist;        // freeze prev pass!
+            for (auto& f : flights) {
+                int u = f[0], v = f[1], w = f[2];
+                if (dist[u] == INF) continue;
+                if (dist[u] + w < next[v]) {
+                    next[v] = dist[u] + w;
+                }
+            }
+            dist = next;
+        }
+        return dist[dst] == INF ? -1 : dist[dst];
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    # Bellman-Ford, K+1 passes
+    def find_cheapest_price(n, flights, src, dst, k):
+        INF = float('inf')
+        dist = [INF] * n
+        dist[src] = 0
+        for _ in range(k + 1):
+            nxt = dist.copy()                 # freeze prev pass!
+            for u, v, w in flights:
+                if dist[u] == INF:
+                    continue
+                if dist[u] + w < nxt[v]:
+                    nxt[v] = dist[u] + w
+            dist = nxt
+        return -1 if dist[dst] == INF else dist[dst]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int findCheapestPrice(int n, int[][] flights, int src, int dst, int k) {
+        int INF = (int)1e9;
+        int[] dist = new int[n];
+        Arrays.fill(dist, INF);
+        dist[src] = 0;
+        for (int i = 0; i <= k; i++) {
+            int[] next = dist.clone();        // freeze prev pass!
+            for (int[] f : flights) {
+                int u = f[0], v = f[1], w = f[2];
+                if (dist[u] == INF) continue;
+                if (dist[u] + w < next[v]) next[v] = dist[u] + w;
+            }
+            dist = next;
+        }
+        return dist[dst] == INF ? -1 : dist[dst];
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Alternative — Dijkstra on expanded state
+
+```python
+import heapq
+
+def find_cheapest_price_dijkstra(n, flights, src, dst, k):
+    adj = [[] for _ in range(n)]
+    for u, v, w in flights:
+        adj[u].append((v, w))
+    # (cost, city, edges_used)
+    pq = [(0, src, 0)]
+    best = {}                   # (city, edges_used) -> cheapest cost
+    while pq:
+        cost, u, e = heapq.heappop(pq)
+        if u == dst:
+            return cost
+        if e > k:                # used k+1 edges already, can't extend
+            continue
+        if best.get((u, e), float('inf')) < cost:
+            continue
+        for v, w in adj[u]:
+            nc = cost + w
+            if nc < best.get((v, e + 1), float('inf')):
+                best[(v, e + 1)] = nc
+                heapq.heappush(pq, (nc, v, e + 1))
+    return -1
+```
+
+#### Analysis
+
+- **Bellman-Ford:** `O(K · E)` — at most `K + 1` passes over all edges.
+- **Dijkstra (expanded):** `O((V · K) log (V · K) + E · K)`.
+- **Space:** `O(V)` (BF) or `O(V · K)` (Dijkstra).
+
+For typical constraints (`n ≤ 100`, `K ≤ 100`), both work. Bellman-Ford is the standard answer because the code is shorter and the trick is more memorable.
+
+<Callout type="warning">
+    **The freeze-prev-pass step is everything.** Forgetting `next = dist.copy()` and updating `dist` in place lets you traverse multiple edges in a single pass — you'd allow paths with `> k + 1` edges. Subtle. Often the difference between AC and WA.
+</Callout>
+
+#### Same skin
+
+- **Minimum Cost to Reach Destination in Time** — Dijkstra with a "max time" constraint.
+- **Path with Maximum Probability** — Dijkstra with multiplication (and "max" instead of "min").
+- **Bellman-Ford negative-cycle detection** — same V-pass structure, different check.

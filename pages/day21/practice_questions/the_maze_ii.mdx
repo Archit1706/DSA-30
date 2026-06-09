@@ -1,0 +1,166 @@
+---
+title: "The Maze II"
+description: "Dijkstra on a grid where the ball rolls until it hits a wall — the move cost is the distance rolled, not a fixed 1."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### The Maze II <DifficultyBadge level="medium" />
+
+#### Description
+
+There is a ball in a maze with empty spaces (represented as `0`) and walls (represented as `1`). The ball can go through the empty spaces by rolling **up, down, left, or right**, but it won't stop rolling until **hitting a wall**. When the ball stops, it could choose the next direction.
+
+Given the `maze`, the ball's `start` position, and the `destination`, return the **shortest distance for the ball to stop at the destination**. If the ball cannot stop at the destination, return `-1`.
+
+The distance is the number of **empty spaces traveled** (not including the start cell, including the destination cell).
+
+#### Examples
+
+```py
+> Case 1:
+    maze = [
+      [0,0,1,0,0],
+      [0,0,0,0,0],
+      [0,0,0,1,0],
+      [1,1,0,1,1],
+      [0,0,0,0,0]
+    ]
+    start = [0,4], destination = [4,4]
+    Output: 12
+    # One optimal path: left → down → left → down → right → down
+
+> Case 2:
+    start = [0,4], destination = [3,2]
+    Output: -1
+    # destination [3,2] is not a stopping cell from any rolling direction
+```
+
+#### Constraints
+
+- `1 <= rows, cols <= 100`
+- `start.length == destination.length == 2`
+- The ball and destination exist in empty spaces.
+
+#### State design
+
+This is NOT a plain BFS problem, because **a single "move" can span many cells**. From a stopping point, the ball rolls in one direction until it hits a wall — that's one edge in the graph, with weight equal to the number of cells rolled.
+
+The graph:
+- **Vertices** = cells where the ball can stop (every empty cell, plus the start).
+- **Edges** = from cell `c`, in each of 4 directions, roll until you hit a wall. The destination of that roll is one neighbor in the graph; the edge weight is the number of cells rolled.
+
+Now it's a weighted graph with non-negative weights → **Dijkstra**.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int shortestDistance(vector<vector<int>>& maze, vector<int>& start, vector<int>& destination) {
+        int m = maze.size(), n = maze[0].size();
+        vector<vector<int>> dist(m, vector<int>(n, INT_MAX));
+        dist[start[0]][start[1]] = 0;
+        priority_queue<tuple<int,int,int>, vector<tuple<int,int,int>>, greater<>> pq;
+        pq.push({0, start[0], start[1]});
+        int dirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+        while (!pq.empty()) {
+            auto [d, r, c] = pq.top(); pq.pop();
+            if (d > dist[r][c]) continue;
+            for (auto& dir : dirs) {
+                int nr = r, nc = c, steps = 0;
+                while (nr + dir[0] >= 0 && nr + dir[0] < m
+                       && nc + dir[1] >= 0 && nc + dir[1] < n
+                       && maze[nr + dir[0]][nc + dir[1]] == 0) {
+                    nr += dir[0]; nc += dir[1]; steps++;
+                }
+                int nd = d + steps;
+                if (nd < dist[nr][nc]) {
+                    dist[nr][nc] = nd;
+                    pq.push({nd, nr, nc});
+                }
+            }
+        }
+        int ans = dist[destination[0]][destination[1]];
+        return ans == INT_MAX ? -1 : ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    def shortest_distance(maze, start, destination):
+        m, n = len(maze), len(maze[0])
+        dist = [[float('inf')] * n for _ in range(m)]
+        dist[start[0]][start[1]] = 0
+        pq = [(0, start[0], start[1])]
+        while pq:
+            d, r, c = heapq.heappop(pq)
+            if d > dist[r][c]:
+                continue
+            for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
+                nr, nc, steps = r, c, 0
+                while 0 <= nr + dr < m and 0 <= nc + dc < n and maze[nr + dr][nc + dc] == 0:
+                    nr += dr
+                    nc += dc
+                    steps += 1
+                nd = d + steps
+                if nd < dist[nr][nc]:
+                    dist[nr][nc] = nd
+                    heapq.heappush(pq, (nd, nr, nc))
+        ans = dist[destination[0]][destination[1]]
+        return -1 if ans == float('inf') else ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int shortestDistance(int[][] maze, int[] start, int[] destination) {
+        int m = maze.length, n = maze[0].length;
+        int[][] dist = new int[m][n];
+        for (int[] row : dist) Arrays.fill(row, Integer.MAX_VALUE);
+        dist[start[0]][start[1]] = 0;
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{0, start[0], start[1]});
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+        while (!pq.isEmpty()) {
+            int[] cur = pq.poll();
+            int d = cur[0], r = cur[1], c = cur[2];
+            if (d > dist[r][c]) continue;
+            for (int[] dir : dirs) {
+                int nr = r, nc = c, steps = 0;
+                while (nr + dir[0] >= 0 && nr + dir[0] < m
+                       && nc + dir[1] >= 0 && nc + dir[1] < n
+                       && maze[nr + dir[0]][nc + dir[1]] == 0) {
+                    nr += dir[0]; nc += dir[1]; steps++;
+                }
+                int nd = d + steps;
+                if (nd < dist[nr][nc]) {
+                    dist[nr][nc] = nd;
+                    pq.offer(new int[]{nd, nr, nc});
+                }
+            }
+        }
+        int ans = dist[destination[0]][destination[1]];
+        return ans == Integer.MAX_VALUE ? -1 : ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O(m · n · max(m, n) · log(m · n))` — Dijkstra on `m · n` vertices, each "roll" is `O(max(m, n))`.
+- **Space:** `O(m · n)`.
+
+<Callout type="warning">
+    **Why plain BFS doesn't work here.** BFS assumes every edge has weight 1. In this problem, edges have variable weights (number of cells rolled). BFS would count "number of stops," not "number of cells traveled" — different problem (that's *The Maze* version 1).
+</Callout>
+
+#### Same skin
+
+- **The Maze** (version 1) — same rolling, but ask whether destination is reachable. BFS suffices.
+- **The Maze III** — same rolling, return the path itself as a string (with tie-breaking on lexicographic order). Dijkstra with parent + direction tracking.
+- **Network Delay Time** — single source Dijkstra on a regular graph.

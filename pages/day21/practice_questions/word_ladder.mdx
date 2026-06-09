@@ -1,0 +1,189 @@
+---
+title: "Word Ladder"
+description: "BFS on an implicit graph where vertices are words and edges connect words that differ by one letter — recognizing the implicit graph is the whole game."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Word Ladder <DifficultyBadge level="hard" />
+
+#### Description
+
+A **transformation sequence** from word `beginWord` to word `endWord` using a dictionary `wordList` is a sequence `beginWord -> s_1 -> s_2 -> ... -> s_k` such that:
+
+- Every adjacent pair of words differs by a **single letter**.
+- Every `s_i` for `1 <= i <= k` is in `wordList` (note: `beginWord` does NOT need to be in `wordList`).
+- `s_k == endWord`.
+
+Given two words `beginWord` and `endWord`, and a dictionary `wordList`, return the **number of words** in the shortest transformation sequence (including both endpoints), or `0` if none exists.
+
+#### Examples
+
+```py
+> Case 1:
+    beginWord = "hit", endWord = "cog"
+    wordList = ["hot","dot","dog","lot","log","cog"]
+    Output: 5
+    # hit → hot → dot → dog → cog (5 words)
+
+> Case 2:
+    beginWord = "hit", endWord = "cog"
+    wordList = ["hot","dot","dog","lot","log"]
+    Output: 0   # endWord not in dictionary
+```
+
+#### Constraints
+
+- `1 <= beginWord.length <= 10`
+- `endWord.length == beginWord.length`
+- `1 <= wordList.length <= 5000`
+- All words consist of lowercase English letters.
+- All words in `wordList` are unique.
+
+#### State design
+
+The implicit graph:
+- **Vertices** = words.
+- **Edges** = between words that differ by exactly one letter.
+- All edges have weight 1 → **BFS** finds shortest distance.
+
+The hard part is **edge generation**. Building adjacency by comparing every pair of words is `O(N² · L)` where `N = len(wordList)` and `L = word length` — slow for the constraints.
+
+**The pattern trick.** For each word, enumerate its `L` "wildcard patterns" by replacing each character with `*`. Words that share a pattern differ by one letter. Bucket words by pattern in a hash map — adjacency lookup is then `O(L)`.
+
+E.g., `"hot"` has patterns `*ot`, `h*t`, `ho*`. So does `"hat"` (`*at`, `h*t`, `ha*`) — they share `h*t`, so they're neighbors.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int ladderLength(string beginWord, string endWord, vector<string>& wordList) {
+        unordered_set<string> dict(wordList.begin(), wordList.end());
+        if (!dict.count(endWord)) return 0;
+
+        // Bucket words by wildcard pattern
+        unordered_map<string, vector<string>> patterns;
+        int L = beginWord.size();
+        auto addPatterns = [&](const string& w) {
+            for (int i = 0; i < L; i++) {
+                string p = w;
+                p[i] = '*';
+                patterns[p].push_back(w);
+            }
+        };
+        for (auto& w : dict) addPatterns(w);
+
+        unordered_set<string> visited{beginWord};
+        queue<pair<string,int>> q;
+        q.push({beginWord, 1});
+        while (!q.empty()) {
+            auto [w, dist] = q.front(); q.pop();
+            if (w == endWord) return dist;
+            for (int i = 0; i < L; i++) {
+                string p = w;
+                p[i] = '*';
+                for (auto& nb : patterns[p]) {
+                    if (!visited.count(nb)) {
+                        visited.insert(nb);
+                        q.push({nb, dist + 1});
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque, defaultdict
+
+    def ladder_length(beginWord, endWord, wordList):
+        words = set(wordList)
+        if endWord not in words:
+            return 0
+        L = len(beginWord)
+
+        patterns = defaultdict(list)
+        for w in words:
+            for i in range(L):
+                patterns[w[:i] + '*' + w[i+1:]].append(w)
+
+        visited = {beginWord}
+        q = deque([(beginWord, 1)])
+        while q:
+            w, d = q.popleft()
+            if w == endWord:
+                return d
+            for i in range(L):
+                p = w[:i] + '*' + w[i+1:]
+                for nb in patterns[p]:
+                    if nb not in visited:
+                        visited.add(nb)
+                        q.append((nb, d + 1))
+        return 0
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int ladderLength(String beginWord, String endWord, List<String> wordList) {
+        Set<String> dict = new HashSet<>(wordList);
+        if (!dict.contains(endWord)) return 0;
+        int L = beginWord.length();
+
+        Map<String, List<String>> patterns = new HashMap<>();
+        for (String w : dict) {
+            for (int i = 0; i < L; i++) {
+                String p = w.substring(0, i) + "*" + w.substring(i + 1);
+                patterns.computeIfAbsent(p, k -> new ArrayList<>()).add(w);
+            }
+        }
+
+        Set<String> visited = new HashSet<>();
+        visited.add(beginWord);
+        Queue<Object[]> q = new ArrayDeque<>();
+        q.offer(new Object[]{beginWord, 1});
+        while (!q.isEmpty()) {
+            Object[] cur = q.poll();
+            String w = (String) cur[0];
+            int d = (int) cur[1];
+            if (w.equals(endWord)) return d;
+            for (int i = 0; i < L; i++) {
+                String p = w.substring(0, i) + "*" + w.substring(i + 1);
+                for (String nb : patterns.getOrDefault(p, Collections.emptyList())) {
+                    if (!visited.contains(nb)) {
+                        visited.add(nb);
+                        q.offer(new Object[]{nb, d + 1});
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O(N · L²)` — `N` words, each generates `L` patterns, each pattern lookup costs `O(L)` for substring construction.
+- **Space:** `O(N · L²)` for the pattern map.
+
+#### Bidirectional BFS — the speedup
+
+For the largest inputs, **bidirectional BFS** is dramatically faster: run BFS from both `beginWord` and `endWord` simultaneously, alternating which side to expand (always expand the smaller frontier). When the two searches meet, you have the shortest path. The branching factor drops from `b^d` to `2 · b^(d/2)` — a square-root speedup.
+
+Standard interview implementation is the simple one-directional BFS above. Bidirectional is worth mentioning as a follow-up.
+
+<Callout type="info">
+    **The pattern hash is the lesson, not the BFS.** Word ladder is a graph problem in disguise; recognizing it as BFS is step one. But the efficient adjacency construction — wildcards bucketed by hash — is the technique you'll actually carry to other implicit-graph problems (lock combinations, one-character mutations, etc.).
+</Callout>
+
+#### Same skin
+
+- **Word Ladder II** — return all shortest transformation sequences, not just the length. BFS to find layered distances, then DFS backwards.
+- **Open the Lock** — BFS on 4-digit codes where neighbors differ by `±1` in one digit; same shape, smaller state space.
+- **Minimum Genetic Mutation** — identical problem, different cover.

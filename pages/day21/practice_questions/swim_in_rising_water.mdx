@@ -1,0 +1,155 @@
+---
+title: "Swim in Rising Water"
+description: "Dijkstra-style minimax on a grid — find the path whose maximum cell value is smallest, then return that value."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Swim in Rising Water <DifficultyBadge level="hard" />
+
+#### Description
+
+You are given an `n × n` integer matrix `grid` where each value `grid[i][j]` represents the elevation at that point.
+
+Rain starts to fall. At time `t`, the depth of the water everywhere is `t`. You can swim from a cell to a 4-directionally adjacent cell **if and only if** the elevations of both cells are at most `t`. You can swim infinitely fast in zero time.
+
+Starting at the top-left cell `(0, 0)`, return the **least time** until you can reach the bottom-right cell `(n-1, n-1)`.
+
+#### Examples
+
+```py
+> Case 1:
+    grid = [[0,2],[1,3]]
+    Output: 3
+    # At t=3 all four cells are passable. (0,0) → (1,0) → (1,1).
+
+> Case 2:
+    grid = [[0,1,2,3,4],[24,23,22,21,5],[12,13,14,15,16],[11,17,18,19,20],[10,9,8,7,6]]
+    Output: 16
+```
+
+#### Constraints
+
+- `n == grid.length == grid[i].length`
+- `1 <= n <= 50`
+- `0 <= grid[i][j] < n²`
+- Each value in `grid` is unique.
+
+#### State design
+
+The answer is the smallest `t` such that there's a path from `(0,0)` to `(n-1,n-1)` using only cells with value `≤ t`.
+
+That's `max(grid[cell] along the path)` for some path — and we want to **minimize that max**. Classic **minimax shortest path**.
+
+Same trick as [Path with Minimum Effort](/day21/practice_questions/path_with_minimum_effort): Dijkstra, but the path cost is the **max cell value** along the path (instead of the sum). Relaxation becomes:
+
+```
+new_time = max(time_so_far, grid[neighbor])
+```
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int swimInWater(vector<vector<int>>& grid) {
+        int n = grid.size();
+        vector<vector<int>> best(n, vector<int>(n, INT_MAX));
+        priority_queue<tuple<int,int,int>, vector<tuple<int,int,int>>, greater<>> pq;
+        best[0][0] = grid[0][0];
+        pq.push({grid[0][0], 0, 0});
+        int dirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+        while (!pq.empty()) {
+            auto [t, r, c] = pq.top(); pq.pop();
+            if (r == n-1 && c == n-1) return t;
+            if (t > best[r][c]) continue;
+            for (auto& d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+                int nt = max(t, grid[nr][nc]);
+                if (nt < best[nr][nc]) {
+                    best[nr][nc] = nt;
+                    pq.push({nt, nr, nc});
+                }
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    def swim_in_water(grid):
+        n = len(grid)
+        best = [[float('inf')] * n for _ in range(n)]
+        best[0][0] = grid[0][0]
+        pq = [(grid[0][0], 0, 0)]
+        while pq:
+            t, r, c = heapq.heappop(pq)
+            if (r, c) == (n - 1, n - 1):
+                return t
+            if t > best[r][c]:
+                continue
+            for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < n and 0 <= nc < n:
+                    nt = max(t, grid[nr][nc])
+                    if nt < best[nr][nc]:
+                        best[nr][nc] = nt
+                        heapq.heappush(pq, (nt, nr, nc))
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int swimInWater(int[][] grid) {
+        int n = grid.length;
+        int[][] best = new int[n][n];
+        for (int[] row : best) Arrays.fill(row, Integer.MAX_VALUE);
+        best[0][0] = grid[0][0];
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{grid[0][0], 0, 0});
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+        while (!pq.isEmpty()) {
+            int[] cur = pq.poll();
+            int t = cur[0], r = cur[1], c = cur[2];
+            if (r == n-1 && c == n-1) return t;
+            if (t > best[r][c]) continue;
+            for (int[] d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+                int nt = Math.max(t, grid[nr][nc]);
+                if (nt < best[nr][nc]) {
+                    best[nr][nc] = nt;
+                    pq.offer(new int[]{nt, nr, nc});
+                }
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Alternative — Union Find
+
+There's a beautiful alternative: process cells in increasing order of elevation, unioning each with its already-processed neighbors. The answer is the value of the cell whose insertion first connects `(0,0)` to `(n-1,n-1)`. Worth knowing as a cross-reference to [Day 20 — Union Find](/day20).
+
+#### Analysis
+
+- **Time:** `O(n² · log n)` — Dijkstra on `n²` vertices.
+- **Space:** `O(n²)`.
+
+<Callout type="info">
+    The minimax-Dijkstra trick (replace `sum` with `max`) and the Union-Find approach (process cells by sorted weight) are **two ways of saying the same thing** — both are computing the **bottleneck-minimum spanning path**, which corresponds to a path in the minimum spanning tree. The minimax path in any weighted graph **is** a path in the MST.
+</Callout>
+
+#### Same skin
+
+- **Path with Minimum Effort** — same skeleton, `abs(height_diff)` instead of `grid[cell]`.
+- **Path With Maximum Minimum Value** — flip min and max.
+- **Cheapest Move on a Grid** — sum-based grid Dijkstra.

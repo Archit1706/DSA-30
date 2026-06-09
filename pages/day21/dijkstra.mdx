@@ -1,0 +1,260 @@
+---
+title: "Dijkstra's Algorithm"
+description: "The classic greedy shortest-path algorithm — O((V + E) log V) with a min-heap, single source, non-negative weights. The one shortest-path algorithm you need to memorize cold."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Dijkstra's Algorithm
+
+Edsger Dijkstra invented this in 1956 (and reportedly designed it in his head over a coffee in twenty minutes). It's the single most important shortest-path algorithm — fast, simple, broadly applicable. **Non-negative edge weights, single source, any graph structure.**
+
+The idea, in one sentence:
+
+> Repeatedly pluck the **closest unfinished vertex** from a priority queue, mark it done, and relax all its outgoing edges.
+
+That's it. Everything else is bookkeeping.
+
+## The algorithm
+
+<Steps>
+
+### Initialize distances
+
+`dist[s] = 0` for the source. `dist[v] = ∞` for every other vertex.
+
+### Push the source into a min-heap
+
+Heap keyed by tentative distance. The source has key 0.
+
+### Repeatedly pop the smallest
+
+Pop `(d, u)` from the heap. If `d > dist[u]`, this is a **stale entry** — skip it.
+
+### Relax all outgoing edges of u
+
+For each neighbor `v` with edge weight `w`: if `dist[u] + w < dist[v]`, update `dist[v]` and push `(dist[v], v)` to the heap.
+
+### Repeat until the heap is empty
+
+When done, `dist[v]` holds the shortest distance from `s` to every reachable `v`. Unreachable vertices remain at `∞`.
+
+</Steps>
+
+## Worked example
+
+Source `A`. Graph:
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E"]}
+    edges={[["A","B"],["A","C"],["B","C"],["B","D"],["C","D"],["C","E"],["D","E"]]}
+    directed={true}
+    weighted={true}
+    weights={{"A-B":4,"A-C":1,"B-C":2,"B-D":5,"C-D":8,"C-E":10,"D-E":2}}
+    title="Source A — find shortest paths to all other vertices"
+/>
+
+Tracing through:
+
+| Pop      | dist[] after relaxations           | Heap (after)                          |
+| :------- | :--------------------------------- | :------------------------------------ |
+| (0, A)   | A=0, B=4, C=1                      | [(1,C), (4,B)]                        |
+| (1, C)   | A=0, B=3 (was 4, now A→C→B), D=9, E=11 | [(3,B), (4,B), (9,D), (11,E)]    |
+| (3, B)   | D=8 (was 9, now A→C→B→D)           | [(4,B), (8,D), (9,D), (11,E)]         |
+| (4, B)   | stale — `4 > dist[B]=3`, skip      | [(8,D), (9,D), (11,E)]                |
+| (8, D)   | E=10 (was 11, now A→C→B→D→E)       | [(9,D), (10,E), (11,E)]               |
+| (9, D)   | stale, skip                        | [(10,E), (11,E)]                      |
+| (10, E)  | no outgoing edges                  | [(11,E)]                              |
+| (11, E)  | stale, skip                        | []                                    |
+
+Final: `dist[A]=0, dist[B]=3, dist[C]=1, dist[D]=8, dist[E]=10`. Matches our intuition from the introduction.
+
+<Callout type="info">
+    **Stale entries are the fingerprint of a real Dijkstra implementation in Python or Java.** Those languages' priority queues don't support `decrease_key`, so we push a new (smaller) entry and let the old one rot in the heap. When we pop a stale one, we recognize it by `d > dist[u]` and continue. C++ STL's `priority_queue` has the same limitation.
+</Callout>
+
+## The template
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<long long> dijkstra(int n, vector<vector<pair<int,int>>>& adj, int src) {
+        // adj[u] = list of (v, weight)
+        const long long INF = LLONG_MAX;
+        vector<long long> dist(n, INF);
+        priority_queue<pair<long long,int>,
+                       vector<pair<long long,int>>,
+                       greater<>> pq;
+        dist[src] = 0;
+        pq.push({0, src});
+        while (!pq.empty()) {
+            auto [d, u] = pq.top(); pq.pop();
+            if (d > dist[u]) continue;              // stale
+            for (auto& [v, w] : adj[u]) {
+                if (dist[u] + w < dist[v]) {
+                    dist[v] = dist[u] + w;
+                    pq.push({dist[v], v});
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+
+    def dijkstra(n, adj, src):
+        # adj[u] = list of (v, weight)
+        dist = [float('inf')] * n
+        dist[src] = 0
+        pq = [(0, src)]
+        while pq:
+            d, u = heapq.heappop(pq)
+            if d > dist[u]:
+                continue                            # stale
+            for v, w in adj[u]:
+                if dist[u] + w < dist[v]:
+                    dist[v] = dist[u] + w
+                    heapq.heappush(pq, (dist[v], v))
+        return dist
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    long[] dijkstra(int n, List<List<int[]>> adj, int src) {
+        long[] dist = new long[n];
+        Arrays.fill(dist, Long.MAX_VALUE);
+        PriorityQueue<long[]> pq = new PriorityQueue<>((a, b) -> Long.compare(a[0], b[0]));
+        dist[src] = 0;
+        pq.offer(new long[]{0, src});
+        while (!pq.isEmpty()) {
+            long[] cur = pq.poll();
+            long d = cur[0];
+            int u = (int) cur[1];
+            if (d > dist[u]) continue;              // stale
+            for (int[] e : adj.get(u)) {
+                int v = e[0], w = e[1];
+                if (dist[u] + w < dist[v]) {
+                    dist[v] = dist[u] + w;
+                    pq.offer(new long[]{dist[v], v});
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Why correctness
+
+When Dijkstra pops vertex `u` from the heap, **the current `dist[u]` is the true shortest distance from `s` to `u`**. Proof sketch:
+
+Suppose for contradiction there's a shorter path `P` from `s` to `u` not yet discovered. `P` must leave the set of "finalized" vertices at some point — let `x` be the first vertex on `P` that's not yet finalized. Then `dist[x] ≤ ` (length of `P` up to `x`) `≤ ` (length of `P`) `< dist[u]`.
+
+But Dijkstra always pops the smallest tentative distance. If `dist[x] < dist[u]`, then `x` would be popped before `u` — contradiction.
+
+The proof critically uses **"length of `P` up to `x`" `≤ ` "length of `P`"** — that step is true *only because edge weights are non-negative*. With negative edges, extending a path can shrink it, and the proof falls apart.
+
+## Complexity
+
+| Implementation                       | Time                  | Best for             |
+| :----------------------------------- | :-------------------- | :------------------- |
+| Binary heap (the standard)           | `O((V + E) log V)`    | General use          |
+| Fibonacci heap                       | `O(E + V log V)`      | Theory; rarely used  |
+| Array (no heap)                      | `O(V²)`               | Dense graphs         |
+
+For sparse graphs (`E = O(V)`), binary heap is `O(V log V)`. For dense graphs (`E = O(V²)`), the array-based `O(V²)` is actually faster because there's no `log V` factor on the relaxations. In practice, just use the binary-heap version — the constant factors dominate everything in interview-sized inputs.
+
+## Path reconstruction
+
+Add a `parent` array, set `parent[v] = u` whenever you relax `v` through `u`. Then walk back from the target:
+
+```python
+def dijkstra_with_path(n, adj, src, dst):
+    dist = [float('inf')] * n
+    parent = [-1] * n
+    dist[src] = 0
+    pq = [(0, src)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if d > dist[u]:
+            continue
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                parent[v] = u
+                heapq.heappush(pq, (dist[v], v))
+    # reconstruct
+    if dist[dst] == float('inf'):
+        return None
+    path = []
+    cur = dst
+    while cur != -1:
+        path.append(cur)
+        cur = parent[cur]
+    return path[::-1]
+```
+
+## Common variants and gotchas
+
+### Variant: distance with constraints
+
+"Shortest path with at most K stops." The state is no longer just a vertex — it's `(vertex, stops_used)`. Run Dijkstra on the expanded state space. We'll see this exact pattern in *Cheapest Flights Within K Stops*.
+
+### Variant: maximin / minimax paths
+
+"Find the path that minimizes the maximum edge weight" — the *Path with Minimum Effort* problem. Same skeleton, but instead of summing edge weights you take the max. Relaxation becomes `dist[v] = min(dist[v], max(dist[u], w))`. The greedy choice still works because `max` is monotone in the same way `+` is for non-negatives.
+
+### Gotcha: dense graphs and the `O(V²)` trap
+
+If your adjacency representation is a `V × V` matrix and you call Dijkstra naively, each "for each neighbor" loop costs `O(V)` regardless of how few neighbors there really are. Either convert to a sparse adjacency list, or use the array-based `O(V²)` Dijkstra directly.
+
+### Gotcha: negative weights
+
+Bears repeating: **Dijkstra is incorrect on negative weights, even if there's no negative cycle**. The algorithm may finalize a vertex's distance early and never revisit it. If you see negatives in the problem statement, switch to Bellman-Ford.
+
+## Quick check
+
+<QuizBox
+    question="In a Dijkstra implementation using Python's heapq, why do we sometimes pop entries where d > dist[u]?"
+    options={[
+        "Bug in the implementation",
+        "Python's heapq doesn't support decrease-key, so when we find a shorter path to u we push a new (smaller) entry and let the old one stay in the heap as a stale duplicate. When we pop a stale entry, we recognize it by d > dist[u] and skip.",
+        "The graph has negative edges",
+        "It's faster than checking visited up front"
+    ]}
+    correctIndex={1}
+    explanation="Stale entries are unavoidable without decrease-key support. The skip check is cheap (one comparison), and the total heap size is still bounded by O(E), so the complexity stays O((V + E) log V)."
+/>
+
+<QuizBox
+    question="Why does Dijkstra's correctness break when edge weights can be negative?"
+    options={[
+        "The heap can't store negatives",
+        "Dijkstra finalizes a vertex's distance the first time it pops, relying on 'extending a path with non-negative edges cannot shorten it.' Negative edges violate this — a longer-looking detour through a negative edge can beat a finalized distance.",
+        "Negative weights cause infinite loops",
+        "The relaxation step doesn't compile"
+    ]}
+    correctIndex={1}
+    explanation="The whole proof rests on monotonicity: shortest-paths-so-far never decrease as you add more edges. Negative edges break this assumption, so the 'first time u pops, distance is final' invariant fails."
+/>
+
+<QuizBox
+    question="What's the time complexity of Dijkstra with a binary heap on a sparse graph (E = O(V))?"
+    options={[
+        "O(V log V)",
+        "O(V²)",
+        "O(V + E)",
+        "O(E²)"
+    ]}
+    correctIndex={0}
+    explanation="O((V + E) log V) with E = O(V) gives O(V log V). For comparison: BFS on the same sparse graph is O(V + E) = O(V), so BFS is faster — but BFS only works for unweighted graphs."
+/>
+
+Next: when **negative weights** are in play, Dijkstra is out and **Bellman-Ford** takes over.

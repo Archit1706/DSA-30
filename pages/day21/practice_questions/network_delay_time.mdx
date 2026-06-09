@@ -1,0 +1,154 @@
+---
+title: "Network Delay Time"
+description: "Textbook single-source Dijkstra — find when the last node receives a signal broadcast from node k."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Network Delay Time <DifficultyBadge level="medium" />
+
+#### Description
+
+You are given a network of `n` nodes labeled from `1` to `n`. You are given `times`, a list of travel times as directed edges `times[i] = (u_i, v_i, w_i)` where `u_i` is the source, `v_i` is the target, and `w_i` is the time it takes for a signal to travel from `u_i` to `v_i`.
+
+A signal is sent from node `k`. Return the minimum time it takes for **all `n` nodes** to receive the signal. If it is impossible for all nodes to receive the signal, return `-1`.
+
+#### Examples
+
+```py
+> Case 1:
+    times = [[2,1,1],[2,3,1],[3,4,1]], n = 4, k = 2
+    Output: 2
+    Explanation: from 2 → 1 (t=1), 2 → 3 (t=1), 3 → 4 (t=2). Max = 2.
+
+> Case 2:
+    times = [[1,2,1]], n = 2, k = 1
+    Output: 1
+
+> Case 3:
+    times = [[1,2,1]], n = 2, k = 2
+    Output: -1   # node 1 unreachable
+```
+
+#### Constraints
+
+- `1 <= k <= n <= 100`
+- `1 <= times.length <= 6000`
+- `times[i].length == 3`
+- `1 <= u_i, v_i <= n`, `u_i != v_i`
+- `0 <= w_i <= 100`
+
+#### State design
+
+Pure single-source shortest path. Weights are non-negative → **Dijkstra**.
+
+The twist: the answer is **not** any single `dist[v]`, it's `max(dist[v])` across all `v` — the signal arrives "everywhere" only when the slowest node receives it.
+
+If any vertex is unreachable, `dist[v] = ∞`, and the answer is `-1`.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int networkDelayTime(vector<vector<int>>& times, int n, int k) {
+        vector<vector<pair<int,int>>> adj(n + 1);
+        for (auto& t : times) adj[t[0]].push_back({t[1], t[2]});
+        vector<int> dist(n + 1, INT_MAX);
+        priority_queue<pair<int,int>, vector<pair<int,int>>, greater<>> pq;
+        dist[k] = 0;
+        pq.push({0, k});
+        while (!pq.empty()) {
+            auto [d, u] = pq.top(); pq.pop();
+            if (d > dist[u]) continue;
+            for (auto& [v, w] : adj[u]) {
+                if (d + w < dist[v]) {
+                    dist[v] = d + w;
+                    pq.push({dist[v], v});
+                }
+            }
+        }
+        int ans = 0;
+        for (int i = 1; i <= n; i++) {
+            if (dist[i] == INT_MAX) return -1;
+            ans = max(ans, dist[i]);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import heapq
+    from collections import defaultdict
+
+    def network_delay_time(times, n, k):
+        adj = defaultdict(list)
+        for u, v, w in times:
+            adj[u].append((v, w))
+        dist = {i: float('inf') for i in range(1, n + 1)}
+        dist[k] = 0
+        pq = [(0, k)]
+        while pq:
+            d, u = heapq.heappop(pq)
+            if d > dist[u]:
+                continue
+            for v, w in adj[u]:
+                if d + w < dist[v]:
+                    dist[v] = d + w
+                    heapq.heappush(pq, (dist[v], v))
+        ans = max(dist.values())
+        return -1 if ans == float('inf') else ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int networkDelayTime(int[][] times, int n, int k) {
+        List<List<int[]>> adj = new ArrayList<>();
+        for (int i = 0; i <= n; i++) adj.add(new ArrayList<>());
+        for (int[] t : times) adj.get(t[0]).add(new int[]{t[1], t[2]});
+
+        int[] dist = new int[n + 1];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        dist[k] = 0;
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+        pq.offer(new int[]{0, k});
+        while (!pq.isEmpty()) {
+            int[] cur = pq.poll();
+            int d = cur[0], u = cur[1];
+            if (d > dist[u]) continue;
+            for (int[] e : adj.get(u)) {
+                int v = e[0], w = e[1];
+                if (d + w < dist[v]) {
+                    dist[v] = d + w;
+                    pq.offer(new int[]{dist[v], v});
+                }
+            }
+        }
+        int ans = 0;
+        for (int i = 1; i <= n; i++) {
+            if (dist[i] == Integer.MAX_VALUE) return -1;
+            ans = Math.max(ans, dist[i]);
+        }
+        return ans;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O((V + E) log V)` — standard Dijkstra.
+- **Space:** `O(V + E)`.
+
+<Callout type="warning">
+    "Return the time for *all* nodes" → take the **max** of all distances, not the sum. Misreading "all" as "sum" is a classic off-the-cuff mistake.
+</Callout>
+
+#### Same skin
+
+- **Shortest path in a weighted directed graph** — strip the "max" and you're back to vanilla Dijkstra.
+- **Path with Minimum Effort** — same skeleton, replace `+` with `max` in the relaxation.
+- **Minimum Cost to Reach Destination in Time** — Dijkstra with a constraint, similar shape.

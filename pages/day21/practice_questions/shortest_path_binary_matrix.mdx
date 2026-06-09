@@ -1,0 +1,145 @@
+---
+title: "Shortest Path in Binary Matrix"
+description: "Plain BFS on an 8-connected grid — every move costs 1, so layers correspond to distance."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Shortest Path in Binary Matrix <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an `n × n` binary matrix `grid`, return the **length of the shortest clear path** from top-left `(0, 0)` to bottom-right `(n-1, n-1)`. If such a path does not exist, return `-1`.
+
+A clear path is a sequence of cells such that:
+- All visited cells are `0`.
+- Adjacent cells are **8-directionally connected** (horizontal, vertical, or diagonal neighbors).
+- The path length is the number of cells visited.
+
+#### Examples
+
+```py
+> Case 1:
+    grid = [[0,1],[1,0]]
+    Output: 2
+
+> Case 2:
+    grid = [[0,0,0],[1,1,0],[1,1,0]]
+    Output: 4
+    # Path: (0,0) → (0,1) → (0,2) → (1,2) → (2,2)
+
+> Case 3:
+    grid = [[1,0,0],[1,1,0],[1,1,0]]
+    Output: -1   # starting cell blocked
+```
+
+#### Constraints
+
+- `n == grid.length == grid[i].length`
+- `1 <= n <= 100`
+- `grid[i][j] is 0 or 1`
+
+#### State design
+
+Every move costs 1 → **BFS**. The graph is implicit: vertices are passable cells, edges go to the 8 neighbors that are also passable.
+
+Standard BFS shortest path, just with 8 directions instead of 4. Watch for the "starting or ending cell is blocked" edge case.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int shortestPathBinaryMatrix(vector<vector<int>>& grid) {
+        int n = grid.size();
+        if (grid[0][0] || grid[n-1][n-1]) return -1;
+        vector<vector<int>> dist(n, vector<int>(n, -1));
+        queue<pair<int,int>> q;
+        dist[0][0] = 1;
+        q.push({0, 0});
+        int dirs[8][2] = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
+        while (!q.empty()) {
+            auto [r, c] = q.front(); q.pop();
+            if (r == n-1 && c == n-1) return dist[r][c];
+            for (auto& d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+                if (grid[nr][nc] == 1 || dist[nr][nc] != -1) continue;
+                dist[nr][nc] = dist[r][c] + 1;
+                q.push({nr, nc});
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def shortest_path_binary_matrix(grid):
+        n = len(grid)
+        if grid[0][0] or grid[n-1][n-1]:
+            return -1
+        dist = [[-1] * n for _ in range(n)]
+        dist[0][0] = 1
+        q = deque([(0, 0)])
+        dirs = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+        while q:
+            r, c = q.popleft()
+            if (r, c) == (n - 1, n - 1):
+                return dist[r][c]
+            for dr, dc in dirs:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < n and 0 <= nc < n and grid[nr][nc] == 0 and dist[nr][nc] == -1:
+                    dist[nr][nc] = dist[r][c] + 1
+                    q.append((nr, nc))
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int shortestPathBinaryMatrix(int[][] grid) {
+        int n = grid.length;
+        if (grid[0][0] == 1 || grid[n-1][n-1] == 1) return -1;
+        int[][] dist = new int[n][n];
+        for (int[] row : dist) Arrays.fill(row, -1);
+        Queue<int[]> q = new ArrayDeque<>();
+        dist[0][0] = 1;
+        q.offer(new int[]{0, 0});
+        int[][] dirs = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
+        while (!q.isEmpty()) {
+            int[] cur = q.poll();
+            int r = cur[0], c = cur[1];
+            if (r == n-1 && c == n-1) return dist[r][c];
+            for (int[] d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= n || nc < 0 || nc >= n) continue;
+                if (grid[nr][nc] == 1 || dist[nr][nc] != -1) continue;
+                dist[nr][nc] = dist[r][c] + 1;
+                q.offer(new int[]{nr, nc});
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+#### Analysis
+
+- **Time:** `O(n²)` — at most every cell is enqueued once, each scan checks 8 neighbors.
+- **Space:** `O(n²)` for the distance array.
+
+<Callout type="info">
+    **Path length = number of cells, not edges.** Initialize `dist[0][0] = 1`, not 0. This is the most common off-by-one in this problem.
+</Callout>
+
+#### Same skin
+
+- **Walls and Gates** — multi-source BFS from every gate.
+- **01 Matrix** — multi-source BFS from every `0`.
+- **Rotting Oranges** — multi-source BFS from every rotten orange; track time as BFS layer.
+- **Shortest Bridge** — DFS to find one island, then BFS outward to find the other.

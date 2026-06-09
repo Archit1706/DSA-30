@@ -1,0 +1,199 @@
+---
+title: "Introduction to Shortest Paths"
+description: "The shortest-path problem, single-source vs all-pairs, edge weights, and the relaxation idea shared by every shortest-path algorithm."
+---
+
+import { Callout, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+
+# Introduction to Shortest Paths
+
+A **path** in a graph is a sequence of vertices connected by edges. Its **length** is the sum of the edge weights along the way (or the number of edges, on unweighted graphs). The **shortest path** between two vertices is the path of minimum length.
+
+That looks innocent. The complexity lives in three questions:
+
+1. **One source, or all sources?** Do you need shortest paths *from* a single starting vertex, or *between every pair* of vertices?
+2. **What kind of weights?** Unweighted (each edge counts as 1)? Non-negative? Could there be negatives? Could there be negative *cycles*?
+3. **What do you need — distance, the path, both?** Most algorithms compute distances first; reconstructing the actual path is a separate (cheap) step.
+
+Each combination has a different best-fit algorithm:
+
+| Setting                                  | Algorithm        | Complexity            |
+| :--------------------------------------- | :--------------- | :-------------------- |
+| Single source, **unweighted**            | BFS              | `O(V + E)`            |
+| Single source, **non-negative** weights  | Dijkstra         | `O((V + E) log V)`    |
+| Single source, **negative edges OK**     | Bellman-Ford     | `O(V · E)`            |
+| All pairs, any weights (no neg cycles)   | Floyd-Warshall   | `O(V³)`               |
+
+We'll prove every row in this chapter.
+
+## Single-source vs all-pairs
+
+**Single-source shortest path (SSSP)** — pick a starting vertex `s`. Compute `dist[v]` = shortest path from `s` to every other vertex `v`. Output: an array of size `V`.
+
+**All-pairs shortest path (APSP)** — compute `dist[u][v]` for every pair `(u, v)`. Output: a `V × V` matrix.
+
+You can always solve APSP by running SSSP `V` times (once from each source). On a sparse graph with non-negative weights, that's `V × O((V + E) log V)` — usually faster than Floyd-Warshall's `O(V³)`. On a dense graph, Floyd-Warshall is competitive and dramatically simpler to code.
+
+## What edge weights mean
+
+- **Unweighted graphs.** Every edge is the same. The shortest path is the one with the fewest edges. BFS handles this in `O(V + E)`.
+- **Non-negative weights.** Edge weights are >= 0. Dijkstra's algorithm works. This covers the vast majority of practical cases — roads, network latency, costs, energy, time.
+- **Negative weights.** Some edges have weight `< 0`. Dijkstra is no longer correct (we'll see why). Bellman-Ford handles this.
+- **Negative cycles.** If there's a cycle with total negative weight, the "shortest path" is undefined — you can go around the cycle forever and keep getting shorter. Bellman-Ford detects this; Floyd-Warshall does too.
+
+<Callout type="warning">
+    **Why Dijkstra breaks on negatives.** Dijkstra commits to a vertex's distance the first time it pops out of the priority queue. It assumes "once I've found the cheapest way here, no future detour will be cheaper." Negative edges break that assumption — a longer-looking path through a `-10` edge can beat the locked-in distance. Bellman-Ford never commits early; it relaxes every edge `V − 1` times.
+</Callout>
+
+## The relaxation step
+
+Every algorithm in this chapter is built on a single primitive operation: **relaxation**.
+
+You maintain a tentative distance array `dist[]`, initialized to `∞` for every vertex except the source (`dist[s] = 0`). For every edge `(u, v, w)` you consider, you ask:
+
+> "Is the path through `u` shorter than my current best for `v`?"
+
+```
+if dist[u] + w < dist[v]:
+    dist[v] = dist[u] + w
+    parent[v] = u   # for path reconstruction
+```
+
+That's it. **Every shortest-path algorithm is just deciding the order in which to relax edges**, and proving that the order is correct.
+
+- **BFS** relaxes edges in order of their distance from the source (one BFS layer at a time). Works because every edge is weight 1.
+- **Dijkstra** relaxes edges out of the next-closest unvisited vertex. Works because of non-negativity.
+- **Bellman-Ford** relaxes every edge, then every edge again, `V − 1` times in total. Works because the shortest path has at most `V − 1` edges.
+- **Floyd-Warshall** relaxes every edge through every possible intermediate vertex. Works because it's DP on the set of allowed intermediates.
+
+If you remember nothing else from this chapter, remember: **relax, in the right order, the right number of times**.
+
+## A worked example
+
+Take this directed weighted graph. Source is `A`.
+
+<GraphVisualizer
+    nodes={["A", "B", "C", "D", "E"]}
+    edges={[["A","B"],["A","C"],["B","C"],["B","D"],["C","D"],["C","E"],["D","E"]]}
+    directed={true}
+    weighted={true}
+    weights={{"A-B":4,"A-C":1,"B-C":2,"B-D":5,"C-D":8,"C-E":10,"D-E":2}}
+    title="Source A, all edges weighted, directed"
+/>
+
+The shortest distances from `A`:
+
+| Vertex | Dist | Path                |
+| :----- | :--- | :------------------ |
+| A      | 0    | (source)            |
+| B      | 3    | A → C → B  (1 + 2)  |
+| C      | 1    | A → C      (1)      |
+| D      | 8    | A → C → B → D (1+2+5) |
+| E      | 10   | A → C → B → D → E (1+2+5+2) |
+
+Notice **`B` is reached via `C`, not directly**. The direct edge `A → B` is weight 4; going `A → C → B` is `1 + 2 = 3`. That's the whole reason we need an algorithm and can't just look at first-edge weights — shortest paths are about the **sum** along the way, not the cheapest individual edge.
+
+## Output: distance, parent, or path
+
+Most shortest-path algorithms compute the **distance array** `dist[v]` directly. To recover the **actual path**, store a **parent pointer** during relaxation:
+
+```python
+if dist[u] + w < dist[v]:
+    dist[v] = dist[u] + w
+    parent[v] = u
+```
+
+Then to reconstruct the path from `s` to `t`:
+
+```python
+def reconstruct(parent, s, t):
+    if dist[t] == float('inf'):
+        return None  # unreachable
+    path = []
+    cur = t
+    while cur is not None:
+        path.append(cur)
+        cur = parent[cur]
+    return path[::-1]  # reverse: source first, target last
+```
+
+`O(V)` extra space, `O(path length)` reconstruction time. Always cheap relative to the algorithm itself.
+
+## Quick pattern-spotting checklist
+
+<Steps>
+
+### Is this a shortest-path problem?
+
+"Shortest", "minimum cost", "cheapest", "fewest steps", "earliest arrival", "minimum time" — all flags. Even subtler: "is target reachable within K?" — a BFS layer or Dijkstra threshold question in disguise.
+
+### What's the graph structure?
+
+Sometimes the graph is explicit (nodes, edges given). Often it's implicit — a grid where neighbors are 4- or 8-connected cells, a word-ladder graph where edges are one-letter differences, a state space where edges are valid transitions. **Define the graph clearly before picking an algorithm.**
+
+### Are all edge weights equal?
+
+If yes — BFS, full stop. Don't reach for Dijkstra if you don't have to.
+
+### Are weights non-negative?
+
+If yes — Dijkstra.
+
+### Could weights be negative?
+
+If yes — Bellman-Ford (one source) or Floyd-Warshall (all pairs). Also need to think about whether negative *cycles* are possible and whether the problem cares (e.g. arbitrage detection in currency exchange).
+
+### Do I need shortest paths from one source, or between every pair?
+
+If one source — BFS / Dijkstra / Bellman-Ford. If all pairs and `V` is small (say, `V ≤ 400`) — Floyd-Warshall is hard to beat for code simplicity. If all pairs and `V` is large — run Dijkstra from each source.
+
+</Steps>
+
+## Common traps
+
+- **Mistaking weight for edge count.** "Shortest path" in everyday speech means fewest edges. In a weighted graph, it means smallest total weight. Read the problem carefully.
+- **Forgetting Dijkstra fails on negatives.** Even one negative edge breaks correctness. Don't shrug it off — interviewers love to slip in a `-1` and watch what happens.
+- **Stale entries in the Dijkstra heap.** Python and Java priority queues don't support decrease-key directly. The standard trick is to push duplicates and skip stale ones (`if d > dist[u]: continue`). Forget this and your `O((V + E) log V)` quietly becomes `O(V² log V)` or worse.
+- **Implicit graphs in grid problems.** "Shortest path in a grid" is a graph problem where the graph is built on the fly. Don't over-engineer — BFS on a grid is twenty lines of code.
+
+## Quick check
+
+<QuizBox
+    question="A graph has only non-negative integer edge weights. Which algorithm should you reach for first to find shortest paths from a single source?"
+    options={[
+        "BFS — it's the simplest",
+        "Dijkstra's algorithm — it's the standard choice for non-negative weights and runs in O((V + E) log V)",
+        "Bellman-Ford — it's always safest",
+        "Floyd-Warshall — it works for any single source"
+    ]}
+    correctIndex={1}
+    explanation="Dijkstra is the standard. BFS only works when every edge has the same weight. Bellman-Ford is correct but slower (O(V·E)). Floyd-Warshall computes ALL pairs, which is overkill and slower for single-source problems."
+/>
+
+<QuizBox
+    question="What is the relaxation step?"
+    options={[
+        "Removing a vertex from the queue",
+        "Updating dist[v] to min(dist[v], dist[u] + w(u, v)) when considering edge (u, v)",
+        "Reducing graph size by contracting edges",
+        "Setting all distances to zero"
+    ]}
+    correctIndex={1}
+    explanation="Relaxation is the primitive every shortest-path algorithm uses. It asks: 'is going through u a shorter way to reach v?' If yes, update. The algorithms differ only in the ORDER they perform relaxations and how many times."
+/>
+
+<QuizBox
+    question="Why does Dijkstra's algorithm fail on graphs with negative edge weights?"
+    options={[
+        "It runs forever",
+        "It overflows the integer type",
+        "It commits to a vertex's distance as soon as it pops from the priority queue, assuming no future path can be shorter — negative edges break that assumption",
+        "The priority queue can't handle negatives"
+    ]}
+    correctIndex={2}
+    explanation="Dijkstra's correctness rests on monotonicity: once you pop u from the heap, no other path can reach u with a smaller cost (since all edges are >= 0, extending an already-larger path can only make it larger). Negative edges destroy this — a longer-looking path can shrink past the committed value."
+/>
+
+Next: the simplest shortest-path setting — **BFS on unweighted graphs**.

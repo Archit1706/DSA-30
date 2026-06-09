@@ -1,0 +1,322 @@
+---
+title: "BFS on Unweighted Graphs"
+description: "The simplest shortest-path algorithm — plain breadth-first search finds shortest paths in O(V + E) when every edge has weight 1, including grid problems."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { GraphVisualizer, TraversalStepper } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# BFS on Unweighted Graphs
+
+When every edge has the same weight, the shortest path is the path with the **fewest edges**. That's exactly what BFS finds — for free, in the order it visits vertices.
+
+This is the smallest, fastest, and easiest case to get right. If a problem fits, **don't overthink it**.
+
+## Why BFS gives you shortest paths
+
+BFS explores the graph in **layers**. Layer 0 is the source. Layer 1 is every vertex one edge away. Layer 2 is every vertex two edges away (and not already in layer 0 or 1). And so on.
+
+The first time BFS visits vertex `v`, it does so via the shortest possible number of edges. Why? Because if there were a shorter route, BFS would have reached `v` in an earlier layer (it processes layer `k` completely before touching layer `k + 1`).
+
+This is **only** true because every edge has the same cost. As soon as one edge is "cheaper" than another, BFS layers no longer correspond to shortest distances, and you need Dijkstra.
+
+<TraversalStepper
+    nodes={["A","B","C","D","E","F"]}
+    edges={[["A","B"],["A","C"],["B","D"],["C","D"],["C","E"],["D","F"],["E","F"]]}
+    start="A"
+    kind="bfs"
+    title="BFS from A — layers reveal shortest distances"
+/>
+
+## The template
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> bfsShortest(int n, vector<vector<int>>& adj, int src) {
+        vector<int> dist(n, -1);
+        queue<int> q;
+        dist[src] = 0;
+        q.push(src);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {           // not yet visited
+                    dist[v] = dist[u] + 1;
+                    q.push(v);
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def bfs_shortest(n, adj, src):
+        dist = [-1] * n
+        dist[src] = 0
+        q = deque([src])
+        while q:
+            u = q.popleft()
+            for v in adj[u]:
+                if dist[v] == -1:
+                    dist[v] = dist[u] + 1
+                    q.append(v)
+        return dist
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] bfsShortest(int n, List<List<Integer>> adj, int src) {
+        int[] dist = new int[n];
+        Arrays.fill(dist, -1);
+        Queue<Integer> q = new ArrayDeque<>();
+        dist[src] = 0;
+        q.offer(src);
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            for (int v : adj.get(u)) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.offer(v);
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(V + E)`. **Space:** `O(V)` for the distance array and queue.
+
+The `dist == -1` check is doing double duty as both "visited?" and "what's the distance?". One array, two purposes.
+
+## Grid problems — the most common BFS shortest path
+
+A massive fraction of "shortest path" interview problems are actually **BFS on a grid**:
+
+> Given an `m × n` grid with some cells passable and some blocked, find the shortest path from `(0, 0)` to `(m - 1, n - 1)` moving 4-directionally.
+
+The graph is implicit — vertices are cells, edges go to the four neighbors. Build adjacency on the fly.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int shortestPathGrid(vector<vector<int>>& grid) {
+        int m = grid.size(), n = grid[0].size();
+        if (grid[0][0] || grid[m-1][n-1]) return -1;
+        vector<vector<int>> dist(m, vector<int>(n, -1));
+        queue<pair<int,int>> q;
+        dist[0][0] = 0;
+        q.push({0, 0});
+        int dirs[4][2] = {{-1,0},{1,0},{0,-1},{0,1}};
+        while (!q.empty()) {
+            auto [r, c] = q.front(); q.pop();
+            if (r == m-1 && c == n-1) return dist[r][c];
+            for (auto& d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= m || nc < 0 || nc >= n) continue;
+                if (grid[nr][nc] == 1 || dist[nr][nc] != -1) continue;
+                dist[nr][nc] = dist[r][c] + 1;
+                q.push({nr, nc});
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def shortest_path_grid(grid):
+        m, n = len(grid), len(grid[0])
+        if grid[0][0] or grid[m-1][n-1]:
+            return -1
+        dist = [[-1] * n for _ in range(m)]
+        dist[0][0] = 0
+        q = deque([(0, 0)])
+        while q:
+            r, c = q.popleft()
+            if (r, c) == (m - 1, n - 1):
+                return dist[r][c]
+            for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < m and 0 <= nc < n and grid[nr][nc] == 0 and dist[nr][nc] == -1:
+                    dist[nr][nc] = dist[r][c] + 1
+                    q.append((nr, nc))
+        return -1
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int shortestPathGrid(int[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        if (grid[0][0] == 1 || grid[m-1][n-1] == 1) return -1;
+        int[][] dist = new int[m][n];
+        for (int[] row : dist) Arrays.fill(row, -1);
+        Queue<int[]> q = new ArrayDeque<>();
+        dist[0][0] = 0;
+        q.offer(new int[]{0, 0});
+        int[][] dirs = {{-1,0},{1,0},{0,-1},{0,1}};
+        while (!q.isEmpty()) {
+            int[] cur = q.poll();
+            int r = cur[0], c = cur[1];
+            if (r == m-1 && c == n-1) return dist[r][c];
+            for (int[] d : dirs) {
+                int nr = r + d[0], nc = c + d[1];
+                if (nr < 0 || nr >= m || nc < 0 || nc >= n) continue;
+                if (grid[nr][nc] == 1 || dist[nr][nc] != -1) continue;
+                dist[nr][nc] = dist[r][c] + 1;
+                q.offer(new int[]{nr, nc});
+            }
+        }
+        return -1;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+## Multi-source BFS
+
+What if you need shortest distance to the **nearest** of several sources? "From every land cell, what's the distance to the nearest water cell?"
+
+**Run BFS from all sources at once.** Initialize the queue with every source at distance 0, then BFS exactly as before. The first time a vertex is visited, it's visited by its nearest source.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> multiSourceBFS(int n, vector<vector<int>>& adj, vector<int>& sources) {
+        vector<int> dist(n, -1);
+        queue<int> q;
+        for (int s : sources) {
+            dist[s] = 0;
+            q.push(s);
+        }
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.push(v);
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from collections import deque
+
+    def multi_source_bfs(n, adj, sources):
+        dist = [-1] * n
+        q = deque()
+        for s in sources:
+            dist[s] = 0
+            q.append(s)
+        while q:
+            u = q.popleft()
+            for v in adj[u]:
+                if dist[v] == -1:
+                    dist[v] = dist[u] + 1
+                    q.append(v)
+        return dist
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    int[] multiSourceBFS(int n, List<List<Integer>> adj, int[] sources) {
+        int[] dist = new int[n];
+        Arrays.fill(dist, -1);
+        Queue<Integer> q = new ArrayDeque<>();
+        for (int s : sources) {
+            dist[s] = 0;
+            q.offer(s);
+        }
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            for (int v : adj.get(u)) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.offer(v);
+                }
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+This pattern shows up in *Rotting Oranges*, *Walls and Gates*, *01 Matrix*, *Shortest Bridge*, and more. **Multi-source BFS is the single most useful BFS technique outside the basic version.**
+
+## 0-1 BFS
+
+What if edge weights are only `0` or `1`? You don't need Dijkstra's full `O((V + E) log V)` — there's a clean middle ground.
+
+Use a **deque** instead of a queue. When relaxing an edge with weight 0, **push to the front**. When relaxing weight 1, **push to the back**. The deque automatically processes 0-weight neighbors first, so vertices come out in order of distance.
+
+```python
+from collections import deque
+
+def bfs_01(n, adj, src):
+    # adj[u] = list of (v, weight in {0, 1})
+    dist = [float('inf')] * n
+    dist[src] = 0
+    dq = deque([src])
+    while dq:
+        u = dq.popleft()
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                if w == 0:
+                    dq.appendleft(v)
+                else:
+                    dq.append(v)
+    return dist
+```
+
+Time: `O(V + E)`. Useful for grid problems where some moves are "free" and others cost 1 (rotating cells, knight moves with a special discount, etc.).
+
+## When BFS is NOT the answer
+
+- **Edges have different positive weights.** Use Dijkstra.
+- **Negative edges exist.** Use Bellman-Ford.
+- **You need all-pairs distances and `V ≤ 400`.** Floyd-Warshall is simpler than V BFS calls when there's also weights.
+- **The "graph" is enormous and only the target matters.** Consider bidirectional BFS — start from both source and target simultaneously and meet in the middle. Roughly square-roots the explored frontier.
+
+## Quick check
+
+<QuizBox
+    question="In an unweighted graph, why does BFS from source s give the shortest distance to every vertex?"
+    options={[
+        "BFS uses a priority queue ordered by distance",
+        "BFS processes layer k entirely before touching layer k+1, so the first time it sees a vertex is via the fewest edges",
+        "BFS marks edges with weights",
+        "BFS reverses the graph first"
+    ]}
+    correctIndex={1}
+    explanation="The layer-by-layer order is the key. Any path with fewer edges would have been discovered in an earlier BFS layer. This guarantee depends entirely on every edge being equivalent — once weights differ, the layer order doesn't correspond to distance order anymore, and we need Dijkstra."
+/>
+
+<QuizBox
+    question="What's the time complexity of multi-source BFS with K sources on a graph with V vertices and E edges?"
+    options={[
+        "O(K · (V + E))",
+        "O((V + E) log V)",
+        "O(V + E) — running BFS from many sources simultaneously is the same complexity as from one source",
+        "O(V²)"
+    ]}
+    correctIndex={2}
+    explanation="Every vertex is still visited at most once and every edge at most twice. The initialization adds K vertices to the queue (O(K) ≤ O(V)), but the main loop is unchanged. Multi-source BFS is essentially free compared to single-source — same asymptotic cost."
+/>
+
+Next: when edges have different weights, **Dijkstra's algorithm** takes over.

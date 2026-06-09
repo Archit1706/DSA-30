@@ -1,0 +1,245 @@
+---
+title: "Bellman-Ford Algorithm"
+description: "Single-source shortest paths with negative edges — O(V·E) relaxation passes, with built-in negative-cycle detection."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { GraphVisualizer } from "../../components/GraphVisualizer";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Bellman-Ford Algorithm
+
+When the graph has **negative edges**, Dijkstra silently produces wrong answers. Bellman-Ford handles negatives correctly — at the price of a higher time complexity.
+
+The other thing Bellman-Ford does that no other algorithm in this chapter does: **detect negative cycles**. If your graph has a cycle whose edges sum to a negative number, "shortest path" is meaningless (loop the cycle forever, get arbitrarily small). Bellman-Ford spots this in one extra pass.
+
+## The core idea
+
+Forget priority queues. Forget cleverness. Just:
+
+> **Relax every edge in the graph, V − 1 times.**
+
+That's the entire algorithm.
+
+Why does it work? Any shortest path uses at most `V − 1` edges (it can't repeat a vertex without forming a cycle, and on non-negative cycles you'd never want to). After pass `k`, every vertex reachable in `k` edges has its correct shortest distance. After `V − 1` passes, every vertex has its correct distance — period.
+
+## The algorithm
+
+<Steps>
+
+### Initialize distances
+
+`dist[s] = 0`, all others `∞`.
+
+### Pass i = 1 to V − 1
+
+For each edge `(u, v, w)`: if `dist[u] + w < dist[v]`, set `dist[v] = dist[u] + w`.
+
+### Negative-cycle check (pass V)
+
+Run one more pass. If any edge can still be relaxed, there's a vertex reachable from a negative cycle.
+
+</Steps>
+
+## Worked example
+
+Source `S`. Notice the negative edge.
+
+<GraphVisualizer
+    nodes={["S","A","B","C","D"]}
+    edges={[["S","A"],["S","B"],["A","C"],["B","A"],["B","C"],["C","D"],["B","D"]]}
+    directed={true}
+    weighted={true}
+    weights={{"S-A":4,"S-B":2,"A-C":3,"B-A":-3,"B-C":4,"C-D":2,"B-D":5}}
+    title="Source S, edge B→A is negative (−3)"
+/>
+
+After each pass, processing edges in arbitrary order `(S,A,4), (S,B,2), (A,C,3), (B,A,−3), (B,C,4), (C,D,2), (B,D,5)`:
+
+| Pass    | dist[S] | dist[A]      | dist[B] | dist[C]      | dist[D]      |
+| :------ | :------ | :----------- | :------ | :----------- | :----------- |
+| init    | 0       | ∞            | ∞       | ∞            | ∞            |
+| pass 1  | 0       | 4 (S→A)      | 2 (S→B) | 7 (A→C via S→A→C) | 7 (B→D via S→B→D, but actually 7 or 9 depending on order) |
+| pass 2  | 0       | -1 (B→A: 2 + (-3)) | 2 | 7 (now A=-1 can relax C to 2) | 7 |
+| pass 3  | 0       | -1           | 2       | 2 (A→C: -1+3=2)  | 4 (C→D: 2+2=4) |
+| pass 4  | 0       | -1           | 2       | 2            | 4            |
+
+Final distances: `S=0, A=-1, B=2, C=2, D=4`. The path `S → B → A → C → D` has weight `2 + (−3) + 3 + 2 = 4`. Dijkstra, starting from `S`, would have committed to `dist[A]=4` immediately upon popping `A` from the heap and **never seen the improvement through `B`**.
+
+<Callout type="warning">
+    Edge processing order changes intermediate states but not the final answer. Bellman-Ford's `V − 1` pass count is a worst-case bound — in practice you often converge much earlier. A useful optimization: break out early if a full pass changes nothing.
+</Callout>
+
+## The template
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    // Returns dist[]; throws / returns special value if negative cycle reachable from src.
+    vector<long long> bellmanFord(int n, vector<tuple<int,int,int>>& edges, int src) {
+        const long long INF = LLONG_MAX;
+        vector<long long> dist(n, INF);
+        dist[src] = 0;
+        for (int i = 0; i < n - 1; i++) {
+            bool changed = false;
+            for (auto& [u, v, w] : edges) {
+                if (dist[u] != INF && dist[u] + w < dist[v]) {
+                    dist[v] = dist[u] + w;
+                    changed = true;
+                }
+            }
+            if (!changed) break;            // early exit
+        }
+        // Negative-cycle detection
+        for (auto& [u, v, w] : edges) {
+            if (dist[u] != INF && dist[u] + w < dist[v]) {
+                // negative cycle reachable from src — mark or throw
+                return {};                   // sentinel for "negative cycle"
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def bellman_ford(n, edges, src):
+        # edges: list of (u, v, w)
+        INF = float('inf')
+        dist = [INF] * n
+        dist[src] = 0
+        for _ in range(n - 1):
+            changed = False
+            for u, v, w in edges:
+                if dist[u] != INF and dist[u] + w < dist[v]:
+                    dist[v] = dist[u] + w
+                    changed = True
+            if not changed:
+                break                        # early exit
+        # Negative-cycle detection
+        for u, v, w in edges:
+            if dist[u] != INF and dist[u] + w < dist[v]:
+                return None                  # negative cycle reachable
+        return dist
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    long[] bellmanFord(int n, int[][] edges, int src) {
+        long INF = Long.MAX_VALUE;
+        long[] dist = new long[n];
+        Arrays.fill(dist, INF);
+        dist[src] = 0;
+        for (int i = 0; i < n - 1; i++) {
+            boolean changed = false;
+            for (int[] e : edges) {
+                int u = e[0], v = e[1], w = e[2];
+                if (dist[u] != INF && dist[u] + w < dist[v]) {
+                    dist[v] = dist[u] + w;
+                    changed = true;
+                }
+            }
+            if (!changed) break;
+        }
+        for (int[] e : edges) {
+            int u = e[0], v = e[1], w = e[2];
+            if (dist[u] != INF && dist[u] + w < dist[v]) {
+                return null;                  // negative cycle reachable
+            }
+        }
+        return dist;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(V · E)` — `V − 1` passes, each scanning all `E` edges.
+**Space:** `O(V)` for the distance array.
+
+The `dist[u] != INF` guard prevents integer overflow when adding `INF + w` and also prevents us from updating distances based on unreachable vertices.
+
+## Negative-cycle detection
+
+After `V − 1` passes, all *correct* shortest paths are computed. If a `V`-th pass still relaxes any edge, that edge's destination is reachable from a negative cycle — there's no minimum because we can keep going around the cycle.
+
+Many problems use Bellman-Ford **purely for cycle detection** rather than for the distances themselves:
+
+- **Currency arbitrage** — treat each currency as a vertex, each exchange rate `r` as an edge with weight `−log(r)`. A negative cycle means a sequence of trades that multiplies your money. Classic interview / quant problem.
+- **Detecting a profitable loop** in any kind of graph where edges represent gains/losses.
+
+## SPFA — the practical speedup
+
+Bellman-Ford's `V · E` worst case is loose. In practice, only a few vertices have their distance updated in each pass — relaxing edges out of unchanged vertices is wasted work.
+
+**SPFA** (Shortest Path Faster Algorithm) is Bellman-Ford with a queue: only vertices whose distance just changed get re-processed. Average-case behavior is much faster (often near-linear on random inputs), though worst-case is still `O(V · E)`.
+
+```python
+from collections import deque
+
+def spfa(n, adj, src):
+    # adj[u] = list of (v, w)
+    INF = float('inf')
+    dist = [INF] * n
+    in_queue = [False] * n
+    count = [0] * n                      # for negative-cycle detection
+    dist[src] = 0
+    q = deque([src])
+    in_queue[src] = True
+    while q:
+        u = q.popleft()
+        in_queue[u] = False
+        for v, w in adj[u]:
+            if dist[u] + w < dist[v]:
+                dist[v] = dist[u] + w
+                count[v] += 1
+                if count[v] >= n:
+                    return None          # negative cycle
+                if not in_queue[v]:
+                    q.append(v)
+                    in_queue[v] = True
+    return dist
+```
+
+SPFA isn't asymptotically faster, but in competitive programming and many real workloads it crushes plain Bellman-Ford. Worth knowing.
+
+## When to use Bellman-Ford
+
+- The graph **has negative weights** (Dijkstra is wrong).
+- You **need to detect a negative cycle** (no other single-source algorithm does this).
+- The graph is **small enough** that `V · E` is tolerable. For `V ≤ 1000` and `E ≤ 10000`, Bellman-Ford is fine.
+- You're computing shortest paths with a **hop constraint** (modified Bellman-Ford limits to `K` relaxation passes — the *Cheapest Flights Within K Stops* trick).
+
+## When NOT to use Bellman-Ford
+
+- Non-negative weights → use Dijkstra (faster).
+- Very large graphs (`V · E > 10^8`) → reformulate, or use Johnson's algorithm for all-pairs.
+- You need all-pairs and the graph is small/dense → Floyd-Warshall is simpler.
+
+## Quick check
+
+<QuizBox
+    question="Why does Bellman-Ford run exactly V − 1 passes?"
+    options={[
+        "Convention",
+        "A shortest path between any two vertices uses at most V − 1 edges (otherwise it would repeat a vertex, forming a cycle, which is never beneficial when no negative cycles exist). After pass k, every vertex reachable in k edges has its correct distance — so V − 1 passes suffice.",
+        "It's the heap height",
+        "V − 1 is the number of edges in the shortest path"
+    ]}
+    correctIndex={1}
+    explanation="After pass k, every shortest path of edge-length ≤ k is finalized. Since no shortest path uses more than V − 1 edges, V − 1 passes is sufficient. Doing fewer would miss longer paths; doing more would only catch negative cycles (which is exactly what the V-th detection pass does)."
+/>
+
+<QuizBox
+    question="If Bellman-Ford successfully relaxes an edge during a V-th pass, what does that prove?"
+    options={[
+        "The algorithm has a bug",
+        "There's at least one negative cycle reachable from the source",
+        "The graph is disconnected",
+        "Edge weights changed"
+    ]}
+    correctIndex={1}
+    explanation="After V − 1 passes, every correct shortest distance is computed (assuming no negative cycles). If we can still find an improvement on the V-th pass, the only explanation is a negative cycle: walking around it lowers the cost without bound, so distances never stabilize."
+/>
+
+Next: **Floyd-Warshall** — all-pairs shortest paths in a triple loop, with a surprising DP justification.

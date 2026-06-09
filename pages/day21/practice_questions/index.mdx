@@ -1,0 +1,58 @@
+---
+title: "Shortest Paths Practice Questions"
+description: "Eight interview classics for shortest paths — network delay, cheapest flights, minimum effort, binary matrix BFS, word ladder, and more."
+---
+
+import { Callout } from "nextra/components";
+
+# Shortest Paths Practice Questions
+
+Eight interview classics covering every algorithm in the chapter. Each problem is a direct instance of [BFS](/day21/bfs_shortest_path), [Dijkstra](/day21/dijkstra), [Bellman-Ford](/day21/bellman_ford), or [Floyd-Warshall](/day21/floyd_warshall) — once you recognize which one, the code writes itself.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the [decision flow](/day21/picking_the_right_one):
+
+    1. **Equal weights?** → BFS
+    2. **Single source, non-negative?** → Dijkstra
+    3. **Negative edges?** → Bellman-Ford
+    4. **All pairs, small V?** → Floyd-Warshall
+    5. **Constraint on edge count?** → modified Bellman-Ford / expanded-state Dijkstra
+
+    Five questions. Four algorithms. The whole chapter.
+</Callout>
+
+## Easy
+
+| Problem                                                                                              | Pattern                                       | Status     |
+| :--------------------------------------------------------------------------------------------------- | :-------------------------------------------- | :--------- |
+| [Network Delay Time](/day21/practice_questions/network_delay_time)                                   | Dijkstra → take max distance                  | Available  |
+| [Shortest Path in Binary Matrix](/day21/practice_questions/shortest_path_binary_matrix)              | BFS on an implicit 8-connected grid           | Available  |
+
+## Medium
+
+| Problem                                                                                                          | Pattern                                              | Status     |
+| :--------------------------------------------------------------------------------------------------------------- | :--------------------------------------------------- | :--------- |
+| [Cheapest Flights Within K Stops](/day21/practice_questions/cheapest_flights_within_k_stops)                     | Bellman-Ford limited to K+1 passes (or expanded Dijkstra) | Available |
+| [Path with Minimum Effort](/day21/practice_questions/path_with_minimum_effort)                                   | Modified Dijkstra — replace sum with max             | Available  |
+| [Find City With Smallest Number of Neighbors](/day21/practice_questions/find_city_with_smallest_neighbors)       | Floyd-Warshall all-pairs                             | Available  |
+| [The Maze II](/day21/practice_questions/the_maze_ii)                                                             | Dijkstra on a grid with "rolling ball" edge weights  | Available  |
+
+## Hard
+
+| Problem                                                                                              | Pattern                                       | Status     |
+| :--------------------------------------------------------------------------------------------------- | :-------------------------------------------- | :--------- |
+| [Word Ladder](/day21/practice_questions/word_ladder)                                                 | BFS on an implicit string-mutation graph      | Available  |
+| [Swim in Rising Water](/day21/practice_questions/swim_in_rising_water)                               | Dijkstra-style minimax on a grid              | Available  |
+
+## More Practice (Coming Soon)
+
+| Problem                                | Pattern                                       | Status        |
+| :------------------------------------- | :-------------------------------------------- | :------------ |
+| Shortest Path Visiting All Nodes       | Bitmask BFS                                   | Coming Soon   |
+| Reachable Nodes In Subdivided Graph    | Dijkstra + edge subdivision                   | Coming Soon   |
+| Bus Routes                             | BFS over routes-as-vertices                   | Coming Soon   |
+| Minimum Cost to Reach Destination in Time | Constrained Dijkstra                       | Coming Soon   |
+| Number of Ways to Arrive at Destination | Dijkstra + path counting                     | Coming Soon   |
+| Minimum Number of Refueling Stops      | Dijkstra-flavored DP                          | Coming Soon   |
+| Currency Arbitrage                     | Bellman-Ford negative cycle detection         | Coming Soon   |
+| Second Minimum Time to Reach Node      | Modified Dijkstra tracking two best distances | Coming Soon   |

@@ -1,0 +1,112 @@
+---
+title: "Picking the Right Shortest-Path Algorithm"
+description: "A decision guide for choosing between BFS, Dijkstra, Bellman-Ford, and Floyd-Warshall based on weights, density, source count, and constraints."
+---
+
+import { Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+
+# Picking the Right Shortest-Path Algorithm
+
+Four algorithms. One question. Knowing which to pull is half the interview.
+
+## The full decision matrix
+
+| Edge weights        | Sources    | Density  | Best choice                                  | Complexity            |
+| :------------------ | :--------- | :------- | :------------------------------------------- | :-------------------- |
+| All weight 1        | Single     | Any      | **BFS**                                      | `O(V + E)`            |
+| Weights `{0, 1}`    | Single     | Any      | **0-1 BFS (deque)**                          | `O(V + E)`            |
+| Non-negative        | Single     | Sparse   | **Dijkstra (binary heap)**                   | `O((V + E) log V)`    |
+| Non-negative        | Single     | Dense    | **Dijkstra (array)** or stay with heap       | `O(V²)`               |
+| Has negatives       | Single     | Any      | **Bellman-Ford** (or **SPFA**)               | `O(V · E)`            |
+| Any (no neg cycles) | All pairs  | Small V  | **Floyd-Warshall**                           | `O(V³)`               |
+| Non-negative        | All pairs  | Sparse   | **Dijkstra from each source**                | `O(V · (V + E) log V)`|
+| Any                 | All pairs  | Sparse + neg | **Johnson's algorithm** (BF + Dijkstra V times) | `O(V·E + V² log V)` |
+
+## The five-question flow
+
+Walk this from top to bottom on every shortest-path problem:
+
+### 1. Are all edge weights equal?
+
+If yes → **BFS**. End of decision. Even if the graph is huge, BFS is `O(V + E)` and impossibly hard to mess up.
+
+If weights are only `{0, 1}` → **0-1 BFS** with a deque. Same complexity.
+
+### 2. Do I need shortest paths from one source, or all pairs?
+
+- **One source** → continue to question 3.
+- **All pairs, V is small** (`V ≤ 400`) → **Floyd-Warshall**. Five lines, done.
+- **All pairs, V is large, no negatives** → run **Dijkstra V times**.
+- **All pairs, large V, with negatives** → **Johnson's** (out of scope here, but: re-weight using Bellman-Ford, then Dijkstra `V` times).
+
+### 3. Are there negative edges?
+
+- **No** → **Dijkstra**. The standard.
+- **Yes** → **Bellman-Ford**. Or SPFA if you need it faster in practice.
+
+### 4. Could there be a negative cycle, and does the problem care?
+
+If the problem asks "detect a negative cycle" or "is there an arbitrage opportunity," you specifically need Bellman-Ford (single source) or Floyd-Warshall (all pairs).
+
+### 5. Are there extra constraints?
+
+- **"At most K edges / stops"** → Bellman-Ford limited to K iterations, or BFS / Dijkstra on the `(vertex, edges_used)` expanded state.
+- **"Minimum effort" / minimax / maximin path** → Dijkstra, but replace `dist[u] + w` with `max(dist[u], w)` (or `min`).
+- **"Shortest cycle"** → run BFS from each vertex; the first time you revisit a non-parent vertex, you've found a cycle.
+
+## Common interview translations
+
+Here's how problem statements map to algorithms:
+
+| Problem text                                                       | Algorithm                                |
+| :----------------------------------------------------------------- | :--------------------------------------- |
+| "Fewest moves to reach the target"                                 | BFS                                      |
+| "Shortest path in a grid with obstacles"                           | BFS                                      |
+| "Closest gate from each empty room"                                | Multi-source BFS                         |
+| "Word ladder — fewest transformations"                             | BFS (with implicit graph)                |
+| "Cheapest path through a weighted graph"                           | Dijkstra                                 |
+| "Network delay time — when does the last node receive the signal?" | Dijkstra (then take the max)             |
+| "Path that minimizes the maximum step"                             | Modified Dijkstra (max instead of sum)   |
+| "Cheapest flight with at most K stops"                             | Bellman-Ford (K passes) or expanded Dijkstra |
+| "Currency arbitrage / profitable trade cycle"                      | Bellman-Ford for negative-cycle detection|
+| "City with smallest reachable neighborhood within distance D"      | Floyd-Warshall                           |
+
+<Callout type="info">
+    **The implicit-graph trap.** Many problems don't look like graph problems. *Word ladder* is a graph where vertices are words and edges connect words that differ by one letter. *Snake and ladders* is BFS on board positions. *Open the lock* is BFS on 4-digit codes. **The hard part is recognizing the graph; the algorithm itself is rote.**
+</Callout>
+
+## Practical performance gotchas
+
+- **Python's heapq vs C++'s priority_queue.** Both are binary heaps without decrease-key. The "push duplicate, skip stale" trick is mandatory in both. Don't write the textbook decrease-key Dijkstra in Python — implement the stale-skip version.
+- **Negative weights look subtle.** If the problem says "edge cost can be -1," that's not a bug — Dijkstra is wrong. Switch to Bellman-Ford.
+- **Floyd-Warshall in Python** at `V = 500` is slow (~30s). Use C++ or NumPy if `V > 300` and you're in Python.
+- **Overflow.** `dist[u] + w` can overflow when `dist[u]` is "infinity." Either skip when `dist[u] == INF` (always cleaner) or cap INF at `LLONG_MAX / 4` so adding small weights doesn't wrap.
+
+## Quick check
+
+<QuizBox
+    question="You're given a graph with V = 10000 vertices, E = 50000 edges, non-negative weights, and need shortest paths from a single source. Which algorithm should you reach for?"
+    options={[
+        "Floyd-Warshall — O(V³)",
+        "Dijkstra with a binary heap — O((V + E) log V) ≈ O(60000 · 14) ≈ 10⁶ operations, perfect for this size",
+        "Bellman-Ford — O(V · E) = 5 × 10⁸ operations, borderline",
+        "BFS — but weights aren't all equal"
+    ]}
+    correctIndex={1}
+    explanation="Standard Dijkstra. Floyd-Warshall would be 10¹² ops (way too slow). Bellman-Ford works but is overkill. BFS only handles unweighted graphs."
+/>
+
+<QuizBox
+    question="You have a directed graph with potentially negative edges and need to detect whether ANY negative cycle exists anywhere in the graph (not just reachable from a fixed source). Which algorithm?"
+    options={[
+        "Dijkstra — won't work with negatives",
+        "Bellman-Ford from one source — only detects cycles reachable from that source",
+        "Floyd-Warshall — after running, check the diagonal: any dist[i][i] < 0 means a negative cycle reachable from and to i",
+        "BFS"
+    ]}
+    correctIndex={2}
+    explanation="Floyd-Warshall handles every (source, sink) pair, so it sees every potential cycle. Bellman-Ford only sees cycles reachable from one specific source — if the cycle is in an unreachable region, BF misses it."
+/>
+
+Next: warm-up exercises in **Basic Questions** to lock in the patterns, then **Practice Questions** for the real interview classics.

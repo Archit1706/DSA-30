@@ -1,0 +1,230 @@
+---
+title: "Floyd-Warshall Algorithm"
+description: "All-pairs shortest paths in O(V³) — a five-line triple loop that's secretly dynamic programming on the set of allowed intermediate vertices."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Floyd-Warshall Algorithm
+
+If Dijkstra is a Swiss Army knife and Bellman-Ford is a sledgehammer, **Floyd-Warshall is a rolling pin**. It's the shortest, simplest, most direct way to compute **all-pairs shortest paths**, and it runs in `O(V³)` regardless of edge weights (negatives are fine, as long as no negative cycle exists).
+
+It's also one of the most elegant pieces of dynamic programming you'll ever see.
+
+## The DP formulation
+
+Let `dist[k][i][j]` = shortest distance from `i` to `j` using only vertices `{0, 1, ..., k}` as intermediates.
+
+Two cases:
+
+- **`k` is not on the shortest path from `i` to `j`.** Then `dist[k][i][j] = dist[k-1][i][j]`.
+- **`k` is on the path.** The path goes `i → ... → k → ... → j`. Both halves use only intermediates `{0, ..., k-1}`. So `dist[k][i][j] = dist[k-1][i][k] + dist[k-1][k][j]`.
+
+Take the min:
+
+```
+dist[k][i][j] = min(dist[k-1][i][j],
+                    dist[k-1][i][k] + dist[k-1][k][j])
+```
+
+Base case: `dist[-1][i][j]` is the direct edge weight (or `∞` if no edge, `0` if `i == j`).
+
+You can collapse the `k` dimension — at each `k`, the values you need on the right-hand side are exactly the ones currently in the table. **Floyd-Warshall is the table compressed to 2D, with three nested loops.**
+
+## The template
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    void floydWarshall(vector<vector<long long>>& dist) {
+        // dist[i][j] starts as the direct edge weight, INF if no edge, 0 on the diagonal.
+        int n = dist.size();
+        const long long INF = LLONG_MAX / 4;        // avoid overflow on additions
+        for (int k = 0; k < n; k++) {
+            for (int i = 0; i < n; i++) {
+                if (dist[i][k] >= INF) continue;
+                for (int j = 0; j < n; j++) {
+                    if (dist[k][j] >= INF) continue;
+                    if (dist[i][k] + dist[k][j] < dist[i][j]) {
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                    }
+                }
+            }
+        }
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def floyd_warshall(dist):
+        # dist[i][j] starts as the direct edge weight, inf if no edge, 0 on the diagonal.
+        n = len(dist)
+        for k in range(n):
+            for i in range(n):
+                if dist[i][k] == float('inf'):
+                    continue
+                for j in range(n):
+                    if dist[k][j] == float('inf'):
+                        continue
+                    if dist[i][k] + dist[k][j] < dist[i][j]:
+                        dist[i][j] = dist[i][k] + dist[k][j]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    void floydWarshall(long[][] dist) {
+        int n = dist.length;
+        long INF = Long.MAX_VALUE / 4;
+        for (int k = 0; k < n; k++) {
+            for (int i = 0; i < n; i++) {
+                if (dist[i][k] >= INF) continue;
+                for (int j = 0; j < n; j++) {
+                    if (dist[k][j] >= INF) continue;
+                    if (dist[i][k] + dist[k][j] < dist[i][j]) {
+                        dist[i][j] = dist[i][k] + dist[k][j];
+                    }
+                }
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+**Time:** `O(V³)`. **Space:** `O(V²)` for the matrix.
+
+That's it. Five lines for the core algorithm. The hardest part is **remembering that `k` is the outermost loop** — switch the order and the DP breaks.
+
+<Callout type="warning">
+    **`k` must be outermost.** The recurrence updates `dist[i][j]` using values that incorporate intermediates `≤ k`. If `i` or `j` is outermost, you'll be reading and writing the same `dist` cell within a single "iteration" inconsistently, and the answers will be wrong. Memorize the loop order: `k, i, j`.
+</Callout>
+
+## Worked example
+
+Three vertices, direct edges:
+
+```
+        0    1    2
+    0 [ 0    5    ∞ ]
+    1 [ ∞    0    3 ]
+    2 [ 2    ∞    0 ]
+```
+
+After `k = 0` (allow 0 as intermediate): nothing changes since row 0 has no edges going inward.
+
+After `k = 1`: check `dist[i][1] + dist[1][j]` for every `(i, j)`. `dist[0][1] + dist[1][2] = 5 + 3 = 8`, less than `∞` — update `dist[0][2] = 8`.
+
+```
+        0    1    2
+    0 [ 0    5    8 ]
+    1 [ ∞    0    3 ]
+    2 [ 2    ∞    0 ]
+```
+
+After `k = 2`: `dist[1][2] + dist[2][0] = 3 + 2 = 5`, less than `∞` — update `dist[1][0] = 5`. `dist[1][2] + dist[2][1] = 3 + ∞ = ∞`, no change. Also `dist[0][2] + dist[2][0] = 8 + 2 = 10`, but `dist[0][0]` is already 0.
+
+```
+        0    1    2
+    0 [ 0    5    8 ]
+    1 [ 5    0    3 ]
+    2 [ 2    7    0 ]
+```
+
+Wait, `dist[2][1]`? Through `k = 1` we had nothing, through `k = 0` we get `dist[2][0] + dist[0][1] = 2 + 5 = 7`. Yes — but that needed `k = 0` AND `k = 1` ordering working together. Tracing the literal DP: `dist[2][1]` updates at `k = 0` to `7`, then `k = 1` finds nothing more. Final matrix is the one above.
+
+## Negative-cycle detection
+
+After running Floyd-Warshall, **check the diagonal**. If `dist[i][i] < 0` for any `i`, the graph has a negative cycle reachable from and to `i` — going around that cycle made the "distance from `i` to itself" negative.
+
+```python
+for i in range(n):
+    if dist[i][i] < 0:
+        return None  # negative cycle exists
+```
+
+Unlike Bellman-Ford (which only detects negative cycles reachable from the source), Floyd-Warshall detects them everywhere — useful for problems where the source isn't fixed.
+
+## Path reconstruction
+
+Store a `next[i][j]` matrix during the DP, recording the next vertex on the path from `i` to `j`:
+
+```python
+def floyd_warshall_with_path(dist):
+    n = len(dist)
+    nxt = [[j if dist[i][j] != float('inf') else -1
+            for j in range(n)]
+           for i in range(n)]
+    for k in range(n):
+        for i in range(n):
+            for j in range(n):
+                if dist[i][k] + dist[k][j] < dist[i][j]:
+                    dist[i][j] = dist[i][k] + dist[k][j]
+                    nxt[i][j] = nxt[i][k]
+
+def path(nxt, i, j):
+    if nxt[i][j] == -1:
+        return []
+    p = [i]
+    while i != j:
+        i = nxt[i][j]
+        p.append(i)
+    return p
+```
+
+`O(V²)` extra space, `O(path length)` reconstruction.
+
+## When to use Floyd-Warshall
+
+- You need **all-pairs** shortest distances.
+- The graph is **small** — typically `V ≤ 400` or so. At `V = 500`, you're looking at `1.25 × 10^8` operations, still fast in C++ but borderline in Python/Java.
+- The graph is **dense** — when `E ≈ V²`, the alternative (V runs of Dijkstra) is `O(V · (V + E) log V) = O(V³ log V)` — Floyd-Warshall wins.
+- You need **negative-cycle detection** over all sources/sinks.
+- The graph **changes** and you want to support fast updates — Floyd-Warshall isn't naturally dynamic, but the structure lends itself to incremental edge-addition variants.
+
+## When NOT to use Floyd-Warshall
+
+- The graph is **sparse and large**. `V = 10000` with `E = O(V)` makes `O(V³) = 10^12` — infeasible. Run Dijkstra from each source instead.
+- You only need a **single source**. Floyd-Warshall computes way more than you need.
+
+## The "transitive closure" trick
+
+If you only care **whether** vertex `i` can reach vertex `j` (not the distance), use Floyd-Warshall with `+` replaced by `OR` and `min` replaced by `OR`:
+
+```python
+for k in range(n):
+    for i in range(n):
+        for j in range(n):
+            reach[i][j] = reach[i][j] or (reach[i][k] and reach[k][j])
+```
+
+`O(V³)`, same shape. Called **Warshall's algorithm** in older textbooks. Useful for any problem framed as "given these direct relationships, who is connected to whom?"
+
+## Quick check
+
+<QuizBox
+    question="In the Floyd-Warshall triple loop, why must k be the outermost loop?"
+    options={[
+        "Convention",
+        "The DP recurrence uses dist[i][k] and dist[k][j] from the previous k. If k is not outermost, you'll mix iterations and read inconsistent values, producing wrong answers.",
+        "k indexes the heap",
+        "It's faster"
+    ]}
+    correctIndex={1}
+    explanation="The recurrence relates dist^(k) to dist^(k-1). To collapse the 3D table to 2D, every cell read for a given k must reflect the (k-1)-state — which is true only if all updates for a given k happen 'together' in the i,j loops nested inside. Putting i or j outermost violates this and breaks correctness."
+/>
+
+<QuizBox
+    question="What's the time complexity of running Dijkstra from every source on a sparse graph (E = O(V)) vs Floyd-Warshall, for computing all-pairs shortest paths?"
+    options={[
+        "Dijkstra-from-each: O(V² log V), Floyd-Warshall: O(V³). Dijkstra wins for sparse graphs.",
+        "They're the same",
+        "Floyd-Warshall is always faster",
+        "Bellman-Ford is faster than both"
+    ]}
+    correctIndex={0}
+    explanation="V invocations of O((V + E) log V) = O(V · V log V) = O(V² log V) for sparse graphs. Floyd-Warshall is O(V³). For sparse graphs Dijkstra-each is much faster. The trade reverses for dense graphs and for graphs with negative weights."
+/>
+
+Next: a side-by-side **decision guide** for picking the right algorithm.
