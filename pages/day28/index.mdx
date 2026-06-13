@@ -1,22 +1,71 @@
 ---
 title: "Day 28 — System Design 101"
-description: "An interview-focused intro to system design — load balancing, caching, sharding, the CAP theorem, and the building blocks behind common design questions."
+description: "An interview-focused intro to system design — the requirements-first framework, back-of-the-envelope estimation, load balancers, caches, CDNs, databases, sharding, replication, the CAP theorem, and a fully worked URL-shortener design."
 ---
 
 import { Callout } from "nextra/components";
+import { ArchitectureDiagram } from "../../components/SystemDesignVisualizer";
 
 # Day 28 — System Design 101
 
+For 27 days you've answered the question *"can you write the algorithm?"* System design asks a different one: **"can you assemble a system out of algorithms, data structures, and machines — and defend every trade-off you made?"**
+
+There's no single right answer. There's no `return` statement. The interviewer hands you a deliberately vague prompt — *"design Twitter"* — and watches **how you think**: Do you nail down requirements before drawing boxes? Do you estimate scale before picking a database? Do you know *why* you'd reach for a cache, and what breaks when you do?
+
+This chapter is the bridge from *"I can solve LeetCode"* to *"I can design a system on a whiteboard without freezing."* It's light on math and heavy on **trade-offs** — because that's exactly what the interview rewards.
+
+<ArchitectureDiagram
+    title="The shape of nearly every web system you'll be asked to design"
+    nodes={[
+        { id: "client", label: "Clients", type: "client", x: 70, y: 110 },
+        { id: "dns", label: "DNS", type: "dns", x: 230, y: 40 },
+        { id: "cdn", label: "CDN", type: "cdn", x: 230, y: 180 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 400, y: 110 },
+        { id: "s1", label: "App Server", type: "server", x: 570, y: 50 },
+        { id: "s2", label: "App Server", type: "server", x: 570, y: 170 },
+        { id: "cache", label: "Cache", type: "cache", x: 740, y: 50 },
+        { id: "db", label: "Primary DB", type: "db", x: 740, y: 170 },
+        { id: "replica", label: "Replica", type: "replica", x: 740, y: 270 },
+    ]}
+    edges={[
+        { from: "client", to: "dns", label: "resolve" },
+        { from: "client", to: "cdn", label: "static" },
+        { from: "client", to: "lb", label: "API" },
+        { from: "lb", to: "s1" },
+        { from: "lb", to: "s2" },
+        { from: "s1", to: "cache", label: "read" },
+        { from: "s1", to: "db" },
+        { from: "s2", to: "db", label: "write" },
+        { from: "db", to: "replica", label: "replicate", dashed: true },
+    ]}
+    caption="Clients hit DNS, pull static assets from a CDN, and send API calls through a load balancer to stateless app servers, which read from a cache and read/write a replicated database. Almost every design question is a variation on this skeleton."
+/>
+
+## What you'll learn today
+
+- **The interview framework** — a repeatable 6-step script (requirements → estimation → API → data model → high-level design → deep dives) so you never stare at a blank whiteboard again
+- **Back-of-the-envelope estimation** — turning "design YouTube" into concrete QPS, storage, and bandwidth numbers in two minutes
+- **The building blocks** — load balancers, caches, CDNs, message queues, blob storage, SQL vs NoSQL — what each one *is*, *when* to reach for it, and what it costs you
+- **Scaling & trade-offs** — vertical vs horizontal, replication, sharding, consistent hashing, the **CAP theorem**, and consistency models
+- **A fully worked case study** — scaling a **URL shortener** from 10 users to 100 million, decision by decision
+- **Eight classic design questions** — rate limiter, TinyURL, typeahead, news feed, chat, key-value store, web crawler, notification service
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    **System design interviews don't have a "right" answer — they have a "well-defended" answer.** Two candidates can propose completely different architectures and both pass, if each one *justified* their choices against the requirements and named the trade-offs. The skill being tested is structured reasoning under ambiguity, not memorized architectures. This chapter teaches the structure.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Load balancing** — round-robin, least connections, consistent hashing
-- **Caching** — when to cache, where to cache, invalidation strategies (the second-hardest problem in computer science)
-- **Sharding and replication** — splitting data across machines, keeping it consistent
-- **SQL vs NoSQL** — picking the right database, and when "rolling your own" is wrong
-- A worked example: **scaling a URL shortener from 10 users to 10 million**
+1. **[Introduction](/day28/introduction)** — what system design *is*, why interviews are open-ended, the vocabulary (latency vs throughput, availability, scalability), and the mental model.
+2. **[The Framework](/day28/the_framework)** — the 6-step script, plus back-of-the-envelope estimation with an interactive calculator.
+3. **[Building Blocks](/day28/building_blocks)** — load balancers, caching, CDNs, databases (SQL vs NoSQL), message queues, blob storage — the Lego bricks every design is built from.
+4. **[Scaling & Trade-offs](/day28/scaling)** — vertical vs horizontal scaling, replication, sharding, consistent hashing, and the CAP theorem with an interactive triangle.
+5. **[Case Study — URL Shortener](/day28/case_study_url_shortener)** — the full 6-step framework applied end-to-end, from requirements to deep dives.
+6. **[Basic Questions](/day28/basic_questions)** — concept checks: latency ladders, cache invalidation, why you shard, how DNS fits in.
+7. **[Practice Questions](/day28/practice_questions)** — eight interview classics, each worked through the framework.
 
-This is the bridge from "I can code DSA problems" to "I can design real systems." Light on math, heavy on trade-offs.
+<Callout type="warning">
+    **You will not memorize your way through a system design interview.** Memorizing "the Twitter architecture" fails the moment the interviewer changes one constraint ("now make it work offline"). What transfers is the *process* — the questions you ask, the order you ask them in, and the trade-offs you weigh. Internalize the framework, and any prompt becomes fill-in-the-blanks.
+</Callout>
+
+This is **Day 28** — the first of the synthesis days. Tomorrow, [Day 29 — Mock Interview](/day29) puts the coding *and* the design skills together under time pressure; [Day 30 — Victory Lap](/day30) ties the whole 30-day arc into a single map.

@@ -1,0 +1,163 @@
+---
+title: "Introduction to System Design"
+description: "What system design is, why interviews are open-ended, the core vocabulary (latency vs throughput, availability, scalability, reliability), and the mental model that ties them together."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { LatencyLadder, ArchitectureDiagram } from "../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+# Introduction to System Design
+
+A coding problem has a hidden test suite — there's a right answer and you either hit it or you don't. **System design has no test suite.** It's the art of arranging components — servers, databases, caches, queues — so that a product works *correctly*, stays *fast*, survives *failures*, and keeps doing all three as traffic grows from a thousand users to a hundred million.
+
+The interview is open-ended **on purpose**. Real engineering is open-ended. The interviewer wants to see whether you can take a fuzzy goal and impose structure on it — ask the right questions, make defensible choices, and notice the moment a choice creates a new problem.
+
+## The one mental model
+
+Every system you'll design moves **data** between three places and does **work** on it:
+
+<ArchitectureDiagram
+    title="Compute, storage, and the network — that's the whole game"
+    width={640}
+    nodes={[
+        { id: "c", label: "Compute", sub: "app servers", type: "server", x: 110, y: 70 },
+        { id: "s", label: "Storage", sub: "DB / cache / blob", type: "db", x: 530, y: 70 },
+        { id: "n", label: "Network", sub: "the slow, lossy bit", type: "note", x: 320, y: 180, w: 160 },
+    ]}
+    edges={[
+        { from: "c", to: "s", label: "read / write", bidir: true },
+        { from: "c", to: "n", dashed: true },
+        { from: "s", to: "n", dashed: true },
+    ]}
+    caption="Compute is cheap and stateless — add more boxes. Storage is stateful and hard to scale — that's where the interesting decisions live. The network is the slow, unreliable thing connecting them, and it's why distributed systems are hard."
+/>
+
+Almost every design decision is a bet about one of three resources:
+
+- **Compute** — CPU. Stateless and easy: when you need more, you add identical machines behind a load balancer.
+- **Storage** — disk and memory. **Stateful and hard.** You can't just "add a box" — the data has to live *somewhere specific*, and keeping copies in sync is the source of most distributed-systems pain.
+- **Network** — the wires between machines. Slow, lossy, and the reason a single-machine program is a thousand times easier to reason about than a distributed one.
+
+Hold onto that. When a design feels overwhelming, ask: *which resource am I running out of, and what's the cheapest way to get more of it?*
+
+## The vocabulary you must speak fluently
+
+Interviewers listen for these words. Misusing them is a tell that you've read blog posts but not shipped systems.
+
+| Term | Plain-English meaning | How it's measured |
+| :--- | :--- | :--- |
+| **Latency** | How long *one* request takes | milliseconds, usually reported as p50 / p99 |
+| **Throughput** | How *many* requests per second the system handles | QPS (queries/sec), RPS, or bandwidth |
+| **Availability** | Fraction of time the system is up and answering | "nines" — 99.9% ≈ 8.7 h down/year |
+| **Reliability** | Probability it does the *right* thing, not just *a* thing | error rate, durability guarantees |
+| **Scalability** | Can it keep its latency/throughput as load grows? | how cost grows with traffic |
+| **Consistency** | Do all readers see the same, latest data? | strong / eventual / causal |
+| **Durability** | Once written, does data survive crashes? | "11 nines" for S3, replication factor |
+
+<Callout type="info">
+    **Latency and throughput are not the same thing, and they trade off.** A highway analogy: *latency* is how long your car takes to drive end-to-end; *throughput* is how many cars cross per minute. Adding lanes (parallelism) raises throughput without helping any single car's latency. Raising the speed limit lowers latency. Batching requests often *raises* throughput while *hurting* per-request latency. Know which one the question cares about.
+</Callout>
+
+### Availability, in "nines"
+
+Availability is quoted as a percentage of uptime, and small-looking differences are huge:
+
+| Availability | Downtime per year | Downtime per day | Typical tier |
+| :--- | :--- | :--- | :--- |
+| 99% ("two nines") | 3.65 days | 14.4 min | hobby project |
+| 99.9% ("three nines") | 8.77 hours | 1.44 min | most SaaS |
+| 99.99% ("four nines") | 52.6 min | 8.6 s | serious infra |
+| 99.999% ("five nines") | 5.26 min | 0.86 s | telecom / payments |
+
+Each extra nine costs roughly **10× more** to achieve — redundant everything, multi-region, automatic failover. Part of the interview is knowing *not* to over-engineer: a photo-sharing app does not need five nines.
+
+## Why the network changes everything: the latency ladder
+
+The single most clarifying fact in system design is **how wildly different the access times are** for cache vs RAM vs SSD vs disk vs network. These numbers explain *why* we cache, *why* we keep data in the same datacenter, and *why* a chatty design that makes 50 sequential network calls feels broken.
+
+<LatencyLadder />
+
+Three lessons fall straight out of that ladder:
+
+1. **RAM is ~100× faster than SSD, and SSD is ~20× faster than spinning disk.** This is the entire justification for caching — keep hot data in memory and you skip two orders of magnitude of latency.
+2. **A cross-continent round trip (~150 ms) is governed by the speed of light** — you literally cannot make it faster. The fix is *don't make the trip*: put a CDN or replica near the user.
+3. **Sequential is far faster than random**, on every medium. Reading 1 MB sequentially from SSD beats 250 random 4 KB reads. This is why databases love sequential writes (append-only logs, LSM-trees) and hate random I/O.
+
+<Callout type="warning">
+    **The chatty-design smell.** If your design makes the client (or a server) wait on 30 sequential round trips to render one page, you've built something that feels slow no matter how fast each service is: 30 × 1 ms in-datacenter = 30 ms of *pure waiting*. The fixes — batching, parallel fan-out, caching, denormalization — all show up later in this chapter. Recognizing the smell is step one.
+</Callout>
+
+## What "design X" is really asking
+
+When an interviewer says *"design a system like Instagram,"* they are **not** asking you to rebuild Instagram. They're asking you to:
+
+<Steps>
+
+### Scope it down
+
+Instagram is enormous. You'll pick 2–3 *core* features (post a photo, view a feed, follow a user) and explicitly defer the rest (stories, DMs, ads, reels). Scoping is the first thing they grade.
+
+### Reason about scale
+
+100 M daily users posting photos is a different machine than 100 users. You'll estimate the numbers (next page) so your choices are grounded, not hand-waved.
+
+### Make and defend choices
+
+SQL or NoSQL? Push the feed or pull it? Cache here or there? Every choice has a cost. Saying *"I'll use NoSQL"* is worthless; saying *"I'll use NoSQL because the access pattern is key-by-user-id with no joins, and I'd rather scale writes horizontally than maintain referential integrity"* is the whole game.
+
+### Find the bottleneck and address it
+
+A good design names its own weak point before the interviewer does: *"The feed-fan-out write will be the bottleneck for celebrity accounts — here's how I'd handle that with a hybrid push/pull model."*
+
+</Steps>
+
+## Functional vs non-functional requirements
+
+Lock this distinction in — it structures the entire first phase of the interview.
+
+- **Functional requirements** — *what the system does.* "A user can shorten a URL." "A user can view their feed." These become your API.
+- **Non-functional requirements** — *how well it does it.* "99.99% available." "p99 latency under 200 ms." "Scales to 10 M DAU." These drive your architecture.
+
+Beginners obsess over functional requirements and draw a correct-but-naive design. Strong candidates spend most of their energy on the non-functional ones — because **that's where the hard, interesting, gradeable engineering lives.**
+
+## Quick check
+
+<QuizBox
+    question="A design makes 40 sequential calls to services within the same datacenter to render one page. Each call is fast (~0.5 ms round trip). Why might the page still feel slow?"
+    options={[
+        "Datacenter calls are actually very slow",
+        "40 × 0.5 ms = 20 ms of pure sequential waiting, and that's before any actual work — sequential round trips add up; fan them out in parallel or batch them",
+        "The CPU is the bottleneck",
+        "It won't feel slow"
+    ]}
+    correctIndex={1}
+    explanation="Even fast calls serialize into real latency when chained. 40 sequential 0.5 ms round trips = 20 ms of waiting on the network alone. Issuing them in parallel collapses that to ~0.5 ms; batching collapses it to one round trip. 'Chatty' sequential designs are a classic latency smell."
+/>
+
+<QuizBox
+    question="Why is storage harder to scale than compute?"
+    options={[
+        "Disks are more expensive than CPUs",
+        "Compute is stateless — any request can go to any identical server. Storage is stateful — the data lives somewhere specific, and keeping copies consistent across machines is the core hard problem of distributed systems",
+        "There's no difference",
+        "Storage uses more electricity"
+    ]}
+    correctIndex={1}
+    explanation="Stateless compute scales trivially: clone the server, put it behind a load balancer, done. Storage holds state — to scale it you must split data (sharding) or copy it (replication), and both create consistency problems the moment two machines can disagree. That's why the 'interesting' design decisions almost always cluster around the data layer."
+/>
+
+<QuizBox
+    question="Your interviewer asks you to design a personal note-taking app for ~500 users. What availability target is appropriate?"
+    options={[
+        "Five nines (99.999%) — always aim for the best",
+        "Three nines (99.9%) or even two is fine — over-engineering for five nines would waste enormous effort and cost on a small, non-critical app; matching the target to the actual need is itself part of good design",
+        "Availability doesn't matter here",
+        "100% — downtime is never acceptable"
+    ]}
+    correctIndex={1}
+    explanation="Each extra nine costs ~10× more (redundancy, multi-region, failover automation). A small note app does not justify telecom-grade uptime. Recognizing when NOT to over-engineer is a senior signal — match the non-functional targets to the product's actual stakes."
+/>
+
+Next: **[The Framework](/day28/the_framework)** — the 6-step script you'll run on every question, plus back-of-the-envelope estimation with a live calculator.

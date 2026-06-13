@@ -1,0 +1,95 @@
+---
+title: "Design Typeahead / Autocomplete"
+description: "Search suggestions as you type — a trie at scale, prefix caching, top-k ranking, and the latency budget that makes or breaks the feature."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design Typeahead / Autocomplete <DifficultyBadge level="medium" />
+
+#### The prompt
+
+As a user types into a search box, return the **top 5 most relevant completions** for the current prefix — the dropdown under Google/YouTube search. Fires on *every keystroke*, so it lives or dies on latency.
+
+#### Requirements
+
+- **Functional:** given a prefix, return the top-k (≈5) suggestions, ranked by popularity. Suggestions update as data/trends change.
+- **Non-functional:** **brutal latency budget** (p99 well under ~100 ms — it must feel instant while typing), **massive read volume**, eventual freshness is fine (a new trending term can take minutes to appear).
+
+#### Estimation
+
+If 100 M searches/day and a user types ~20 characters per search → **~2 B keystroke queries/day** ≈ **~23k/s** average, much higher at peak. *This is read-dominated and latency-critical — everything is about a fast, cached prefix lookup.*
+
+#### The core data structure — a trie
+
+A [**trie** (prefix tree, Day 18)](/day18) maps prefixes to completions naturally: walk down the tree following the typed characters, then return the best descendants. To hit the latency budget, **precompute and store the top-k completions at each node** so a lookup is "walk to the prefix node, read its cached top-5" — no subtree search at query time.
+
+<ArchitectureDiagram
+    title="Trie with top-k cached at each node — query = walk + read"
+    width={720}
+    height={260}
+    nodes={[
+        { id: "root", label: "root", type: "note", x: 90, y: 120, w: 70, h: 40 },
+        { id: "c", label: "c", type: "note", x: 230, y: 120, w: 60, h: 40 },
+        { id: "ca", label: "ca", type: "note", x: 360, y: 60, w: 60, h: 40 },
+        { id: "cat", label: "cat", sub: "top5 ✓", type: "service", x: 510, y: 60, w: 90 },
+        { id: "car", label: "car", sub: "top5 ✓", type: "service", x: 510, y: 160, w: 90 },
+    ]}
+    edges={[
+        { from: "root", to: "c" }, { from: "c", to: "ca" },
+        { from: "ca", to: "cat" }, { from: "ca", to: "car" },
+    ]}
+    caption="Each node stores its precomputed top-k suggestions. Typing 'ca' → jump to that node → instantly return its cached list. The expensive ranking work happens offline, not on the keystroke."
+/>
+
+#### Data model & serving
+
+- **Build offline:** aggregate query logs → frequency per term → build the trie with top-k materialized at each node. Rebuild periodically (hourly/daily) from the latest logs.
+- **Serve from memory:** the trie (or a flattened prefix → top-k map) lives in RAM / a cache like Redis. Prefixes are sharded across servers (e.g. by first 1–2 characters).
+
+#### High-level design
+
+<ArchitectureDiagram
+    title="Hot read path served from memory; ranking built offline"
+    width={840}
+    height={280}
+    nodes={[
+        { id: "client", label: "Client", type: "client", x: 70, y: 90 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 240, y: 90 },
+        { id: "svc", label: "Suggest Svc", sub: "in-mem trie", type: "server", x: 440, y: 90, w: 130 },
+        { id: "cache", label: "Redis", sub: "prefix→top5", type: "cache", x: 640, y: 40 },
+        { id: "logs", label: "Query Logs", type: "storage", x: 440, y: 220 },
+        { id: "builder", label: "Trie Builder", sub: "offline job", type: "worker", x: 660, y: 220, w: 130 },
+    ]}
+    edges={[
+        { from: "client", to: "lb", label: "prefix" }, { from: "lb", to: "svc" },
+        { from: "svc", to: "cache" },
+        { from: "logs", to: "builder", label: "aggregate" },
+        { from: "builder", to: "cache", label: "publish top-k", dashed: true },
+    ]}
+    caption="The keystroke path only ever reads precomputed top-k from memory. A separate offline pipeline mines query logs, rebuilds the ranked trie, and publishes it — keeping the hot path trivial."
+/>
+
+#### Deep dives
+
+- **Latency:** debounce on the client (don't fire on *every* keystroke — wait ~50–100 ms of idle), serve entirely from RAM, and shard by prefix so each server holds a slice.
+- **Ranking:** top-k by historical frequency, optionally time-decayed so trending terms rise. Personalization and typo-tolerance (fuzzy matching) are good "if we had more time" extensions to mention.
+- **Freshness vs cost:** rebuilding the whole trie often is expensive. Periodic full rebuilds + a smaller "recent/trending" layer merged at query time is a common compromise.
+
+<Callout type="info">
+    **The key insight:** typeahead pushes *all* the expensive work (ranking, aggregation) **offline**, so the online path is a pure cached lookup. This "precompute the answer, serve from memory" pattern is the same trick behind the URL shortener's read path and the news feed's fan-out-on-write — when reads massively outnumber writes, do the work at write/build time.
+</Callout>
+
+#### Analysis
+
+- **Query latency:** single-digit ms (in-memory prefix lookup).
+- **Memory:** `O(total characters in vocabulary)` for the trie + `k` per node.
+
+#### Same skin
+
+- **Search-as-you-type** in any product (IDEs, command palettes, e-commerce search).
+- **[Trie problems from Day 18](/day18)** — word search, prefix matching, the same structure at single-machine scale.
+- **Trending / top-k over a stream** — the offline ranking layer is a [top-k heap](/day7) problem over query logs.

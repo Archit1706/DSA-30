@@ -1,0 +1,76 @@
+---
+title: "Design a Web Crawler"
+description: "A large-scale web crawler — the BFS frontier, politeness and rate limiting per host, URL deduplication at scale, and the distributed worker pipeline."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design a Web Crawler <DifficultyBadge level="hard" />
+
+#### The prompt
+
+Systematically download the web: start from a set of seed URLs, fetch each page, extract its links, and repeat — feeding a search index. At scale this is **graph traversal (BFS) over billions of nodes**, with the twist that the graph is hostile, infinite, and you must be polite to the servers you visit.
+
+#### Requirements
+
+- **Functional:** fetch pages from seed URLs, extract and follow links, store page content, respect `robots.txt`.
+- **Non-functional:** **massive scale** (billions of pages), **polite** (don't hammer any one site), **robust** (handle traps, dead links, duplicates), **fresh** (re-crawl changing pages).
+
+#### Estimation
+
+Crawl 1 B pages/month → **~400 pages/s** average. At ~100 KB/page → **~100 TB/month** of raw content. *The bottleneck is rarely CPU — it's network I/O and being polite, so the design is a large pool of I/O-bound workers, not a few fast machines.*
+
+#### The core: BFS over the web graph with a frontier
+
+A crawler is [BFS (Day 10)](/day10) where the "queue" is called the **URL frontier**. Pull a URL, fetch it, extract links, push the *new* ones back into the frontier. Two hard parts make it more than a textbook BFS: **deduplication** (the web is full of cycles and duplicate URLs) and **politeness** (don't DoS a site by crawling it too fast).
+
+<ArchitectureDiagram
+    title="The crawl loop — frontier in, content + new links out"
+    width={860}
+    height={300}
+    nodes={[
+        { id: "frontier", label: "URL Frontier", sub: "priority queues", type: "queue", x: 110, y: 130, w: 150 },
+        { id: "fetcher", label: "Fetcher Workers", sub: "download", type: "worker", x: 350, y: 60, w: 150 },
+        { id: "parser", label: "Parser", sub: "extract links", type: "service", x: 350, y: 200, w: 130 },
+        { id: "seen", label: "Seen-URL Set", sub: "dedup (Bloom)", type: "cache", x: 600, y: 200, w: 150 },
+        { id: "store", label: "Content Store", sub: "blob", type: "storage", x: 620, y: 60, w: 130 },
+    ]}
+    edges={[
+        { from: "frontier", to: "fetcher", label: "next URL" },
+        { from: "fetcher", to: "store", label: "save page" },
+        { from: "fetcher", to: "parser", label: "html" },
+        { from: "parser", to: "seen", label: "new?" },
+        { from: "seen", to: "frontier", label: "enqueue unseen", dashed: true },
+    ]}
+    caption="Workers pull URLs from the frontier, fetch and store the page, parse out links, and check each against the seen-set — only genuinely new URLs go back into the frontier. The seen-set is what keeps BFS from looping forever on the web's cycles."
+/>
+
+#### Deep dives
+
+- **Deduplication at scale:** you can't keep billions of URLs in a `HashSet` in RAM. Use a **Bloom filter** — a probabilistic set that says "definitely not seen" or "probably seen" in `O(1)` and a few bits per URL. It can false-positive (rarely skip a new URL) but never false-negative, which is the right trade for a crawler. Hash content too, to catch duplicate *pages* at different URLs.
+- **Politeness:** the frontier isn't one queue — it's **partitioned per host**, with a rate limiter per domain so you make at most, say, one request/sec to any single site. Respect `robots.txt` and `Crawl-delay`. This is the [rate limiter](/day28/practice_questions/design_a_rate_limiter) applied per-host.
+- **Prioritization:** the frontier is a *priority* queue — crawl high-value/frequently-changing pages (news homepages) more often than static ones. Two-level: pick which host, then which URL within it.
+- **Crawler traps:** infinite calendars, session-id URLs, and cycles. Defenses: cap URL depth/length, detect near-duplicate content, and budget per domain.
+
+<Callout type="warning">
+    **Politeness is the constraint that shapes the whole architecture.** A naive crawler that just BFSes as fast as possible will hammer popular sites, get your IP banned, and effectively DoS the web. Partitioning the frontier by host and rate-limiting per domain isn't an optimization — it's what makes the crawler *allowed to exist*. Lead with it in the interview.
+</Callout>
+
+<Callout type="info">
+    **Why a Bloom filter instead of a database lookup for "seen?"** At 400 URLs/s with billions seen, a DB round trip per URL would dominate latency and cost. A Bloom filter answers in-memory in `O(1)` using ~10 bits/URL, so a billion URLs fit in ~1–2 GB of RAM. You accept a tiny false-positive rate (occasionally skipping a new URL) to make the dedup check essentially free. Classic space/accuracy trade-off.
+</Callout>
+
+#### Analysis
+
+- **Throughput:** scales with worker count (I/O-bound) — but capped per-host by politeness.
+- **Dedup memory:** ~bits per URL via Bloom filter, vs ~bytes per URL for an exact set.
+
+#### Same skin
+
+- **[BFS / graph traversal (Day 10)](/day10)** — the crawler *is* BFS; the frontier is the queue, the seen-set is the visited marker.
+- **[Bloom filters / hashing (Day 8)](/day8)** — the dedup layer.
+- **[Rate limiting](/day28/practice_questions/design_a_rate_limiter)** — applied per host for politeness.
+- **Any large-scale "process every item in a huge, cyclic graph" pipeline** — dependency resolvers, social-graph traversal, link analysis (PageRank).

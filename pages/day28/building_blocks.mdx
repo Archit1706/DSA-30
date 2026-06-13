@@ -1,0 +1,203 @@
+---
+title: "System Design Building Blocks"
+description: "The reusable components every design is built from — load balancers, caching, CDNs, message queues, blob storage, and SQL vs NoSQL — with what each one is, when to reach for it, and what it costs."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { LoadBalancerDemo, CacheDemo, ArchitectureDiagram } from "../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+# Building Blocks
+
+Every system you'll design is assembled from the same handful of Lego bricks. Learn what each one *does*, *when* you reach for it, and — most importantly — *what it costs you*, and step 5 of the framework becomes snapping pieces together with a reason for each.
+
+## 1. Load balancer
+
+A load balancer sits in front of a pool of identical servers and spreads incoming requests across them. It's the thing that makes **horizontal scaling** possible: when one server isn't enough, you add more behind the LB, and it also routes around any server that dies (health checks).
+
+<LoadBalancerDemo />
+
+The routing **strategy** is the interesting choice:
+
+| Strategy | How it picks | Best when |
+| :--- | :--- | :--- |
+| **Round robin** | next server in a cycle | requests cost roughly the same |
+| **Random** | any server, uniformly | stateless, cheap, even over time |
+| **Least connections** | the server with the fewest open requests | request costs vary a lot |
+| **IP hash / sticky** | hash the client → always same server | you need session affinity |
+| **Consistent hashing** | hash key → ring of servers | caching layers; minimizes reshuffling when servers change |
+
+<Callout type="info">
+    **L4 vs L7.** A *layer-4* load balancer routes on TCP/IP info (IP + port) — fast and dumb. A *layer-7* load balancer reads the HTTP request and can route on path, headers, or cookies (e.g. send `/api/video/*` to the video fleet) — smarter but does more work per request. Most modern setups use L7 (NGINX, Envoy, ALB) for the flexibility.
+</Callout>
+
+<Callout type="warning">
+    **The load balancer is itself a single point of failure.** If you have one LB and it dies, everything dies. Production setups run an active-passive (or active-active) pair with automatic failover, often fronted by DNS. Mention this in deep dives — interviewers love when you notice that the thing protecting you needs protecting too.
+</Callout>
+
+## 2. Cache
+
+A cache is a small, fast store (usually in-memory, like **Redis** or **Memcached**) that holds the results of expensive operations so you don't redo them. It's the highest-leverage performance tool you have: a RAM hit at ~100 ns beats a DB read at ~10 ms by **five orders of magnitude**.
+
+<CacheDemo />
+
+### Where caches live
+
+<ArchitectureDiagram
+    title="Caching layers — every hop is a chance to skip the next one"
+    width={820}
+    nodes={[
+        { id: "client", label: "Browser cache", sub: "on device", type: "client", x: 90, y: 70 },
+        { id: "cdn", label: "CDN", sub: "edge, near user", type: "cdn", x: 270, y: 70 },
+        { id: "app", label: "App server", sub: "local / in-proc", type: "server", x: 450, y: 70 },
+        { id: "redis", label: "Redis", sub: "shared cache tier", type: "cache", x: 630, y: 70 },
+        { id: "db", label: "Database", sub: "source of truth", type: "db", x: 760, y: 160 },
+    ]}
+    edges={[
+        { from: "client", to: "cdn" }, { from: "cdn", to: "app" },
+        { from: "app", to: "redis" }, { from: "redis", to: "db", label: "on miss" },
+    ]}
+    caption="The further left a request is answered, the faster and cheaper it is. The DB is the last resort — every cache layer in front of it exists to keep traffic off it."
+/>
+
+### Caching strategies (read paths)
+
+- **Cache-aside (lazy loading)** — app checks cache; on a miss, reads the DB and *populates* the cache. Most common. Downside: first read of any key is always a miss.
+- **Read-through** — the cache library itself fetches from the DB on a miss. App only ever talks to the cache.
+- **Write-through** — write to cache *and* DB together. Cache always fresh; writes are slower.
+- **Write-back (write-behind)** — write to cache, flush to DB asynchronously. Fast writes, but you can lose data if the cache dies before flushing.
+
+<Callout type="warning">
+    **"There are only two hard things in computer science: cache invalidation and naming things."** When the underlying data changes, the cached copy is now a *lie*. Your options: **TTL** (let entries expire after N seconds — simple, but serves stale data until then) or **explicit invalidation** (delete/update the cache key on every write — correct, but easy to miss a write path). Most systems use both: TTL as a safety net, explicit invalidation for correctness. Discuss this trade-off in any read-heavy design.
+</Callout>
+
+Two more caching hazards worth naming in an interview:
+
+- **Thundering herd / cache stampede** — a hot key expires and thousands of requests miss simultaneously, all slamming the DB at once. Fixes: lock-on-miss (one request refills, others wait), or stagger TTLs.
+- **Eviction policy** — when the cache is full, what gets thrown out? **LRU** (least recently used) is the default and what the demo above shows; **LFU** (least frequently used) and **TTL-based** are alternatives.
+
+## 3. CDN (Content Delivery Network)
+
+A CDN is a globally distributed fleet of caching servers that store **static content** (images, video, CSS, JS) close to users. A user in Tokyo hits a Tokyo edge node instead of your Virginia origin — turning a 150 ms cross-Pacific round trip into a ~10 ms local one.
+
+Reach for a CDN whenever you serve static or rarely-changing large files: images, video, downloads, front-end bundles. It also absorbs huge read traffic that would otherwise crush your origin (and blunts some DDoS attacks). The cost: another cache to invalidate, and it's poor for highly dynamic, per-user content.
+
+## 4. Database — SQL vs NoSQL
+
+The most over-asked question in system design, and the one candidates most often get wrong by stating a preference instead of reasoning from the **access pattern**.
+
+| | **SQL (relational)** | **NoSQL** |
+| :--- | :--- | :--- |
+| Examples | PostgreSQL, MySQL | DynamoDB, Cassandra, MongoDB, Redis |
+| Data model | tables, rows, fixed schema | key-value, document, wide-column, graph |
+| Strength | **joins, transactions (ACID), ad-hoc queries** | **horizontal scale, flexible schema, high write throughput** |
+| Consistency | strong by default | often eventual (tunable) |
+| Scaling | hard — vertical first, then read replicas / sharding | designed to shard horizontally |
+| Reach for it when… | relationships matter, you need transactions (money, orders), queries are varied | access is by-key, you need massive scale, schema evolves fast |
+
+<Callout type="info">
+    **The honest answer to "SQL or NoSQL?" is "what's the access pattern?"** Need multi-row transactions and joins (a bank, an e-commerce order)? **SQL.** Point lookups by key at huge scale with a simple shape (a URL shortener, a session store, a feed cache)? **NoSQL.** Modern reality: most large systems use **both** — SQL for the transactional core, NoSQL for the high-scale read paths. Saying "it depends, here's what it depends on" beats picking a side.
+</Callout>
+
+<Callout type="warning">
+    **NoSQL is not "SQL but faster and free."** You trade away joins (you denormalize and duplicate data instead), often trade away strong consistency (eventual by default), and you must design the schema *around your queries* up front — there are no ad-hoc `JOIN`s to save you later. The win is scale; the cost is rigidity and doing more work in the application layer.
+</Callout>
+
+## 5. Message queue
+
+A message queue (**Kafka**, **RabbitMQ**, **SQS**) sits between a *producer* and a *consumer* and decouples them in time. The producer drops a message and moves on; the consumer processes it whenever it's ready.
+
+<ArchitectureDiagram
+    title="A queue turns slow, spiky, or unreliable work into async work"
+    width={760}
+    nodes={[
+        { id: "api", label: "API Server", sub: "producer", type: "server", x: 100, y: 80 },
+        { id: "q", label: "Message Queue", sub: "buffer", type: "queue", x: 330, y: 80, w: 150 },
+        { id: "w1", label: "Worker", sub: "consumer", type: "worker", x: 560, y: 35 },
+        { id: "w2", label: "Worker", sub: "consumer", type: "worker", x: 560, y: 130 },
+    ]}
+    edges={[
+        { from: "api", to: "q", label: "enqueue" },
+        { from: "q", to: "w1", label: "dequeue" },
+        { from: "q", to: "w2" },
+    ]}
+    caption="The API responds instantly after enqueuing; a pool of workers drains the queue at its own pace. Add workers to drain faster; the queue absorbs traffic spikes so a burst doesn't overload the workers."
+/>
+
+Reach for a queue when work is **slow** (video transcoding, sending email), **spiky** (a flood of uploads), or should **survive a crash** (the message persists until processed). It buys you: async responses (snappy API), load smoothing (the queue buffers spikes), and decoupling (producer and consumer scale independently). The cost: eventual consistency (the work isn't done *yet*), and you must handle **at-least-once delivery** — the same message can arrive twice, so consumers must be **idempotent**.
+
+## 6. Blob / object storage
+
+For large unstructured files — images, video, backups, logs — you don't put bytes in a database. You use **object storage** (S3, GCS, Azure Blob): cheap, effectively infinite, durable ("11 nines"), and accessed by key. The pattern: store the *file* in blob storage, store the *URL/metadata* in your database, and serve the file through a CDN.
+
+## Putting the bricks together
+
+<ArchitectureDiagram
+    title="Every brick, doing the one job it's good at"
+    width={880}
+    height={340}
+    nodes={[
+        { id: "client", label: "Client", type: "client", x: 70, y: 150 },
+        { id: "cdn", label: "CDN", type: "cdn", x: 220, y: 50 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 250, y: 180 },
+        { id: "s1", label: "App Server", type: "server", x: 440, y: 120 },
+        { id: "s2", label: "App Server", type: "server", x: 440, y: 230 },
+        { id: "cache", label: "Redis Cache", type: "cache", x: 640, y: 60 },
+        { id: "db", label: "SQL (core)", type: "db", x: 640, y: 160 },
+        { id: "nosql", label: "NoSQL (scale)", type: "db", x: 640, y: 255 },
+        { id: "q", label: "Queue", type: "queue", x: 640, y: 320, w: 120 },
+        { id: "blob", label: "Blob Storage", type: "storage", x: 830, y: 50 },
+        { id: "worker", label: "Workers", type: "worker", x: 830, y: 320 },
+    ]}
+    edges={[
+        { from: "client", to: "cdn", label: "static" },
+        { from: "client", to: "lb", label: "API" },
+        { from: "cdn", to: "blob", dashed: true },
+        { from: "lb", to: "s1" }, { from: "lb", to: "s2" },
+        { from: "s1", to: "cache" }, { from: "s1", to: "db" },
+        { from: "s2", to: "nosql" }, { from: "s2", to: "q", label: "async" },
+        { from: "q", to: "worker" },
+    ]}
+    caption="The CDN serves static files from blob storage. The LB spreads API traffic. App servers hit the cache first, SQL for transactional data, NoSQL for high-scale reads, and offload slow work to a queue drained by workers. No single brick does everything — each one does the job it's best at."
+/>
+
+## Quick check
+
+<QuizBox
+    question="Your service does expensive video transcoding when a user uploads a clip. Users complain the upload button 'hangs' for 30 seconds. What's the right building block?"
+    options={[
+        "A bigger database",
+        "A message queue — enqueue a 'transcode this' job and return immediately; a pool of workers processes the queue asynchronously, so the upload feels instant",
+        "A CDN",
+        "More app servers"
+    ]}
+    correctIndex={1}
+    explanation="Slow, CPU-heavy work that the user doesn't need to wait on is the textbook case for a message queue. The API enqueues the job and responds in milliseconds; workers transcode in the background. You also gain spike-smoothing (a flood of uploads just makes the queue longer) and crash-safety (jobs persist until done). Just remember consumers must be idempotent for at-least-once delivery."
+/>
+
+<QuizBox
+    question="A read-heavy app adds a cache and sees a huge speedup, but users occasionally see stale data after an update. What's the core trade-off they're hitting?"
+    options={[
+        "The cache is broken",
+        "Cache invalidation — once data changes, the cached copy is stale until it's expired (TTL) or explicitly invalidated on write. Freshness vs hit-rate is a fundamental tension, not a bug",
+        "Caches can't be used with writes",
+        "They need a bigger cache"
+    ]}
+    correctIndex={1}
+    explanation="A cache is a copy, and copies go stale. The fix is a TTL (auto-expire, simple but serves stale data until it fires) and/or explicit invalidation (delete the key on every write, correct but easy to miss a write path). Most systems combine both. There's no free lunch — you trade some freshness for the read speedup."
+/>
+
+<QuizBox
+    question="An interviewer asks 'SQL or NoSQL for a banking ledger that must never double-spend?' What's the strong answer?"
+    options={[
+        "NoSQL — it scales better",
+        "SQL — the requirement is multi-row ACID transactions (debit one account, credit another, atomically) and strong consistency; that's exactly what relational DBs guarantee and what NoSQL typically trades away for scale",
+        "Either works identically",
+        "Whichever is cheaper"
+    ]}
+    correctIndex={1}
+    explanation="A ledger needs atomic, consistent, isolated transactions — debit and credit must both happen or neither. That's the ACID guarantee relational databases are built for. Most NoSQL stores favor availability and scale over strong multi-key transactions. Reason from the requirement (transactional correctness) to the choice — don't pick by reflex."
+/>
+
+Next: **[Scaling & Trade-offs](/day28/scaling)** — vertical vs horizontal, replication, sharding, consistent hashing, and the CAP theorem with an interactive triangle.

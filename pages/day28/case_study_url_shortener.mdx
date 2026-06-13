@@ -1,0 +1,204 @@
+---
+title: "Case Study — Designing a URL Shortener"
+description: "The 6-step system design framework applied end-to-end to a TinyURL-style URL shortener — requirements, estimation, API, data model, high-level design, and deep dives into short-code generation, caching, and sharding."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { ArchitectureDiagram } from "../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+# Case Study — Designing a URL Shortener
+
+Time to run the whole [framework](/day28/the_framework) end-to-end on one problem. The URL shortener (TinyURL, bit.ly) is the *Hello World* of system design — small enough to finish in 45 minutes, rich enough to touch caching, sharding, unique-ID generation, and read/write asymmetry. Master this one and you have a template for the rest.
+
+We'll narrate it exactly as you would on a whiteboard.
+
+## Step 1 — Requirements
+
+**Functional:**
+- Given a long URL, return a short URL (e.g. `https://tiny.co/aZ3kP9q`).
+- Visiting the short URL redirects to the original.
+- *(Optional)* custom aliases, expiration, click analytics.
+
+**Non-functional:**
+- **Read-heavy** — far more people *click* short links than *create* them.
+- **Low latency** — a redirect must feel instant (sub-100 ms).
+- **High availability** — a dead link service is useless; we lean **AP** (a redirect that occasionally serves a slightly stale mapping is fine; being *down* is not).
+- **Short codes must be unique** and not easily guessable in sequence.
+
+**Out of scope (stated aloud):** user accounts, dashboards, spam detection.
+
+## Step 2 — Estimation
+
+Assume **100 M new URLs/day** and a **read:write ratio of 100:1**.
+
+- **Write QPS:** 100 M ÷ 10⁵ s ≈ **1,160/s** → peak (×3) ≈ **~3,500/s**.
+- **Read QPS:** 100 × write ≈ **116,000/s** → peak ≈ **~350,000/s**. *Reads dominate by two orders of magnitude — the entire design optimizes the read path.*
+- **Storage:** ~500 bytes/record × 100 M/day = 50 GB/day → over 5 years ≈ **~90 TB**. *Won't fit on one machine → we'll shard.*
+- **Short codes needed:** 100 M/day × 365 × 5 ≈ **~180 B codes** over 5 years.
+
+That last number sizes the **key space**. How long must a code be?
+
+<Callout type="info">
+    **Sizing the short code.** Using base62 (`a–z A–Z 0–9` = 62 characters):
+    - 62⁶ ≈ **56 billion** — not enough for 180 B.
+    - 62⁷ ≈ **3.5 trillion** — comfortably more than 180 B, with headroom.
+
+    So **7 characters** is the answer. This little calculation — "how many characters do I need?" — is exactly the kind of concrete reasoning interviewers want to see, instead of hand-waving "we'll generate a random string."
+</Callout>
+
+## Step 3 — API
+
+<Tabs items={['REST']} defaultIndex="0">
+    <Tab>
+    ```text copy
+    POST /api/v1/shorten
+      body: { "long_url": "https://...", "custom_alias": "optional" }
+      ->    { "short_url": "https://tiny.co/aZ3kP9q" }
+
+    GET /{short_code}
+      ->  HTTP 301/302 redirect to the original long_url
+    ```
+    </Tab>
+</Tabs>
+
+One detail worth a sentence: **301 vs 302.** A `301` (permanent) lets browsers cache the redirect — fewer hits on your server, but you lose per-click analytics (the browser skips you next time). A `302` (temporary) routes every click through you (you can count clicks) at the cost of more traffic. *"I'd use 302 if analytics matter, 301 if raw redirect speed matters."* — naming the trade-off scores.
+
+## Step 4 — Data model
+
+The only read is **point lookup by `short_code`**. No joins, no range scans, no transactions. That access pattern points straight at a **key-value / NoSQL** store that shards on the key.
+
+<Tabs items={['Schema']} defaultIndex="0">
+    <Tab>
+    ```text copy
+    Table: urls   (key-value, sharded on short_code)
+      short_code   STRING   PRIMARY KEY     # e.g. "aZ3kP9q"
+      long_url     TEXT
+      created_at   TIMESTAMP
+      expires_at   TIMESTAMP   (nullable)
+
+    # Only access pattern: get(short_code) -> long_url, ~350k/s at peak.
+    # No joins. Perfect for a distributed KV store (DynamoDB / Cassandra).
+    ```
+    </Tab>
+</Tabs>
+
+## Step 5 — High-level design
+
+<ArchitectureDiagram
+    title="URL shortener — read path optimized, writes go through a key-generation service"
+    width={880}
+    height={320}
+    nodes={[
+        { id: "client", label: "Client", type: "client", x: 70, y: 150 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 240, y: 150 },
+        { id: "w", label: "Write Service", sub: "shorten", type: "service", x: 440, y: 70 },
+        { id: "r", label: "Read Service", sub: "redirect", type: "service", x: 440, y: 230 },
+        { id: "kgs", label: "Key Gen Service", sub: "unique codes", type: "gateway", x: 660, y: 70, w: 150 },
+        { id: "cache", label: "Redis Cache", sub: "hot codes", type: "cache", x: 660, y: 200 },
+        { id: "db", label: "KV Store", sub: "sharded, 90 TB", type: "db", x: 830, y: 150, w: 130 },
+    ]}
+    edges={[
+        { from: "client", to: "lb", label: "shorten / click" },
+        { from: "lb", to: "w" }, { from: "lb", to: "r" },
+        { from: "w", to: "kgs", label: "next code" },
+        { from: "w", to: "db", label: "write" },
+        { from: "r", to: "cache", label: "1. check" },
+        { from: "cache", to: "db", label: "2. on miss", dashed: true },
+    ]}
+    caption="Writes get a unique code from the Key Generation Service and store the mapping. Reads (the 100× majority) hit Redis first; on a miss they fall back to the sharded KV store and repopulate the cache. The read path is what we optimized for."
+/>
+
+**The read path (the hot path):**
+1. `GET /aZ3kP9q` → load balancer → read service.
+2. Read service checks **Redis**. Cache hit (the common case for popular links) → redirect in ~1 ms.
+3. Cache miss → fetch from the **sharded KV store** (sharded on `short_code`, so the lookup goes straight to one node), populate Redis with a TTL, redirect.
+
+**The write path:**
+1. `POST /shorten` → write service.
+2. Get a guaranteed-unique 7-char code from the **Key Generation Service** (more below).
+3. Store `short_code → long_url` in the KV store. Return the short URL.
+
+## Step 6 — Deep dives
+
+This is where the 45-minute interview is won. Three meaty dives:
+
+### Deep dive A — generating unique short codes
+
+The hard part isn't shortening — it's guaranteeing **uniqueness across many write servers** without them colliding. Three approaches, with trade-offs:
+
+<Steps>
+
+### Option 1 — Hash the long URL (e.g. MD5 → base62, take 7 chars)
+
+Simple and stateless. **Problem:** hashing can collide (two URLs → same 7 chars), so you must check-and-retry on collision, and the *same* URL always maps to the same code (sometimes good, sometimes a privacy leak).
+
+### Option 2 — Auto-increment counter → base62 encode
+
+A global counter (1, 2, 3, …) base62-encoded gives guaranteed-unique, ever-growing codes. **Problem:** a single counter is a bottleneck and an SPOF, and sequential codes are *guessable* (`aaaaaab` follows `aaaaaaa` — competitors can scrape your whole namespace).
+
+### Option 3 — Key Generation Service (KGS) — the strong answer
+
+A dedicated service **pre-generates** random unique 7-char keys offline and stores them in a "keys" table split into *used* and *unused*. Write servers grab a batch of unused keys, mark them used. Uniqueness is guaranteed at generation time (no runtime collision checks), it's not sequential (not guessable), and batching keeps the KGS from being a per-request bottleneck.
+
+</Steps>
+
+<Callout type="info">
+    The KGS makes uniqueness a *pre-computation* problem instead of a *runtime-coordination* problem. That reframing — "move the hard guarantee offline so the hot path stays simple" — is a pattern worth carrying to other designs (e.g. pre-allocating ID ranges to servers, à la Twitter's Snowflake).
+</Callout>
+
+### Deep dive B — scaling the read path to 350k/s
+
+- **Cache the hot links.** Link popularity follows a power law — a tiny fraction of links get the vast majority of clicks. An 80–90%+ cache hit rate is realistic, so Redis absorbs most of the 350k/s and the DB sees a fraction.
+- **Cache eviction:** LRU — keep the currently-popular links, drop the cold ones.
+- **Read replicas** behind the cache for misses, and **shard the KV store on `short_code`** so each shard owns ~1/N of the keyspace. Use **[consistent hashing](/day28/scaling)** so adding a shard doesn't reshuffle everything.
+
+### Deep dive C — single points of failure & cleanup
+
+- **No single LB, cache, or DB node should be fatal** — run the LB active-passive, replicate Redis, replicate each shard.
+- **Expiration / cleanup:** a lazy approach (check `expires_at` on read, delete if past) plus a background sweeper for cold expired entries avoids a giant scheduled purge.
+
+## The finished picture
+
+You started from a vague *"design TinyURL"* and, by following the script, arrived at: a read-optimized, cache-fronted, sharded key-value design with a key-generation service for collision-free codes — and you justified **every** box against a requirement or an estimate. That's a passing interview.
+
+## Quick check
+
+<QuizBox
+    question="Why does the URL shortener design put so much effort into the READ path and comparatively little into writes?"
+    options={[
+        "Writes are harder to build",
+        "The estimated read:write ratio is ~100:1 — reads (~350k/s peak) dwarf writes (~3.5k/s peak), so caching, replicas, and sharding on the read path are where the system lives or dies",
+        "Reads and writes are equal",
+        "Writes don't need a database"
+    ]}
+    correctIndex={1}
+    explanation="The estimation step revealed reads outnumber writes 100:1. Optimizing the rare path (writes) while ignoring the dominant one (reads) would be backwards. The cache, read replicas, and key-based sharding all exist to serve the 350k/s read load cheaply — that asymmetry, surfaced by back-of-the-envelope math, drove the whole architecture."
+/>
+
+<QuizBox
+    question="An interviewer pushes: 'Why not just use an auto-incrementing counter, base62-encoded, for the short codes?' What's the best critique?"
+    options={[
+        "It would be too slow to encode",
+        "A single counter is a bottleneck and a single point of failure, and sequential codes are guessable — anyone can enumerate aaaaaaa, aaaaaab, … and scrape every link. A Key Generation Service (pre-generated random unique keys) avoids both",
+        "base62 can't represent large numbers",
+        "Counters always collide"
+    ]}
+    correctIndex={1}
+    explanation="The counter is correct on uniqueness but has two real problems: it centralizes a hot dependency (bottleneck + SPOF, unless you pre-allocate ranges per server), and sequential output is enumerable, leaking your entire namespace and any private links. A KGS pre-generates random, unique, non-sequential keys offline — uniqueness without runtime coordination, and no guessability."
+/>
+
+<QuizBox
+    question="Why is a key-value / NoSQL store a better fit here than a relational database with joins?"
+    options={[
+        "NoSQL is always faster",
+        "The only access pattern is a point lookup by short_code — no joins, no range scans, no multi-row transactions. That maps perfectly to a KV store, which also shards trivially on the key to handle 90 TB and 350k/s",
+        "Relational databases can't store URLs",
+        "NoSQL is cheaper to license"
+    ]}
+    correctIndex={1}
+    explanation="Let the access pattern decide. Here it's get(short_code) → long_url, full stop — no relational features needed. A KV store serves that lookup in ~1 ms and partitions on the key, so the 90 TB dataset and 350k/s read load spread across shards cleanly. Using a relational DB would pay for join/transaction machinery the workload never uses, and sharding it would be harder."
+/>
+
+Next: **[Basic Questions](/day28/basic_questions)** — concept checks to lock in the vocabulary, then the [practice set](/day28/practice_questions) of eight classic design prompts.

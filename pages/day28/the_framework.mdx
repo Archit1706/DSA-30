@@ -1,0 +1,221 @@
+---
+title: "The System Design Framework"
+description: "A repeatable 6-step script for any system design interview — requirements, back-of-the-envelope estimation, API design, data model, high-level design, and deep dives — with an interactive capacity calculator."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { BackOfEnvelope, ArchitectureDiagram } from "../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+# The Framework
+
+The blank whiteboard is the enemy. Beat it with a **script** — the same six steps, in the same order, every single time. The prompt changes; the process doesn't. Internalize this and "design YouTube" stops being terrifying and starts being fill-in-the-blanks.
+
+<ArchitectureDiagram
+    title="The 6-step interview script — spend your 45 minutes roughly like this"
+    width={860}
+    height={130}
+    nodes={[
+        { id: "1", label: "1. Requirements", sub: "~5 min", type: "gateway", x: 80, y: 55, w: 130 },
+        { id: "2", label: "2. Estimate", sub: "~5 min", type: "lb", x: 235, y: 55, w: 120 },
+        { id: "3", label: "3. API", sub: "~5 min", type: "service", x: 375, y: 55, w: 110 },
+        { id: "4", label: "4. Data Model", sub: "~5 min", type: "db", x: 515, y: 55, w: 120 },
+        { id: "5", label: "5. High-Level", sub: "~10 min", type: "server", x: 660, y: 55, w: 120 },
+        { id: "6", label: "6. Deep Dives", sub: "~15 min", type: "cache", x: 795, y: 55, w: 110 },
+    ]}
+    edges={[
+        { from: "1", to: "2" }, { from: "2", to: "3" }, { from: "3", to: "4" },
+        { from: "4", to: "5" }, { from: "5", to: "6" },
+    ]}
+    caption="Time-box ruthlessly. The two most-skipped steps — requirements and estimation — are the two that interviewers grade hardest. Don't draw a single box before you've done them."
+/>
+
+## Step 1 — Requirements (don't skip this, ever)
+
+The fastest way to fail is to start drawing. **Spend the first five minutes asking questions.** You're doing two things: scoping the problem to something buildable in 45 minutes, and surfacing the non-functional targets that will drive every later choice.
+
+<Steps>
+
+### Clarify functional requirements
+
+What are the 2–3 *core* features? For "design Twitter": *post a tweet, view a home timeline, follow a user.* Explicitly defer the rest out loud — *"I'll leave search, DMs, and ads out of scope unless you'd like me to cover them."* This shows judgment and buys you time.
+
+### Pin down non-functional requirements
+
+Ask directly:
+- **Scale** — "How many daily active users? Read-heavy or write-heavy?"
+- **Latency** — "What's an acceptable p99 — is this interactive (sub-200 ms) or can it be async?"
+- **Availability vs consistency** — "If there's a network partition, is it worse to be down or to show slightly stale data?" (This is the CAP question in disguise.)
+- **Durability** — "Can we ever lose data?"
+
+### State your assumptions
+
+The interviewer often won't give exact numbers. Make reasonable ones *out loud* and let them correct you: *"I'll assume 100 M DAU, read:write of 100:1, and that stale reads of a few seconds are acceptable. Sound right?"*
+
+</Steps>
+
+<Callout type="warning">
+    **The single biggest mistake junior candidates make:** drawing boxes in minute one. You'll design the wrong system fast. A senior candidate is comfortable spending 5+ minutes apparently "doing nothing" but actually defining the problem. The requirements you extract here are the rubric you'll be graded against — get them wrong and even a beautiful design scores low.
+</Callout>
+
+## Step 2 — Back-of-the-envelope estimation
+
+Now turn the requirements into **numbers**. You're not aiming for precision — you're aiming for the right *order of magnitude*, because that's what decides architecture. 100 QPS fits on one laptop. 1 M QPS needs hundreds of machines, sharding, and caching. The number tells you which world you're in.
+
+### The only three formulas you need
+
+1. **QPS** = (daily actions × actions-per-user) ÷ 86,400 s. Approximate a day as **10⁵ seconds** and the division is trivial.
+2. **Storage** = objects/day × size/object × retention (days). Multiply out, convert to TB/PB.
+3. **Bandwidth** = QPS × size/object. Split read bandwidth from write bandwidth.
+
+And always compute **peak**, not just average — real traffic spikes 2–10× above the mean. Size for the peak or you fall over at the worst possible moment.
+
+### Try it — drag the inputs
+
+<BackOfEnvelope />
+
+<Callout type="info">
+    **Numbers worth memorizing** so you can do this in your head:
+    - 1 day ≈ **86,400 s ≈ 10⁵ s**
+    - 1 million writes/day ≈ **~12 writes/sec** average
+    - Char = 1 byte, a typical short DB row ≈ **hundreds of bytes to a few KB**, a photo ≈ **hundreds of KB to a few MB**, a minute of video ≈ **tens of MB**
+    - 2ⁱ⁰ = 1 K, 2²⁰ = 1 M, 2³⁰ = 1 B (KB / MB / GB)
+    - A commodity server: ~**10–100 K simple QPS**, tens of GB RAM, low-single-digit TB disk
+</Callout>
+
+### A worked estimate: "design a paste-bin / TinyURL"
+
+> Assume 100 M new URLs/day, read:write = 100:1, 500 bytes stored per URL, kept 5 years.
+
+- **Write QPS:** 100 M ÷ 10⁵ ≈ **1,000 writes/s** (peak ×3 ≈ 3,000/s).
+- **Read QPS:** 100× that ≈ **100,000 reads/s** (peak ≈ 300,000/s). → *reads dominate; this screams "cache + read replicas."*
+- **Storage:** 100 M × 500 B = 50 GB/day → × 365 × 5 ≈ **~90 TB** over 5 years. → *too big for one machine's RAM; fits comfortably on a sharded disk store.*
+
+Three numbers, and the architecture is already taking shape: heavy reads → cache; 90 TB → shard the database; 100:1 ratio → optimize the read path above all else.
+
+## Step 3 — API design
+
+Define the contract between client and server. Keep it small — just the core features. This is where functional requirements become concrete, and it forces you to decide what data flows in and out.
+
+<Tabs items={['REST sketch']} defaultIndex="0">
+    <Tab>
+    ```text copy
+    # URL shortener — the whole public surface
+    POST /urls            { longUrl, customAlias? }      -> { shortUrl }
+    GET  /{shortCode}                                    -> 301 redirect to longUrl
+    GET  /urls/{shortCode}/stats                         -> { clicks, createdAt }
+    DELETE /urls/{shortCode}                             -> 204
+    ```
+    </Tab>
+</Tabs>
+
+Things interviewers listen for here: sensible HTTP verbs, where **pagination** goes (always paginate list endpoints — `?cursor=...&limit=20`), how you handle **auth** (an API key or token in the header), and whether reads and writes are cleanly separated.
+
+## Step 4 — Data model
+
+What are the entities, and — crucially — what are the **access patterns**? The access pattern decides SQL vs NoSQL far more than the data shape does.
+
+<Tabs items={['Schema sketch']} defaultIndex="0">
+    <Tab>
+    ```text copy
+    URL
+      short_code   STRING   PK      # the 7-char key, looked up on every read
+      long_url     TEXT
+      user_id      STRING   FK
+      created_at   TIMESTAMP
+      expires_at   TIMESTAMP
+
+    # Access pattern: GET by short_code, ~100k/s. No joins. No range scans.
+    # -> A key-value store is a perfect fit. Key = short_code, value = the row.
+    ```
+    </Tab>
+</Tabs>
+
+The line that earns points: *"Because the only read is a point lookup by `short_code` and there are no joins, a key-value/NoSQL store fits better than a relational one — and it shards trivially on the key."* You connected the data model to a storage choice **via the access pattern**. That's the move.
+
+## Step 5 — High-level design
+
+*Now* you draw boxes. Start with the simplest thing that satisfies the functional requirements — client → load balancer → app servers → database — then layer in the components that satisfy the *non-functional* ones you found in step 1.
+
+<ArchitectureDiagram
+    title="Start simple, then justify each addition against a requirement"
+    nodes={[
+        { id: "client", label: "Client", type: "client", x: 70, y: 100 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 240, y: 100 },
+        { id: "s1", label: "App Server", type: "server", x: 420, y: 50 },
+        { id: "s2", label: "App Server", type: "server", x: 420, y: 150 },
+        { id: "cache", label: "Cache", type: "cache", x: 610, y: 50 },
+        { id: "db", label: "Database", type: "db", x: 610, y: 150 },
+    ]}
+    edges={[
+        { from: "client", to: "lb" },
+        { from: "lb", to: "s1" },
+        { from: "lb", to: "s2" },
+        { from: "s1", to: "cache", label: "hot reads" },
+        { from: "s1", to: "db" },
+        { from: "s2", to: "db" },
+    ]}
+    caption="The load balancer is there because we need to scale app servers horizontally. The cache is there because reads dominate writes 100:1. Each box exists to satisfy a specific requirement — never add one 'just because.'"
+/>
+
+The narration matters as much as the diagram: *"I'm adding the load balancer so I can scale app servers horizontally and survive a server dying. I'm adding the cache because reads outnumber writes 100:1, and a cache hit at ~1 ms beats a DB read at ~10 ms."* Tie. Every. Box. To. A. Requirement.
+
+## Step 6 — Deep dives & bottlenecks
+
+The first five steps get you a working design. The last 15 minutes are where you earn the offer: **find your own bottleneck and address it.** This is the difference between a passing and a strong interview.
+
+Good deep-dive directions to volunteer:
+
+- **"The hottest URL could overwhelm one cache node — I'd handle that with consistent hashing plus replication of hot keys."**
+- **"Generating unique short codes across many servers is a coordination problem — here's how a key-generation service or a counter-with-base62 avoids collisions."**
+- **"For the 100k/s read path, a single DB won't keep up — I'd add read replicas and shard by `short_code`."**
+- **Single points of failure** — "the load balancer itself is an SPOF; in production I'd run an active-passive pair."
+
+<Callout type="info">
+    **Drive your own deep dives.** Don't wait to be asked "what's wrong with this?" — say it first. *"The obvious bottleneck here is X; let me address it."* Naming your design's weakness before the interviewer does is the strongest possible signal: it shows you actually understand the trade-offs, not just the happy path.
+</Callout>
+
+## The script on one line
+
+> **Requirements** (what + how-well) → **Estimate** (QPS, storage, bandwidth) → **API** (the contract) → **Data model** (entities + access patterns) → **High-level design** (boxes justified by requirements) → **Deep dives** (find and fix your own bottleneck).
+
+## Quick check
+
+<QuizBox
+    question="A prompt says 'design a system handling 50 million writes per day.' Roughly what's the average write QPS, and why does the number matter?"
+    options={[
+        "~50 million/s — and it means we need a supercomputer",
+        "~580/s (50M ÷ 86,400) — a modest number that fits on a few servers; the order of magnitude tells you which architecture you're in (hundreds of QPS is very different from millions)",
+        "~5,000/s, requiring global sharding",
+        "QPS can't be estimated from daily totals"
+    ]}
+    correctIndex={1}
+    explanation="50M ÷ ~10^5 s ≈ 500/s average. Always also compute peak (×3–10 ≈ a few thousand/s). The point of estimation isn't precision — it's learning whether you're in the 'one box' world or the 'thousand box' world, because that decides everything downstream. ~580/s is firmly in the modest-fleet world."
+/>
+
+<QuizBox
+    question="Why estimate for PEAK QPS rather than average QPS?"
+    options={[
+        "Peak is easier to compute",
+        "Real traffic is bursty — it spikes well above the average (think lunchtime, a viral post, Black Friday). If you size only for the average, the system falls over exactly when it's needed most",
+        "Average QPS is always wrong",
+        "Interviewers only accept peak numbers"
+    ]}
+    correctIndex={1}
+    explanation="Traffic isn't uniform across the day; it spikes 2–10× at peak hours and during events. Capacity planning targets the peak (plus headroom) so the system survives its worst moment. Sizing for the average guarantees an outage during the spike — which is the worst possible time to be down."
+/>
+
+<QuizBox
+    question="In the framework, why design the data model's ACCESS PATTERNS before choosing SQL vs NoSQL?"
+    options={[
+        "It doesn't matter which comes first",
+        "The access pattern (point lookups? range scans? joins? read:write ratio?) is what actually determines which database fits — choosing the DB first and forcing the data into it is backwards",
+        "SQL is always the right default",
+        "NoSQL can't be analyzed this way"
+    ]}
+    correctIndex={1}
+    explanation="A pure point-lookup-by-key pattern with no joins fits a key-value store and shards trivially. A pattern full of multi-table joins and ad-hoc queries fits a relational DB. The data SHAPE alone doesn't decide it — the access PATTERN does. Letting the read/write pattern drive the storage choice is the core skill the data-model step tests."
+/>
+
+Next: **[Building Blocks](/day28/building_blocks)** — the Lego bricks (load balancers, caches, CDNs, queues, databases) you'll snap together in step 5, with the "when and why" for each.

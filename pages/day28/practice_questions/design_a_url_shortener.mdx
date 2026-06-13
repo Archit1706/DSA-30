@@ -1,0 +1,91 @@
+---
+title: "Design a URL Shortener (TinyURL)"
+description: "The Hello World of system design — a read-heavy URL shortener with unique short-code generation, caching, and sharding, worked through the 6-step framework."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design a URL Shortener (TinyURL) <DifficultyBadge level="easy" />
+
+<Callout type="info">
+    This problem gets the **full end-to-end treatment** in the [URL Shortener case study](/day28/case_study_url_shortener) — including the 7-character key-space math and three approaches to unique-code generation. This page is the **condensed, interview-pace** version you'd actually narrate in 20 minutes. Read both: the case study for depth, this for the rhythm.
+</Callout>
+
+#### The prompt
+
+Turn a long URL into a short one (`https://tiny.co/aZ3kP9q`) and redirect on visit.
+
+#### Requirements
+
+- **Functional:** shorten a URL; redirect a short URL to the original. (Optional: custom alias, expiry, analytics.)
+- **Non-functional:** **very read-heavy** (clicks ≫ creates), **low-latency redirect** (sub-100 ms), highly available (lean **AP**), short codes unique and non-sequential.
+
+#### Estimation
+
+100 M new URLs/day, read:write = 100:1:
+- Writes ≈ **1.2k/s** (peak ~3.5k/s); reads ≈ **116k/s** (peak ~350k/s) → *optimize the read path.*
+- ~500 B/record × 100 M/day × 5 yr ≈ **~90 TB** → *shard.*
+- **base62, 7 chars** = 62⁷ ≈ 3.5 trillion codes — plenty.
+
+#### API
+
+<Tabs items={['REST']} defaultIndex="0">
+    <Tab>
+    ```text copy
+    POST /shorten   { long_url, custom_alias? }  -> { short_url }
+    GET  /{code}                                 -> 301/302 redirect
+    ```
+    </Tab>
+</Tabs>
+
+#### Data model
+
+Only access pattern is `get(short_code) -> long_url`: no joins, no scans. → **key-value store**, sharded on `short_code`.
+
+```text
+urls:  short_code (PK) | long_url | created_at | expires_at
+```
+
+#### High-level design
+
+<ArchitectureDiagram
+    title="Read-optimized: cache in front, sharded KV behind, KGS for codes"
+    width={860}
+    height={300}
+    nodes={[
+        { id: "client", label: "Client", type: "client", x: 70, y: 140 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 230, y: 140 },
+        { id: "w", label: "Write Svc", type: "service", x: 420, y: 60 },
+        { id: "r", label: "Read Svc", type: "service", x: 420, y: 220 },
+        { id: "kgs", label: "Key Gen Svc", type: "gateway", x: 620, y: 60, w: 130 },
+        { id: "cache", label: "Redis", type: "cache", x: 620, y: 190 },
+        { id: "db", label: "Sharded KV", type: "db", x: 800, y: 140, w: 120 },
+    ]}
+    edges={[
+        { from: "client", to: "lb" },
+        { from: "lb", to: "w" }, { from: "lb", to: "r" },
+        { from: "w", to: "kgs", label: "code" }, { from: "w", to: "db", label: "write" },
+        { from: "r", to: "cache", label: "check" }, { from: "cache", to: "db", label: "miss", dashed: true },
+    ]}
+    caption="Read path: LB → read service → Redis (hit ≈1 ms) → on miss, sharded KV + repopulate. Write path: write service → Key Generation Service for a unique code → store."
+/>
+
+#### Deep dives
+
+- **Unique codes:** a **Key Generation Service** pre-generates random unique 7-char keys offline (no runtime collisions, not guessable). Beats a sequential counter (bottleneck + enumerable) and beats hashing (collisions). See the [case study](/day28/case_study_url_shortener#deep-dive-a--generating-unique-short-codes) for all three.
+- **Read scale (350k/s):** link popularity follows a power law → 80–90%+ cache hit rate. LRU eviction; read replicas behind the cache; shard on `short_code` with [consistent hashing](/day28/scaling).
+- **301 vs 302:** `301` (permanent) is browser-cached → fewer hits but no analytics; `302` (temporary) routes every click through you → analytics at the cost of traffic.
+
+#### Analysis
+
+- **Redirect latency:** ~1 ms on a cache hit, ~10 ms on a miss.
+- **Storage:** ~90 TB over 5 years, spread across shards.
+
+#### Same skin
+
+- **Pastebin** — same shape, value is text instead of a URL; store the blob in object storage, metadata in the KV store.
+- **Distributed unique ID generation** (Snowflake) — the KGS idea generalizes to any "give me a globally unique ID without coordination" problem.
+- **Any read-heavy point-lookup service** — image/CDN key resolution, feature-flag lookup, session store.

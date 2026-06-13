@@ -1,0 +1,81 @@
+---
+title: "Design a Notification Service"
+description: "A multi-channel notification system — fan-out across push/SMS/email, queues for reliability, retries with backoff, idempotency, and rate limiting."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design a Notification Service <DifficultyBadge level="hard" />
+
+#### The prompt
+
+A central service other systems call to notify users across **multiple channels** — mobile push, SMS, email, in-app — reliably and at scale. "Your order shipped," "new login detected," "someone liked your post." The challenge isn't any single send; it's doing millions of them reliably through flaky third-party providers.
+
+#### Requirements
+
+- **Functional:** accept a "notify user U with content C via channels X" request; deliver across push (APNs/FCM), SMS, email; respect user preferences and opt-outs.
+- **Non-functional:** **reliable** (don't drop notifications), **scalable** (millions/day, bursty), **no duplicates** (don't send the same alert twice), **decoupled** (a slow email provider shouldn't block push).
+
+#### Estimation
+
+10 M notifications/day → **~115/s** average but very bursty (a marketing blast or an incident can spike to tens of thousands/s). *Burstiness + unreliable external providers → this is a textbook **queue + worker** design.*
+
+#### The core pattern: queue-per-channel with workers
+
+Decouple the *request* from the *delivery*. The API validates and enqueues instantly; per-channel worker pools drain the queues and call the external providers at their own pace. A spike just makes the queues longer — nothing falls over.
+
+<ArchitectureDiagram
+    title="One entry point, fan-out to per-channel queues, workers call providers"
+    width={880}
+    height={340}
+    nodes={[
+        { id: "svc", label: "Caller Services", type: "service", x: 80, y: 150 },
+        { id: "api", label: "Notification API", sub: "validate + prefs", type: "gateway", x: 270, y: 150, w: 160 },
+        { id: "qp", label: "Push Queue", type: "queue", x: 500, y: 40, w: 120 },
+        { id: "qs", label: "SMS Queue", type: "queue", x: 500, y: 150, w: 120 },
+        { id: "qe", label: "Email Queue", type: "queue", x: 500, y: 260, w: 120 },
+        { id: "wp", label: "Push Worker", type: "worker", x: 690, y: 40, w: 120 },
+        { id: "ws", label: "SMS Worker", type: "worker", x: 690, y: 150, w: 120 },
+        { id: "we", label: "Email Worker", type: "worker", x: 690, y: 260, w: 120 },
+        { id: "prov", label: "APNs / Twilio / SES", type: "note", x: 850, y: 150, w: 70, h: 120 },
+    ]}
+    edges={[
+        { from: "svc", to: "api", label: "notify(U, C)" },
+        { from: "api", to: "qp" }, { from: "api", to: "qs" }, { from: "api", to: "qe" },
+        { from: "qp", to: "wp" }, { from: "qs", to: "ws" }, { from: "qe", to: "we" },
+        { from: "wp", to: "prov" }, { from: "ws", to: "prov" }, { from: "we", to: "prov" },
+    ]}
+    caption="The API checks user preferences, then fans the request out to a queue per channel. Each channel has its own worker pool and scales independently — a backed-up email provider never slows push delivery. Workers handle the messy provider integrations."
+/>
+
+**The flow:**
+1. A service calls `POST /notify` with user, content, and channels.
+2. The API validates, **checks user preferences/opt-outs**, looks up device tokens / phone / email, and enqueues a job per channel.
+3. Per-channel workers dequeue and call the external provider (APNs, FCM, Twilio, SES), handling provider-specific quirks.
+
+#### Deep dives
+
+- **Reliability & retries:** providers fail transiently. Workers **retry with exponential backoff**; after N failures, route to a **dead-letter queue** for inspection rather than silently dropping. The queue's persistence guarantees a notification isn't lost if a worker crashes mid-send.
+- **Idempotency (no duplicates):** queues give *at-least-once* delivery, so a job can be processed twice. Attach a **dedupe key** (notification ID) and track sent IDs (in Redis) so a retry of an already-sent notification is a no-op. This is the most important correctness detail — nobody wants the same SMS twice.
+- **Rate limiting:** both to respect provider quotas (Twilio caps your send rate) and to avoid spamming a user — cap notifications per user per time window. Reuse the [rate limiter](/day28/practice_questions/design_a_rate_limiter).
+- **Preferences & templating:** a preference service (opt-outs, quiet hours, per-channel settings) gates sends; a template service renders content per channel/locale.
+- **Priority:** a 2FA code must beat a marketing blast — separate high/low priority queues so transactional notifications jump the line.
+
+<Callout type="warning">
+    **At-least-once + idempotency is the combo to say out loud.** You *want* at-least-once delivery (retries) so nothing is lost — but that means duplicates are possible, so consumers must dedupe by an idempotency key. "I'd make the workers idempotent with a dedupe key so retries are safe" is the single sentence that signals you've built a real queue-based system, not just drawn one.
+</Callout>
+
+#### Analysis
+
+- **Throughput:** scales per channel by adding workers; queues absorb bursts.
+- **Reliability:** persistent queues + retries + dead-letter queue → no silent drops.
+- **Correctness:** idempotency keys prevent duplicate sends under at-least-once delivery.
+
+#### Same skin
+
+- **The offline-message path of the [chat app](/day28/practice_questions/design_a_chat_app)** is a notification service in miniature.
+- **Email/SMS marketing platforms, alerting/on-call systems (PagerDuty), order-status pipelines** — same queue + worker + retry + idempotency skeleton.
+- **[Message queues](/day28/building_blocks)** and the **fan-out** idea from the [news feed](/day28/practice_questions/design_a_news_feed) are the load-bearing patterns.

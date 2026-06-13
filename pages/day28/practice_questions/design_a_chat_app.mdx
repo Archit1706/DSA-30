@@ -1,0 +1,92 @@
+---
+title: "Design a Chat App (WhatsApp)"
+description: "Real-time messaging — WebSockets vs polling, message delivery and ordering, presence, and how messages reach an offline user."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design a Chat App (WhatsApp / Messenger) <DifficultyBadge level="medium" />
+
+#### The prompt
+
+Two users exchange messages in real time: 1:1 chat, delivery within a second, message history preserved, and the sender sees sent/delivered/read receipts. The defining challenge is **server-initiated, real-time delivery** — the server must *push* to the recipient, not wait to be polled.
+
+#### Requirements
+
+- **Functional:** send/receive 1:1 messages in real time; persist history; show online presence and delivery/read receipts.
+- **Non-functional:** **low latency** (sub-second delivery), **reliable** (no lost messages, even if the recipient is offline), **ordered** (messages appear in send order within a conversation).
+
+#### Estimation
+
+500 M DAU, ~40 messages each/day → **20 B messages/day ≈ 230k/s** (peak higher). Each message is small (~100s of bytes). The harder number is **concurrent connections**: hundreds of millions of users hold a *persistent* connection — that's the real scaling pressure, not raw QPS.
+
+#### The core decision: how does the server push to the client?
+
+| Approach | How | Verdict |
+| :--- | :--- | :--- |
+| **Short polling** | client asks "anything new?" every few seconds | wasteful, laggy — most polls return nothing |
+| **Long polling** | request hangs open until there's data or timeout | better, but reconnect churn |
+| **WebSocket** | one persistent, bidirectional TCP connection | **the answer** — server pushes instantly over an open socket |
+
+<Callout type="info">
+    **WebSockets are the heart of any chat design.** Unlike HTTP request/response, a WebSocket is a long-lived, two-way pipe: once open, the server can push a message to the client the instant it arrives, with no polling. The cost is **stateful connections** — each gateway server holds many open sockets and must remember *which user is connected to which server*, which is the central scaling problem below.
+</Callout>
+
+#### High-level design
+
+<ArchitectureDiagram
+    title="Persistent WebSocket connections, a session registry, and durable storage"
+    width={880}
+    height={320}
+    nodes={[
+        { id: "a", label: "User A", type: "client", x: 70, y: 70 },
+        { id: "b", label: "User B", type: "mobile", x: 70, y: 230 },
+        { id: "g1", label: "WS Gateway 1", sub: "holds sockets", type: "gateway", x: 280, y: 70, w: 150 },
+        { id: "g2", label: "WS Gateway 2", sub: "holds sockets", type: "gateway", x: 280, y: 230, w: 150 },
+        { id: "reg", label: "Session Registry", sub: "user→gateway", type: "cache", x: 520, y: 60, w: 160 },
+        { id: "msg", label: "Message Svc", type: "service", x: 540, y: 180 },
+        { id: "db", label: "Messages DB", sub: "history", type: "db", x: 760, y: 130, w: 130 },
+        { id: "q", label: "Offline Queue", type: "queue", x: 760, y: 250, w: 130 },
+    ]}
+    edges={[
+        { from: "a", to: "g1", label: "WebSocket" },
+        { from: "b", to: "g2", label: "WebSocket" },
+        { from: "g1", to: "msg", label: "send" },
+        { from: "msg", to: "reg", label: "where is B?" },
+        { from: "msg", to: "db", label: "persist" },
+        { from: "msg", to: "g2", label: "push to B" },
+        { from: "msg", to: "q", label: "if offline", dashed: true },
+    ]}
+    caption="Each user holds a WebSocket to some gateway. A session registry (Redis) maps user → gateway so the message service knows where to route. Every message is persisted to the DB for history; if the recipient is offline, it waits in a queue and a push notification is sent."
+/>
+
+**Sending a message:**
+1. User A sends over their WebSocket to Gateway 1 → Message Service.
+2. Message Service **persists** it (history + the "delivered later" guarantee).
+3. It looks up B in the **session registry**: which gateway holds B's socket?
+4. If B is online → route to B's gateway → push over B's socket. If B is offline → store as undelivered and fire a **push notification**; deliver when B reconnects.
+
+#### Deep dives
+
+- **The session registry** is the key scaling piece: with sockets spread across thousands of gateways, you need a fast `user_id → gateway` map (Redis) so a message can find its recipient's connection. This decouples "who's connected where" from the message logic.
+- **Ordering:** attach a per-conversation sequence number or timestamp so the client can order/dedupe. Within one conversation, route through a consistent partition to preserve order.
+- **Delivery guarantees & receipts:** the persist-then-deliver flow gives at-least-once delivery; the client ACKs receipt (→ "delivered"), and a read event flows back as another small message (→ "read"). Messages must be **idempotent** (dedupe by message ID) since a client may retry.
+- **Group chat** is the natural extension: fan the message out to every member's gateway (small groups → push to each; this is the [news-feed fan-out](/day28/practice_questions/design_a_news_feed) pattern again).
+
+<Callout type="warning">
+    **Persist before you deliver.** If you push to the recipient but crash before saving, an offline or reconnecting user loses the message forever. Writing to durable storage *first* (then delivering) is what lets you guarantee "no message is ever lost," which is non-negotiable for a messaging product.
+</Callout>
+
+#### Analysis
+
+- **Delivery latency:** sub-second when both online (one persist + one socket push).
+- **Connection load:** the dominant cost — millions of concurrent WebSockets across a gateway fleet, tracked in the session registry.
+
+#### Same skin
+
+- **Live notifications, multiplayer game state, collaborative editing, stock tickers** — all are "server pushes to many connected clients in real time" → WebSockets + a session registry.
+- **The offline-queue + push-notification path** is exactly the [notification service](/day28/practice_questions/design_a_notification_service).
+- **Group fan-out** reuses the [news feed](/day28/practice_questions/design_a_news_feed) push model.

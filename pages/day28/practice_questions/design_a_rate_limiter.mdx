@@ -1,0 +1,81 @@
+---
+title: "Design a Rate Limiter"
+description: "Token bucket vs sliding window, where the limiter lives, and how to make it work across a distributed fleet — a classic system design warm-up."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design a Rate Limiter <DifficultyBadge level="easy" />
+
+#### The prompt
+
+Limit how many requests a client can make in a window — e.g. **100 requests per minute per user**. Excess requests get rejected with `429 Too Many Requests`. Used everywhere: API gateways, login endpoints (brute-force defense), and protecting expensive downstream services.
+
+#### Requirements
+
+- **Functional:** allow or reject a request based on a configurable limit (per user / IP / API key). Return `429` with a `Retry-After` header when throttled.
+- **Non-functional:** **low latency** (it's on every request's hot path — must add sub-millisecond overhead), **accurate** (don't let bursts through), and **distributed** (works across many app servers, not just one).
+
+#### Estimation
+
+If the protected API does **100k QPS**, the limiter is also called **100k times/s**. Each check is a tiny counter read/write — perfect for an in-memory store like Redis. Memory is trivial: one small counter per active client.
+
+#### The core algorithms
+
+| Algorithm | Idea | Trade-off |
+| :--- | :--- | :--- |
+| **Fixed window** | count requests per clock-aligned minute | simple, but allows a 2× burst at the window boundary |
+| **Sliding window log** | store a timestamp per request, count those in the last 60 s | exact, but stores every timestamp → memory-heavy |
+| **Sliding window counter** | weighted blend of current + previous window | near-exact, cheap — the common production choice |
+| **Token bucket** | bucket refills at a fixed rate; each request takes a token | allows controlled bursts, very popular |
+| **Leaky bucket** | requests queue and drain at a fixed rate | smooths bursts into a steady output |
+
+<Callout type="info">
+    **Token bucket** is the most-loved answer. A bucket holds up to `N` tokens and refills at `r` tokens/sec. Each request removes one token; if the bucket is empty, reject. It naturally allows short bursts (up to the bucket size) while enforcing the average rate — which matches how real clients behave. Store `{tokens, last_refill_time}` per client and compute the refill lazily on each request.
+</Callout>
+
+#### The fixed-window boundary trap
+
+Fixed window's flaw, worth naming: with a 100/min limit, a client can send 100 requests at `00:59` and 100 more at `01:00` — **200 requests in 2 seconds**, because each lands in a different counter window. Sliding-window approaches fix this by considering a rolling 60-second view rather than clock-aligned buckets.
+
+#### Where it lives
+
+<ArchitectureDiagram
+    title="The limiter sits at the edge, backed by a shared counter store"
+    width={820}
+    nodes={[
+        { id: "client", label: "Clients", type: "client", x: 80, y: 100 },
+        { id: "lb", label: "API Gateway", sub: "rate limiter", type: "gateway", x: 280, y: 100, w: 150 },
+        { id: "redis", label: "Redis", sub: "counters", type: "cache", x: 500, y: 40 },
+        { id: "s1", label: "App Server", type: "server", x: 700, y: 100 },
+    ]}
+    edges={[
+        { from: "client", to: "lb", label: "request" },
+        { from: "lb", to: "redis", label: "INCR + check", bidir: true },
+        { from: "lb", to: "s1", label: "allowed →" },
+    ]}
+    caption="Put the limiter at the API gateway / edge so rejected traffic never reaches your app servers. A central Redis holds counters so the limit is shared across the whole fleet — not per-server."
+/>
+
+#### Deep dive — making it distributed
+
+The tricky part: with 50 app servers, a per-server counter lets a client do `50 × limit`. The fix is a **central store (Redis)** holding one counter per client, shared by all servers. To avoid a race (two servers reading the same count simultaneously), make the read-increment-check **atomic** — a Redis `INCR` (with `EXPIRE`) or a small Lua script does this in one round trip.
+
+<Callout type="warning">
+    **The limiter must fail open or closed — decide which.** If Redis is briefly unavailable, do you reject all traffic (fail *closed*, safe but a total outage) or allow all traffic (fail *open*, available but unprotected)? For a public API protecting expensive backends, many choose fail-open with a local fallback limiter. Naming this decision shows you've thought past the happy path.
+</Callout>
+
+#### Analysis
+
+- **Latency added:** one Redis round trip (~0.5 ms in-datacenter), often pipelined or done with a local token-bucket cache for the truly hot path.
+- **Memory:** `O(active clients)` — one small record per client.
+
+#### Same skin
+
+- **Login throttling / brute-force defense** — rate limit failed logins per account + per IP.
+- **API quota / billing tiers** — same counters, longer windows (per day/month).
+- **Leaky bucket for traffic shaping** — smooth a spiky producer into a steady stream (closely related to a message queue draining at fixed rate).
+- **The "sliding window" counting idea** is the same shape as the [Day 24 sliding-window](/day24) algorithmic pattern — a rolling count over a time-ordered stream.

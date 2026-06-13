@@ -1,0 +1,59 @@
+---
+title: "System Design Practice Questions"
+description: "Eight classic system design interview prompts — rate limiter, URL shortener, typeahead, news feed, chat app, distributed key-value store, web crawler, notification service — each worked through the 6-step framework."
+---
+
+import { Callout } from "nextra/components";
+
+# System Design Practice Questions
+
+Eight prompts that show up again and again in real interviews. Each one is worked through the same [6-step framework](/day28/the_framework) — and each one *highlights* one or two building blocks so you build a library of reusable moves: rate limiting, fan-out, the long-poll/WebSocket choice, consistent hashing, idempotency, and more.
+
+<Callout type="info">
+    Before reading any solution, force yourself through the framework out loud:
+
+    1. **Requirements** — functional (2–3 core features) + non-functional (scale, latency, consistency).
+    2. **Estimate** — QPS, storage, bandwidth (peak, not just average).
+    3. **API** — the contract.
+    4. **Data model** — entities + the *access pattern* that picks the database.
+    5. **High-level design** — boxes, each justified by a requirement.
+    6. **Deep dives** — find and fix your own bottleneck.
+
+    If you can narrate those six steps before peeking, you've already passed.
+</Callout>
+
+## Easy
+
+| Problem | Highlights | Status |
+| :--- | :--- | :--- |
+| [Rate Limiter](/day28/practice_questions/design_a_rate_limiter) | Token bucket vs sliding window, where it lives, distributed counters | Available |
+| [URL Shortener (TinyURL)](/day28/practice_questions/design_a_url_shortener) | Read-heavy path, unique key generation, sharding | Available |
+
+## Medium
+
+| Problem | Highlights | Status |
+| :--- | :--- | :--- |
+| [Typeahead / Autocomplete](/day28/practice_questions/design_a_typeahead) | Trie at scale, prefix caching, top-k ranking | Available |
+| [News Feed](/day28/practice_questions/design_a_news_feed) | Fan-out on write vs read, the celebrity problem | Available |
+| [Chat App (WhatsApp)](/day28/practice_questions/design_a_chat_app) | WebSockets, presence, message delivery & ordering | Available |
+| [Distributed Key-Value Store](/day28/practice_questions/design_a_key_value_store) | Consistent hashing, replication, quorum, CAP | Available |
+
+## Hard
+
+| Problem | Highlights | Status |
+| :--- | :--- | :--- |
+| [Web Crawler](/day28/practice_questions/design_a_web_crawler) | BFS frontier, politeness, dedup at scale | Available |
+| [Notification Service](/day28/practice_questions/design_a_notification_service) | Multi-channel fan-out, queues, retries, idempotency | Available |
+
+## More Practice (Coming Soon)
+
+| Problem | Highlights | Status |
+| :--- | :--- | :--- |
+| Design YouTube / Netflix | Video upload pipeline, transcoding, CDN | Coming Soon |
+| Design Instagram | Photo storage, feed, follow graph | Coming Soon |
+| Design Uber | Geospatial indexing, matching, real-time location | Coming Soon |
+| Design a Distributed Cache | Eviction, sharding, replication | Coming Soon |
+| Design Google Drive / Dropbox | Chunking, sync, dedup, metadata | Coming Soon |
+| Design Ticketmaster | Inventory locking, fairness, concurrency | Coming Soon |
+| Design a Search Engine | Inverted index, ranking, sharded query | Coming Soon |
+| Design a Distributed Job Scheduler | Cron at scale, leader election, exactly-once | Coming Soon |

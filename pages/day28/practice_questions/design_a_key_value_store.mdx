@@ -1,0 +1,105 @@
+---
+title: "Design a Distributed Key-Value Store"
+description: "A Dynamo-style distributed key-value store — consistent hashing, replication, quorum reads/writes, and the CAP trade-offs that define it."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design a Distributed Key-Value Store <DifficultyBadge level="hard" />
+
+#### The prompt
+
+Build a `get(key)` / `put(key, value)` store that scales to far more data than one machine holds, stays available when machines fail, and survives the network splitting. This is the "design Dynamo/Cassandra" question — it forces every distributed-systems concept from the [scaling page](/day28/scaling) into one design.
+
+#### Requirements
+
+- **Functional:** `get(key)`, `put(key, value)`. That's the whole API — simplicity is the point.
+- **Non-functional:** **horizontally scalable** (add nodes for more capacity), **highly available** (a node failure isn't an outage), **fault-tolerant** (survives partitions), **tunable consistency** (let the caller choose strong-ish vs fast).
+
+#### Estimation
+
+Designed for the "doesn't fit / outgrows one box" regime: terabytes-to-petabytes of data, hundreds of thousands of ops/sec, spread across a large cluster. The whole design assumes **no single machine is special** — there's no primary.
+
+#### Core idea 1 — partition with consistent hashing
+
+To spread keys across nodes *and* rebalance gracefully when nodes join/leave, place nodes and keys on a **hash ring**. A key is owned by the first node clockwise. Adding or removing a node only moves the keys in that one arc (~1/N), not the whole dataset.
+
+<ArchitectureDiagram
+    title="Consistent hashing ring — keys owned by the next node clockwise, replicated to the following N-1"
+    width={640}
+    height={300}
+    nodes={[
+        { id: "n1", label: "Node 1", type: "db", x: 310, y: 40 },
+        { id: "k", label: "key 'x'", type: "note", x: 470, y: 95, w: 80, h: 40 },
+        { id: "n2", label: "Node 2", type: "db", x: 500, y: 200 },
+        { id: "n3", label: "Node 3", type: "db", x: 120, y: 200 },
+        { id: "n4", label: "Node 4", type: "replica", x: 130, y: 90 },
+    ]}
+    edges={[
+        { from: "k", to: "n2", label: "owner", dashed: true },
+        { from: "n2", to: "n3", label: "replica", dashed: true },
+    ]}
+    caption="key 'x' hashes to a ring position; its owner is the next node clockwise (Node 2), and copies live on the following N-1 nodes (Node 3, …) for replication. Add a node and only the keys in its arc move — the rest of the cluster is undisturbed."
+/>
+
+#### Core idea 2 — replication
+
+Each key is stored on **N nodes** (e.g. N=3): its owner plus the next N-1 nodes clockwise. This gives durability (lose a node, the data lives on two others) and availability (reads/writes can go to any replica).
+
+#### Core idea 3 — quorum for tunable consistency
+
+With N replicas, let the caller tune consistency via two knobs:
+
+- **W** = how many replicas must acknowledge a *write* before it's "successful."
+- **R** = how many replicas must respond to a *read*.
+
+<Callout type="info">
+    **The quorum rule: if `W + R > N`, reads and writes overlap on at least one node, so a read is guaranteed to see the latest write — strong consistency.** Tune the knobs to the workload:
+    - `W=N, R=1` → fast reads, slow/strict writes (read-heavy, must-be-fresh reads).
+    - `W=1, R=N` → fast writes, slow reads.
+    - `W + R ≤ N` → no overlap guarantee → faster, but eventually consistent (you might read stale data).
+
+    This single inequality is *the* thing to know for this question — it turns "consistency" from a yes/no into a dial the caller controls per operation.
+</Callout>
+
+#### High-level design
+
+<ArchitectureDiagram
+    title="Coordinator routes to N replicas on the ring; quorum decides success"
+    width={840}
+    height={280}
+    nodes={[
+        { id: "client", label: "Client", type: "client", x: 70, y: 110 },
+        { id: "coord", label: "Coordinator", sub: "any node", type: "service", x: 270, y: 110, w: 140 },
+        { id: "r1", label: "Replica 1", type: "db", x: 540, y: 30 },
+        { id: "r2", label: "Replica 2", type: "db", x: 540, y: 110 },
+        { id: "r3", label: "Replica 3", type: "replica", x: 540, y: 190 },
+    ]}
+    edges={[
+        { from: "client", to: "coord", label: "put(k,v)" },
+        { from: "coord", to: "r1" }, { from: "coord", to: "r2" }, { from: "coord", to: "r3" },
+    ]}
+    caption="Any node can act as coordinator: it hashes the key, finds the N replicas on the ring, and writes to all of them — returning success once W acknowledge. Reads gather from R replicas and return the newest version."
+/>
+
+#### Deep dives
+
+- **CAP choice:** a Dynamo-style store is typically **AP** — it stays available during a partition and resolves conflicts later (eventual consistency). With high W+R you can lean toward CP. This is the CAP theorem made concrete: the W/R knobs *are* the C-vs-A dial.
+- **Conflict resolution:** when replicas disagree (concurrent writes during a partition), use **vector clocks** to detect causality, and resolve by "last-write-wins" or by handing both versions to the application to merge.
+- **Failure detection & healing:** nodes **gossip** health to each other; a temporarily-down replica's writes are held by a healthy node (**hinted handoff**) and replayed when it returns; background **anti-entropy** (Merkle-tree comparison) repairs drifted replicas.
+- **Virtual nodes:** give each physical node many ring positions so load and the rebalancing burden spread evenly when nodes change.
+
+#### Analysis
+
+- **Scalability:** linear — add nodes, the ring absorbs them, capacity and throughput grow.
+- **Availability:** survives node and (with AP tuning) partition failures.
+- **Consistency:** tunable per-operation via W and R.
+
+#### Same skin
+
+- **Cassandra, DynamoDB, Riak, Voldemort** — all real instances of this exact design.
+- **Distributed caches** (a cache is a KV store with eviction) use the same consistent-hashing ring.
+- **[Consistent hashing](/day28/scaling)** and the **[CAP theorem](/day28/scaling)** from the scaling page are the load-bearing ideas here — this problem is where they come together.

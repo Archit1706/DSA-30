@@ -1,0 +1,109 @@
+---
+title: "Design a News Feed"
+description: "The Twitter/Instagram home feed — fan-out on write vs fan-out on read, the celebrity problem, and the hybrid model that real systems use."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { ArchitectureDiagram } from "../../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+### Design a News Feed <DifficultyBadge level="medium" />
+
+#### The prompt
+
+Build the home timeline: a user opens the app and sees a feed of recent posts from everyone they follow, newest-ish first. The classic Twitter/Instagram/Facebook design question — and the one that hinges on a single brilliant trade-off.
+
+#### Requirements
+
+- **Functional:** publish a post; view a feed of posts from followed accounts.
+- **Non-functional:** **very read-heavy**, **low feed-load latency** (feed must open fast — sub-200 ms), eventual consistency is fine (a post appearing a few seconds late is acceptable).
+
+#### Estimation
+
+300 M DAU, each opens the feed ~10×/day → **3 B feed reads/day ≈ 35k/s** (peak much higher). Posts are far rarer than reads. *Read-dominated → we want feed reads to be cheap, even if posts get more expensive.*
+
+#### The central decision: fan-out on write vs read
+
+This is the whole problem. When does the work of assembling a feed happen?
+
+| | **Fan-out on write (push)** | **Fan-out on read (pull)** |
+| :--- | :--- | :--- |
+| On a post | push the post into every follower's precomputed feed | do nothing |
+| On a feed read | just read your ready-made feed (fast!) | gather recent posts from everyone you follow, merge, sort (slow) |
+| Great for | the common case — reads are instant | users with huge follower counts (celebrities) |
+| Breaks on | a celebrity with 100 M followers → 100 M writes per post | a user who follows thousands → expensive every read |
+
+<ArchitectureDiagram
+    title="Fan-out on write: do the merge once at post time, into per-user feed caches"
+    width={840}
+    height={280}
+    nodes={[
+        { id: "user", label: "Poster", type: "client", x: 70, y: 120 },
+        { id: "post", label: "Post Svc", type: "service", x: 240, y: 120 },
+        { id: "q", label: "Fan-out Queue", type: "queue", x: 430, y: 120, w: 140 },
+        { id: "f1", label: "Feed cache: A", type: "cache", x: 660, y: 40 },
+        { id: "f2", label: "Feed cache: B", type: "cache", x: 660, y: 120 },
+        { id: "f3", label: "Feed cache: C", type: "cache", x: 660, y: 200 },
+    ]}
+    edges={[
+        { from: "user", to: "post", label: "new post" },
+        { from: "post", to: "q", label: "fan out to followers" },
+        { from: "q", to: "f1" }, { from: "q", to: "f2" }, { from: "q", to: "f3" },
+    ]}
+    caption="On post, a queue pushes the post ID into each follower's feed cache (a per-user list in Redis). Reading the feed is then just 'read my list' — O(1) lookup, instant. The cost moves to write time, where it's tolerable because posts are rare."
+/>
+
+#### The hybrid model (the strong answer)
+
+Neither pure approach survives reality. The production answer is **hybrid**:
+
+- **Most users:** fan-out on write. Their posts push to followers' feed caches; feed reads are instant.
+- **Celebrities (huge follower counts):** fan-out on *read* for their posts. Don't push to 100 M feeds. Instead, when a follower loads their feed, **merge** their precomputed feed with the celebrity's recent posts at read time.
+
+<Callout type="info">
+    **The celebrity problem is the heart of this question.** Pure push dies on a celebrity's post (100 M writes, a "fan-out storm"). Pure pull dies on every feed read for users who follow many. The hybrid splits the difference: cheap push for the 99.9%, lazy pull for the handful of mega-accounts. Naming this trade-off — and the threshold at which you switch a user from push to pull — is exactly the senior signal interviewers want.
+</Callout>
+
+#### High-level design
+
+<ArchitectureDiagram
+    title="Write path fans out; read path reads cache + merges celebrity posts"
+    width={880}
+    height={320}
+    nodes={[
+        { id: "client", label: "Client", type: "client", x: 70, y: 150 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 230, y: 150 },
+        { id: "post", label: "Post Svc", type: "service", x: 420, y: 70 },
+        { id: "feed", label: "Feed Svc", type: "service", x: 420, y: 230 },
+        { id: "q", label: "Fan-out Queue", type: "queue", x: 620, y: 70, w: 140 },
+        { id: "feedcache", label: "Feed Cache", sub: "per-user lists", type: "cache", x: 640, y: 200 },
+        { id: "db", label: "Posts DB", type: "db", x: 820, y: 130, w: 110 },
+    ]}
+    edges={[
+        { from: "client", to: "lb" },
+        { from: "lb", to: "post" }, { from: "lb", to: "feed" },
+        { from: "post", to: "db", label: "store" }, { from: "post", to: "q", label: "fan out" },
+        { from: "q", to: "feedcache", label: "push IDs" },
+        { from: "feed", to: "feedcache", label: "read list" },
+        { from: "feed", to: "db", label: "+ celeb posts", dashed: true },
+    ]}
+    caption="Posting stores the post and enqueues fan-out. Feed cache holds each user's precomputed timeline (post IDs). The feed service reads that list and merges in recent posts from any celebrities the user follows (pulled live)."
+/>
+
+#### Deep dives
+
+- **Feed storage:** store *post IDs* in each user's feed cache (a Redis list, capped at ~hundreds), not full posts — hydrate the actual post content from the posts DB/cache at read time.
+- **Ranking:** chronological is simplest; real feeds use ML ranking. Mention it as an extension, don't get lost in it.
+- **Fan-out worker pool:** the queue + workers smooth the spike when a popular (non-celebrity) user posts.
+
+#### Analysis
+
+- **Feed read:** ~O(1) cache list read + a bounded merge for celebrities → fast.
+- **Post write:** O(followers) for push users (async via queue); O(1) for celebrities (deferred to read).
+
+#### Same skin
+
+- **Notification feeds, activity streams, Twitter timeline, Instagram feed** — all the same push/pull/hybrid trade-off.
+- **The merge step** is a [k-way merge with a heap (Day 7 / Day 26)](/day26) — merging time-sorted streams from multiple sources.
+- **[Message queues](/day28/building_blocks)** doing the async fan-out is the same decoupling pattern as the notification service.

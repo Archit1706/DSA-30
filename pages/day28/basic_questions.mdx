@@ -1,0 +1,99 @@
+---
+title: "Basic System Design Questions"
+description: "Warm-up concept checks for system design — latency ladders, caching and invalidation, replication vs sharding, the CAP choice, statelessness, and back-of-the-envelope reflexes."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { LatencyLadder } from "../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+# Basic System Design Questions
+
+Unlike the coding days, these warm-ups have no code — they lock in the **vocabulary and reflexes** you'll lean on under pressure. Work through them out loud, as if an interviewer just asked. The goal: when someone says "cache invalidation" or "shard key," you respond instantly, not after a two-second pause.
+
+<Steps>
+
+### 1. What's the difference between latency and throughput?
+
+**Latency** is how long *one* request takes (ms). **Throughput** is how many requests the system handles *per unit time* (QPS). They're independent and often trade off: batching raises throughput while hurting per-request latency; adding parallel workers raises throughput without changing any single request's latency. Always ask which one the question cares about.
+
+### 2. Why do we cache, in one sentence?
+
+Because RAM is ~100× faster than SSD and ~10,000× faster than a network round trip — so keeping hot data in memory skips orders of magnitude of latency and shields the database from load. The cost is **staleness** (a cache is a copy that can go out of date) and **invalidation** complexity.
+
+<LatencyLadder />
+
+### 3. What are the two ways to keep a cache from serving stale data?
+
+**TTL** — entries auto-expire after N seconds (simple; serves stale data until expiry). **Explicit invalidation** — delete or update the cache key on every write (correct; easy to miss a write path). Most real systems use *both*: explicit invalidation for correctness, TTL as a safety net for the writes you forgot about.
+
+### 4. Replication vs sharding — what's the difference, and when do you use each?
+
+**Replication** = copy the *whole* dataset to multiple machines → durability + read scaling. **Sharding** = split the dataset into *pieces*, each on a different machine → write scaling + fitting data that's too big for one box. You replicate for *safety and reads*; you shard when the data or write volume *outgrows one machine*. Large systems do both: shard the data, then replicate each shard.
+
+### 5. Vertical vs horizontal scaling?
+
+**Vertical** = a bigger machine (more CPU/RAM). Simple, no code changes, but hits a hard ceiling and is a single point of failure. **Horizontal** = more machines behind a load balancer. Near-unlimited and fault-tolerant, but requires **stateless** servers and brings distributed-systems complexity. Vertical is the right *first* move; horizontal is the only path past one box.
+
+### 6. Why must app servers be stateless to scale horizontally?
+
+If a server stores session/user state in its own memory, requests must keep returning to that exact server, and that state vanishes when it dies. Statelessness makes every server interchangeable, so the load balancer can route any request anywhere and you scale by simply adding boxes. Push state into a shared store (Redis, the DB).
+
+### 7. State the CAP theorem in your own words.
+
+During a network **partition**, a distributed system must choose: stay **consistent** (refuse to serve stale/conflicting data, sacrificing availability — **CP**) or stay **available** (keep answering from local state, sacrificing consistency — **AP**). Since partitions are inevitable, the real choice is CP vs AP. Banks lean CP; feeds and carts lean AP.
+
+### 8. A "design X" prompt arrives. What are your first five minutes spent on?
+
+**Requirements, not boxes.** Clarify the 2–3 core functional features (and defer the rest aloud), then pin down non-functional targets: scale (DAU, read/write ratio), latency, availability-vs-consistency, durability. State your assumptions out loud. Only after this do you estimate, then design.
+
+### 9. Quick estimation: a service gets 1 billion reads per day. Roughly what's the average read QPS?
+
+1 B ÷ ~10⁵ s ≈ **~11,500 reads/s** average. Peak (×3–5) ≈ **35k–60k/s**. That number alone tells you you're past "one box" — you'll need a cache, read replicas, and probably sharding. (Reflex: divide daily totals by 10⁵ to get QPS.)
+
+### 10. What does a message queue buy you, and what does it cost?
+
+**Buys:** async responses (snappy API), spike-smoothing (the queue buffers bursts), decoupling (producer and consumer scale independently), and crash-safety (messages persist). **Costs:** eventual consistency (the work isn't done *yet*) and at-least-once delivery (a message can arrive twice → consumers must be **idempotent**).
+
+</Steps>
+
+## Mini-quiz
+
+<QuizBox
+    question="A teammate proposes storing user session data in each app server's local memory 'for speed.' Why will this break horizontal scaling?"
+    options={[
+        "Local memory is too small",
+        "Requests would have to return to the same server every time (sticky sessions), and the session is lost if that server dies — servers stop being interchangeable, so the load balancer can't route freely and adding capacity doesn't help",
+        "It won't break anything",
+        "Local memory is slower than Redis"
+    ]}
+    correctIndex={1}
+    explanation="Local per-server state is the enemy of horizontal scaling. It forces sticky sessions (fragile), loses state on server death, and makes servers non-interchangeable. The fix is to externalize session state to a shared store (Redis), keeping app servers stateless and freely scalable."
+/>
+
+<QuizBox
+    question="Reads outnumber writes 50:1 on a service whose database is maxing out on read load. What's the most natural first move?"
+    options={[
+        "Shard the database immediately",
+        "Add a cache and/or read replicas — reads dominate, so absorbing reads in a cache (and spreading misses across replicas) relieves the primary without the complexity of sharding",
+        "Switch to NoSQL",
+        "Add more app servers"
+    ]}
+    correctIndex={1}
+    explanation="When reads dominate and the DB is read-bound, caching and read replicas are the high-leverage, low-complexity fix: the cache serves the hot reads, replicas spread the rest, and the primary is freed up. Sharding is a heavier, one-way-door move you reach for when data size or WRITE volume (not read volume) exceeds one machine."
+/>
+
+<QuizBox
+    question="Why is reading 1 MB sequentially faster than 250 random 4 KB reads of the same total size, on basically every storage medium?"
+    options={[
+        "It isn't — they're equal",
+        "Random access pays a per-operation cost (seek time on disk, or many separate I/O ops on SSD) that sequential access amortizes into one streaming read — which is why databases favor append-only logs and sequential writes",
+        "Sequential reads use less RAM",
+        "Random reads are blocked by the OS"
+    ]}
+    correctIndex={1}
+    explanation="Each random access carries overhead — a physical seek on spinning disk, or a separate I/O request and lookup on SSD — while a sequential read streams contiguous bytes in one go. This is why LSM-trees, write-ahead logs, and Kafka all lean on sequential I/O, and why 'chatty' random access patterns are a performance smell."
+/>
+
+Next: **[Practice Questions](/day28/practice_questions)** — eight classic design prompts, each walked through the full 6-step framework.

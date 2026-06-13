@@ -1,0 +1,226 @@
+---
+title: "Scaling & Trade-offs"
+description: "Vertical vs horizontal scaling, replication, sharding, consistent hashing, the CAP theorem, and consistency models — the trade-offs that separate a naive design from a scalable one."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { CapTheoremTriangle, ArchitectureDiagram } from "../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+# Scaling & Trade-offs
+
+A design that works for 1,000 users and a design that works for 100 million are different machines. This page is about the moves you make to cross that gap — and, more importantly, the **trade-offs** each move forces on you. Every scaling technique buys you something and charges you something. Naming the charge is what scores points.
+
+## Vertical vs horizontal scaling
+
+There are exactly two ways to handle more load:
+
+<ArchitectureDiagram
+    title="Scale up (a bigger box) vs scale out (more boxes)"
+    width={820}
+    height={250}
+    nodes={[
+        { id: "v1", label: "Server", sub: "4 CPU / 16 GB", type: "server", x: 130, y: 60, w: 130 },
+        { id: "v2", label: "Same Server", sub: "64 CPU / 512 GB", type: "server", x: 130, y: 170, w: 150, h: 70 },
+        { id: "lb", label: "Load Balancer", type: "lb", x: 560, y: 50 },
+        { id: "h1", label: "Server", type: "server", x: 460, y: 150 },
+        { id: "h2", label: "Server", type: "server", x: 590, y: 150 },
+        { id: "h3", label: "Server", type: "server", x: 720, y: 150 },
+    ]}
+    edges={[
+        { from: "v1", to: "v2", label: "buy bigger", dashed: true },
+        { from: "lb", to: "h1" }, { from: "lb", to: "h2" }, { from: "lb", to: "h3" },
+    ]}
+    caption="Left: vertical scaling — replace the box with a beefier one. Right: horizontal scaling — add identical boxes behind a load balancer. Vertical is simpler but hits a hard ceiling; horizontal is the only path to true scale."
+/>
+
+| | **Vertical (scale up)** | **Horizontal (scale out)** |
+| :--- | :--- | :--- |
+| Move | bigger CPU / more RAM on one machine | more machines behind a load balancer |
+| Pros | dead simple, no code changes, no distributed-systems problems | (almost) unlimited ceiling, fault-tolerant (one dies, others serve) |
+| Cons | **hard ceiling** (biggest box money can buy), single point of failure, cost grows super-linearly | requires statelessness, a load balancer, and you inherit distributed-systems pain |
+| Verdict | the right *first* move | the only path past one machine's limits |
+
+<Callout type="info">
+    **The golden rule that makes horizontal scaling possible: keep app servers stateless.** If a server stores session data in its own memory, requests *must* return to that exact server (sticky sessions) — and when it dies, that state is gone. Push all state *out* of the app server into a shared store (Redis, the database). Then every server is interchangeable, the load balancer can route anywhere, and adding capacity is just adding boxes.
+</Callout>
+
+## Replication — copies for safety and read scale
+
+**Replication** keeps multiple copies of your data on different machines. It buys two things: **durability** (one disk dies, the data survives) and **read throughput** (reads can hit any copy).
+
+The common pattern is **primary-replica** (a.k.a. leader-follower): all *writes* go to the primary, which streams its changes to read-only *replicas*. Reads fan out across the replicas.
+
+<ArchitectureDiagram
+    title="Primary-replica: writes to one, reads from many"
+    width={760}
+    nodes={[
+        { id: "app", label: "App Servers", type: "server", x: 110, y: 110 },
+        { id: "primary", label: "Primary DB", sub: "all writes", type: "db", x: 360, y: 110 },
+        { id: "r1", label: "Replica", sub: "reads", type: "replica", x: 620, y: 40 },
+        { id: "r2", label: "Replica", sub: "reads", type: "replica", x: 620, y: 120 },
+        { id: "r3", label: "Replica", sub: "reads", type: "replica", x: 620, y: 200 },
+    ]}
+    edges={[
+        { from: "app", to: "primary", label: "writes" },
+        { from: "app", to: "r1", label: "reads", dashed: true },
+        { from: "primary", to: "r1", label: "replicate" },
+        { from: "primary", to: "r2" },
+        { from: "primary", to: "r3" },
+    ]}
+    caption="Perfect for read-heavy workloads (the common case). The catch: replication takes time, so a read hitting a replica a moment after a write may see stale data — that's replication lag, a form of eventual consistency."
+/>
+
+The trade-off: **replication lag.** Copying the write to replicas isn't instant, so a read right after a write might land on a not-yet-updated replica and return stale data. Fixes include reading-your-own-writes from the primary, or accepting the staleness where it's harmless (a like count can lag; your bank balance can't).
+
+## Sharding — splitting data when it won't fit
+
+Replication copies the *whole* dataset to each machine — great until the dataset is bigger than one machine can hold (our URL shortener's 90 TB). **Sharding (partitioning)** splits the data into pieces and puts each piece on a different machine. Each shard holds a *subset* of the data.
+
+<ArchitectureDiagram
+    title="Sharding by key range — each shard owns a slice of the keyspace"
+    width={780}
+    nodes={[
+        { id: "router", label: "Router / App", sub: "hash(key) → shard", type: "service", x: 130, y: 120, w: 150 },
+        { id: "s1", label: "Shard A", sub: "users a–h", type: "db", x: 420, y: 40 },
+        { id: "s2", label: "Shard B", sub: "users i–p", type: "db", x: 420, y: 120 },
+        { id: "s3", label: "Shard C", sub: "users q–z", type: "db", x: 420, y: 200 },
+    ]}
+    edges={[
+        { from: "router", to: "s1" }, { from: "router", to: "s2" }, { from: "router", to: "s3" },
+    ]}
+    caption="The shard key decides which machine a row lives on. Pick it well and load spreads evenly; pick it badly and one shard gets all the traffic (a 'hot shard')."
+/>
+
+The whole game is the **shard key**:
+
+- **Hash-based** — `shard = hash(key) % N`. Spreads load evenly, but **range queries become impossible** (adjacent keys scatter across shards), and changing `N` reshuffles almost everything (see consistent hashing below).
+- **Range-based** — `shard = which range key falls in` (a–h, i–p, …). Range queries stay efficient, but you risk **hot shards** if data isn't uniform (everyone named with 'S', or all of today's timestamps landing on one shard).
+
+<Callout type="warning">
+    **Sharding's hidden costs.** Once data is split: (1) **cross-shard queries** and joins become slow or impossible — a query touching many shards must scatter-gather and merge. (2) **Transactions across shards** are hard (no single DB to give you ACID). (3) **Rebalancing** when you add a shard is painful. (4) A bad shard key creates a **hot shard** that bottlenecks the whole system. Shard only when you must — it's a one-way door that complicates everything downstream.
+</Callout>
+
+## Consistent hashing — sharding that survives change
+
+Naive `hash(key) % N` has a fatal flaw: change `N` (add or remove a server) and *almost every* key remaps to a different server — catastrophic for a cache (every entry suddenly misses) or a sharded store (you move nearly all the data).
+
+**Consistent hashing** fixes this. Map both servers *and* keys onto a circular ring (0 to 2³²). A key belongs to the first server clockwise from it. Now when a server joins or leaves, **only the keys between it and its neighbor move** — about `1/N` of the keys, not all of them.
+
+<ArchitectureDiagram
+    title="The hash ring — a key belongs to the next server clockwise"
+    width={620}
+    height={300}
+    nodes={[
+        { id: "sA", label: "Server A", type: "server", x: 310, y: 40 },
+        { id: "k1", label: "key1", type: "note", x: 480, y: 90, w: 80, h: 40 },
+        { id: "sB", label: "Server B", type: "server", x: 500, y: 200 },
+        { id: "k2", label: "key2", type: "note", x: 310, y: 255, w: 80, h: 40 },
+        { id: "sC", label: "Server C", type: "server", x: 120, y: 200 },
+        { id: "k3", label: "key3", type: "note", x: 130, y: 90, w: 80, h: 40 },
+    ]}
+    edges={[
+        { from: "k3", to: "sA", label: "→ A", dashed: true },
+        { from: "k1", to: "sB", label: "→ B", dashed: true },
+        { from: "k2", to: "sB", label: "→ B", dashed: true },
+    ]}
+    caption="Each key hashes to a point on the ring and is owned by the next server clockwise. Remove Server B and only key1 + key2 move (to the next server clockwise) — every other key stays put. Real systems add 'virtual nodes' (many ring points per server) for even distribution."
+/>
+
+This is *the* answer when an interviewer asks "how do you add a cache node without invalidating the whole cache?" or "how does your sharded store rebalance?" Consistent hashing is the backbone of Cassandra, DynamoDB, and most distributed caches.
+
+## The CAP theorem
+
+The most famous trade-off in distributed systems, and the one interviewers probe to see if you *understand* it or just memorized the letters.
+
+**The claim:** when a network **partition** (P) happens — some nodes can't talk to others — a distributed system must choose between **consistency** (C: every read sees the latest write) and **availability** (A: every request gets a non-error response). You cannot have both *during the partition*.
+
+<CapTheoremTriangle />
+
+The crucial nuance most candidates miss: **partitions are not optional.** In any real distributed system the network *will* drop messages, so P is a given. That means the real choice is never "pick 2 of 3" — it's the binary **CP vs AP**:
+
+- **CP** — on a partition, refuse to answer rather than risk stale/conflicting data. *Choose when correctness beats uptime:* payments, inventory, locks, leader election.
+- **AP** — on a partition, keep answering from local state and reconcile later. *Choose when uptime beats perfect freshness:* feeds, shopping carts, DNS, metrics, likes.
+
+<Callout type="info">
+    **CAP is about behavior *during a partition*, not all the time.** When the network is healthy, a well-built system delivers both consistency and availability. CAP only forces the choice in the (rare but inevitable) moment nodes can't communicate. The follow-up framework, **PACELC**, adds: *else* (E), when there's no partition, you still trade **L**atency vs **C**onsistency. Strong consistency costs round trips; that's why even healthy systems often relax it for speed.
+</Callout>
+
+## Consistency models — a spectrum, not a switch
+
+"Consistency" isn't binary. It's a dial from expensive-and-correct to cheap-and-fast:
+
+| Model | Guarantee | Cost | Used for |
+| :--- | :--- | :--- | :--- |
+| **Strong** | every read sees the latest write, always | slow — needs coordination/round trips | bank balances, locks |
+| **Read-your-writes** | *you* see your own writes immediately (others may lag) | moderate | "I posted it, I should see it" |
+| **Eventual** | replicas converge *eventually* if writes stop | cheap, fast, highly available | likes, view counts, DNS, feeds |
+
+The art is matching the model to the data. A like count can be eventually consistent — nobody's hurt if it reads 41 instead of 42 for a second. A bank balance cannot. Picking the *weakest* model that's still correct for the use case is a senior move, because stronger consistency always costs latency and availability.
+
+## The scaling decision tree
+
+<Steps>
+
+### Start with one box (vertical)
+
+Simplest possible thing. Scale up until it's not enough or too expensive.
+
+### Make app servers stateless, add a load balancer (horizontal)
+
+Push state to a shared store. Now add app servers freely.
+
+### Add a cache + read replicas
+
+Reads almost always dominate. A cache and read replicas absorb the read load and protect the database.
+
+### Shard the database (only when forced)
+
+When the data or write volume exceeds one machine, split it. Choose a shard key carefully; use consistent hashing to rebalance gracefully.
+
+### Go async with queues; go global with CDNs/multi-region
+
+Offload slow work to queues. Put data near users with CDNs and regional replicas, accepting the eventual-consistency that distance forces.
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="You're sharding a cache with hash(key) % N. You add one server, going from 4 to 5. What happens, and what's the fix?"
+    options={[
+        "Only 1/5 of keys move — no problem",
+        "Almost ALL keys remap (because % 4 vs % 5 changes most results), so the cache effectively empties and every request misses → DB overload. Fix: consistent hashing, which moves only ~1/N of keys when a node is added/removed",
+        "Nothing changes",
+        "The cache doubles in size"
+    ]}
+    correctIndex={1}
+    explanation="Changing the modulus reshuffles most key→server mappings, so nearly every cached entry lands on a different node and misses — a 'cache stampede' against the DB right when you were trying to add capacity. Consistent hashing places keys and servers on a ring so adding/removing a node only relocates the keys in that one arc (~1/N), keeping the rest of the cache warm."
+/>
+
+<QuizBox
+    question="A distributed shopping-cart service hits a network partition. The team decides the cart should still accept 'add to cart' even if replicas can't sync, reconciling later. On the CAP spectrum, what did they choose and why is it reasonable?"
+    options={[
+        "CP — correctness above all",
+        "AP — they kept availability during the partition, accepting temporary inconsistency between replicas; reasonable because a momentarily-inconsistent cart (reconciled at checkout) is far better for the business than a cart that errors out",
+        "CA — the ideal choice",
+        "They violated CAP"
+    ]}
+    correctIndex={1}
+    explanation="Choosing to keep serving (accept the write) during a partition, at the cost of replicas temporarily disagreeing, is the AP choice. For a cart, a brief inconsistency reconciled later beats blocking the customer — lost sales hurt more than a rare merge conflict. A bank transfer would make the opposite (CP) choice. CAP forces the trade-off; the right answer depends on what the data is worth."
+/>
+
+<QuizBox
+    question="Why is keeping app servers STATELESS the precondition for horizontal scaling?"
+    options={[
+        "Stateless servers use less RAM",
+        "If a server holds session/user state locally, requests must return to that exact server and its state dies with it. Statelessness makes every server interchangeable, so the load balancer can route anywhere and you scale by just adding boxes",
+        "It isn't required",
+        "Stateless servers are faster per request"
+    ]}
+    correctIndex={1}
+    explanation="Horizontal scaling assumes any request can go to any server. That only holds if servers carry no per-user state — otherwise you need sticky sessions (fragile) and you lose state when a server dies. Pushing state into a shared store (Redis, DB) makes servers fungible, which is what lets you add/remove them freely behind a load balancer."
+/>
+
+Next: **[Case Study — URL Shortener](/day28/case_study_url_shortener)** — the full framework applied end-to-end, where every concept from these pages shows up in one design.
