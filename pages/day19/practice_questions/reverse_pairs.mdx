@@ -1,0 +1,116 @@
+---
+title: "Reverse Pairs"
+description: "Count pairs (i, j) with i < j and nums[i] > 2 * nums[j] — a value-indexed Fenwick tree with coordinate compression."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Reverse Pairs <DifficultyBadge level="hard" />
+
+#### Description
+
+Given `nums`, count the **reverse pairs**: pairs `(i, j)` where `i < j` and `nums[i] > 2 * nums[j]`.
+
+#### Examples
+
+```py
+> nums = [1, 3, 2, 3, 1]
+  Output: 2
+  # (1,4): 3 > 2*1 ; (3,4): 3 > 2*1
+
+> nums = [2, 4, 3, 5, 1]
+  Output: 3
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 5 × 10^4`
+- `-2^31 <= nums[i] <= 2^31 − 1`  (use 64-bit when doubling!)
+
+#### Intuition
+
+A counting-with-condition problem, like [Count of Smaller](/day19/practice_questions/count_of_smaller_numbers_after_self), but the condition is `nums[i] > 2 * nums[j]`. Process **left to right**, keeping a value-indexed BIT of the elements seen so far (all have `i < j` relative to the current `j`). For each new `nums[j]`, count how many *already-seen* values exceed `2 * nums[j]` — those are the reverse pairs ending at `j`.
+
+The wrinkle: we query by the value `2 * nums[j]`, which may not be one of the array's values, so we compress **both** the original values *and* the doubled query thresholds together.
+
+#### Code
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        vector<int> bit; int k;
+        void add(int i) { for (; i <= k; i += i & (-i)) bit[i]++; }
+        int pre(int i) { int s = 0; for (; i > 0; i -= i & (-i)) s += bit[i]; return s; }
+    public:
+        int reversePairs(vector<int>& nums) {
+            // compress values AND the 2*nums[j] thresholds together
+            vector<long long> all;
+            for (int x : nums) { all.push_back(x); all.push_back(2LL * x); }
+            sort(all.begin(), all.end());
+            all.erase(unique(all.begin(), all.end()), all.end());
+            k = all.size(); bit.assign(k + 1, 0);
+            auto rank = [&](long long v) {
+                return int(lower_bound(all.begin(), all.end(), v) - all.begin()) + 1;
+            };
+            int count = 0;
+            for (int j = 0; j < nums.size(); ++j) {
+                // already-seen values > 2*nums[j]  ==  total seen − (values <= 2*nums[j])
+                int r = rank(2LL * nums[j]);
+                count += pre(k) - pre(r);          // strictly greater than threshold
+                add(rank(nums[j]));                // record nums[j] for future j's
+            }
+            return count;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    import bisect
+    class Solution:
+        def reversePairs(self, nums):
+            vals = sorted(set([x for x in nums] + [2 * x for x in nums]))
+            rank = {v: i + 1 for i, v in enumerate(vals)}
+            k = len(vals)
+            bit = [0] * (k + 1)
+
+            def add(i):
+                while i <= k:
+                    bit[i] += 1
+                    i += i & (-i)
+            def pre(i):
+                s = 0
+                while i > 0:
+                    s += bit[i]
+                    i -= i & (-i)
+                return s
+
+            count = 0
+            for j in range(len(nums)):
+                r = rank[2 * nums[j]]
+                count += pre(k) - pre(r)           # seen values strictly > 2*nums[j]
+                add(rank[nums[j]])                 # record current
+            return count
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Two traps specific to this problem:** (1) **overflow** — `2 * nums[j]` can exceed 32 bits, so compute it in 64-bit (`2LL * x` / Python is fine). (2) **Compress the doubled thresholds too** — the query value `2 * nums[j]` is rarely itself an array element, so it must be part of the coordinate-compression set, or `rank()` will miss it. Forgetting either gives wrong counts on adversarial inputs.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n log n) — compression sort plus n BIT operations.
+- **Space:** O(n).
+
+> Like Count of Smaller, this also has an elegant **merge-sort** solution: count cross-pairs with `nums[i] > 2 * nums[j]` during the merge. Same O(n log n). Mention both — interviewers often want to hear you know the BIT *and* the D&C framing.
+
+#### Same skin
+
+- **[Count of Smaller Numbers After Self](/day19/practice_questions/count_of_smaller_numbers_after_self)** — the same value-indexed BIT, simpler condition.
+- **Count of Range Sum** — BIT over prefix sums, "how many prefix sums fall in a range."
+- **[Divide & Conquer counting (Day 26)](/day26)** — the merge-sort approach to inversion-style counting.

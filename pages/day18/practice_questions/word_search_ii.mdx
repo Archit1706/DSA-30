@@ -1,0 +1,162 @@
+---
+title: "Word Search II"
+description: "Find all dictionary words hidden in a character grid — the canonical trie + DFS problem, where the trie prunes dead branches and lets you match all words in one grid walk."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Word Search II <DifficultyBadge level="hard" />
+
+#### Description
+
+Given an `m × n` `board` of characters and a list of `words`, return all words that can be formed by a path of **adjacent** (up/down/left/right) cells, using each cell at most once per word.
+
+#### Examples
+
+```py
+> board = [["o","a","a","n"],
+           ["e","t","a","e"],
+           ["i","h","k","r"],
+           ["i","f","l","v"]]
+  words = ["oath","pea","eat","rain"]
+  Output: ["oath","eat"]
+```
+
+#### Constraints
+
+- `1 <= m, n <= 12`
+- `1 <= words.length <= 3 × 10^4`, word length ≤ 10, lowercase.
+
+#### Intuition — why a trie, not repeated Word Search I
+
+The naive approach runs a separate grid DFS for **each** word — O(words × cells × 4^L). With 30,000 words that's hopeless. The fix: put **all words into one trie**, then DFS the grid **once**, descending the trie in lockstep with the path. The instant the current grid path isn't a prefix of *any* word, the trie has no matching child and you prune immediately — one walk handles all words, and dead branches die fast.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        struct Node { Node* ch[26] = {}; string word; };  // store the word at its end node
+    public:
+        vector<string> findWords(vector<vector<char>>& board, vector<string>& words) {
+            Node* root = new Node();
+            for (auto& w : words) {
+                Node* cur = root;
+                for (char c : w) {
+                    if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+                    cur = cur->ch[c - 'a'];
+                }
+                cur->word = w;
+            }
+            int m = board.size(), n = board[0].size();
+            vector<string> res;
+            function<void(int,int,Node*)> dfs = [&](int r, int c, Node* node) {
+                char ch = board[r][c];
+                if (ch == '#' || !node->ch[ch - 'a']) return;     // pruned: no word has this prefix
+                node = node->ch[ch - 'a'];
+                if (!node->word.empty()) { res.push_back(node->word); node->word.clear(); } // dedupe
+                board[r][c] = '#';                                 // mark visited
+                int dr[] = {-1,1,0,0}, dc[] = {0,0,-1,1};
+                for (int k = 0; k < 4; k++) {
+                    int nr = r + dr[k], nc = c + dc[k];
+                    if (nr >= 0 && nr < m && nc >= 0 && nc < n) dfs(nr, nc, node);
+                }
+                board[r][c] = ch;                                  // restore
+            };
+            for (int r = 0; r < m; r++)
+                for (int c = 0; c < n; c++) dfs(r, c, root);
+            return res;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class Solution:
+        def findWords(self, board, words):
+            root = {}
+            for w in words:                       # build trie; store word at end node
+                node = root
+                for c in w:
+                    node = node.setdefault(c, {})
+                node["$"] = w
+            m, n, res = len(board), len(board[0]), []
+
+            def dfs(r, c, node):
+                ch = board[r][c]
+                nxt = node.get(ch)
+                if nxt is None:                   # prune: no word continues this prefix
+                    return
+                if "$" in nxt:
+                    res.append(nxt["$"])
+                    del nxt["$"]                  # dedupe — don't report twice
+                board[r][c] = "#"
+                for dr, dc in ((-1,0),(1,0),(0,-1),(0,1)):
+                    nr, nc = r + dr, c + dc
+                    if 0 <= nr < m and 0 <= nc < n and board[nr][nc] != "#":
+                        dfs(nr, nc, nxt)
+                board[r][c] = ch                  # backtrack
+
+            for r in range(m):
+                for c in range(n):
+                    dfs(r, c, root)
+            return res
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        static class Node { Node[] ch = new Node[26]; String word = null; }
+        private List<String> res = new ArrayList<>();
+        private char[][] board;
+        public List<String> findWords(char[][] board, String[] words) {
+            this.board = board;
+            Node root = new Node();
+            for (String w : words) {
+                Node cur = root;
+                for (char c : w.toCharArray()) {
+                    if (cur.ch[c - 'a'] == null) cur.ch[c - 'a'] = new Node();
+                    cur = cur.ch[c - 'a'];
+                }
+                cur.word = w;
+            }
+            for (int r = 0; r < board.length; r++)
+                for (int c = 0; c < board[0].length; c++) dfs(r, c, root);
+            return res;
+        }
+        private void dfs(int r, int c, Node node) {
+            char ch = board[r][c];
+            if (ch == '#' || node.ch[ch - 'a'] == null) return;
+            node = node.ch[ch - 'a'];
+            if (node.word != null) { res.add(node.word); node.word = null; }
+            board[r][c] = '#';
+            int[] dr = {-1,1,0,0}, dc = {0,0,-1,1};
+            for (int k = 0; k < 4; k++) {
+                int nr = r + dr[k], nc = c + dc[k];
+                if (nr >= 0 && nr < board.length && nc >= 0 && nc < board[0].length)
+                    dfs(nr, nc, node);
+            }
+            board[r][c] = ch;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Two tricks make this fast and clean:** (1) **store the full word at its end node** so when you hit an end-of-word you can emit it directly — no need to track the path string. (2) **Clear the word after emitting** (`del`/`null`) to dedupe and to *shrink the trie as you go*, which prunes future work. The trie turns "test 30,000 words" into "walk the grid once, guided by what's still possible."
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(cells × 4 × 3^(L−1))` in the worst case (L = max word length), but the trie prunes branches with no matching prefix, so it's far faster in practice. Building the trie is `O(total word characters)`.
+- **Space:** `O(total word characters)` for the trie + `O(L)` recursion.
+
+#### Same skin
+
+- **[Add & Search Word](/day18/practice_questions/add_and_search_word)** — also "trie + DFS," but the DFS walks a query string instead of a grid.
+- **[Word Search I](/day10)** — the single-word version; this problem is why you upgrade to a trie.
+- **Backtracking on a grid ([Day 16](/day16))** — the DFS + mark-visited + restore skeleton is pure backtracking, with the trie as the pruning oracle.

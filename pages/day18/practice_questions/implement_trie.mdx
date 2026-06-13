@@ -1,0 +1,144 @@
+---
+title: "Implement Trie (Prefix Tree)"
+description: "Build a trie supporting insert, search, and startsWith — the canonical trie problem and the foundation for everything else in the chapter."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+import { InteractiveTrie } from "../../../components/TrieVisualizer";
+export const Tab = Tabs.Tab;
+
+### Implement Trie (Prefix Tree) <DifficultyBadge level="easy" />
+
+#### Description
+
+Implement a `Trie` class with:
+
+- `insert(word)` — add `word` to the trie.
+- `search(word)` — return `true` if `word` was inserted (exact match).
+- `startsWith(prefix)` — return `true` if any inserted word starts with `prefix`.
+
+#### Examples
+
+```py
+> trie.insert("apple")
+  trie.search("apple")     -> true
+  trie.search("app")       -> false   # "app" was never inserted as a word
+  trie.startsWith("app")   -> true    # but it IS a prefix of "apple"
+  trie.insert("app")
+  trie.search("app")       -> true    # now it is a word
+```
+
+#### Constraints
+
+- `1 <= word.length, prefix.length <= 2000`
+- lowercase English letters only.
+- up to `3 × 10^4` calls total.
+
+#### Try it
+
+<InteractiveTrie initialWords={["apple"]} />
+
+#### Intuition
+
+Every operation is a walk down character-by-character. `insert` creates missing nodes; `search` and `startsWith` follow existing ones. The only difference between the two queries is whether you check the `isEnd` flag at the final node — that flag is what separates "a complete word ends here" from "this is merely a prefix."
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Trie {
+        struct Node { Node* ch[26] = {}; bool end = false; };
+        Node* root = new Node();
+        Node* walk(const string& s) {
+            Node* cur = root;
+            for (char c : s) {
+                if (!cur->ch[c - 'a']) return nullptr;
+                cur = cur->ch[c - 'a'];
+            }
+            return cur;
+        }
+    public:
+        void insert(string word) {
+            Node* cur = root;
+            for (char c : word) {
+                if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+                cur = cur->ch[c - 'a'];
+            }
+            cur->end = true;
+        }
+        bool search(string word)     { Node* n = walk(word);   return n && n->end; }
+        bool startsWith(string pre)  { return walk(pre) != nullptr; }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class Trie:
+        def __init__(self):
+            self.root = {}                 # nested dicts; "$" marks end-of-word
+
+        def insert(self, word: str) -> None:
+            node = self.root
+            for c in word:
+                node = node.setdefault(c, {})
+            node["$"] = True
+
+        def _walk(self, s):
+            node = self.root
+            for c in s:
+                if c not in node: return None
+                node = node[c]
+            return node
+
+        def search(self, word: str) -> bool:
+            node = self._walk(word)
+            return node is not None and "$" in node
+
+        def startsWith(self, prefix: str) -> bool:
+            return self._walk(prefix) is not None
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Trie {
+        static class Node { Node[] ch = new Node[26]; boolean end = false; }
+        private final Node root = new Node();
+        private Node walk(String s) {
+            Node cur = root;
+            for (char c : s.toCharArray()) {
+                if (cur.ch[c - 'a'] == null) return null;
+                cur = cur.ch[c - 'a'];
+            }
+            return cur;
+        }
+        public void insert(String word) {
+            Node cur = root;
+            for (char c : word.toCharArray()) {
+                if (cur.ch[c - 'a'] == null) cur.ch[c - 'a'] = new Node();
+                cur = cur.ch[c - 'a'];
+            }
+            cur.end = true;
+        }
+        public boolean search(String word)    { Node n = walk(word); return n != null && n.end; }
+        public boolean startsWith(String pre)  { return walk(pre) != null; }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The #1 bug: returning `true` from `search` just because the path exists.** Always check the end flag. `search("app")` after inserting only `"apple"` must be `false` — the path to `p-p` exists, but no word ends there. `startsWith` is the one that ignores the flag.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(L)` per operation, where `L` is the word/prefix length — independent of how many words are stored.
+- **Space:** `O(total characters inserted)` with map children; `O(N · L · 26)` worst case with array children.
+
+#### Same skin
+
+- Every other problem in this chapter starts from this class.
+- **[Add & Search Word](/day18/practice_questions/add_and_search_word)** — same trie, but `search` becomes a DFS to handle `.` wildcards.
+- **[Design HashMap / HashSet](/day8)** — the hash-based analog when you only need exact lookup, not prefixes.

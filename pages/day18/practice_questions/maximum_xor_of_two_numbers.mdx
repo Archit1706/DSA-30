@@ -1,0 +1,146 @@
+---
+title: "Maximum XOR of Two Numbers in an Array"
+description: "Find the maximum XOR of any two numbers — the bitwise trie that drops brute-force O(N²) to O(N·32) by greedily choosing opposite bits."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Maximum XOR of Two Numbers in an Array <DifficultyBadge level="medium" />
+
+#### Description
+
+Given an integer array `nums`, return the maximum value of `nums[i] XOR nums[j]` over all pairs `i, j`.
+
+#### Examples
+
+```py
+> nums = [3, 10, 5, 25, 2, 8]
+  Output: 28
+  Explanation: 5 XOR 25 = 28, the maximum over all pairs.
+
+> nums = [14, 70, 53, 83, 49, 91, 36, 80, 92, 51, 66, 70]
+  Output: 127
+```
+
+#### Constraints
+
+- `1 <= nums.length <= 2 × 10^5`
+- `0 <= nums[i] < 2^31`
+
+The size (`2 × 10^5`) rules out the obvious O(N²) pairwise scan — that's `4 × 10^10` operations. We need something near-linear.
+
+#### Intuition — the bitwise trie
+
+Insert every number into a trie keyed by its **bits, most-significant-first** (alphabet `{0, 1}`, depth 31). To maximize `x XOR partner`, walk down for `x` and **at each bit, greedily go to the *opposite* bit** if that child exists — opposite bits XOR to 1, and a 1 in a higher position dominates everything below it. Each number's best partner is found in 31 steps.
+
+> Why greedy works: securing a `1` in bit 30 contributes `2^30`, which is larger than the most you could ever gain (`2^30 − 1`) from *all* lower bits combined. So you never sacrifice a high bit for low ones — settle the highest bits first.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+    public:
+        int findMaximumXOR(vector<int>& nums) {
+            struct Node { Node* ch[2] = {}; };
+            Node* root = new Node();
+            auto insert = [&](int x) {
+                Node* cur = root;
+                for (int b = 31; b >= 0; --b) {
+                    int bit = (x >> b) & 1;
+                    if (!cur->ch[bit]) cur->ch[bit] = new Node();
+                    cur = cur->ch[bit];
+                }
+            };
+            auto best = [&](int x) {
+                Node* cur = root; int res = 0;
+                for (int b = 31; b >= 0; --b) {
+                    int bit = (x >> b) & 1, want = bit ^ 1;
+                    if (cur->ch[want]) { res |= (1 << b); cur = cur->ch[want]; }
+                    else cur = cur->ch[bit];
+                }
+                return res;
+            };
+            int ans = 0;
+            for (int x : nums) insert(x);
+            for (int x : nums) ans = max(ans, best(x));
+            return ans;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class Solution:
+        def findMaximumXOR(self, nums):
+            root = {}
+            BITS = 31
+            for x in nums:                       # build the bitwise trie
+                node = root
+                for b in range(BITS, -1, -1):
+                    bit = (x >> b) & 1
+                    node = node.setdefault(bit, {})
+            ans = 0
+            for x in nums:
+                node, cur = root, 0
+                for b in range(BITS, -1, -1):
+                    bit = (x >> b) & 1
+                    want = 1 - bit               # opposite bit -> XOR contributes 1
+                    if want in node:
+                        cur |= (1 << b)
+                        node = node[want]
+                    else:
+                        node = node[bit]
+                ans = max(ans, cur)
+            return ans
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        static class Node { Node[] ch = new Node[2]; }
+        public int findMaximumXOR(int[] nums) {
+            Node root = new Node();
+            for (int x : nums) {
+                Node cur = root;
+                for (int b = 31; b >= 0; b--) {
+                    int bit = (x >> b) & 1;
+                    if (cur.ch[bit] == null) cur.ch[bit] = new Node();
+                    cur = cur.ch[bit];
+                }
+            }
+            int ans = 0;
+            for (int x : nums) {
+                Node cur = root; int res = 0;
+                for (int b = 31; b >= 0; b--) {
+                    int bit = (x >> b) & 1, want = bit ^ 1;
+                    if (cur.ch[want] != null) { res |= (1 << b); cur = cur.ch[want]; }
+                    else cur = cur.ch[bit];
+                }
+                ans = Math.max(ans, res);
+            }
+            return ans;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Two ways to break this:** (1) walking **LSB-first** — the greedy "opposite bit" rule is only valid most-significant-first, because high bits dominate. (2) Using a **variable bit width** — pad every number to the same fixed width (31/32 bits) so the bits line up; otherwise a small number's bits misalign against a large one's. Both bugs produce subtly wrong answers that pass small tests.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(N · 31)` to build + `O(N · 31)` to query = **O(N)** for fixed 32-bit integers — versus O(N²) brute force.
+- **Space:** `O(N · 31)` for the trie (at most 2 children per node, 32 levels).
+
+#### Same skin
+
+- **[Bitwise trie (Variations)](/day18/variations#3-the-bitwise-trie--the-xor-superweapon)** — the technique, explained.
+- **Maximum XOR With an Element From Array** — same trie, with offline-sorted queries and a size constraint.
+- **Count Pairs With XOR in a Range** — counting variant: store subtree sizes and count partners whose XOR falls in `[low, high]`.
+- **[Bit Manipulation (Day 17)](/day17)** — the bit-level reasoning the greedy choice relies on.

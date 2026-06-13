@@ -1,0 +1,143 @@
+---
+title: "Range Minimum Query"
+description: "Return the minimum of any subrange with point updates — the segment tree with a min aggregate, and why a BIT can't do it."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Range Minimum Query (RMQ) <DifficultyBadge level="medium" />
+
+#### Description
+
+Support, over an array with point updates:
+
+- `update(index, val)` — set `arr[index] = val`.
+- `queryMin(left, right)` — return the **minimum** of `arr[left..right]`.
+
+#### Examples
+
+```py
+> arr = [5, 2, 8, 1, 9]
+  queryMin(1, 3)  -> 1        # min(2, 8, 1)
+  update(3, 7)               # arr = [5, 2, 8, 7, 9]
+  queryMin(1, 3)  -> 2        # min(2, 8, 7)
+```
+
+#### Constraints
+
+- `1 <= arr.length <= 10^5`, many interleaved queries/updates.
+
+#### Intuition
+
+Identical to the [sum segment tree](/day19/the_template) with **two lines changed**: the combine becomes `min` and the disjoint-case identity becomes `+∞`. Because `min` is associative, the tree works; because `min` is **not invertible** (you can't subtract a min), a Fenwick tree is off the table — this is *the* problem that forces a segment tree.
+
+#### Code (min segment tree)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class RMQ {
+        int n; vector<int> tree;
+        void build(vector<int>& a, int node, int lo, int hi) {
+            if (lo == hi) { tree[node] = a[lo]; return; }
+            int mid = (lo + hi) / 2;
+            build(a, 2*node, lo, mid); build(a, 2*node+1, mid+1, hi);
+            tree[node] = min(tree[2*node], tree[2*node+1]);     // <- min
+        }
+        void upd(int node, int lo, int hi, int idx, int val) {
+            if (lo == hi) { tree[node] = val; return; }
+            int mid = (lo + hi) / 2;
+            if (idx <= mid) upd(2*node, lo, mid, idx, val);
+            else            upd(2*node+1, mid+1, hi, idx, val);
+            tree[node] = min(tree[2*node], tree[2*node+1]);
+        }
+        int qry(int node, int lo, int hi, int i, int j) {
+            if (j < lo || hi < i) return INT_MAX;               // identity for min
+            if (i <= lo && hi <= j) return tree[node];
+            int mid = (lo + hi) / 2;
+            return min(qry(2*node, lo, mid, i, j), qry(2*node+1, mid+1, hi, i, j));
+        }
+    public:
+        RMQ(vector<int>& a) : n(a.size()), tree(4*a.size()) { build(a, 1, 0, n-1); }
+        void update(int i, int v) { upd(1, 0, n-1, i, v); }
+        int queryMin(int i, int j) { return qry(1, 0, n-1, i, j); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class RMQ:
+        INF = float('inf')
+        def __init__(self, a):
+            self.n = len(a); self.tree = [0]*(4*self.n); self.a = a
+            self._build(1, 0, self.n-1)
+        def _build(self, node, lo, hi):
+            if lo == hi: self.tree[node] = self.a[lo]; return
+            mid = (lo+hi)//2
+            self._build(2*node, lo, mid); self._build(2*node+1, mid+1, hi)
+            self.tree[node] = min(self.tree[2*node], self.tree[2*node+1])
+        def update(self, idx, val):
+            def go(node, lo, hi):
+                if lo == hi: self.tree[node] = val; return
+                mid = (lo+hi)//2
+                go(2*node, lo, mid) if idx <= mid else go(2*node+1, mid+1, hi)
+                self.tree[node] = min(self.tree[2*node], self.tree[2*node+1])
+            go(1, 0, self.n-1)
+        def queryMin(self, i, j):
+            def go(node, lo, hi):
+                if j < lo or hi < i: return self.INF             # identity
+                if i <= lo and hi <= j: return self.tree[node]
+                mid = (lo+hi)//2
+                return min(go(2*node, lo, mid), go(2*node+1, mid+1, hi))
+            return go(1, 0, self.n-1)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class RMQ {
+        int n; int[] tree;
+        RMQ(int[] a) { n = a.length; tree = new int[4*n]; build(a, 1, 0, n-1); }
+        void build(int[] a, int node, int lo, int hi) {
+            if (lo == hi) { tree[node] = a[lo]; return; }
+            int mid = (lo+hi)/2;
+            build(a, 2*node, lo, mid); build(a, 2*node+1, mid+1, hi);
+            tree[node] = Math.min(tree[2*node], tree[2*node+1]);
+        }
+        void update(int idx, int val) { upd(1, 0, n-1, idx, val); }
+        void upd(int node, int lo, int hi, int idx, int val) {
+            if (lo == hi) { tree[node] = val; return; }
+            int mid = (lo+hi)/2;
+            if (idx <= mid) upd(2*node, lo, mid, idx, val);
+            else            upd(2*node+1, mid+1, hi, idx, val);
+            tree[node] = Math.min(tree[2*node], tree[2*node+1]);
+        }
+        int queryMin(int i, int j) { return qry(1, 0, n-1, i, j); }
+        int qry(int node, int lo, int hi, int i, int j) {
+            if (j < lo || hi < i) return Integer.MAX_VALUE;
+            if (i <= lo && hi <= j) return tree[node];
+            int mid = (lo+hi)/2;
+            return Math.min(qry(2*node, lo, mid, i, j), qry(2*node+1, mid+1, hi, i, j));
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **This is the proof that the segment tree template is "generic over the aggregate."** The sum version and this min version differ only in `combine` (`+` → `min`) and the identity returned for disjoint ranges (`0` → `+∞`). Internalize that, and max-query, gcd-query, and OR-query are all the same code with a different two-character swap.
+</Callout>
+
+#### Analysis
+
+- **Time:** `build` O(n), `update` and `queryMin` O(log n).
+- **Space:** O(4n).
+
+> **Static array, no updates?** If the array never changes, you don't even need a segment tree — a **sparse table** answers RMQ in O(1) per query after O(n log n) preprocessing. The segment tree earns its keep specifically when updates are present.
+
+#### Same skin
+
+- **[Range Sum Query — Mutable](/day19/practice_questions/range_sum_query_mutable)** — same skeleton, invertible aggregate (so a BIT also works).
+- **[Falling Squares](/day19/practice_questions/falling_squares)** — range-max queries with range updates (lazy).
+- **Sliding Window Maximum ([Day 24](/day24))** — RMQ over a *moving* window, solved with a deque instead.

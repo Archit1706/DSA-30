@@ -1,0 +1,142 @@
+---
+title: "Replace Words"
+description: "Replace every word in a sentence with the shortest root from a dictionary — a trie walk that stops at the first end-of-word."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Replace Words <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a `dictionary` of roots and a `sentence`, replace every word in the sentence with the **shortest root** that is a prefix of it. If no root applies, leave the word unchanged.
+
+#### Examples
+
+```py
+> dictionary = ["cat", "bat", "rat"]
+  sentence   = "the cattle was rattled by the battery"
+  Output: "the cat was rat by the bat"
+  # "cattle" -> "cat", "rattled" -> "rat", "battery" -> "bat"
+```
+
+#### Constraints
+
+- `1 <= dictionary.length <= 1000`, root length ≤ 100.
+- `1 <= sentence words <= 1000`, lowercase + spaces.
+
+#### Intuition
+
+Build a trie of the roots. For each word in the sentence, **walk the trie character by character and stop the instant you hit an end-of-word node** — that's the shortest root prefix, because end-of-word nodes are encountered in increasing length. If you fall off the trie before hitting one, no root applies.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        struct Node { Node* ch[26] = {}; bool end = false; };
+    public:
+        string replaceWords(vector<string>& dict, string sentence) {
+            Node* root = new Node();
+            for (auto& w : dict) {
+                Node* cur = root;
+                for (char c : w) {
+                    if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+                    cur = cur->ch[c - 'a'];
+                }
+                cur->end = true;
+            }
+            stringstream ss(sentence), out;
+            string word; bool first = true;
+            while (ss >> word) {
+                if (!first) out << ' ';
+                first = false;
+                Node* cur = root; string root_pre;
+                for (char c : word) {
+                    if (!cur->ch[c - 'a']) { root_pre.clear(); break; }
+                    cur = cur->ch[c - 'a'];
+                    root_pre += c;
+                    if (cur->end) break;           // shortest root found
+                }
+                out << (cur && cur->end ? root_pre : word);
+            }
+            return out.str();
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class Solution:
+        def replaceWords(self, dictionary, sentence):
+            root = {}
+            for w in dictionary:
+                node = root
+                for c in w:
+                    node = node.setdefault(c, {})
+                node["$"] = True
+
+            def shortest_root(word):
+                node, pre = root, []
+                for c in word:
+                    if c not in node:
+                        return word                # no root applies
+                    node = node[c]
+                    pre.append(c)
+                    if "$" in node:
+                        return "".join(pre)        # first (= shortest) root
+                return word
+
+            return " ".join(shortest_root(w) for w in sentence.split())
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        static class Node { Node[] ch = new Node[26]; boolean end = false; }
+        public String replaceWords(List<String> dict, String sentence) {
+            Node root = new Node();
+            for (String w : dict) {
+                Node cur = root;
+                for (char c : w.toCharArray()) {
+                    if (cur.ch[c - 'a'] == null) cur.ch[c - 'a'] = new Node();
+                    cur = cur.ch[c - 'a'];
+                }
+                cur.end = true;
+            }
+            String[] words = sentence.split(" ");
+            StringBuilder sb = new StringBuilder();
+            for (int j = 0; j < words.length; j++) {
+                if (j > 0) sb.append(' ');
+                Node cur = root; StringBuilder pre = new StringBuilder(); boolean hit = false;
+                for (char c : words[j].toCharArray()) {
+                    if (cur.ch[c - 'a'] == null) break;
+                    cur = cur.ch[c - 'a']; pre.append(c);
+                    if (cur.end) { hit = true; break; }
+                }
+                sb.append(hit ? pre.toString() : words[j]);
+            }
+            return sb.toString();
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **"Shortest root" falls out for free from stopping at the first end-of-word.** Because you walk from the start of the word, the *first* end-of-word node you encounter is necessarily the shortest matching root. No comparison needed — the order of the walk does the work.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(D)` to build (D = total dictionary characters) + `O(S)` to process the sentence (S = total sentence characters). Each word walk is bounded by its length.
+- **Space:** `O(D)` for the trie.
+
+#### Same skin
+
+- **[Implement Trie](/day18/practice_questions/implement_trie)** — the underlying structure.
+- **[Longest Word in Dictionary](/day18/practice_questions/longest_word_in_dictionary)** — also about end-of-word nodes along a path.
+- **IP routing / longest-prefix match** — the inverse (longest matching prefix) uses the same walk, recording the *last* end-of-word instead of stopping at the first.

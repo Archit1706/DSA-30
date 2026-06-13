@@ -1,0 +1,134 @@
+---
+title: "Trie Variations & Tricks"
+description: "Compressed tries (radix trees), the bitwise trie for XOR problems, ternary search trees, and storing values at nodes — the variants that show up in real interview problems."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { TrieVisualizer } from "../../components/TrieVisualizer";
+export const Tab = Tabs.Tab;
+
+# Trie Variations & Tricks
+
+The plain trie from the last page solves most string problems. But three variants unlock a much wider set — and one of them (the **bitwise trie**) is the single highest-leverage trick on this page because it turns a whole class of XOR problems from O(N²) into O(N · 32).
+
+## 1. Storing a value, not just a flag
+
+The smallest tweak: replace `isEndOfWord` (a boolean) with a `value` field. Now your trie is a **map keyed by strings**, not just a set — `insert(key, value)` and `get(key)`. This is exactly what **Map Sum Pairs** and **Replace Words** need: walk to a node and read the value (or sum the values in a subtree).
+
+```text
+TrieNode:
+    children : char -> TrieNode
+    value    : the payload stored at this key  (None if no word ends here)
+```
+
+## 2. Compressed trie (radix tree / Patricia trie)
+
+A plain trie wastes a node per character even down long non-branching chains. If you insert `"international"`, that's 13 nodes in a single line — one child each. A **compressed trie** merges every non-branching chain into one edge labeled with the whole substring.
+
+<TrieVisualizer
+    words={["test", "team", "toast"]}
+    title="A plain trie for {test, team, toast} — note the single-child chains"
+    caption="t→e is shared, then it branches (st / am). 'toast' branches at the top (t→o). A compressed trie would collapse 'st'→'t' and 'oast' into single edges, storing 'st', 'am', 'oast' as edge labels instead of one node per char."
+/>
+
+The payoff: far fewer nodes (so less pointer overhead and better cache behavior) at the cost of more complex `insert` (you sometimes have to **split** an edge when a new word diverges mid-label). This is how IP routing tables and many production string indexes are actually built.
+
+<Callout type="info">
+    **When to mention a radix tree in an interview:** when the interviewer pushes on memory, or when keys are long with little branching (file paths, IP prefixes, URLs). You rarely need to *implement* one under time pressure — but knowing "I'd compress non-branching chains into a radix tree to cut node overhead" is a strong, specific answer to "how would you make this use less memory?"
+</Callout>
+
+## 3. The bitwise trie — the XOR superweapon
+
+This is the variant worth memorizing. Treat each integer as a **fixed-length binary string** (say 32 bits) and insert it into a trie with an alphabet of just `{0, 1}`. Now the trie has depth 32 and at most two children per node.
+
+Why is this magical? Because XOR is solved **greedily, bit by bit, most-significant first**. To find the number already in the set that maximizes `x XOR (that number)`, walk down from the MSB and **at each bit, try to go to the *opposite* bit** of `x` — opposite bits XOR to 1, and a 1 in a higher position beats any combination of lower bits.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    class BitTrie:
+        BITS = 31                      # enough for 0 <= x < 2^31
+        def __init__(self):
+            self.root = {}
+
+        def insert(self, x: int) -> None:
+            node = self.root
+            for b in range(self.BITS, -1, -1):     # MSB first
+                bit = (x >> b) & 1
+                node = node.setdefault(bit, {})
+
+        def max_xor_with(self, x: int) -> int:
+            node, best = self.root, 0
+            for b in range(self.BITS, -1, -1):
+                bit = (x >> b) & 1
+                want = 1 - bit                      # greedily take the OPPOSITE bit
+                if want in node:
+                    best |= (1 << b)                # we got a 1 in this position
+                    node = node[want]
+                else:
+                    node = node[bit]                # forced to take the same bit
+            return best
+    ```
+    </Tab>
+</Tabs>
+
+With this, **Maximum XOR of Two Numbers in an Array** drops from the brute-force O(N²) (every pair) to **O(N · 32)** — insert each number, then for each number greedily find its best partner. The same structure handles "max XOR with a query value," "count pairs with XOR ≤ k," and XOR-range problems.
+
+<Callout type="warning">
+    **The two bitwise-trie gotchas:** (1) **always insert MSB-first** — a higher bit dominates all lower bits, so the greedy choice only works top-down from the most significant bit. (2) **Use a fixed bit width** (e.g. 31 or 32) so every number is the same "length"; pad with leading zeros. Mixing widths silently misaligns the bits and breaks the greedy comparison.
+</Callout>
+
+## 4. Ternary search tree (TST)
+
+A space-saving middle ground between a BST and a trie: each node stores one character and has **three** children — *less* (go left, same position), *equal* (go down, next position), and *greater* (go right, same position). It uses far less memory than an array-children trie for large alphabets, at a small speed cost (you binary-search among siblings instead of indexing). Good to *name* as a memory-conscious alternative; rarely needed in full.
+
+## Which variant for which problem
+
+| You see… | Reach for |
+| :--- | :--- |
+| "is word / prefix in a set of strings?" | plain trie |
+| "map string keys to values / sums" | trie with a `value` field |
+| "long keys, little branching, memory-tight" | compressed (radix) trie |
+| "**maximize / minimize XOR**", "XOR pairs" | **bitwise trie** |
+| "large alphabet, want trie-like queries, less memory" | ternary search tree |
+
+## Quick check
+
+<QuizBox
+    question="In a bitwise trie, why do you insert and query starting from the MOST significant bit?"
+    options={[
+        "It's an arbitrary convention",
+        "Because a 1 in a higher bit position outweighs any combination of lower bits — so to maximize XOR you must greedily settle the highest bits first, taking the opposite bit when available before moving down",
+        "LSB-first is impossible to code",
+        "To save memory"
+    ]}
+    correctIndex={1}
+    explanation="XOR is maximized lexicographically by bit significance: securing a 1 in bit 30 beats any outcome in bits 0–29 combined. The greedy 'take the opposite bit' rule is only valid top-down from the MSB, because once a high bit is decided it can't be overturned by lower bits. Inserting MSB-first aligns the trie depth with bit significance."
+/>
+
+<QuizBox
+    question="Maximum XOR of two numbers in an array is O(N²) brute force. How does a bitwise trie make it O(N·32)?"
+    options={[
+        "It sorts the numbers",
+        "Insert all N numbers into a 32-deep binary trie (O(N·32)); then for each number, walk the trie once greedily choosing opposite bits to find its best XOR partner in O(32) — total O(N·32), eliminating the pairwise comparison",
+        "It uses a hash map",
+        "It can't — O(N²) is optimal"
+    ]}
+    correctIndex={1}
+    explanation="The trie replaces 'compare against every other number' (O(N) per element) with 'walk 32 levels greedily' (O(32) per element). Building is O(N·32) and querying all elements is O(N·32), so the whole thing is linear in N times the bit width — a huge win over O(N²) for large N."
+/>
+
+<QuizBox
+    question="When is a compressed (radix) trie clearly preferable to a plain trie?"
+    options={[
+        "Always — it's strictly better",
+        "When keys are long with little branching (file paths, IP prefixes, URLs): collapsing single-child chains into one edge drastically cuts node count and pointer overhead — at the cost of more complex insertion (edge splitting)",
+        "When the alphabet is exactly 2 symbols",
+        "When you need the isEndOfWord flag"
+    ]}
+    correctIndex={1}
+    explanation="The radix tree's win is eliminating long single-child chains, which dominate when keys are long and don't branch much. That cuts memory and improves cache locality. It's not strictly better — insertion gets harder (you may split an edge when a new key diverges mid-label), so for short, heavily-branching keys a plain trie is simpler and fine."
+/>
+
+Next: **[Basic Questions](/day18/basic_questions)** — warm-ups to cement insert/search/prefix, then the [practice set](/day18/practice_questions).

@@ -1,0 +1,156 @@
+---
+title: "Falling Squares"
+description: "Drop squares onto a number line and report the tallest stack after each — a lazy range-assign + range-max segment tree over compressed coordinates."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Falling Squares <DifficultyBadge level="hard" />
+
+#### Description
+
+Squares drop one by one onto a number line. `positions[i] = [left, sideLength]` describes a square occupying `[left, left + sideLength)`. A square lands on top of whatever is currently tallest under its footprint. After each drop, report the **maximum height** anywhere on the line so far.
+
+#### Examples
+
+```py
+> positions = [[1,2],[2,3],[6,1]]
+  Output: [2, 5, 5]
+  # square1 height 2; square2 lands on square1's overlap -> top at 2+3=5; square3 isolated -> 1, max stays 5
+
+> positions = [[100,100],[200,100]]
+  Output: [100, 100]     # they don't overlap
+```
+
+#### Constraints
+
+- `1 <= positions.length <= 1000`, coordinates up to `10^8`.
+
+#### Intuition
+
+Two range operations over the footprint interval `[left, right)`:
+
+1. **Query the current max height** under the footprint (range-max).
+2. The new top is `that max + sideLength`; **assign** that height to the whole footprint (range-assign).
+
+That's a **lazy-propagation segment tree** supporting *range-assign* + *range-max*. Coordinates reach `10^8` but there are ≤ 2000 distinct endpoints, so **coordinate-compress** first. (With only 1000 squares, an O(n²) "compare against all previous intervals" solution also passes — but the segment tree is the scalable, intended structure.)
+
+#### Code (lazy range-assign / range-max segment tree)
+
+<Tabs items={['Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    class Solution:
+        def fallingSquares(self, positions):
+            # 1) coordinate-compress all endpoints
+            xs = sorted({x for l, s in positions for x in (l, l + s - 1)})
+            idx = {x: i for i, x in enumerate(xs)}
+            n = len(xs)
+            tree = [0] * (4 * n)      # range max
+            lazy = [0] * (4 * n)      # pending ASSIGN (0 = none)
+
+            def push_down(node):
+                if lazy[node]:
+                    for ch in (2*node, 2*node + 1):
+                        tree[ch] = lazy[node]      # assign overwrites
+                        lazy[ch] = lazy[node]
+                    lazy[node] = 0
+
+            def update(node, lo, hi, i, j, h):
+                if j < lo or hi < i:
+                    return
+                if i <= lo and hi <= j:
+                    tree[node] = h                 # assign height
+                    lazy[node] = h
+                    return
+                push_down(node)
+                mid = (lo + hi) // 2
+                update(2*node, lo, mid, i, j, h)
+                update(2*node + 1, mid+1, hi, i, j, h)
+                tree[node] = max(tree[2*node], tree[2*node + 1])
+
+            def query(node, lo, hi, i, j):
+                if j < lo or hi < i:
+                    return 0
+                if i <= lo and hi <= j:
+                    return tree[node]
+                push_down(node)
+                mid = (lo + hi) // 2
+                return max(query(2*node, lo, mid, i, j),
+                           query(2*node + 1, mid+1, hi, i, j))
+
+            res, best = [], 0
+            for l, s in positions:
+                i, j = idx[l], idx[l + s - 1]      # compressed footprint
+                cur = query(1, 0, n-1, i, j)       # tallest under footprint
+                top = cur + s                      # stack on top
+                update(1, 0, n-1, i, j, top)       # set footprint to new height
+                best = max(best, top)
+                res.append(best)
+            return res
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        int n; int[] tree, lazy;
+        public List<Integer> fallingSquares(int[][] positions) {
+            TreeSet<Integer> set = new TreeSet<>();
+            for (int[] p : positions) { set.add(p[0]); set.add(p[0] + p[1] - 1); }
+            Map<Integer,Integer> idx = new HashMap<>();
+            int k = 0; for (int x : set) idx.put(x, k++);
+            n = k; tree = new int[4*n]; lazy = new int[4*n];
+            List<Integer> res = new ArrayList<>(); int best = 0;
+            for (int[] p : positions) {
+                int i = idx.get(p[0]), j = idx.get(p[0] + p[1] - 1);
+                int cur = query(1, 0, n-1, i, j);
+                int top = cur + p[1];
+                update(1, 0, n-1, i, j, top);
+                best = Math.max(best, top);
+                res.add(best);
+            }
+            return res;
+        }
+        void pushDown(int node) {
+            if (lazy[node] != 0) {
+                for (int ch : new int[]{2*node, 2*node+1}) { tree[ch] = lazy[node]; lazy[ch] = lazy[node]; }
+                lazy[node] = 0;
+            }
+        }
+        void update(int node, int lo, int hi, int i, int j, int h) {
+            if (j < lo || hi < i) return;
+            if (i <= lo && hi <= j) { tree[node] = h; lazy[node] = h; return; }
+            pushDown(node);
+            int mid = (lo + hi) / 2;
+            update(2*node, lo, mid, i, j, h);
+            update(2*node+1, mid+1, hi, i, j, h);
+            tree[node] = Math.max(tree[2*node], tree[2*node+1]);
+        }
+        int query(int node, int lo, int hi, int i, int j) {
+            if (j < lo || hi < i) return 0;
+            if (i <= lo && hi <= j) return tree[node];
+            pushDown(node);
+            int mid = (lo + hi) / 2;
+            return Math.max(query(2*node, lo, mid, i, j), query(2*node+1, mid+1, hi, i, j));
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The lazy tag here is an ASSIGN, not an ADD — so it overwrites.** When a square lands, its footprint becomes a flat height, replacing whatever was there. `pushDown` therefore *sets* children to the tag value rather than adding. Mixing this up with the additive lazy logic from the [range-add tree](/day19/lazy_propagation) is the classic bug. Also: compress endpoints as `left` and `left + side − 1` (inclusive right edge) so adjacent, non-overlapping squares don't falsely merge.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(n log n) with the segment tree (n = squares, after compression). The brute-force interval-compare is O(n²) — acceptable here but not scalable.
+- **Space:** O(n) for the compressed tree.
+
+#### Same skin
+
+- **[My Calendar III](/day19/practice_questions/my_calendar_iii)** — also range-update + range-max; this is the "with heights" cousin.
+- **[Lazy Propagation](/day19/lazy_propagation)** — the technique, with the assign-vs-add distinction spelled out.
+- **The Skyline Problem ([Day 26](/day26/practice_questions/the_skyline_problem))** — another "max height over intervals" problem, solved by a sweep + heap.

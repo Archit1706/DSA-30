@@ -1,21 +1,43 @@
 ---
 title: "Day 18 — Tries"
-description: "Trie (prefix tree) fundamentals — insertion, search, prefix queries, and the patterns behind autocomplete, word search, and string-set problems."
+description: "The trie (prefix tree) — insert, search, and prefix queries in O(L), the node anatomy, compressed and bitwise variants, and the interview problems that collapse from O(N·L) to O(L) once you see the shape."
 ---
 
 import { Callout } from "nextra/components";
+import { TrieVisualizer } from "../../components/TrieVisualizer";
 
 # Day 18 — Tries
 
+A hash set can tell you *"is this exact word in my collection?"* in O(1). But it's useless the moment you ask *"how many of my words start with `app`?"* — there's no structure connecting `apple`, `application`, and `apply`. A **trie** (prefix tree) is the data structure that makes **prefixes first-class**: words that share a beginning share a path.
+
+The name is from re**trie**val (and it's pronounced "try"). The idea is simple and visual — every node is a character, every root-to-marked-node path is a word, and shared prefixes are stored exactly once.
+
+<TrieVisualizer
+    words={["cat", "car", "card", "dog", "do"]}
+    title="A trie holding {cat, car, card, dog, do}"
+    caption="'cat', 'car', and 'card' all share the path c→a, then branch. 'do' and 'dog' share d→o, and 'do' is itself a word (green) sitting on the path to 'dog'. Common prefixes are stored once — that's the whole trick."
+/>
+
+## What you'll learn today
+
+- **The node anatomy** — a `children` map and a single `isEndOfWord` flag, and why those two things are the entire data structure
+- **The three core operations** — `insert`, `search`, and `startsWith`, each in **O(L)** where L is the word length (independent of how many words you've stored)
+- **Why a trie beats a hash set** for prefix work, and the **time/space trade-off** it makes
+- **Variations** — compressed tries (radix trees), the **bitwise trie** for XOR problems, and ternary search trees
+- **Eight interview problems** — Implement Trie, Add & Search Word (wildcards), Word Search II, Replace Words, Map Sum Pairs, Longest Word, Maximum XOR, and Search Suggestions
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    **The trie's superpower is that lookup cost depends on the *word length*, not the *number of words*.** Searching for a 5-letter word takes 5 steps whether your trie holds 10 words or 10 million. That's why autocomplete, spell-checkers, IP routing tables, and dictionary problems all reach for it — the collection can be enormous and queries stay cheap.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Prefix trees**: nodes, children pointers, the `isEndOfWord` flag
-- The three core operations: **insert, search, startsWith** — each in O(L) where L is word length
-- Real applications: **autocomplete, spell-check, IP routing tables**
-- **Compressed tries (radix trees)** for when memory matters
+1. **[Introduction](/day18/introduction)** — what a trie is, the node structure, how it stores words, and when it beats a hash map.
+2. **[Core Operations](/day18/operations)** — `insert`, `search`, `startsWith` with full code in C++/Python/Java and an interactive trie you can break.
+3. **[Variations & Tricks](/day18/variations)** — compressed/radix tries, the bitwise trie (the key to XOR problems), ternary search trees, and storing values at nodes.
+4. **[Basic Questions](/day18/basic_questions)** — warm-ups: count words with a prefix, autocomplete, delete a word, longest common prefix.
+5. **[Practice Questions](/day18/practice_questions)** — eight interview classics, from Implement Trie to Maximum XOR.
 
-Tries shine when your data is a set of strings sharing common prefixes. They make problems that look O(N·L) collapse to O(L).
+Tries are the first of the **specialized structures** (Phase 6). They feel like a niche trick until you've solved three problems with them — then you start seeing "set of strings sharing prefixes" everywhere.
+
+Up next: **[Day 19 — Segment Trees](/day19)**, the other heavy-machinery structure, for range queries over arrays.

@@ -1,0 +1,184 @@
+---
+title: "Lazy Propagation"
+description: "Range updates in O(log n) — defer pending updates at internal nodes and push them down only when a query or update actually visits the children."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Lazy Propagation
+
+The template handles **point** updates (`set arr[i] = v`). But many problems need **range** updates: *"add 5 to every element in `[i, j]`"* or *"set all of `[i, j]` to x."* Doing that naively — updating each leaf — is O(range × log n), which collapses to O(n log n) for a big range. Lazy propagation gets it back to **O(log n)**.
+
+## The key insight: don't push work you don't need yet
+
+When you add 5 to a whole range `[i, j]`, the recursion already finds the same O(log n) canonical nodes that *fully cover* `[i, j]` (the query decomposition). The trick: **update those covering nodes' aggregates immediately, but don't recurse into their children.** Instead, leave a note — a **lazy tag** — saying "everyone below me still owes a +5." Only when a *later* operation actually needs to go below that node do you "push down" the pending update to its children.
+
+<Callout type="info">
+    **Lazy propagation = "I'll deal with it when someone asks."** A node accepts a range update by adjusting its own aggregate and storing a lazy tag for its subtree. The subtree stays untouched — possibly forever, if no query ever drills into it. The deferred work is only ever done along paths that are actually visited, which keeps every operation O(log n).
+</Callout>
+
+## The two new pieces
+
+You add one array and one helper:
+
+- **`lazy[]`** — a parallel array; `lazy[node]` holds a pending update for `node`'s entire subtree that hasn't been pushed to its children yet.
+- **`pushDown(node)`** — before recursing *into a node's children*, apply this node's lazy tag to both children (update their aggregates and their lazy tags), then clear it.
+
+<Steps>
+
+### Applying an update to a node
+
+For "add `v` to range" on a node covering a range of length `len`: the node's sum increases by `v × len`, and its lazy tag accumulates `+v` (to forward to children later).
+
+### Pushing down
+
+Before you descend past a node that has a pending tag, give the tag to both children (adjust each child's aggregate by `v × child_len` and add `v` to each child's lazy tag), then reset this node's tag to 0.
+
+### Querying
+
+Same three-case recursion as before — but `pushDown` first whenever you're about to recurse into children, so the values you read are correct.
+
+</Steps>
+
+## Range-add, range-sum with lazy propagation
+
+<Tabs items={['C++', 'Python']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class LazySegTree {
+        int n;
+        vector<long long> tree, lazy;
+        void pushDown(int node, int lo, int hi) {
+            if (lazy[node] == 0) return;
+            int mid = (lo + hi) / 2;
+            long long v = lazy[node];
+            // left child covers [lo, mid], right covers [mid+1, hi]
+            tree[2*node]   += v * (mid - lo + 1);   lazy[2*node]   += v;
+            tree[2*node+1] += v * (hi - mid);       lazy[2*node+1] += v;
+            lazy[node] = 0;                          // cleared after forwarding
+        }
+        void updateRange(int node, int lo, int hi, int i, int j, long long v) {
+            if (j < lo || hi < i) return;                       // disjoint
+            if (i <= lo && hi <= j) {                           // fully covered
+                tree[node] += v * (hi - lo + 1);                // adjust aggregate now
+                lazy[node] += v;                                // defer the rest
+                return;
+            }
+            pushDown(node, lo, hi);                             // need to go deeper -> resolve debt
+            int mid = (lo + hi) / 2;
+            updateRange(2*node,   lo,    mid, i, j, v);
+            updateRange(2*node+1, mid+1, hi,  i, j, v);
+            tree[node] = tree[2*node] + tree[2*node+1];
+        }
+        long long query(int node, int lo, int hi, int i, int j) {
+            if (j < lo || hi < i) return 0;
+            if (i <= lo && hi <= j) return tree[node];
+            pushDown(node, lo, hi);                             // resolve before reading children
+            int mid = (lo + hi) / 2;
+            return query(2*node,   lo,    mid, i, j)
+                 + query(2*node+1, mid+1, hi,  i, j);
+        }
+    public:
+        LazySegTree(int sz) : n(sz), tree(4*sz, 0), lazy(4*sz, 0) {}
+        void updateRange(int i, int j, long long v) { updateRange(1, 0, n-1, i, j, v); }
+        long long query(int i, int j) { return query(1, 0, n-1, i, j); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class LazySegTree:
+        def __init__(self, n):
+            self.n = n
+            self.tree = [0] * (4 * n)
+            self.lazy = [0] * (4 * n)
+
+        def _push_down(self, node, lo, hi):
+            if self.lazy[node] == 0:
+                return
+            mid = (lo + hi) // 2
+            v = self.lazy[node]
+            self.tree[2*node]     += v * (mid - lo + 1)
+            self.lazy[2*node]     += v
+            self.tree[2*node + 1] += v * (hi - mid)
+            self.lazy[2*node + 1] += v
+            self.lazy[node] = 0
+
+        def _update(self, node, lo, hi, i, j, v):
+            if j < lo or hi < i:                 # disjoint
+                return
+            if i <= lo and hi <= j:              # fully covered -> defer
+                self.tree[node] += v * (hi - lo + 1)
+                self.lazy[node] += v
+                return
+            self._push_down(node, lo, hi)
+            mid = (lo + hi) // 2
+            self._update(2*node, lo, mid, i, j, v)
+            self._update(2*node + 1, mid+1, hi, i, j, v)
+            self.tree[node] = self.tree[2*node] + self.tree[2*node + 1]
+
+        def _query(self, node, lo, hi, i, j):
+            if j < lo or hi < i:
+                return 0
+            if i <= lo and hi <= j:
+                return self.tree[node]
+            self._push_down(node, lo, hi)
+            mid = (lo + hi) // 2
+            return self._query(2*node, lo, mid, i, j) \
+                 + self._query(2*node + 1, mid+1, hi, i, j)
+
+        def update_range(self, i, j, v): self._update(1, 0, self.n - 1, i, j, v)
+        def query(self, i, j):           return self._query(1, 0, self.n - 1, i, j)
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Always `pushDown` *before* recursing into children — in both `update` and `query`.** If you read or modify a child while the parent still holds an unresolved lazy tag, you'll use stale child values and get wrong answers. The rule is mechanical: the moment you're about to descend past a node, settle its debt to its children first. Forgetting `pushDown` in the *query* path (people often add it only to update) is the classic lazy-propagation bug.
+</Callout>
+
+## Assignment vs increment
+
+The example above is **range-add** (`+= v`), which accumulates. **Range-assign** (`set all to x`) is different: a later assign *overwrites* an earlier one rather than stacking, so the lazy tag needs a "has a pending assignment?" marker and `pushDown` replaces rather than adds. The structure is identical; only how two pending updates **compose** changes. Always ask: *do my updates stack or overwrite?*
+
+## Quick check
+
+<QuizBox
+    question="What does a lazy tag on a node represent?"
+    options={[
+        "The node's current aggregate value",
+        "A pending update that applies to the node's entire subtree but has NOT yet been pushed to its children — the node's own aggregate already reflects it, but the children don't know yet",
+        "The number of children",
+        "A flag that the node is deleted"
+    ]}
+    correctIndex={1}
+    explanation="The lazy tag is deferred work owed to the subtree. The node itself has already adjusted its aggregate to include the update; the tag records what its children still need so the update can be forwarded later, only if and when something actually visits them. This deferral is what keeps range updates O(log n)."
+/>
+
+<QuizBox
+    question="Why does lazy propagation make a range update O(log n) instead of O(range length)?"
+    options={[
+        "It skips the update entirely",
+        "It applies the update to the O(log n) canonical nodes that fully cover the range and records a lazy tag instead of recursing into their (possibly huge) subtrees; the deferred work only ever executes along later-visited paths, which are also O(log n)",
+        "It uses a hash map",
+        "It only works for small ranges"
+    ]}
+    correctIndex={1}
+    explanation="A range is covered by O(log n) canonical nodes (the same decomposition as a query). Lazy propagation updates those nodes' aggregates directly and tags their subtrees, never descending into them. Subtree work happens lazily, only along paths a future operation actually takes — so each operation touches O(log n) nodes."
+/>
+
+<QuizBox
+    question="For a range-ASSIGN update (set all of [i,j] to x), how does it differ from range-ADD in the lazy logic?"
+    options={[
+        "No difference",
+        "Two pending updates compose differently: adds accumulate (+v then +w = +(v+w)), but assigns overwrite (set x then set y = set y), so the lazy tag needs an 'assignment pending' marker and pushDown replaces the child's value instead of adding to it",
+        "Assign can't use lazy propagation",
+        "Assign is always O(n)"
+    ]}
+    correctIndex={1}
+    explanation="The skeleton is the same; what changes is how two deferred updates merge. Addition is associative-accumulative, so tags sum. Assignment is overwriting — a newer assign cancels an older one — so you track whether an assignment is pending and have pushDown set (not add) the children. Getting the composition rule right is the heart of any lazy variant."
+/>
+
+Next: **[Fenwick Tree (BIT)](/day19/fenwick_tree)** — a smaller, faster structure for the common prefix-sum case, with the `i & -i` bit trick demystified.

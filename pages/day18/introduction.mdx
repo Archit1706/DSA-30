@@ -1,0 +1,129 @@
+---
+title: "Introduction to Tries"
+description: "What a trie is, the node anatomy (children map + isEndOfWord flag), how words are stored as paths, and exactly when a trie beats a hash map."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { TrieVisualizer } from "../../components/TrieVisualizer";
+export const Tab = Tabs.Tab;
+
+# Introduction to Tries
+
+A trie is a tree where **each edge is labeled with a character**, and a word is spelled out by walking from the root down to a node marked as a word-ending. Two words with a common prefix share the nodes for that prefix — so the structure literally *is* the set of all prefixes of all your words, with the words themselves flagged.
+
+## The node anatomy — it's just two fields
+
+Strip away the mystique and a trie node holds exactly two things:
+
+```text
+TrieNode:
+    children     : a map from character → child TrieNode   (e.g. an array of 26, or a hash map)
+    isEndOfWord  : a boolean — "does a word end exactly here?"
+```
+
+That's the whole data structure. The **root** is an empty node representing the empty prefix. Everything else follows from those two fields.
+
+<Callout type="info">
+    **Why the `isEndOfWord` flag is non-negotiable.** Consider a trie holding both `do` and `dog`. The node for `do` lies *on the path* to `dog`. Without a flag, you can't tell that `do` is a real word and `d` is not. The flag marks "a word ends here" independently of whether the node has children. It's the single most common thing beginners forget — and it breaks `search` while leaving `startsWith` deceptively working.
+</Callout>
+
+## How a word is stored: as a path
+
+Inserting `cat` creates (or reuses) the path `root → c → a → t` and marks the `t` node as end-of-word. Insert `car` next and it reuses `root → c → a`, then branches to a new `r`. The shared prefix `ca` exists once.
+
+<TrieVisualizer
+    words={["cat", "car", "card"]}
+    title="Inserting cat, then car, then card — watch the prefix get reused"
+    caption="All three share c→a. 'cat' branches to t; 'car' branches to r; 'card' continues r→d. The 'r' node is green (end-of 'car') AND has a child (the path to 'card') — a node can be both a word and a prefix."
+/>
+
+Reading it back: follow characters from the root. If you can walk the whole query *and* the final node is green (`isEndOfWord`), the word is present. If you can walk it but the node isn't green, it's only a **prefix**. If you fall off (no child for the next character), it's neither.
+
+## The three questions a trie answers
+
+| Operation | Question | How |
+| :--- | :--- | :--- |
+| `insert(word)` | add a word | walk/create the path, mark the last node end-of-word |
+| `search(word)` | is this *exact word* present? | walk the path; true iff you reach the end **and** it's marked end-of-word |
+| `startsWith(prefix)` | does *any* word start with this? | walk the path; true iff you reach the end (flag irrelevant) |
+
+The only difference between `search` and `startsWith` is that final flag check. That tiny distinction is a favorite interview gotcha.
+
+## Why not just use a hash set?
+
+A `HashSet<String>` gives you O(L) `add` and O(L) `contains` (you still hash all L characters), and it's simpler. So when is a trie actually better?
+
+<Steps>
+
+### When you need prefix queries
+
+"How many words start with `app`?" / "Give me all completions of `ca`." A hash set has **no answer** without scanning every key — O(N·L). A trie walks to the prefix node in O(L) and the answer is right there (the whole subtree). **This is the killer feature.**
+
+### When prefixes are heavily shared
+
+A dictionary of English words shares enormous prefix structure (`inter-`, `pre-`, `un-`). The trie stores each shared prefix once, which can save memory versus storing every full string — though see the caveat below.
+
+### When you're doing character-by-character matching against many words at once
+
+Word Search II (find many dictionary words in a grid) walks the grid *once* while descending the trie, pruning dead branches instantly. A hash set would force you to test each candidate string separately.
+
+</Steps>
+
+<Callout type="warning">
+    **The trie's cost is memory, and it's easy to underestimate.** A node with an array-of-26 children pointers burns space even for sparse branches — a long word with no shared prefix is 26 pointers per character. With pointer overhead, a trie can use *more* memory than just storing the strings. Use a hash map for children (only allocate the characters you use) when the alphabet is large or sparse, and reach for a **compressed trie** ([next page](/day18/variations)) when memory truly matters. The trie trades space for prefix-query speed — make sure the problem actually needs that speed.
+</Callout>
+
+## Complexity at a glance
+
+For a word of length `L`, over a trie holding `N` words with alphabet size `Σ`:
+
+| Operation | Time | Space (whole trie) |
+| :--- | :--- | :--- |
+| `insert` | O(L) | — |
+| `search` | O(L) | — |
+| `startsWith` | O(L) | — |
+| collect all words with a prefix | O(L + size of subtree) | — |
+| total structure | — | O(N · L · Σ) worst case (array children); O(total characters) with map children |
+
+The headline: **every single-word operation is O(L), independent of N.** The number of stored words never slows down a lookup. That's the property to say out loud in an interview.
+
+## Quick check
+
+<QuizBox
+    question="A trie holds 'do' and 'dog'. You call search('do'). The walk reaches the 'o' node successfully. What determines the answer?"
+    options={[
+        "It returns true because the path exists",
+        "It returns true only because the 'o' node is marked isEndOfWord — the path existing isn't enough; 'do' must be flagged as a complete word, not merely a prefix of 'dog'",
+        "It returns false because 'o' has a child",
+        "It returns true because 'o' has a child"
+    ]}
+    correctIndex={1}
+    explanation="search must check the isEndOfWord flag at the final node. The path to 'o' also exists as a prefix of 'dog', so 'reaching the node' alone is ambiguous. The flag is what distinguishes 'do is a stored word' from 'do is just a prefix.' Forgetting this check is the classic trie bug."
+/>
+
+<QuizBox
+    question="Why does a trie beat a hash set for autocomplete ('all words starting with ca')?"
+    options={[
+        "Tries hash faster",
+        "A hash set has no structural link between keys sharing a prefix, so answering needs an O(N·L) scan of every key; a trie walks to the prefix node in O(L), and every word with that prefix is exactly the subtree below it",
+        "Hash sets can't store strings",
+        "Tries use less memory always"
+    ]}
+    correctIndex={1}
+    explanation="Prefix queries are the trie's reason to exist. The subtree under the prefix node IS the set of completions, reachable in O(L) plus the cost of enumerating that subtree. A hash set stores keys independently with no prefix relationship, so it must examine all N keys. (Tries do not always use less memory — that's the trade-off they make for this speed.)"
+/>
+
+<QuizBox
+    question="Searching for a 6-letter word in a trie holding 10 words vs a trie holding 10 million words — how does the cost compare?"
+    options={[
+        "10 million is much slower",
+        "Essentially the same — O(L) = O(6) in both, because a search walks one root-to-node path whose length is the WORD length, not the number of stored words",
+        "It's O(N) so 10 million is a million times slower",
+        "It depends on insertion order"
+    ]}
+    correctIndex={1}
+    explanation="A trie search follows a single path of length L (the query word's length). The total number of words N never appears in the cost — it only affects how 'bushy' the tree is, not the length of any one path. This N-independence is the trie's defining performance property."
+/>
+
+Next: **[Core Operations](/day18/operations)** — the three operations in full code, plus an interactive trie you can insert into and query.

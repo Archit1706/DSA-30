@@ -1,0 +1,110 @@
+---
+title: "My Calendar III"
+description: "Track the maximum number of overlapping events as bookings arrive — a sweep-line difference map, and the lazy-segment-tree view."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### My Calendar III <DifficultyBadge level="hard" />
+
+#### Description
+
+Implement `book(start, end)` (a half-open interval `[start, end)`). After each booking, return the maximum number of events that overlap at any single point in time (the "**k-booking**" — the peak concurrency so far).
+
+#### Examples
+
+```py
+> book(10, 20) -> 1
+  book(50, 60) -> 1
+  book(10, 40) -> 2     # [10,20) and [10,40) overlap
+  book(5, 15)  -> 3     # [5,15), [10,20), [10,40) all overlap at t=10..15
+  book(5, 10)  -> 3
+  book(25, 55) -> 3
+```
+
+#### Constraints
+
+- up to `400` calls to `book`, `0 <= start < end <= 10^9`.
+
+#### Intuition — sweep line on a difference map
+
+Peak overlap is a classic **sweep**: each booking adds `+1` at `start` and `−1` at `end`. Sweep the timeline accumulating these deltas; the running sum is the number of active events at that moment, and the maximum running sum is the answer. With only 400 calls, an ordered map keyed by time (a `TreeMap` / `SortedDict`) holding the deltas is plenty — re-sweep after each booking.
+
+#### Code (sweep-line difference map)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class MyCalendarThree {
+        map<int,int> delta;          // time -> net change (+1 at start, -1 at end)
+    public:
+        int book(int start, int end) {
+            delta[start]++;
+            delta[end]--;
+            int cur = 0, best = 0;
+            for (auto& [t, d] : delta) {      // sweep in time order
+                cur += d;
+                best = max(best, cur);
+            }
+            return best;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    from sortedcontainers import SortedDict
+    class MyCalendarThree:
+        def __init__(self):
+            self.delta = SortedDict()        # time -> net change
+
+        def book(self, start, end):
+            self.delta[start] = self.delta.get(start, 0) + 1
+            self.delta[end]   = self.delta.get(end, 0) - 1
+            cur = best = 0
+            for t in self.delta:             # sweep in sorted time order
+                cur += self.delta[t]
+                best = max(best, cur)
+            return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class MyCalendarThree {
+        private TreeMap<Integer,Integer> delta = new TreeMap<>();
+        public int book(int start, int end) {
+            delta.merge(start, 1, Integer::sum);
+            delta.merge(end, -1, Integer::sum);
+            int cur = 0, best = 0;
+            for (int d : delta.values()) {    // ascending time order
+                cur += d;
+                best = Math.max(best, cur);
+            }
+            return best;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **This is the "events on a number line" pattern: `+1` at a start, `−1` at an end, sweep, track the running max.** It's the [difference-array idea](/day19/practice_questions/range_addition) on *sparse, unsorted* coordinates — an ordered map gives you the sweep for free. The same pattern solves "meeting rooms II" (minimum rooms = peak concurrency) and airplane/seat-overlap problems.
+</Callout>
+
+#### The lazy-segment-tree view
+
+With far more bookings, re-sweeping O(n) each call (→ O(n²) total) is too slow. The scalable answer: a **lazy-propagation segment tree** over **coordinate-compressed** time, where `book` is a *range-add of +1* on `[start, end)` and the answer is the **range-max** over the whole tree — both O(log n). That's [Falling Squares](/day19/practice_questions/falling_squares) territory: range update + range max. For this problem's tiny limits the sweep is simpler and expected, but knowing the lazy-tree upgrade is the strong follow-up answer.
+
+#### Analysis
+
+- **Sweep:** O(n) per `book`, O(n²) total — fine for n ≤ 400.
+- **Lazy segment tree:** O(log n) per `book` after coordinate compression — the scalable version.
+- **Space:** O(n).
+
+#### Same skin
+
+- **My Calendar I / II** — same sweep, capping overlap at 1 / 2 instead of reporting the max.
+- **Meeting Rooms II** — minimum rooms = maximum concurrent meetings = this exact sweep.
+- **[Falling Squares](/day19/practice_questions/falling_squares)** — the range-update + range-max segment tree this can upgrade to.

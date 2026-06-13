@@ -1,0 +1,102 @@
+---
+title: "Basic Segment Tree & BIT Questions"
+description: "Warm-ups for range structures — range sum, range min, the BIT update/query loop, and coordinate compression — to make build/query/update automatic."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic Segment Tree & BIT Questions
+
+Six warm-ups to make the range-structure reflexes automatic: choosing the aggregate, the three-case query, the BIT loop, and the coordinate-compression preprocessing that unlocks half the hard problems.
+
+<Steps>
+
+### 1. Range sum with point updates
+
+The canonical use. Build a sum segment tree (or a BIT); `query(i, j)` returns the subrange sum, `update(i, v)` changes a value — both O(log n). This is exactly [Range Sum Query — Mutable](/day19/practice_questions/range_sum_query_mutable). If you only need sums, prefer the BIT for its brevity.
+
+### 2. Range minimum query (RMQ)
+
+Same segment tree, different aggregate: `combine = min`, identity `= +∞`. Now `query(i, j)` is the smallest element in the subrange.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    # only the combine + identity change vs the sum tree
+    NEG = float('inf')
+    def _build(self, node, lo, hi):
+        if lo == hi: self.tree[node] = self.a[lo]; return
+        mid = (lo + hi) // 2
+        self._build(2*node, lo, mid); self._build(2*node+1, mid+1, hi)
+        self.tree[node] = min(self.tree[2*node], self.tree[2*node+1])   # <- min, not +
+    # query returns NEG (=+inf) for the disjoint case, else min of the parts
+    ```
+    </Tab>
+</Tabs>
+
+A BIT **can't** do general RMQ (min isn't invertible) — this is the textbook reason to choose a segment tree.
+
+### 3. The BIT update/query loop by hand
+
+Trace `update(i, +1)` walking up via `i += i & -i` and `prefixSum(i)` walking down via `i -= i & -i`. For `n = 8`, `update(5, +1)` touches indices `5 → 6 → 8`; `prefixSum(7)` sums `bit[7] + bit[6] + bit[4]`. Doing one trace by hand makes the `i & -i` jumps click.
+
+### 4. Count elements ≤ x seen so far (a frequency BIT)
+
+A huge pattern: index the BIT by **value** instead of position. `update(value, +1)` records "I've seen this value"; `prefixSum(x)` counts how many seen values are ≤ x. This turns "how many earlier elements are smaller?" into a BIT query — the engine behind [Count of Smaller Numbers After Self](/day19/practice_questions/count_of_smaller_numbers_after_self).
+
+### 5. Coordinate compression
+
+When values are huge or sparse (up to `10^9`) but there are only `n ≤ 10^5` of them, you can't index a BIT by raw value. **Compress**: collect all values, sort + dedupe, and map each to its rank (`0, 1, 2, …`). Now index by rank — the BIT only needs size `n`.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def compress(values):
+        order = sorted(set(values))
+        rank = {v: i + 1 for i, v in enumerate(order)}   # 1-indexed for the BIT
+        return rank                                       # use rank[v] as the BIT index
+    ```
+    </Tab>
+</Tabs>
+
+This preprocessing is mandatory for value-indexed BIT/segment-tree problems with large ranges.
+
+### 6. Range update via difference array
+
+To "add `v` to all of `[i, j]`" with only point-update tooling, store deltas: `update(i, +v)`, `update(j+1, −v)`. A prefix sum then reconstructs the value at any index. The lightweight version of [lazy propagation](/day19/lazy_propagation) when you only need *point* reads after range updates.
+
+</Steps>
+
+<Callout type="info">
+    **Two reflexes separate people who "know segment trees" from people who *use* them:** (1) **index by value, not position**, when the question is about counts/order statistics ("how many smaller", "how many in range"); and (2) **coordinate-compress** the moment values are large but few. Most "hard" BIT problems are easy once you apply both.
+</Callout>
+
+## Mini-quiz
+
+<QuizBox
+    question="To count, for each element, how many earlier elements are smaller, you index a BIT by VALUE and process left to right. What two operations per element?"
+    options={[
+        "update(position, +1) then query(position)",
+        "query prefixSum(value − 1) to count already-seen smaller values, THEN update(value, +1) to record the current element",
+        "Two updates",
+        "Sort the array first"
+    ]}
+    correctIndex={1}
+    explanation="Indexing by value turns 'how many smaller seen so far' into prefixSum(value − 1). You query BEFORE inserting the current value (so it doesn't count itself), then update(value, +1) to make it visible to later elements. Querying after inserting would off-by-one include the element itself."
+/>
+
+<QuizBox
+    question="Values range up to 10^9 but there are only 10^5 of them. Why coordinate-compress before using a value-indexed BIT?"
+    options={[
+        "To sort the data",
+        "A BIT indexed by raw value would need an array of size 10^9 (impossible); compressing maps the 10^5 distinct values to ranks 1..10^5, so the BIT only needs size 10^5 while preserving relative order",
+        "Compression makes values unique",
+        "It's required for sums"
+    ]}
+    correctIndex={1}
+    explanation="The BIT's size is its index range. Indexing by raw values up to 10^9 needs 10^9 cells — infeasible. Since only 10^5 distinct values exist and order-based queries only care about RELATIVE order, mapping values to their sorted ranks shrinks the index space to 10^5 without changing any comparison's outcome."
+/>
+
+Next: **[Practice Questions](/day19/practice_questions)** — eight interview classics across segment trees and BITs.

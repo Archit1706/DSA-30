@@ -1,0 +1,51 @@
+---
+title: "Segment Tree & BIT Practice Questions"
+description: "Eight interview classics for range structures — Range Sum Query Mutable, RMQ, Range Addition, Count of Smaller After Self, Reverse Pairs, 2D Range Sum, My Calendar III, Falling Squares."
+---
+
+import { Callout } from "nextra/components";
+
+# Segment Tree & BIT Practice Questions
+
+Eight problems spanning the whole toolkit: point-update segment trees, range-minimum, lazy propagation, value-indexed BITs with coordinate compression, 2D, and interval-overlap. Once you've done these, "range query on a changing array" is a solved problem for you.
+
+<Callout type="info">
+    The recognition checklist:
+
+    1. **Repeated range queries on a *mutable* array** → segment tree or BIT.
+    2. **Only prefix/range *sums*** → BIT (shorter); **min/max/gcd** → segment tree.
+    3. **Range *updates*** (add to a whole range) → lazy propagation.
+    4. **"How many smaller / in range" counting** → value-indexed BIT + coordinate compression.
+    5. **Overlapping intervals / "max overlap"** → segment tree on compressed coordinates (or a sweep line).
+</Callout>
+
+## Medium
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Range Sum Query — Mutable](/day19/practice_questions/range_sum_query_mutable) | the canonical point-update sum tree / BIT | Available |
+| [Range Minimum Query](/day19/practice_questions/range_minimum_query) | segment tree with `min` aggregate | Available |
+| [Range Addition](/day19/practice_questions/range_addition) | difference array / range-update lazy | Available |
+
+## Hard
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Count of Smaller Numbers After Self](/day19/practice_questions/count_of_smaller_numbers_after_self) | value-indexed BIT, right-to-left | Available |
+| [Reverse Pairs](/day19/practice_questions/reverse_pairs) | BIT / segment tree with compression | Available |
+| [Range Sum Query 2D — Mutable](/day19/practice_questions/range_sum_query_2d_mutable) | 2D Fenwick tree | Available |
+| [My Calendar III](/day19/practice_questions/my_calendar_iii) | max-overlap, sweep / lazy segment tree | Available |
+| [Falling Squares](/day19/practice_questions/falling_squares) | lazy range-assign + coordinate compression | Available |
+
+## More Practice (Coming Soon)
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| Count of Range Sum | BIT on prefix sums | Coming Soon |
+| The Skyline Problem | segment tree / sweep | Coming Soon |
+| Number of Longest Increasing Subsequence | segment tree on values | Coming Soon |
+| Range Module | interval segment tree | Coming Soon |
+| Rectangle Area II | sweep line + segment tree | Coming Soon |
+| Queue Reconstruction by Height | order-statistic BIT | Coming Soon |
+| Maximum Sum of 3 Non-Overlapping Subarrays | prefix + segment tree | Coming Soon |
+| Shifting Letters / Range XOR | BIT of XOR | Coming Soon |

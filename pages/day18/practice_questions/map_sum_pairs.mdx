@@ -1,0 +1,140 @@
+---
+title: "Map Sum Pairs"
+description: "A key-value store where you can sum the values of all keys sharing a prefix — the trie that stores values, not just a flag."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Map Sum Pairs <DifficultyBadge level="medium" />
+
+#### Description
+
+Design `MapSum`:
+
+- `insert(key, val)` — store the pair; if `key` already exists, overwrite its value.
+- `sum(prefix)` — return the sum of `val` over all keys that start with `prefix`.
+
+#### Examples
+
+```py
+> insert("apple", 3)
+  sum("ap")          -> 3
+  insert("app", 2)
+  sum("ap")          -> 5      # apple(3) + app(2)
+  insert("apple", 5)           # overwrite
+  sum("ap")          -> 7      # apple(5) + app(2)
+```
+
+#### Constraints
+
+- `1 <= key.length, prefix.length <= 50`, lowercase letters.
+- `0 <= val <= 1000`, up to `50` calls each.
+
+#### Intuition — two clean approaches
+
+**Approach A — prefix-sum at every node.** Maintain a running `sum` at each node equal to the total value of all keys passing through it. On `insert`, add the value's *delta* to every node on the path (delta handles overwrites). Then `sum(prefix)` is a single O(L) walk — read the prefix node's `sum`.
+
+**Approach B — value at the end node + subtree DFS.** Store the value only at end-of-key nodes; `sum(prefix)` walks to the prefix node then DFS-sums the subtree. Simpler to write, but `sum` is O(subtree) instead of O(L).
+
+Approach A is the stronger answer — it makes `sum` as cheap as a lookup.
+
+#### Code (Approach A — delta on the path)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class MapSum {
+        struct Node { Node* ch[26] = {}; int sum = 0; };
+        Node* root = new Node();
+        unordered_map<string,int> vals;       // current value of each key
+    public:
+        void insert(string key, int val) {
+            int delta = val - (vals.count(key) ? vals[key] : 0);
+            vals[key] = val;
+            Node* cur = root;
+            for (char c : key) {
+                if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+                cur = cur->ch[c - 'a'];
+                cur->sum += delta;            // every node on the path
+            }
+        }
+        int sum(string prefix) {
+            Node* cur = root;
+            for (char c : prefix) {
+                if (!cur->ch[c - 'a']) return 0;
+                cur = cur->ch[c - 'a'];
+            }
+            return cur->sum;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class MapSum:
+        def __init__(self):
+            self.root = {}                    # node: {char: child, "#": sum}
+            self.vals = {}                    # key -> current value
+
+        def insert(self, key: str, val: int) -> None:
+            delta = val - self.vals.get(key, 0)
+            self.vals[key] = val
+            node = self.root
+            for c in key:
+                node = node.setdefault(c, {})
+                node["#"] = node.get("#", 0) + delta
+
+        def sum(self, prefix: str) -> int:
+            node = self.root
+            for c in prefix:
+                if c not in node:
+                    return 0
+                node = node[c]
+            return node.get("#", 0)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class MapSum {
+        static class Node { Node[] ch = new Node[26]; int sum = 0; }
+        private final Node root = new Node();
+        private final Map<String,Integer> vals = new HashMap<>();
+        public void insert(String key, int val) {
+            int delta = val - vals.getOrDefault(key, 0);
+            vals.put(key, val);
+            Node cur = root;
+            for (char c : key.toCharArray()) {
+                if (cur.ch[c - 'a'] == null) cur.ch[c - 'a'] = new Node();
+                cur = cur.ch[c - 'a'];
+                cur.sum += delta;
+            }
+        }
+        public int sum(String prefix) {
+            Node cur = root;
+            for (char c : prefix.toCharArray()) {
+                if (cur.ch[c - 'a'] == null) return 0;
+                cur = cur.ch[c - 'a'];
+            }
+            return cur.sum;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Handle overwrites with a delta, not by adding.** If `insert("apple", 3)` then `insert("apple", 5)`, naively adding 5 to every node double-counts (you'd get 8). Track each key's current value separately and propagate `new - old` along the path. Forgetting the delta is the bug that passes the first example and fails the overwrite case.
+</Callout>
+
+#### Analysis
+
+- **Approach A:** `insert` O(L), `sum` O(L). **Approach B:** `insert` O(L), `sum` O(subtree).
+- **Space:** O(total key characters).
+
+#### Same skin
+
+- **Trie with a `value` field** (from [Variations](/day18/variations#1-storing-a-value-not-just-a-flag)) — this is the canonical example.
+- **[Prefix-count warm-up](/day18/basic_questions)** — same "maintain an aggregate on the insert path" trick, with a count instead of a sum.
+- **Range-sum structures** ([Day 19](/day19)) — the "store an aggregate so queries are O(log/L)" philosophy carried to arrays.

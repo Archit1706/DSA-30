@@ -1,0 +1,137 @@
+---
+title: "Add and Search Word (Wildcards)"
+description: "Design a dictionary supporting addWord and a search where '.' matches any single letter — the trie with a branching DFS."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Add and Search Word — Data Structure Design <DifficultyBadge level="medium" />
+
+#### Description
+
+Design `WordDictionary`:
+
+- `addWord(word)` — store a word.
+- `search(word)` — return `true` if any stored word matches `word`, where a `.` in the query matches **any single letter**.
+
+#### Examples
+
+```py
+> addWord("bad"); addWord("dad"); addWord("mad")
+  search("pad")   -> false
+  search("bad")   -> true
+  search(".ad")   -> true     # matches bad, dad, mad
+  search("b..")   -> true     # matches bad
+```
+
+#### Constraints
+
+- `1 <= word.length <= 25`
+- `addWord` words are lowercase letters; `search` words may contain `.`
+- at most `2` dots could still blow up if you're naive — but length ≤ 25 keeps it bounded.
+
+#### Intuition
+
+`addWord` is plain trie insert. The twist is `search`: a `.` means "try **every** child." That turns the linear walk into a **DFS** — at a normal character, descend the one matching child; at a `.`, recurse into *all* children. The recursion explores only the branches that could still match, so it stays efficient in practice.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class WordDictionary {
+        struct Node { Node* ch[26] = {}; bool end = false; };
+        Node* root = new Node();
+        bool dfs(const string& w, int i, Node* node) {
+            if (!node) return false;
+            if (i == w.size()) return node->end;
+            char c = w[i];
+            if (c == '.') {
+                for (Node* nxt : node->ch)
+                    if (nxt && dfs(w, i + 1, nxt)) return true;
+                return false;
+            }
+            return dfs(w, i + 1, node->ch[c - 'a']);
+        }
+    public:
+        void addWord(string word) {
+            Node* cur = root;
+            for (char c : word) {
+                if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+                cur = cur->ch[c - 'a'];
+            }
+            cur->end = true;
+        }
+        bool search(string word) { return dfs(word, 0, root); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class WordDictionary:
+        def __init__(self):
+            self.root = {}
+
+        def addWord(self, word: str) -> None:
+            node = self.root
+            for c in word:
+                node = node.setdefault(c, {})
+            node["$"] = True
+
+        def search(self, word: str) -> bool:
+            def dfs(i, node):
+                if i == len(word):
+                    return "$" in node
+                c = word[i]
+                if c == '.':
+                    return any(dfs(i + 1, nxt) for k, nxt in node.items() if k != "$")
+                return c in node and dfs(i + 1, node[c])
+            return dfs(0, self.root)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class WordDictionary {
+        static class Node { Node[] ch = new Node[26]; boolean end = false; }
+        private final Node root = new Node();
+        public void addWord(String word) {
+            Node cur = root;
+            for (char c : word.toCharArray()) {
+                if (cur.ch[c - 'a'] == null) cur.ch[c - 'a'] = new Node();
+                cur = cur.ch[c - 'a'];
+            }
+            cur.end = true;
+        }
+        public boolean search(String word) { return dfs(word, 0, root); }
+        private boolean dfs(String w, int i, Node node) {
+            if (node == null) return false;
+            if (i == w.length()) return node.end;
+            char c = w.charAt(i);
+            if (c == '.') {
+                for (Node nxt : node.ch)
+                    if (nxt != null && dfs(w, i + 1, nxt)) return true;
+                return false;
+            }
+            return dfs(w, i + 1, node.ch[c - 'a']);
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The wildcard is just "branch into all children."** Every trie `search` is secretly a DFS where each character picks one branch. A `.` simply lifts that restriction for one step. Recognizing that "search = DFS, exact char = one branch, wildcard = all branches" lets you extend the pattern to other matchers (`?`, `*`, character classes).
+</Callout>
+
+#### Analysis
+
+- **Time:** `addWord` is `O(L)`. `search` is `O(L)` with no dots; worst case `O(26^d · L)` where `d` is the number of dots — bounded because word length ≤ 25 and real inputs have few dots.
+- **Space:** `O(total characters added)` for the trie, `O(L)` recursion depth.
+
+#### Same skin
+
+- **[Implement Trie](/day18/practice_questions/implement_trie)** — this is that, with a DFS search.
+- **[Word Search II](/day18/practice_questions/word_search_ii)** — the same "trie + DFS" idea, but the DFS walks a 2-D grid instead of a query string.
+- **Regex / glob matching** — `.` here is the simplest wildcard; the branching-DFS generalizes.

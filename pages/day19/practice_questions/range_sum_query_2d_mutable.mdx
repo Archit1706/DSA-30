@@ -1,0 +1,168 @@
+---
+title: "Range Sum Query 2D — Mutable"
+description: "Sum over any sub-rectangle of a matrix with point updates — the 2D Fenwick tree, a BIT of BITs."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Range Sum Query 2D — Mutable <DifficultyBadge level="hard" />
+
+#### Description
+
+Implement `NumMatrix`:
+
+- `NumMatrix(matrix)` — initialize with an `m × n` matrix.
+- `update(row, col, val)` — set `matrix[row][col] = val`.
+- `sumRegion(r1, c1, r2, c2)` — sum of the sub-rectangle with corners `(r1, c1)` and `(r2, c2)`.
+
+#### Examples
+
+```py
+> sumRegion(2, 1, 4, 3)   -> 8     # sum of that rectangle
+  update(3, 2, 2)
+  sumRegion(2, 1, 4, 3)   -> 10    # reflects the update
+```
+
+#### Constraints
+
+- `1 <= m, n <= 200`, many updates and queries interleaved.
+
+#### Intuition — a BIT of BITs
+
+The 1D Fenwick tree extends to 2D directly: `update` runs the `i += i & -i` loop over **rows** and, nested inside, over **columns**. `prefixSum(r, c)` gives the sum of the rectangle from `(1,1)` to `(r,c)`. Any sub-rectangle is then the standard **inclusion–exclusion** of four corner prefix sums:
+
+```text
+sumRegion(r1,c1,r2,c2) =
+    pre(r2, c2) - pre(r1-1, c2) - pre(r2, c1-1) + pre(r1-1, c1-1)
+```
+
+Both `update` and query are O(log m × log n).
+
+#### Code (2D Fenwick tree)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class NumMatrix {
+        int m, n;
+        vector<vector<long long>> bit;     // 1-indexed in both dims
+        vector<vector<int>> a;
+        void add(int r, int c, long long d) {
+            for (int i = r; i <= m; i += i & (-i))
+                for (int j = c; j <= n; j += j & (-j))
+                    bit[i][j] += d;
+        }
+        long long pre(int r, int c) {
+            long long s = 0;
+            for (int i = r; i > 0; i -= i & (-i))
+                for (int j = c; j > 0; j -= j & (-j))
+                    s += bit[i][j];
+            return s;
+        }
+    public:
+        NumMatrix(vector<vector<int>>& matrix) {
+            m = matrix.size(); n = matrix[0].size();
+            bit.assign(m + 1, vector<long long>(n + 1, 0));
+            a.assign(m, vector<int>(n, 0));
+            for (int i = 0; i < m; i++)
+                for (int j = 0; j < n; j++) update(i, j, matrix[i][j]);
+        }
+        void update(int row, int col, int val) {
+            add(row + 1, col + 1, val - a[row][col]);     // delta
+            a[row][col] = val;
+        }
+        int sumRegion(int r1, int c1, int r2, int c2) {
+            return pre(r2+1, c2+1) - pre(r1, c2+1) - pre(r2+1, c1) + pre(r1, c1);
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class NumMatrix:
+        def __init__(self, matrix):
+            self.m, self.n = len(matrix), len(matrix[0])
+            self.bit = [[0]*(self.n+1) for _ in range(self.m+1)]
+            self.a = [[0]*self.n for _ in range(self.m)]
+            for i in range(self.m):
+                for j in range(self.n):
+                    self.update(i, j, matrix[i][j])
+
+        def _add(self, r, c, d):
+            i = r
+            while i <= self.m:
+                j = c
+                while j <= self.n:
+                    self.bit[i][j] += d
+                    j += j & (-j)
+                i += i & (-i)
+
+        def _pre(self, r, c):
+            s, i = 0, r
+            while i > 0:
+                j = c
+                while j > 0:
+                    s += self.bit[i][j]
+                    j -= j & (-j)
+                i -= i & (-i)
+            return s
+
+        def update(self, row, col, val):
+            self._add(row + 1, col + 1, val - self.a[row][col])   # delta
+            self.a[row][col] = val
+
+        def sumRegion(self, r1, c1, r2, c2):
+            return (self._pre(r2+1, c2+1) - self._pre(r1, c2+1)
+                    - self._pre(r2+1, c1) + self._pre(r1, c1))
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class NumMatrix {
+        int m, n; long[][] bit; int[][] a;
+        public NumMatrix(int[][] matrix) {
+            m = matrix.length; n = matrix[0].length;
+            bit = new long[m + 1][n + 1]; a = new int[m][n];
+            for (int i = 0; i < m; i++)
+                for (int j = 0; j < n; j++) update(i, j, matrix[i][j]);
+        }
+        private void add(int r, int c, long d) {
+            for (int i = r; i <= m; i += i & (-i))
+                for (int j = c; j <= n; j += j & (-j))
+                    bit[i][j] += d;
+        }
+        private long pre(int r, int c) {
+            long s = 0;
+            for (int i = r; i > 0; i -= i & (-i))
+                for (int j = c; j > 0; j -= j & (-j))
+                    s += bit[i][j];
+            return s;
+        }
+        public void update(int row, int col, int val) {
+            add(row + 1, col + 1, val - a[row][col]);
+            a[row][col] = val;
+        }
+        public int sumRegion(int r1, int c1, int r2, int c2) {
+            return (int)(pre(r2+1, c2+1) - pre(r1, c2+1) - pre(r2+1, c1) + pre(r1, c1));
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **2D = "run the 1D loop in both dimensions."** Each Fenwick dimension is independent, so you simply nest the `i & -i` walk over rows inside the walk over columns. The four-corner inclusion–exclusion is the same identity as a 2D prefix-sum matrix — the BIT just makes it survive updates. The pattern generalizes to any number of dimensions (3D BIT = triple-nested loop).
+</Callout>
+
+#### Analysis
+
+- **Time:** `update` and `sumRegion` are O(log m × log n); construction O(m n log m log n).
+- **Space:** O(m n) for the BIT.
+
+#### Same skin
+
+- **[Range Sum Query — Mutable](/day19/practice_questions/range_sum_query_mutable)** — the 1D version this extends.
+- **Range Sum Query 2D — Immutable** — static matrix → plain 2D prefix sums, no BIT.
+- **Inclusion–exclusion on prefix sums ([Day 2](/day2))** — the four-corner identity is pure 2D prefix-sum arithmetic.

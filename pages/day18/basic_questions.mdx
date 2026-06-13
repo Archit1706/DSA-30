@@ -1,0 +1,116 @@
+---
+title: "Basic Trie Questions"
+description: "Warm-up trie problems — count words with a prefix, autocomplete, longest common prefix, count distinct substrings — to lock insert/search/prefix into muscle memory."
+---
+
+import { Tabs, Steps, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Basic Trie Questions
+
+Five warm-ups to make the insert/walk/flag pattern automatic. Each adds one small twist to the core operations — a counter, a value, a DFS — so that by the end the [practice problems](/day18/practice_questions) feel like recombinations of moves you already know.
+
+<Steps>
+
+### 1. Count how many stored words have a given prefix
+
+Add a `count` to each node: increment it for **every node you pass through** during `insert`. Then "how many words start with `pre`?" is just "walk to the `pre` node and read its `count`" — O(L).
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    class Node:
+        def __init__(self):
+            self.children = {}
+            self.count = 0          # words passing through this node
+
+    class PrefixCounter:
+        def __init__(self): self.root = Node()
+        def insert(self, word):
+            cur = self.root
+            for c in word:
+                cur = cur.children.setdefault(c, Node())
+                cur.count += 1       # every node on the path counts this word
+        def count_prefix(self, prefix):
+            cur = self.root
+            for c in prefix:
+                if c not in cur.children: return 0
+                cur = cur.children[c]
+            return cur.count
+    ```
+    </Tab>
+</Tabs>
+
+The trick — *maintain the aggregate on the way down* — generalizes: store sums (Map Sum Pairs), maxima, or any associative quantity at each node.
+
+### 2. Autocomplete — first k words for a prefix
+
+Walk to the prefix node, then DFS the subtree in sorted order, stopping after k words. Covered in full on the [operations page](/day18/operations#collecting-all-words-under-a-prefix-autocomplete) — the engine behind [Search Suggestions System](/day18/practice_questions/search_suggestions_system).
+
+### 3. Longest common prefix of a set of words
+
+Insert all words; then walk down from the root **as long as there's exactly one child and the node isn't end-of-word**. The path you walk is the LCP.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def longest_common_prefix(words):
+        if not words: return ""
+        root = {}
+        for w in words:                       # build a minimal trie
+            node = root
+            for c in w: node = node.setdefault(c, {})
+            node["$"] = True                  # end marker
+        lcp, node = [], root
+        while len(node) == 1 and "$" not in node:
+            c = next(iter(node))
+            lcp.append(c); node = node[c]
+        return "".join(lcp)
+    ```
+    </Tab>
+</Tabs>
+
+The LCP ends the moment the path branches (more than one child) or a word ends (the shortest word is itself the limit). This is the trie lens on [Day 2's Longest Common Prefix](/day2).
+
+### 4. Does the trie contain any word at all?
+
+Trivial but instructive: a trie is non-empty iff the root has children. More useful: "is this node a leaf?" (no children) tells you a word ends here with nothing after it — handy in deletion and word-break problems.
+
+### 5. Count distinct substrings of a string (preview)
+
+Insert *all suffixes* of a string into a trie. The number of **nodes** (excluding the root) equals the number of **distinct substrings** — because every distinct substring is a unique root-to-some-node path. O(n²) nodes naively; the optimal version uses a suffix automaton/tree, but the trie framing is the intuition.
+
+</Steps>
+
+<Callout type="info">
+    **The pattern across all five: a trie node can carry more than a boolean.** A `count`, a `value`, a `sum`, an end-marker — whatever aggregate the problem needs, maintained incrementally during `insert`. Once you internalize "store the answer at the node," half of trie problems become 'pick the right thing to store.'
+</Callout>
+
+## Mini-quiz
+
+<QuizBox
+    question="To answer 'how many stored words start with prefix P' in O(L), what do you maintain?"
+    options={[
+        "A global counter",
+        "A count at each node, incremented for every node on the path during insert; then read the count at the prefix's final node",
+        "A separate hash map of prefixes",
+        "Nothing — you must DFS the subtree each time"
+    ]}
+    correctIndex={1}
+    explanation="Incrementing a per-node count for every node a word passes through means each node's count equals the number of stored words sharing that prefix. The query is then a single O(L) walk to the prefix node and a read — no subtree traversal needed. DFS-counting the subtree would work but is slower (O(subtree) per query)."
+/>
+
+<QuizBox
+    question="Using a trie, the longest common prefix of a word set is found by walking down from the root until…"
+    options={[
+        "you reach any leaf",
+        "the node has more than one child OR is marked end-of-word — i.e. the path branches, or the shortest word ends",
+        "you've walked 26 steps",
+        "the count drops to zero"
+    ]}
+    correctIndex={1}
+    explanation="The LCP is the longest path with no choices: as long as exactly one child exists and no word has ended, every stored word still shares this character. The walk stops at the first branch (words diverge) or end-of-word (a word is fully a prefix of the others), which is precisely where the common prefix ends."
+/>
+
+Next: **[Practice Questions](/day18/practice_questions)** — eight interview classics, from Implement Trie to Maximum XOR.

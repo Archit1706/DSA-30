@@ -1,0 +1,57 @@
+---
+title: "Trie Practice Questions"
+description: "Eight trie interview classics — Implement Trie, Add & Search Word (wildcards), Replace Words, Map Sum Pairs, Longest Word, Search Suggestions, Word Search II, and Maximum XOR."
+---
+
+import { Callout } from "nextra/components";
+
+# Trie Practice Questions
+
+Eight problems that cover every trie shape: the plain set, the value-carrying map, the wildcard walk, the trie-guided grid DFS, and the bitwise trie. Once you've done these, "set of strings sharing prefixes" becomes a reflex.
+
+<Callout type="info">
+    The trie recognition signals:
+
+    1. **A set/dictionary of strings** is queried for membership *or prefixes* repeatedly.
+    2. You're **matching characters one at a time** against many candidate words at once.
+    3. The problem says **"prefix," "starts with," "shortest root," "autocomplete," or "common prefix."**
+    4. **XOR maximization/pairs over integers** → the *bitwise* trie.
+
+    If you see one of these, build a trie before you write anything else.
+</Callout>
+
+## Easy
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Implement Trie (Prefix Tree)](/day18/practice_questions/implement_trie) | the core insert/search/startsWith | Available |
+
+## Medium
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Add & Search Word (wildcards)](/day18/practice_questions/add_and_search_word) | DFS walk with `.` matching any child | Available |
+| [Replace Words](/day18/practice_questions/replace_words) | walk to the shortest end-of-word root | Available |
+| [Map Sum Pairs](/day18/practice_questions/map_sum_pairs) | store values at nodes, sum a subtree/prefix | Available |
+| [Longest Word in Dictionary](/day18/practice_questions/longest_word_in_dictionary) | word buildable one char at a time | Available |
+| [Search Suggestions System](/day18/practice_questions/search_suggestions_system) | autocomplete — top-k per prefix | Available |
+| [Maximum XOR of Two Numbers](/day18/practice_questions/maximum_xor_of_two_numbers) | **bitwise trie**, greedy MSB-first | Available |
+
+## Hard
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| [Word Search II](/day18/practice_questions/word_search_ii) | trie + grid DFS with branch pruning | Available |
+
+## More Practice (Coming Soon)
+
+| Problem | Pattern | Status |
+| :--- | :--- | :--- |
+| Concatenated Words | trie + DP word-break | Coming Soon |
+| Stream of Characters | suffix trie, query reversed | Coming Soon |
+| Palindrome Pairs | trie of reversed words | Coming Soon |
+| Word Squares | prefix-indexed backtracking | Coming Soon |
+| Design Search Autocomplete System | trie + ranking + live input | Coming Soon |
+| Maximum XOR With an Element From Array | offline queries + bitwise trie | Coming Soon |
+| Count Pairs With XOR in a Range | bitwise trie counting | Coming Soon |
+| Short Encoding of Words | trie of reversed words | Coming Soon |

@@ -1,0 +1,259 @@
+---
+title: "Trie — Core Operations"
+description: "insert, search, and startsWith in full C++/Python/Java, the node implementation choices (array vs hash map children), deletion, and an interactive trie to experiment with."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { InteractiveTrie } from "../../components/TrieVisualizer";
+export const Tab = Tabs.Tab;
+
+# Trie — Core Operations
+
+Three operations, one shared shape: **walk the path character by character.** `insert` creates nodes as it goes; `search` and `startsWith` just follow existing nodes and report whether the walk succeeds. Once you've written one, the others are variations.
+
+## Try it first
+
+Insert a few words, then `search` for an exact word and `startsWith` a prefix. Watch how `search` and `startsWith` differ on a prefix that isn't itself a word (insert `card`, then `search("car")` vs `startsWith("car")`).
+
+<InteractiveTrie initialWords={["cat", "car", "card", "dog", "do"]} />
+
+## The node
+
+The one design decision is how to store `children`. Two options:
+
+- **Array of size 26** (`children[26]`) — for lowercase `a–z`. O(1) indexing, but every node reserves 26 slots even if it uses one. Fast, memory-heavy.
+- **Hash map** (`char → node`) — allocates only the characters actually used. Slightly slower per step, far less memory for sparse/large alphabets (Unicode, mixed case).
+
+Use the array for `a–z` interview problems (it's faster and the alphabet is tiny); use the map when the alphabet is large or sparse.
+
+## insert, search, startsWith
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Trie {
+        struct Node {
+            Node* children[26] = {};   // a-z, all null
+            bool isEnd = false;
+        };
+        Node* root = new Node();
+    public:
+        void insert(const string& word) {
+            Node* cur = root;
+            for (char c : word) {
+                int i = c - 'a';
+                if (!cur->children[i]) cur->children[i] = new Node();
+                cur = cur->children[i];
+            }
+            cur->isEnd = true;
+        }
+        bool search(const string& word) {
+            Node* n = walk(word);
+            return n && n->isEnd;          // path exists AND marked end-of-word
+        }
+        bool startsWith(const string& prefix) {
+            return walk(prefix) != nullptr; // path exists (flag irrelevant)
+        }
+    private:
+        Node* walk(const string& s) {
+            Node* cur = root;
+            for (char c : s) {
+                int i = c - 'a';
+                if (!cur->children[i]) return nullptr;
+                cur = cur->children[i];
+            }
+            return cur;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class TrieNode:
+        def __init__(self):
+            self.children = {}        # char -> TrieNode (map: only used chars)
+            self.is_end = False
+
+    class Trie:
+        def __init__(self):
+            self.root = TrieNode()
+
+        def insert(self, word: str) -> None:
+            cur = self.root
+            for c in word:
+                if c not in cur.children:
+                    cur.children[c] = TrieNode()
+                cur = cur.children[c]
+            cur.is_end = True
+
+        def _walk(self, s: str):
+            cur = self.root
+            for c in s:
+                if c not in cur.children:
+                    return None
+                cur = cur.children[c]
+            return cur
+
+        def search(self, word: str) -> bool:
+            node = self._walk(word)
+            return node is not None and node.is_end
+
+        def startsWith(self, prefix: str) -> bool:
+            return self._walk(prefix) is not None
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Trie {
+        static class Node {
+            Node[] children = new Node[26];
+            boolean isEnd = false;
+        }
+        private final Node root = new Node();
+
+        public void insert(String word) {
+            Node cur = root;
+            for (char c : word.toCharArray()) {
+                int i = c - 'a';
+                if (cur.children[i] == null) cur.children[i] = new Node();
+                cur = cur.children[i];
+            }
+            cur.isEnd = true;
+        }
+        public boolean search(String word) {
+            Node n = walk(word);
+            return n != null && n.isEnd;
+        }
+        public boolean startsWith(String prefix) {
+            return walk(prefix) != null;
+        }
+        private Node walk(String s) {
+            Node cur = root;
+            for (char c : s.toCharArray()) {
+                int i = c - 'a';
+                if (cur.children[i] == null) return null;
+                cur = cur.children[i];
+            }
+            return cur;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+Notice all three operations funnel through one `walk` helper. `search` adds an `isEnd` check; `startsWith` doesn't. `insert` is `walk` that *creates* missing nodes instead of bailing. That symmetry is worth pointing out in an interview — it shows you see the shared structure.
+
+## Collecting all words under a prefix (autocomplete)
+
+The prefix-query superpower: walk to the prefix node, then DFS the subtree, emitting a word at every `isEnd`.
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def words_with_prefix(self, prefix: str) -> list[str]:
+        node = self._walk(prefix)
+        if node is None:
+            return []
+        out = []
+        def dfs(n, path):
+            if n.is_end:
+                out.append(prefix + path)
+            for c, child in sorted(n.children.items()):   # sorted -> lexicographic
+                dfs(child, path + c)
+        dfs(node, "")
+        return out
+    ```
+    </Tab>
+</Tabs>
+
+This is the engine behind autocomplete. The cost is O(L) to reach the prefix plus O(size of the subtree) to enumerate — you only ever touch words that actually share the prefix.
+
+## Deletion (the tricky one)
+
+Deleting is rarely asked but worth knowing. You can't just unmark `isEnd` and walk away if you care about memory — you should prune nodes that become useless. The rule:
+
+<Steps>
+
+### Walk to the word's end node; unset `isEnd`
+
+If the path doesn't fully exist, the word isn't there — nothing to do.
+
+### Prune bottom-up
+
+Going back up, delete a node **only if** it has no children *and* is not itself an end-of-word for some other word. Stop pruning the moment you hit a node that's still needed (it has another child, or marks a shorter word).
+
+</Steps>
+
+<Tabs items={['Python']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    def delete(self, word: str) -> None:
+        def helper(node, i):
+            if i == len(word):
+                node.is_end = False          # unmark; node may still be a prefix
+                return len(node.children) == 0
+            c = word[i]
+            child = node.children.get(c)
+            if child is None:
+                return False                 # word not present
+            should_prune = helper(child, i + 1)
+            if should_prune and not child.is_end:
+                del node.children[c]          # remove the now-useless child
+            return len(node.children) == 0 and not node.is_end
+        helper(self.root, 0)
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **The deletion trap: never prune a node another word still needs.** If you delete `do` from a trie that also holds `dog`, you must *only* clear the `is_end` flag on the `o` node — you cannot remove the `d→o` path, because `dog` walks through it. Pruning is allowed solely for nodes that become leaves with no end-flag. Get this wrong and you silently delete unrelated words.
+</Callout>
+
+## Complexity recap
+
+| Operation | Time | Notes |
+| :--- | :--- | :--- |
+| `insert`, `search`, `startsWith` | O(L) | L = word length, independent of word count |
+| autocomplete (prefix → all words) | O(L + subtree) | only touches matching words |
+| `delete` | O(L) | plus pruning along the path |
+
+## Quick check
+
+<QuizBox
+    question="In the code above, what's the ONLY difference between search(word) and startsWith(word)?"
+    options={[
+        "search is recursive, startsWith is iterative",
+        "Both walk the path identically; search additionally requires the final node's isEnd flag to be true, while startsWith only requires the path to exist",
+        "startsWith creates nodes",
+        "They use different node types"
+    ]}
+    correctIndex={1}
+    explanation="Both call the same walk helper. search returns 'node exists AND node.isEnd'; startsWith returns 'node exists'. That single flag check is the entire semantic difference between 'is this a complete stored word?' and 'is this a prefix of some stored word?'"
+/>
+
+<QuizBox
+    question="You implement children as an array of 26 pointers per node. What's the main downside versus a hash map?"
+    options={[
+        "It's slower to index",
+        "Memory: every node reserves 26 slots even if it uses one or two, which wastes space for sparse branches and is unworkable for large alphabets (Unicode, mixed case) — a hash map allocates only the characters actually present",
+        "It can't represent end-of-word",
+        "Arrays can't be children"
+    ]}
+    correctIndex={1}
+    explanation="Array children give O(1) indexing and great cache behavior for a small fixed alphabet (a-z), but they pay 26 pointers per node regardless of use. For sparse or large alphabets, a hash map storing only present characters is far more memory-efficient at a small constant-factor speed cost. Choose based on the alphabet."
+/>
+
+<QuizBox
+    question="Why must trie deletion prune nodes bottom-up and stop at the first 'still-needed' node?"
+    options={[
+        "For speed",
+        "Because a node on the deleted word's path may also be part of another word (a shared prefix) or mark a shorter word — removing it would corrupt those. You can only delete trailing nodes that have no children and no end-flag",
+        "Top-down is impossible",
+        "To avoid recursion"
+    ]}
+    correctIndex={1}
+    explanation="Shared prefixes mean one node can serve many words. Deleting 'do' when 'dog' exists must not remove the d→o path. Pruning bottom-up lets you remove only the truly dead tail (leaf nodes with no end-flag) and halt as soon as you reach a node another word or end-flag still depends on."
+/>
+
+Next: **[Variations & Tricks](/day18/variations)** — compressed/radix tries, the bitwise trie that cracks XOR problems, and storing values at nodes.

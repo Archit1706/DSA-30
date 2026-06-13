@@ -1,0 +1,133 @@
+---
+title: "Introduction to Segment Trees"
+description: "The range-query-with-updates problem, why prefix sums break under updates, and how a segment tree achieves O(log n) for both query and update."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { SegmentTreeVisualizer } from "../../components/SegmentTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Introduction to Segment Trees
+
+The segment tree exists to solve one specific tension. Let's make it concrete before we build anything.
+
+## The problem: range queries on a *mutable* array
+
+You're given an array and a stream of two kinds of operations, interleaved:
+
+- **Query** `(i, j)` → the aggregate (say, sum) of `arr[i..j]`.
+- **Update** `(i, v)` → set `arr[i] = v`.
+
+How fast can you serve both? Consider the two obvious approaches:
+
+| Approach | Query `(i,j)` | Update `(i,v)` | Problem |
+| :--- | :--- | :--- | :--- |
+| **Plain array** | O(n) — loop and add | O(1) — assign | queries are slow |
+| **Prefix-sum array** | O(1) — `P[j+1] − P[i]` | **O(n)** — rebuild all prefixes after `i` | updates are slow |
+
+Prefix sums are wonderful for a *static* array — but the moment a value changes, every prefix after it is wrong, so you re-derive O(n) of the table. If queries and updates are both frequent, **both naive approaches degrade to O(n) per operation.** Over `q` operations that's O(n·q) — too slow when both are large.
+
+<Callout type="info">
+    **The segment tree's promise: O(log n) for *both* query and update.** It does this by storing **partial aggregates** in a tree, so a query stitches together a handful of pre-computed pieces, and an update fixes only the pieces that actually contain the changed element. Neither operation ever touches more than O(log n) nodes.
+</Callout>
+
+## The idea: a tree of ranges
+
+Build a binary tree over the array where:
+
+- The **root** owns the whole range `[0, n−1]` and stores its aggregate.
+- Each internal node **splits its range in half** and has two children for the halves.
+- The **leaves** are the individual array elements (range `[i, i]`).
+- Every internal node's value is **combined from its two children** (for sum: `node = left + right`).
+
+<SegmentTreeVisualizer
+    array={[5, 2, 8, 1, 9, 3]}
+    title="The range each node owns is written under it as [lo, hi]"
+    caption="Root [0,5] = 28. It splits into [0,2] (left half) and [3,5] (right half), each splitting again until leaves [i,i] hold single elements. Every parent is the sum of its two children — that invariant is the whole structure."
+/>
+
+There are only about `2n` nodes total (n leaves + n−1 internal), and the tree's height is `⌈log₂ n⌉`. That height is why everything is logarithmic.
+
+## Why query is O(log n): the decomposition
+
+To answer `sum(i, j)`, you **don't** visit every leaf in the range. Instead you find the smallest set of nodes whose ranges exactly tile `[i, j]`. Recursing from the root, each node falls into one of three cases:
+
+<Steps>
+
+### Fully inside `[i, j]` → take it whole
+
+The node's entire range is within the query. Return its stored aggregate — no need to go deeper. This is where the speedup lives.
+
+### Fully outside `[i, j]` → ignore it
+
+No overlap. Return the identity (0 for sum, +∞ for min). Prune the whole subtree.
+
+### Partially overlapping → recurse into both children
+
+Split the question across the two halves and combine the results.
+
+</Steps>
+
+It turns out at most **O(log n)** nodes are ever taken "whole" — the query range is covered by a logarithmic number of canonical segments. Try it on the [next page](/day19/the_template) and watch how few nodes light up.
+
+## Why update is O(log n): one path
+
+To set `arr[i] = v`, only the nodes whose range *contains* `i` are affected — and those nodes form a single **root-to-leaf path** (length = height = O(log n)). Update the leaf, then walk back up recomputing each ancestor from its (now-updated) children. Every other node is untouched.
+
+<Callout type="warning">
+    **The aggregate must be associative for the tree to work.** Combining children into a parent (`combine(left, right)`) has to be associative so that the order of merging doesn't change the answer — `sum`, `min`, `max`, `gcd`, `bitwise OR/AND`, and `matrix product` all qualify. Operations like "the median" or "count of distinct elements" are **not** associative on partial ranges, so they don't fit a vanilla segment tree. Always ask: *can I combine two adjacent partial answers into one?* If not, a segment tree won't help.
+</Callout>
+
+## Segment tree vs the alternatives
+
+| Structure | Range query | Point update | Range update | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| Prefix sums | O(1) | O(n) | O(n) | static arrays only |
+| **Segment tree** | O(log n) | O(log n) | O(log n) (lazy) | most general; any associative op |
+| **Fenwick / BIT** | O(log n) | O(log n) | O(log n)† | smaller & faster, but sum/prefix-oriented |
+| Sqrt decomposition | O(√n) | O(1) | O(√n) | simpler to code, worse asymptotics |
+
+† BIT range updates need the difference-array trick — covered on the [Fenwick page](/day19/fenwick_tree).
+
+The segment tree is the **most general**; the Fenwick tree is the **leaner specialist** for prefix sums. Know both and when to pick each.
+
+## Quick check
+
+<QuizBox
+    question="A prefix-sum array gives O(1) range-sum queries. Why isn't it enough when the array is updated between queries?"
+    options={[
+        "Prefix sums can't represent large numbers",
+        "An update to index i invalidates every prefix sum from i onward, so you must recompute O(n) of the table per update — fast queries but O(n) updates, which a segment tree fixes by making both O(log n)",
+        "Prefix sums only work for sorted arrays",
+        "Queries become O(n) too"
+    ]}
+    correctIndex={1}
+    explanation="Prefix sums are perfect for a static array but brittle under updates: changing arr[i] makes P[i+1..n] all wrong, costing O(n) to repair. When updates and queries interleave frequently, that O(n) update dominates. The segment tree stores partial aggregates in a tree so an update repairs only the O(log n) nodes on one root-to-leaf path."
+/>
+
+<QuizBox
+    question="When answering sum(i, j), why is a node whose range lies FULLY inside [i, j] handled in O(1)?"
+    options={[
+        "It's a leaf",
+        "Its stored aggregate already equals the sum of its entire range, which is wholly within the query — so you return it directly without recursing into its subtree. Only partially-overlapping nodes require recursion",
+        "Because sum is commutative",
+        "It's always the root"
+    ]}
+    correctIndex={1}
+    explanation="A node 'fully inside' the query contributes its whole precomputed aggregate — that's the entire point of storing partial sums. You take it as-is and stop. Recursion is needed only for nodes that straddle the query boundary. At most O(log n) nodes are taken whole, which bounds the query cost."
+/>
+
+<QuizBox
+    question="Which of these operations CANNOT be supported by a standard segment tree, and why?"
+    options={[
+        "Range minimum — min isn't associative",
+        "Count of distinct elements in a range — it's not associative on partial ranges (you can't combine 'distinct count of left half' and 'distinct count of right half' into the distinct count of the whole, since elements may repeat across the boundary)",
+        "Range gcd — gcd needs sorting",
+        "Range sum — sum overflows"
+    ]}
+    correctIndex={1}
+    explanation="A segment tree requires an associative combine(left, right). Sum, min, max, gcd, and bitwise ops all combine cleanly. 'Distinct count' does not: knowing each half's distinct count tells you nothing about overlaps across the midpoint, so you can't merge partial answers. Such queries need different techniques (e.g. offline + BIT, or Mo's algorithm)."
+/>
+
+Next: **[The Template](/day19/the_template)** — `build`, `query`, `update` in full code, with an interactive tree that lights up the nodes each operation touches.

@@ -1,0 +1,250 @@
+---
+title: "Segment Tree — The Template"
+description: "build, query, and update in full C++/Python/Java, the array-based representation (2*node / 2*node+1), and an interactive tree that highlights the O(log n) nodes each operation touches."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { InteractiveSegmentTree } from "../../components/SegmentTreeVisualizer";
+export const Tab = Tabs.Tab;
+
+# Segment Tree — The Template
+
+Three recursive functions — `build`, `query`, `update` — and they all share the same skeleton: *if my range is fully inside the target, act; if fully outside, stop; otherwise split and recurse.* Learn that skeleton once and you can re-derive any of the three from scratch.
+
+## Try it
+
+Run a **query** over a range and watch which nodes get used (strong purple) — that's the O(log n) decomposition, never the full range of cells. Then **update** an index and watch only the root-to-leaf path change.
+
+<InteractiveSegmentTree initialArray={[5, 2, 8, 1, 9, 3]} />
+
+## The array representation
+
+You don't need real node objects with pointers. Store the tree in a flat array `tree[]` of size `2n` to `4n`, using the classic heap-style indexing:
+
+- node `1` is the root,
+- node `k`'s children are `2k` (left) and `2k + 1` (right).
+
+This is the same trick as the [binary heap (Day 7)](/day7) — implicit pointers via arithmetic. A size of `4n` is always safe (the tree can be slightly unbalanced when `n` isn't a power of two).
+
+## build — O(n)
+
+Recurse down, splitting the range; at a leaf store the array value; on the way up, combine children.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class SegTree {
+        int n;
+        vector<long long> tree;          // size 4n; here: SUM segment tree
+        vector<int> a;
+        void build(int node, int lo, int hi) {
+            if (lo == hi) { tree[node] = a[lo]; return; }
+            int mid = (lo + hi) / 2;
+            build(2*node,   lo,     mid);
+            build(2*node+1, mid+1,  hi);
+            tree[node] = tree[2*node] + tree[2*node+1];   // combine
+        }
+    public:
+        SegTree(vector<int>& arr) : n(arr.size()), tree(4*arr.size()), a(arr) {
+            build(1, 0, n-1);
+        }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class SegTree:
+        def __init__(self, arr):
+            self.n = len(arr)
+            self.tree = [0] * (4 * self.n)     # SUM segment tree
+            self.a = arr
+            self._build(1, 0, self.n - 1)
+
+        def _build(self, node, lo, hi):
+            if lo == hi:
+                self.tree[node] = self.a[lo]
+                return
+            mid = (lo + hi) // 2
+            self._build(2*node,     lo,    mid)
+            self._build(2*node + 1, mid+1, hi)
+            self.tree[node] = self.tree[2*node] + self.tree[2*node + 1]
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class SegTree {
+        int n; long[] tree; int[] a;
+        SegTree(int[] arr) {
+            n = arr.length; tree = new long[4 * n]; a = arr;
+            build(1, 0, n - 1);
+        }
+        void build(int node, int lo, int hi) {
+            if (lo == hi) { tree[node] = a[lo]; return; }
+            int mid = (lo + hi) / 2;
+            build(2*node,     lo,    mid);
+            build(2*node + 1, mid+1, hi);
+            tree[node] = tree[2*node] + tree[2*node + 1];
+        }
+    ```
+    </Tab>
+</Tabs>
+
+## query(i, j) — O(log n)
+
+The three-case recursion: fully outside → identity; fully inside → stored value; partial → recurse both and combine.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+        long long query(int node, int lo, int hi, int i, int j) {
+            if (j < lo || hi < i) return 0;                  // disjoint -> identity
+            if (i <= lo && hi <= j) return tree[node];       // fully inside
+            int mid = (lo + hi) / 2;
+            return query(2*node,   lo,    mid, i, j)
+                 + query(2*node+1, mid+1, hi,  i, j);        // partial -> combine
+        }
+        long long query(int i, int j) { return query(1, 0, n-1, i, j); }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+        def _query(self, node, lo, hi, i, j):
+            if j < lo or hi < i:               # disjoint -> identity
+                return 0
+            if i <= lo and hi <= j:            # fully inside
+                return self.tree[node]
+            mid = (lo + hi) // 2               # partial -> combine
+            return self._query(2*node, lo, mid, i, j) \
+                 + self._query(2*node + 1, mid+1, hi, i, j)
+
+        def query(self, i, j):
+            return self._query(1, 0, self.n - 1, i, j)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+        long query(int node, int lo, int hi, int i, int j) {
+            if (j < lo || hi < i) return 0;                  // disjoint
+            if (i <= lo && hi <= j) return tree[node];       // fully inside
+            int mid = (lo + hi) / 2;
+            return query(2*node,     lo,    mid, i, j)
+                 + query(2*node + 1, mid+1, hi,  i, j);
+        }
+        long query(int i, int j) { return query(1, 0, n - 1, i, j); }
+    ```
+    </Tab>
+</Tabs>
+
+## update(i, v) — O(log n)
+
+Recurse to the leaf for index `i`, set it, then recombine ancestors on the way back up.
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+        void update(int node, int lo, int hi, int idx, int val) {
+            if (lo == hi) { tree[node] = val; return; }      // leaf
+            int mid = (lo + hi) / 2;
+            if (idx <= mid) update(2*node,   lo,    mid, idx, val);
+            else            update(2*node+1, mid+1, hi,  idx, val);
+            tree[node] = tree[2*node] + tree[2*node+1];      // recombine ancestor
+        }
+        void update(int idx, int val) { update(1, 0, n-1, idx, val); }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+        def _update(self, node, lo, hi, idx, val):
+            if lo == hi:                       # leaf
+                self.tree[node] = val
+                return
+            mid = (lo + hi) // 2
+            if idx <= mid:
+                self._update(2*node, lo, mid, idx, val)
+            else:
+                self._update(2*node + 1, mid+1, hi, idx, val)
+            self.tree[node] = self.tree[2*node] + self.tree[2*node + 1]
+
+        def update(self, idx, val):
+            self._update(1, 0, self.n - 1, idx, val)
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+        void update(int node, int lo, int hi, int idx, int val) {
+            if (lo == hi) { tree[node] = val; return; }      // leaf
+            int mid = (lo + hi) / 2;
+            if (idx <= mid) update(2*node,     lo,    mid, idx, val);
+            else            update(2*node + 1, mid+1, hi,  idx, val);
+            tree[node] = tree[2*node] + tree[2*node + 1];    // recombine
+        }
+        void update(int idx, int val) { update(1, 0, n - 1, idx, val); }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **To change the aggregate, change two lines.** Want range *minimum* instead of sum? Replace every `tree[2*node] + tree[2*node+1]` with `min(...)`, and the disjoint-case identity `0` with `+∞` (`INT_MAX`). Max → use `−∞`. GCD → use `0` as identity (since `gcd(0, x) = x`). The skeleton never changes — only the `combine` function and its identity element. That's the abstraction worth internalizing.
+</Callout>
+
+## The shared skeleton
+
+All three functions are the same recursion with different payloads:
+
+<Steps>
+
+### Base case at the leaf / full-cover
+
+`build` and `update` stop at a leaf; `query` stops when a node is fully inside the range.
+
+### Recurse into the relevant half / halves
+
+`update` goes into the *one* half containing the index; `query` may go into *both* on a partial overlap; `build` always goes into both.
+
+### Combine on the way up
+
+`build` and `update` recompute the parent from its children. `query` combines the partial results it gathered.
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="In the array representation, node k's children are at indices 2k and 2k+1. Why allocate size 4n rather than 2n?"
+    options={[
+        "For cache alignment",
+        "When n isn't a power of two, the recursive split can create a slightly taller/unbalanced tree, so leaf indices can exceed 2n; 4n is a simple safe upper bound that always fits the heap-style indexing",
+        "Because every node has 4 children",
+        "To store lazy values"
+    ]}
+    correctIndex={1}
+    explanation="The implicit 2k / 2k+1 indexing needs room for the deepest possible node. For non-power-of-two n, the tree isn't perfectly balanced and some leaves land deeper, pushing indices past 2n. 4n is the standard safe allocation that guarantees no index overflow regardless of n."
+/>
+
+<QuizBox
+    question="To convert this SUM segment tree into a MIN segment tree, what must change?"
+    options={[
+        "The entire recursion structure",
+        "Only the combine step (use min instead of +) and the disjoint-case identity (return +∞ instead of 0); the build/query/update skeleton is identical",
+        "You must switch to a Fenwick tree",
+        "Leaves must store pairs"
+    ]}
+    correctIndex={1}
+    explanation="The segment tree is generic over any associative combine with an identity. Sum uses (+, 0); min uses (min, +∞); max uses (max, −∞); gcd uses (gcd, 0). Swap those two things and every function works unchanged — which is exactly why the template is worth memorizing once."
+/>
+
+<QuizBox
+    question="During update(idx, val), why does the recursion descend into only ONE child at each level, but build descends into both?"
+    options={[
+        "Update is buggy if it descends both",
+        "A single index lives in exactly one half at each split, so update follows the one path to that leaf (O(log n)); build must construct every node, so it visits both halves everywhere (O(n))",
+        "Build is slower by design",
+        "They descend the same way"
+    ]}
+    correctIndex={1}
+    explanation="A point update affects only nodes whose range contains idx, and those form one root-to-leaf path — at each node, idx is in the left or right half, never both. build instead must compute every node's aggregate, so it recurses into both children at every level, touching all O(n) nodes once."
+/>
+
+Next: **[Lazy Propagation](/day19/lazy_propagation)** — how to make *range* updates ("add 5 to every element in `[i, j]`") O(log n) instead of O(n log n).

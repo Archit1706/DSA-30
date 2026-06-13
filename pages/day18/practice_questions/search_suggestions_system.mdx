@@ -1,0 +1,128 @@
+---
+title: "Search Suggestions System"
+description: "Return up to three lexicographically smallest product suggestions for each prefix as the user types — trie autocomplete, the real-world application."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Search Suggestions System <DifficultyBadge level="medium" />
+
+#### Description
+
+Given `products` and a `searchWord`, after each character typed return up to **3 lexicographically smallest** products that have the typed prefix. Return a list of lists — one suggestion list per prefix of `searchWord`.
+
+#### Examples
+
+```py
+> products = ["mobile","mouse","moneypot","monitor","mousepad"]
+  searchWord = "mouse"
+  Output:
+    "m"     -> [mobile, moneypot, monitor]
+    "mo"    -> [mobile, moneypot, monitor]
+    "mou"   -> [mouse, mousepad]
+    "mous"  -> [mouse, mousepad]
+    "mouse" -> [mouse, mousepad]
+```
+
+#### Constraints
+
+- `1 <= products.length <= 1000`, total chars ≤ `2 × 10^4`, lowercase.
+- `1 <= searchWord.length <= 1000`.
+
+#### Intuition
+
+This is **autocomplete** — the trie's headline application. Insert all products. For each prefix of `searchWord`, walk to the prefix node and DFS its subtree in alphabetical order, collecting the first 3 end-of-word words. If you store products sorted and keep up to 3 at each node during insertion, each query is O(L).
+
+#### Code (trie with cached top-3)
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        struct Node { Node* ch[26] = {}; vector<string> top; };
+    public:
+        vector<vector<string>> suggestedProducts(vector<string>& products, string word) {
+            sort(products.begin(), products.end());
+            Node* root = new Node();
+            for (auto& p : products) {
+                Node* cur = root;
+                for (char c : p) {
+                    if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+                    cur = cur->ch[c - 'a'];
+                    if (cur->top.size() < 3) cur->top.push_back(p);  // sorted insert order => smallest 3
+                }
+            }
+            vector<vector<string>> res;
+            Node* cur = root;
+            for (char c : word) {
+                if (cur) cur = cur->ch[c - 'a'];
+                res.push_back(cur ? cur->top : vector<string>{});
+            }
+            return res;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class Solution:
+        def suggestedProducts(self, products, searchWord):
+            products.sort()
+            root = {}
+            for p in products:
+                node = root
+                for c in p:
+                    node = node.setdefault(c, {"top": []})
+                    if len(node["top"]) < 3:        # sorted order => smallest 3
+                        node["top"].append(p)
+            res, node = [], root
+            for c in searchWord:
+                node = node.get(c) if node else None
+                res.append(node["top"] if node else [])
+            return res
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        static class Node { Node[] ch = new Node[26]; List<String> top = new ArrayList<>(); }
+        public List<List<String>> suggestedProducts(String[] products, String word) {
+            Arrays.sort(products);
+            Node root = new Node();
+            for (String p : products) {
+                Node cur = root;
+                for (char c : p.toCharArray()) {
+                    if (cur.ch[c - 'a'] == null) cur.ch[c - 'a'] = new Node();
+                    cur = cur.ch[c - 'a'];
+                    if (cur.top.size() < 3) cur.top.add(p);
+                }
+            }
+            List<List<String>> res = new ArrayList<>();
+            Node cur = root;
+            for (char c : word.toCharArray()) {
+                if (cur != null) cur = cur.ch[c - 'a'];
+                res.add(cur != null ? cur.top : new ArrayList<>());
+            }
+            return res;
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **Sort once, and "top 3" becomes "first 3 inserted."** Because products are inserted in lexicographic order, the first 3 words to pass through any node are exactly its 3 smallest completions. Caching them at insert time turns each keystroke query into a pure O(1)-per-character walk — the same "precompute the answer, serve from memory" idea behind the [system-design typeahead](/day28/practice_questions/design_a_typeahead).
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(T log T)` to sort (T = total characters) + `O(T)` to build + `O(L)` per query.
+- **Space:** `O(T)` for the trie (plus up to 3 strings cached per node).
+
+#### Same skin
+
+- **[Typeahead / Autocomplete (Day 28)](/day28/practice_questions/design_a_typeahead)** — this problem *is* the algorithmic core of that system-design question.
+- **[Autocomplete warm-up](/day18/basic_questions)** — the uncached DFS version.
+- **Design Search Autocomplete System** — adds ranking by frequency and live input on top.

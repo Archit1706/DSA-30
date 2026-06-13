@@ -1,0 +1,107 @@
+---
+title: "Range Addition"
+description: "Apply many range-increment updates, then read the final array — the difference-array trick, and its relationship to lazy propagation."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Range Addition <DifficultyBadge level="medium" />
+
+#### Description
+
+You have an array of length `n`, all zeros. Apply `updates`, each `[start, end, inc]` meaning "add `inc` to every element in `[start, end]`." Return the **final** array after all updates.
+
+#### Examples
+
+```py
+> n = 5, updates = [[1,3,2],[2,4,3],[0,2,-2]]
+  Output: [-2, 0, 3, 5, 3]
+  # start zeros; +2 on [1,3]; +3 on [2,4]; -2 on [0,2]
+```
+
+#### Constraints
+
+- `1 <= n <= 10^5`, `0 <= updates.length <= 10^4`.
+
+#### Intuition — the difference array
+
+Applying each update element by element is O(updates × n) — too slow. The key realization: a range update only changes the array's **differences** at two points. Maintain `diff` where `diff[i] = arr[i] − arr[i−1]`. Then "add `inc` to `[start, end]`" is just:
+
+```text
+diff[start]  += inc
+diff[end+1]  -= inc      # undo it just past the range
+```
+
+Each update is **O(1)**. At the end, a single prefix sum over `diff` reconstructs the array in O(n). Total: O(updates + n).
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> getModifiedArray(int n, vector<vector<int>>& updates) {
+        vector<int> diff(n + 1, 0);
+        for (auto& u : updates) {
+            diff[u[0]] += u[2];
+            diff[u[1] + 1] -= u[2];        // cancel just past the end
+        }
+        vector<int> res(n);
+        int run = 0;
+        for (int i = 0; i < n; i++) {
+            run += diff[i];                // prefix sum reconstructs the value
+            res[i] = run;
+        }
+        return res;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def getModifiedArray(n, updates):
+        diff = [0] * (n + 1)
+        for start, end, inc in updates:
+            diff[start] += inc
+            diff[end + 1] -= inc           # undo just past the range
+        res, run = [0] * n, 0
+        for i in range(n):
+            run += diff[i]                 # prefix sum -> actual value
+            res[i] = run
+        return res
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] getModifiedArray(int n, int[][] updates) {
+        int[] diff = new int[n + 1];
+        for (int[] u : updates) {
+            diff[u[0]] += u[2];
+            diff[u[1] + 1] -= u[2];
+        }
+        int[] res = new int[n];
+        int run = 0;
+        for (int i = 0; i < n; i++) {
+            run += diff[i];
+            res[i] = run;
+        }
+        return res;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The difference array is "lazy propagation for the offline case."** When all updates come first and you only read the array once at the end, you don't need a tree at all — just mark the two endpoints and integrate once. If queries were *interleaved* with the range updates, you'd upgrade to a [lazy-propagation segment tree](/day19/lazy_propagation) (or a BIT-of-differences). Recognizing "all updates, then read" vs "interleaved" tells you which tool to grab.
+</Callout>
+
+#### Analysis
+
+- **Time:** O(updates + n) — each update O(1), one final O(n) sweep.
+- **Space:** O(n) for the difference array.
+
+#### Same skin
+
+- **[Lazy Propagation](/day19/lazy_propagation)** — the online version, when reads interleave with range updates.
+- **Corporate Flight Bookings / Car Pooling** — the exact same difference-array trick on a timeline.
+- **[Prefix sums (Day 2)](/day2)** — the reconstruction step is just a prefix sum; this problem is prefix sums run in reverse.

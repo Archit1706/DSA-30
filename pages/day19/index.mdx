@@ -1,21 +1,45 @@
 ---
 title: "Day 19 — Segment Trees"
-description: "Segment trees and Fenwick (BIT) trees — range queries, point updates, lazy propagation, and the kinds of interval problems they unlock."
+description: "Segment trees and Fenwick (BIT) trees — range queries and point updates in O(log n), lazy propagation for range updates, and the interval problems they unlock."
 ---
 
 import { Callout } from "nextra/components";
+import { SegmentTreeVisualizer } from "../../components/SegmentTreeVisualizer";
 
 # Day 19 — Segment Trees
 
+Here's a deceptively hard problem: given an array, answer *"what's the sum of elements between index `i` and `j`?"* — but the array **keeps changing** between queries. A plain prefix-sum array answers the query in O(1), but a single update forces you to rebuild O(n) of it. A plain array updates in O(1), but each query costs O(n). Either way, one operation is fast and the other is slow.
+
+The **segment tree** is the structure that makes **both O(log n)**. It's a binary tree where every node owns a *range* of the array and stores an aggregate (sum, min, max, gcd, …) over that range. Query and update both walk a single root-to-leaf-ish path.
+
+<SegmentTreeVisualizer
+    array={[5, 2, 8, 1, 9, 3]}
+    title="A sum segment tree over [5, 2, 8, 1, 9, 3]"
+    caption="The root holds the total (28). Each node splits its range in half and holds the sum of that half. A query for sum(1,4) is assembled from a few internal nodes — never by scanning all the cells. An update touches only the nodes on one root-to-leaf path."
+/>
+
+## What you'll learn today
+
+- **Why prefix sums fail under updates** — the exact trade-off the segment tree resolves
+- **The structure** — every node owns a range `[lo, hi]` and stores an aggregate; leaves are the array
+- **`build`, `query`, `update`** — the three-function recursive template, in O(n), O(log n), O(log n)
+- **Lazy propagation** — the trick that makes *range* updates (add 5 to all of `[i, j]`) also O(log n)
+- **Fenwick / Binary Indexed Trees** — a smaller, faster structure for the common prefix-sum case
+- **Eight interview problems** — Range Sum Query Mutable, RMQ, Count of Smaller After Self, Reverse Pairs, 2D Range Sum, My Calendar III, Falling Squares
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    **The one-sentence pitch: a segment tree turns "aggregate over any subrange, with updates in between" from O(n) per operation into O(log n).** Any operation that's *associative* — sum, min, max, gcd, bitwise OR/AND, matrix product — can live in a segment tree. If a problem asks for repeated range queries on a *mutable* array, this is almost always the structure.
 </Callout>
 
-## What you'll learn here
+## Roadmap
 
-- **Range queries** in O(log n): sum, min, max, gcd, any associative operation
-- **Point updates** and **range updates** with **lazy propagation**
-- Recursive `build`, `query`, and `update` — the canonical template
-- **Binary Indexed Trees** (Fenwick trees) — when you want something smaller and only need prefix sums
+1. **[Introduction](/day19/introduction)** — the range-query-with-updates problem, why prefix sums break, and how the tree fixes it.
+2. **[The Template](/day19/the_template)** — `build`, `query`, `update` with the array-based representation, full code, and an interactive tree.
+3. **[Lazy Propagation](/day19/lazy_propagation)** — range updates in O(log n) by deferring work to the nodes you actually visit.
+4. **[Fenwick Tree (BIT)](/day19/fenwick_tree)** — the lightweight alternative when you only need prefix sums; the `i & -i` magic explained.
+5. **[Basic Questions](/day19/basic_questions)** — warm-ups: range sum, range min, the BIT update/query loop, coordinate compression.
+6. **[Practice Questions](/day19/practice_questions)** — eight interview classics, segment tree and BIT.
 
-Segment trees are the heavy machinery of competitive programming. They turn "give me the sum of any subarray, possibly after a thousand updates" from O(n) per query into O(log n).
+This is the **heavy machinery** of competitive programming and the second specialized structure of Phase 6. It pairs naturally with [Day 18's tries](/day18) (string ranges) and feeds directly into [Day 26's divide-and-conquer](/day26) counting problems.
+
+Up next: **[Day 20 — Union Find](/day20)**, the structure for dynamic connectivity.

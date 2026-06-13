@@ -1,0 +1,144 @@
+---
+title: "Longest Word in Dictionary"
+description: "Find the longest word buildable one character at a time from other words in the list — a trie where every prefix must also be a word."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { DifficultyBadge } from "../../../components/DifficultyBadge";
+export const Tab = Tabs.Tab;
+
+### Longest Word in Dictionary <DifficultyBadge level="medium" />
+
+#### Description
+
+Given a list of `words`, return the longest word that can be **built one character at a time** by other words in the list — i.e. every prefix of it (of length 1, 2, …) must also be in the list. If there are ties, return the lexicographically smallest.
+
+#### Examples
+
+```py
+> words = ["w","wo","wor","worl","world"]
+  Output: "world"          # w -> wo -> wor -> worl -> world, each a word
+
+> words = ["a","banana","app","appl","ap","apply","apple"]
+  Output: "apple"          # apple is buildable (a,ap,app,appl,apple); "apply" too,
+                           # but "apple" < "apply" lexicographically
+```
+
+#### Constraints
+
+- `1 <= words.length <= 1000`, total characters ≤ `10^6`, lowercase.
+
+#### Intuition
+
+Insert all words into a trie. A word qualifies iff **every node along its path is marked end-of-word** — that's precisely "every prefix is also a word." DFS the trie, only descending into children that are themselves end-of-word, and track the deepest (then lexicographically smallest) word reachable. Visiting children in alphabetical order makes the lexicographic tie-break automatic.
+
+#### Code
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    class Solution {
+        struct Node { Node* ch[26] = {}; bool end = false; };
+    public:
+        string longestWord(vector<string>& words) {
+            Node* root = new Node();
+            for (auto& w : words) {
+                Node* cur = root;
+                for (char c : w) {
+                    if (!cur->ch[c - 'a']) cur->ch[c - 'a'] = new Node();
+                    cur = cur->ch[c - 'a'];
+                }
+                cur->end = true;
+            }
+            string best, path;
+            function<void(Node*)> dfs = [&](Node* node) {
+                if (path.size() > best.size()) best = path;     // longer wins; ties: first found = smallest (a-z order)
+                for (int i = 0; i < 26; i++) {
+                    Node* nxt = node->ch[i];
+                    if (nxt && nxt->end) {                      // only descend buildable paths
+                        path.push_back('a' + i);
+                        dfs(nxt);
+                        path.pop_back();
+                    }
+                }
+            };
+            dfs(root);
+            return best;
+        }
+    };
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    class Solution:
+        def longestWord(self, words):
+            root = {}
+            for w in words:
+                node = root
+                for c in w:
+                    node = node.setdefault(c, {})
+                node["$"] = True
+
+            best, path = "", []
+            def dfs(node):
+                nonlocal best
+                cur = "".join(path)
+                if len(cur) > len(best):          # longer wins; a-z order gives smallest on ties
+                    best = cur
+                for c in sorted(k for k in node if k != "$"):
+                    if "$" in node[c]:            # child is itself a word -> buildable
+                        path.append(c)
+                        dfs(node[c])
+                        path.pop()
+            dfs(root)
+            return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    class Solution {
+        static class Node { Node[] ch = new Node[26]; boolean end = false; }
+        private String best = "";
+        public String longestWord(String[] words) {
+            Node root = new Node();
+            for (String w : words) {
+                Node cur = root;
+                for (char c : w.toCharArray()) {
+                    if (cur.ch[c - 'a'] == null) cur.ch[c - 'a'] = new Node();
+                    cur = cur.ch[c - 'a'];
+                }
+                cur.end = true;
+            }
+            dfs(root, new StringBuilder());
+            return best;
+        }
+        private void dfs(Node node, StringBuilder path) {
+            if (path.length() > best.length()) best = path.toString();
+            for (int i = 0; i < 26; i++) {
+                Node nxt = node.ch[i];
+                if (nxt != null && nxt.end) {
+                    path.append((char) ('a' + i));
+                    dfs(nxt, path);
+                    path.deleteCharAt(path.length() - 1);
+                }
+            }
+        }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="info">
+    **The lexicographic tie-break is free if you DFS in alphabetical order.** Iterating children `a → z` means the *first* word of a given maximum length you record is automatically the smallest. Only replace `best` when you find a *strictly longer* word (`>`, not `>=`), so an equal-length-but-later word never overwrites the earlier (smaller) one.
+</Callout>
+
+#### Analysis
+
+- **Time:** `O(total characters)` to build the trie + `O(total characters)` to DFS — each node visited once.
+- **Space:** `O(total characters)` for the trie, `O(max word length)` recursion.
+
+#### Same skin
+
+- **[Replace Words](/day18/practice_questions/replace_words)** — both hinge on end-of-word nodes along a path.
+- **Concatenated Words / Word Break** — "is this buildable from dictionary pieces?" generalizes this idea.
+- **[Implement Trie](/day18/practice_questions/implement_trie)** — the base structure plus a constrained DFS.
