@@ -1,0 +1,6 @@
+# robots.txt for https://dsa30.vercel.app
+User-agent: *
+Allow: /
+Disallow: /api/
+
+Sitemap: https://dsa30.vercel.app/sitemap.xml

@@ -40,13 +40,74 @@ export default {
             ? `${rawTitle} — ${SITE_NAME}`
             : DEFAULT_TITLE;
         const description = fmDescription || DEFAULT_DESCRIPTION;
+        const keywords = fmKeywords || DEFAULT_KEYWORDS;
+        const cleanPath = asPath.split("#")[0].split("?")[0];
+        const canonical = `${SITE_URL}${cleanPath === "/" ? "" : cleanPath}`;
+        const ogType = isHome ? "website" : "article";
+
+        // Per-page Open Graph image: a frontmatter override, else a dynamic
+        // branded card rendered by /api/og with this page's title.
+        const ogTitle = isHome ? "Master DSA in 30 Days" : rawTitle || DEFAULT_TITLE;
         const image = fmImage
             ? fmImage.startsWith("http")
                 ? fmImage
                 : `${SITE_URL}${fmImage}`
-            : `${SITE_URL}/preview-image.jpg`;
-        const keywords = fmKeywords || DEFAULT_KEYWORDS;
-        const canonical = `${SITE_URL}${asPath === "/" ? "" : asPath.split("#")[0].split("?")[0]}`;
+            : `${SITE_URL}/api/og?title=${encodeURIComponent(ogTitle)}`;
+
+        // ── JSON-LD structured data ──────────────────────────────────
+        const person = { "@type": "Person", name: "Archit Rathod", url: "https://archit-rathod.vercel.app/" };
+        const jsonLd = [
+            {
+                "@context": "https://schema.org",
+                "@type": "WebSite",
+                name: SITE_NAME,
+                alternateName: DEFAULT_TITLE,
+                url: SITE_URL,
+                description: DEFAULT_DESCRIPTION,
+                inLanguage: "en",
+                author: person,
+                publisher: person,
+            },
+        ];
+        if (isHome) {
+            jsonLd.push({
+                "@context": "https://schema.org",
+                "@type": "Course",
+                name: DEFAULT_TITLE,
+                description: DEFAULT_DESCRIPTION,
+                url: SITE_URL,
+                inLanguage: "en",
+                provider: { "@type": "Organization", name: SITE_NAME, url: SITE_URL },
+                about: "Data Structures and Algorithms",
+                isAccessibleForFree: true,
+                educationalLevel: "Beginner to Advanced",
+            });
+        } else {
+            jsonLd.push({
+                "@context": "https://schema.org",
+                "@type": "TechArticle",
+                headline: rawTitle || DEFAULT_TITLE,
+                description,
+                url: canonical,
+                inLanguage: "en",
+                author: person,
+                publisher: person,
+                image,
+                isPartOf: { "@type": "WebSite", name: SITE_NAME, url: SITE_URL },
+            });
+            // breadcrumbs from the path
+            const segs = cleanPath.split("/").filter(Boolean);
+            const crumbs = [{ "@type": "ListItem", position: 1, name: "Home", item: SITE_URL }];
+            let acc = "";
+            segs.forEach((s, i) => {
+                acc += `/${s}`;
+                const name = s
+                    .replace(/[-_]/g, " ")
+                    .replace(/\b\w/g, (c) => c.toUpperCase());
+                crumbs.push({ "@type": "ListItem", position: i + 2, name, item: `${SITE_URL}${acc}` });
+            });
+            jsonLd.push({ "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: crumbs });
+        }
 
         return (
             <>
@@ -62,17 +123,32 @@ export default {
                 <meta name="description" content={description} />
                 <meta name="keywords" content={keywords} />
                 <meta name="author" content="Archit Rathod" />
+                <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+                <meta name="googlebot" content="index, follow" />
                 <meta property="og:title" content={pageTitle} />
                 <meta property="og:description" content={description} />
                 <meta property="og:image" content={image} />
+                <meta property="og:image:width" content="1200" />
+                <meta property="og:image:height" content="630" />
+                <meta property="og:image:alt" content={`${rawTitle || DEFAULT_TITLE} — DSA-30`} />
                 <meta property="og:url" content={canonical} />
-                <meta property="og:type" content="website" />
+                <meta property="og:type" content={ogType} />
                 <meta property="og:site_name" content={SITE_NAME} />
+                <meta property="og:locale" content="en_US" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content={pageTitle} />
                 <meta name="twitter:description" content={description} />
                 <meta name="twitter:image" content={image} />
+                <meta name="twitter:image:alt" content={`${rawTitle || DEFAULT_TITLE} — DSA-30`} />
                 <meta name="twitter:site" content="@ArchitRathod_17" />
+                <meta name="twitter:creator" content="@ArchitRathod_17" />
+                {jsonLd.map((obj, i) => (
+                    <script
+                        key={i}
+                        type="application/ld+json"
+                        dangerouslySetInnerHTML={{ __html: JSON.stringify(obj) }}
+                    />
+                ))}
             </>
         );
     },
@@ -96,10 +172,10 @@ export default {
         link: "https://github.com/Archit1706",
     },
     banner: {
-        key: "phases-1-5-live",
+        key: "all-30-days-live",
         content: (
             <span>
-                🚀 Phases 1–5 are live — Days 1–17 cover the foundations and the algorithmic patterns. <a href="/" style={{ textDecoration: "underline" }}>See the roadmap →</a>
+                🎉 All 30 days are live — the full DSA-30 course, from Big-O to System Design. <a href="/" style={{ textDecoration: "underline" }}>See the roadmap →</a>
             </span>
         ),
         dismissible: true,
