@@ -113,6 +113,9 @@ export default {
             <>
                 <title>{pageTitle}</title>
                 <link rel="manifest" href="/manifest.json" />
+                <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+                <link rel="alternate icon" href="/icon-192x192.png" type="image/png" />
+                <link rel="apple-touch-icon" href="/icon-192x192.png" />
                 <link rel="canonical" href={canonical} />
                 <meta charSet="UTF-8" />
                 <meta
@@ -203,7 +206,6 @@ export default {
         toggleButton: true,
         defaultMenuCollapseLevel: 1,
     },
-    faviconGlyph: "30",
     feedback: {
         useLink: () => "https://github.com/Archit1706/DSA-30/issues/new",
         content: () => (
