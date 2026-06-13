@@ -1,0 +1,112 @@
+---
+title: "The Interview Loop"
+description: "Every stage of the big-tech hiring process — recruiter screen, technical phone screen, onsite, hiring committee, offer — and how Google, Meta, Amazon, Apple, Netflix, and Microsoft each weight the rounds differently."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { InterviewLoopTimeline, CompanyMatrix } from "../../components/InterviewSimulator";
+export const Tab = Tabs.Tab;
+
+# The Interview Loop
+
+Before the first problem, understand the **machine you're inside.** Big-tech hiring is a pipeline of independent gates, each filtering for a different thing, each scored by a different person who hasn't seen your other rounds. Knowing what each gate wants lets you spend your energy where it counts.
+
+<InterviewLoopTimeline />
+
+## The five gates
+
+<Steps>
+
+### Recruiter screen (~30 min)
+
+Non-technical. The recruiter confirms your background, explains the role and timeline, and sniffs out comp expectations and red flags. **You almost can't "win" here — but you can lose** by being unprepared, evasive about comp, or flaky on scheduling. Be warm, concise, enthusiastic about *this* role, and have 2–3 thoughtful questions ready.
+
+### Technical phone screen (~45–60 min)
+
+The real filter, and where most candidates are cut. One or two coding problems (usually a medium) in a shared editor — often **no autocomplete and no "run" button**, so your code has to compile *in your head*. The bar: a working, reasoned solution communicated clearly. Pass this and you reach the onsite.
+
+### Onsite / virtual onsite (4–6 rounds)
+
+The main event, back-to-back ~45-minute rounds:
+- **2 coding rounds** — harder mediums / easy-hards, sometimes two problems per round.
+- **1 system design** — expected for mid-level and senior (and the *whole* bar for senior). See the [system design round](/day29/system_design_round).
+- **1–2 behavioral** — "tell me about a time…" mapped to company values. See the [behavioral round](/day29/behavioral_round).
+- **Sometimes a domain round** — OS, ML, frontend, depending on the role.
+
+Each interviewer scores you independently. You reset and re-earn the room every 45 minutes.
+
+### Hiring committee / debrief (async)
+
+Interviewers write detailed feedback and vote on a scale (**Strong Hire → Hire → Lean Hire → Lean No-Hire → No-Hire → Strong No-Hire**). At Google a *committee* (who never met you) reads the packets; elsewhere the hiring manager reconciles. **One confident "No-Hire" on a core signal can sink an otherwise strong loop** — consistency across rounds matters.
+
+### Offer & negotiation (days)
+
+The recruiter calls with numbers. Compensation is **almost always negotiable** — a competing offer, market data, and a calm, specific counter routinely move base, equity, and sign-on. Never accept on the spot; get the full breakdown in writing and take time to think.
+
+</Steps>
+
+<Callout type="info">
+    **Every onsite round starts from zero.** Your brilliant first round doesn't carry over — the next interviewer usually hasn't read it, by design, to keep evaluations independent. That's good news after a rough round (the next one is a clean slate) and a warning after a great one (you still have to perform). Treat each 45 minutes as the whole interview.
+</Callout>
+
+## The same loop, weighted differently
+
+FAANG/MAANG (Meta, Apple, Amazon, Netflix, Google) and the broader giants — Microsoft, and the rest of "MONGOS"-tier big tech — run a *structurally similar* loop. What changes is the **weighting**. Prep to the emphasis of the company in front of you:
+
+<CompanyMatrix />
+
+<Callout type="warning">
+    **Amazon is the big outlier — behavioral is not a formality, it's the spine.** Every Amazon round, even coding ones, probes the **16 Leadership Principles**, and a "Bar Raiser" interviewer (from outside the team) can veto an offer. If you're interviewing at Amazon and you've only practiced LeetCode, you've prepared for half the loop. Walk in with 6–8 STAR stories pre-tagged to LPs like *Ownership*, *Customer Obsession*, *Dive Deep*, and *Bias for Action*. (More on the [behavioral page](/day29/behavioral_round).)
+</Callout>
+
+## How to allocate your prep
+
+A rough budget for the typical software role, given limited time:
+
+| If the loop is… | Spend most on |
+| :--- | :--- |
+| New grad / junior | Coding + DSA (the [first 27 days](/)). System design is usually light or absent. |
+| Mid-level (most common) | ~60% coding, ~25% system design, ~15% behavioral. |
+| Senior (L5/E5+) | System design becomes make-or-break; behavioral (scope, influence, leadership) rises sharply; coding bar stays but is rarely the deciding signal. |
+| Amazon (any level) | Add a heavy behavioral block — STAR stories tagged to Leadership Principles. |
+
+## Quick check
+
+<QuizBox
+    question="You crushed your first onsite coding round. Walking into the second, how much does that help you?"
+    options={[
+        "A lot — momentum carries across rounds",
+        "Essentially zero on the spot — interviewers score independently and usually haven't seen your earlier rounds, by design. Each round is re-earned from scratch (which also means a bad round doesn't doom you)",
+        "It guarantees a pass",
+        "It hurts — expectations are now higher"
+    ]}
+    correctIndex={1}
+    explanation="Independent evaluation is deliberate: it keeps signals unbiased. Your strong round helps in the final debrief (more positive packets), but the next interviewer typically starts neutral. The upside is symmetric — one weak round doesn't end things if the others are strong. Perform every 45-minute block as if it's the only one."
+/>
+
+<QuizBox
+    question="You're interviewing at Amazon and have spent all your prep on LeetCode mediums. What's the biggest gap?"
+    options={[
+        "Nothing — coding is all that matters",
+        "Behavioral: Amazon weaves its 16 Leadership Principles through every round and has a Bar Raiser with veto power. Without STAR stories tagged to LPs, you've prepared for only half the loop",
+        "System design — Amazon doesn't do coding",
+        "You need more hard problems"
+    ]}
+    correctIndex={1}
+    explanation="Amazon is the clearest case of 'same loop, different weighting.' Leadership Principles are evaluated in nearly every interview, coding included, and the Bar Raiser can sink an offer on culture/LP signal alone. Strong code with weak, un-tagged behavioral stories is a common, avoidable Amazon rejection."
+/>
+
+<QuizBox
+    question="The recruiter screen is non-technical. Why does it still matter?"
+    options={[
+        "It doesn't — it's a formality",
+        "You can't really 'win' it, but you can lose it: being evasive about comp, unprepared about the role, or flaky on scheduling ends the process before you ever code. It's a filter for basic fit and seriousness",
+        "It's the hardest round",
+        "It replaces the behavioral round"
+    ]}
+    correctIndex={1}
+    explanation="The recruiter screen is a low-ceiling, low-floor gate: a great one rarely advances you much, but a poor one (red flags, no enthusiasm, comp games, no questions) can quietly stop you. Treat it as a professional first impression — warm, prepared, clear on logistics — and move on."
+/>
+
+Next: **[The Coding Round](/day29/coding_round)** — the minute-by-minute framework, an interactive phase stepper, and a real practice timer.

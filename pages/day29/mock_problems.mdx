@@ -1,0 +1,280 @@
+---
+title: "Live Mock Problems"
+description: "Three coding problems walked through end-to-end, out loud — clarifying questions, brute force, optimization, code, testing, and complexity — exactly as a strong candidate sounds in the room."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# Live Mock Problems
+
+Knowing the [framework](/day29/coding_round) is one thing; *hearing* it is another. Below are three problems transcribed the way a strong candidate actually performs them — **🧑‍💼 interviewer** and **🧑‍💻 you** — across all six phases. Read them out loud. The goal isn't the solution (you've seen these patterns); it's the **narration rhythm** between the lines of code.
+
+---
+
+## Mock 1 — Two Sum *(warm-up: nail the framework crisply)*
+
+> 🧑‍💼 *"Given an array of integers `nums` and an integer `target`, return the indices of the two numbers that add up to `target`."*
+
+### CLARIFY
+
+> 🧑‍💻 "A few questions first. Is there exactly one solution, or could there be none or several? … Exactly one, good. Can I use the same element twice? … No. Are the numbers sorted? … No. Any size or value bounds — could `n` be up to `10^5`? Negative numbers? … Got it: unsorted, one guaranteed answer, no reuse, negatives allowed."
+
+### EXAMPLES
+
+> 🧑‍💻 "So `nums = [2, 7, 11, 15]`, `target = 9` → `[0, 1]` since `2 + 7 = 9`. Edge cases I'll keep in mind: the two values being equal like `[3, 3], target = 6` → `[0, 1]`, and negatives like `[-1, -8], target = -9`."
+
+### APPROACH
+
+> 🧑‍💻 "Brute force: check every pair — two nested loops, `O(n²)` time, `O(1)` space. I can do better. As I scan, for each `x` I really want to know 'have I already seen `target − x`?' That's a hash-map lookup — store value → index as I go, and check the complement before inserting. That's `O(n)` time, `O(n)` space. I'll code the hash-map version — sound good?"
+
+### CODE
+
+> 🧑‍💻 "I'll keep a map of value to index, scan once, and for each number check if its complement is already in the map."
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int,int> seen;            // value -> index
+        for (int i = 0; i < nums.size(); ++i) {
+            int need = target - nums[i];
+            if (seen.count(need)) return {seen[need], i};
+            seen[nums[i]] = i;                   // insert AFTER checking, avoids self-pairing
+        }
+        return {};                               // problem guarantees this is unreachable
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def two_sum(nums, target):
+        seen = {}                                # value -> index
+        for i, x in enumerate(nums):
+            need = target - x
+            if need in seen:
+                return [seen[need], i]
+            seen[x] = i                          # insert after checking
+        return []
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer,Integer> seen = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int need = target - nums[i];
+            if (seen.containsKey(need)) return new int[]{seen.get(need), i};
+            seen.put(nums[i], i);
+        }
+        return new int[]{};
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### TEST
+
+> 🧑‍💻 "Dry run `[2,7,11,15], 9`: i=0, need=7, not seen, store `{2:0}`. i=1, need=2, **seen at 0** → return `[0,1]`. ✓. Edge `[3,3], 6`: i=0 store `{3:0}`; i=1 need=3 seen at 0 → `[0,1]` ✓ — and note I insert *after* checking, so the same element never pairs with itself."
+
+### COMPLEXITY
+
+> 🧑‍💻 "`O(n)` time — single pass, `O(1)` map operations. `O(n)` space for the map. That's the trade vs the `O(1)`-space, `O(n²)` brute force — I bought speed with space."
+
+<Callout type="info">
+    **What scored well here:** scoped before coding, stated brute force *and* its complexity before optimizing, named the trade-off, and — the detail that signals real care — explained *why* the insert comes after the check (to avoid pairing an element with itself). That one sentence shows you've actually thought about correctness, not just pattern-matched. Full template in [Day 2 / hashing](/day8).
+</Callout>
+
+---
+
+## Mock 2 — Longest Substring Without Repeating Characters *(medium: brute → optimal)*
+
+> 🧑‍💼 *"Given a string `s`, find the length of the longest substring with no repeating characters."*
+
+### CLARIFY & EXAMPLES
+
+> 🧑‍💻 "Substring meaning contiguous, not subsequence? … Contiguous, good. What's the character set — ASCII, lowercase, Unicode? … Assume ASCII. Empty string returns `0`? … Yes. Example: `'abcabcbb'` → `3` (`'abc'`). `'bbbb'` → `1`. `'pwwkew'` → `3` (`'wke'`, not the non-contiguous `'pwke'`). Empty `''` → `0`."
+
+### APPROACH
+
+> 🧑‍💻 "Brute force: check every substring for uniqueness — `O(n²)` substrings times `O(n)` to check = `O(n³)`, or `O(n²)` with a set. Too slow. The repeated work is re-scanning overlapping windows. This is a **sliding window**: expand a right pointer, and when I hit a duplicate, shrink the left pointer past the previous occurrence. I'll track each char's last index in a map so I can jump `left` directly. `O(n)` time."
+
+### CODE
+
+<Tabs items={['C++', 'Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```cpp copy
+    int lengthOfLongestSubstring(string s) {
+        unordered_map<char,int> last;            // char -> last index seen
+        int left = 0, best = 0;
+        for (int right = 0; right < s.size(); ++right) {
+            char c = s[right];
+            if (last.count(c) && last[c] >= left)
+                left = last[c] + 1;              // jump past the duplicate
+            last[c] = right;
+            best = max(best, right - left + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+    <Tab>
+    ```python copy
+    def length_of_longest_substring(s):
+        last = {}                                # char -> last index
+        left = best = 0
+        for right, c in enumerate(s):
+            if c in last and last[c] >= left:
+                left = last[c] + 1               # jump past duplicate
+            last[c] = right
+            best = max(best, right - left + 1)
+        return best
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public int lengthOfLongestSubstring(String s) {
+        Map<Character,Integer> last = new HashMap<>();
+        int left = 0, best = 0;
+        for (int right = 0; right < s.length(); right++) {
+            char c = s.charAt(right);
+            if (last.containsKey(c) && last.get(c) >= left)
+                left = last.get(c) + 1;
+            last.put(c, right);
+            best = Math.max(best, right - left + 1);
+        }
+        return best;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### TEST & COMPLEXITY
+
+> 🧑‍💻 "Trace `'pwwkew'`: r=0 'p' best=1; r=1 'w' best=2; r=2 'w' seen at 1 ≥ left → left=2, best stays 2; r=3 'k' best=2; r=4 'e' best=3; r=5 'w' seen at 2 but `2 < left(2)`? it's equal so left=3, best=3. Returns 3 ✓. Empty string → loop never runs → 0 ✓. The `last[c] >= left` guard matters — without it a stale occurrence outside the window would wrongly move `left` backward."
+>
+> 🧑‍💻 "`O(n)` time — each index advances `right` once and `left` only forward. `O(min(n, alphabet))` space for the map."
+
+<Callout type="info">
+    **What scored well:** named the brute force and *why* it's wasteful ("re-scanning overlapping windows"), then named the pattern out loud — **sliding window** — before coding. The killer detail in testing: explaining the `>= left` guard, which is the exact bug most people ship. See [Day 24 — Sliding Window](/day24).
+</Callout>
+
+---
+
+## Mock 3 — Course Schedule *(medium: an ambiguous prompt that's secretly a graph)*
+
+> 🧑‍💼 *"You have `numCourses` courses and a list of prerequisite pairs `[a, b]` meaning you must take `b` before `a`. Can you finish all courses?"*
+
+### CLARIFY — *the insight is recognizing the structure*
+
+> 🧑‍💻 "Let me reframe to check my understanding: courses are nodes, and `[a, b]` is a directed edge `b → a` ('b unlocks a'). 'Can I finish all courses' means — is there an ordering with no circular dependency? So this is really: **does this directed graph have a cycle?** If there's a cycle, it's impossible; otherwise a valid order exists. Can prerequisites be empty? … Yes, then trivially true. Could there be duplicate edges? … I'll assume possibly, and it won't affect correctness."
+
+> 🧑‍💼 *"That's exactly right."*
+
+### APPROACH
+
+> 🧑‍💻 "Two standard ways: **Kahn's algorithm** (BFS topological sort — repeatedly remove zero-indegree nodes; if I can't remove all, there's a cycle), or **DFS with three-color marking** (cycle = back-edge to a node currently on the recursion stack). I'll do Kahn's — it's iterative, no stack-overflow risk, and the count-based cycle check is clean. `O(V + E)`."
+
+### CODE
+
+<Tabs items={['Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from collections import deque
+    def can_finish(num_courses, prerequisites):
+        graph = [[] for _ in range(num_courses)]
+        indeg = [0] * num_courses
+        for a, b in prerequisites:               # edge b -> a
+            graph[b].append(a)
+            indeg[a] += 1
+        q = deque(i for i in range(num_courses) if indeg[i] == 0)
+        taken = 0
+        while q:
+            node = q.popleft()
+            taken += 1
+            for nxt in graph[node]:
+                indeg[nxt] -= 1
+                if indeg[nxt] == 0:
+                    q.append(nxt)
+        return taken == num_courses              # all taken => no cycle
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    public boolean canFinish(int numCourses, int[][] prerequisites) {
+        List<List<Integer>> graph = new ArrayList<>();
+        for (int i = 0; i < numCourses; i++) graph.add(new ArrayList<>());
+        int[] indeg = new int[numCourses];
+        for (int[] p : prerequisites) { graph.get(p[1]).add(p[0]); indeg[p[0]]++; }
+        Deque<Integer> q = new ArrayDeque<>();
+        for (int i = 0; i < numCourses; i++) if (indeg[i] == 0) q.add(i);
+        int taken = 0;
+        while (!q.isEmpty()) {
+            int node = q.poll(); taken++;
+            for (int nxt : graph.get(node))
+                if (--indeg[nxt] == 0) q.add(nxt);
+        }
+        return taken == numCourses;
+    }
+    ```
+    </Tab>
+</Tabs>
+
+### TEST & COMPLEXITY
+
+> 🧑‍💻 "Test `numCourses=2, [[1,0]]`: edge 0→1, indeg=[0,1], queue starts [0], take 0 → indeg[1]→0 → take 1, taken=2==2 → true ✓. Cycle case `[[1,0],[0,1]]`: indeg=[1,1], queue empty at start, taken=0≠2 → false ✓. Empty prereqs → every node indeg 0 → all taken → true ✓."
+>
+> 🧑‍💻 "`O(V + E)` — build the graph in `O(E)`, each node enqueued once, each edge relaxed once. `O(V + E)` space."
+
+<Callout type="info">
+    **What scored well:** the whole problem turned on the first 60 seconds — **recognizing a word problem as cycle detection in a directed graph.** Restating the prompt in graph terms ("nodes, edges, is there a cycle?") is what unlocked it, and the interviewer confirmed it. Then: offered *two* valid approaches and justified the choice. See [Day 23 — Topological Sort](/day23).
+</Callout>
+
+---
+
+## The pattern across all three
+
+<Steps>
+
+### The first move is always translation
+
+Two Sum → "have I seen the complement?"; Longest Substring → "sliding window with last-seen indices"; Course Schedule → "cycle detection." Strong candidates spend the opening converting the prompt into a **known pattern** out loud.
+
+### Brute force is stated, never skipped
+
+Every transcript names the naive solution and its complexity *before* optimizing. It anchors the conversation, guarantees partial credit, and shows the interviewer your optimization is deliberate, not lucky.
+
+### The bug is caught in TEST, by you
+
+The `>= left` guard, the insert-after-check, the empty-input case — each was surfaced by *tracing the code*, not by the interviewer. That's the single most repeatable way to turn a Hire into a Strong Hire.
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="In Mock 3 (Course Schedule), what was the actual hard part of the problem?"
+    options={[
+        "Implementing the queue",
+        "Recognizing that an English word-problem about prerequisites is really 'detect a cycle in a directed graph' — the translation in the first minute. Once framed that way, it's a standard topological sort",
+        "Handling duplicate edges",
+        "The time complexity analysis"
+    ]}
+    correctIndex={1}
+    explanation="The code is textbook Kahn's algorithm; the skill being tested is modeling. Candidates who restate 'prerequisites' as 'directed edges' and 'can I finish?' as 'is the graph acyclic?' solve it immediately. Those who dive into ad-hoc logic struggle. Translation to a known pattern is the move that matters."
+/>
+
+<QuizBox
+    question="Across all three mocks, the candidate caught their own bugs during TEST (the >= left guard, insert-after-check). Why does this matter so much to interviewers?"
+    options={[
+        "It doesn't — only the final code matters",
+        "Catching your own bug by tracing code demonstrates exactly the rigor the job needs and is one of the strongest positive signals — far better than the interviewer pointing out the bug for you",
+        "It wastes time",
+        "It only matters for hard problems"
+    ]}
+    correctIndex={1}
+    explanation="Self-verification is a core engineering skill, and it's directly observable in the TEST phase. Tracing real and edge inputs to find your own off-by-one or stale-state bug shows you don't ship untested code. An interviewer-discovered bug is a minor negative; a self-discovered-and-fixed bug is a clear positive."
+/>
+
+Next: **[The Behavioral Round](/day29/behavioral_round)** — STAR, an interactive answer builder, and Leadership-Principle mapping.

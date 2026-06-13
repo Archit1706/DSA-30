@@ -1,0 +1,110 @@
+---
+title: "The Coding Round"
+description: "The minute-by-minute coding interview — the CLARIFY → EXAMPLES → APPROACH → CODE → TEST → COMPLEXITY framework, an interactive phase stepper, a practice timer, and how to think out loud."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { CodingPhaseStepper, MockTimer } from "../../components/InterviewSimulator";
+export const Tab = Tabs.Tab;
+
+# The Coding Round
+
+Forty-five minutes, one or two problems, a shared editor, and a human watching how you think. The single biggest predictor of passing isn't raw algorithm knowledge — it's **having a repeatable process** so you never freeze, never go silent, and never code the wrong thing. This is that process.
+
+## The framework: CLARIFY → EXAMPLES → APPROACH → CODE → TEST → COMPLEXITY
+
+You'll see it called **UMPIRE**, **REACTO**, or other acronyms — they're the same six beats. Run them *in order*, out loud, every time. Step through each phase below: what to do, what to literally say, what the interviewer is silently scoring, and the trap that loses that phase.
+
+<CodingPhaseStepper />
+
+<Callout type="warning">
+    **The two phases everyone skips are the two that lose the round: CLARIFY and TEST.** Weak candidates hear the problem and start typing; strong candidates spend 4 minutes scoping and 7 minutes testing. Diving into code immediately means you risk solving the wrong problem perfectly. Declaring "done" without tracing your code means the interviewer finds your bug instead of you — and *you finding your own bug* is one of the strongest positive signals there is.
+</Callout>
+
+## Think out loud — the meta-skill
+
+Everything above rests on one habit: **narrate continuously.** The interviewer can only score what they hear. Silence is the enemy — a candidate who quietly writes the optimal solution can score *worse* than one who talks through a sub-optimal one, because the silent one gave no evidence of how they think.
+
+What "thinking out loud" sounds like in practice:
+
+- **Narrate the plan before the code:** *"I'm going to use a hash map from value to index so I can look up complements in O(1)."*
+- **Narrate trade-offs as you hit them:** *"I could sort first, but that's O(n log n) and loses the original indices — the hash map keeps it O(n), so I'll do that."*
+- **Narrate when you're stuck — don't hide it:** *"I'm not seeing the O(n) trick yet, so let me start from the brute force and look for repeated work to eliminate."* This is collaboration, and it invites a hint.
+- **Take hints gracefully:** *"Oh — that's a great point, a monotonic stack handles the 'next greater' part. Let me rework with that."* Resisting a hint is a red flag; integrating one is a green flag.
+
+<Callout type="info">
+    **A hint is not a failure — it's the interview working as intended.** Interviewers *expect* to nudge you; how you receive the nudge is itself a signal. Defensiveness ("no, my way works…") reads as someone hard to work with. Curiosity ("ah, that's better, let me adjust") reads as a great teammate. Many strong hires needed a hint or two and integrated it well.
+</Callout>
+
+## Practice like it's real
+
+Reading the framework changes nothing until you run it on the clock, **out loud**, with no IDE crutches (no autocomplete, no run button — many real screens have neither). Use this timer: pick a medium you haven't seen, start it, and narrate the entire 45 minutes as if someone's listening.
+
+<MockTimer minutes={45} />
+
+A realistic time budget for a single medium: **~5 min** clarify + examples, **~8 min** approach, **~18 min** code, **~10 min** test + complexity, with slack. If you blow past 45 and still have no working solution, the bottleneck is almost always **process** (skipped clarifying, went silent, no test plan) — not that you didn't know the algorithm.
+
+## The "I'm totally stuck" protocol
+
+It happens to everyone. Have a recovery routine so a stall doesn't become a spiral:
+
+<Steps>
+
+### Say it out loud and restate the problem
+
+"Let me make sure I have the problem right…" — restating often surfaces the missing insight, and it keeps you communicating.
+
+### Fall back to brute force
+
+A working O(n²) beats a broken O(n). Code the naive solution, get *something* correct on the board, then optimize. Partial credit is real.
+
+### Look for repeated work
+
+Most optimizations come from "what am I recomputing?" — that question points you toward memoization, a hash map, two pointers, or a precomputed structure.
+
+### Try a smaller example or a different pattern
+
+Trace n=2, n=3 by hand. Ask: is this secretly sorting? a graph? a DP? Cycle through the [patterns you know](/) out loud — the interviewer hears you searching systematically, which scores well even before you find it.
+
+</Steps>
+
+## Quick check
+
+<QuizBox
+    question="Candidate A silently writes the optimal O(n) solution. Candidate B talks through a working O(n log n) solution, explaining trade-offs and testing it. Who likely scores better?"
+    options={[
+        "A always — optimal beats sub-optimal",
+        "Often B — the interviewer scores problem-solving, communication, and verification, not just the final Big-O. A's silence gives no evidence of reasoning; B demonstrated the whole thinking process. (Best of all: B's communication WITH A's optimality.)",
+        "They tie automatically",
+        "Neither passes"
+    ]}
+    correctIndex={1}
+    explanation="The final answer is one input to the score, not the whole score. Communication and verification are weighted heavily, and a silent candidate forfeits them. This is why 'think out loud' is the meta-skill: an explained, tested, slightly-slower solution frequently beats a wordless optimal one. Aim to combine both."
+/>
+
+<QuizBox
+    question="Why are CLARIFY and TEST the phases most worth NOT skipping?"
+    options={[
+        "They're the longest",
+        "Skipping CLARIFY risks solving the wrong problem perfectly; skipping TEST means the interviewer finds your bug instead of you — and catching your own bug is a strong positive signal. Both are where weak candidates rush and lose points",
+        "They're optional anyway",
+        "Interviewers ignore them"
+    ]}
+    correctIndex={1}
+    explanation="The bookend phases are the cheapest places to gain or lose signal. Four minutes of clarifying prevents building the wrong thing; a few minutes of dry-running your own code lets you catch and calmly fix bugs — which demonstrates exactly the rigor the role needs. Rushing past them is the most common, most avoidable mistake."
+/>
+
+<QuizBox
+    question="Mid-problem, the interviewer says 'what if you used a stack here?' What's the right response?"
+    options={[
+        "Insist your current approach is fine to show confidence",
+        "Engage with it genuinely — 'good point, a stack would let me track the previous unmatched element in O(1); let me rework that part.' Hints are expected, and integrating them gracefully is a positive signal",
+        "Ignore it and keep coding",
+        "Apologize repeatedly for needing help"
+    ]}
+    correctIndex={1}
+    explanation="Interviewers nudge on purpose; the test is partly how you collaborate. Defensiveness ('no, mine works') reads as someone hard to work with. Curiosity and quick integration read as a great teammate. Acknowledge the hint, explain why it helps, and adjust — that's a green flag, not an admission of failure."
+/>
+
+Next: **[Live Mock Problems](/day29/mock_problems)** — three problems walked through out loud, exactly as a strong candidate would speak them.

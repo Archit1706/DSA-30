@@ -1,0 +1,103 @@
+---
+title: "The System Design Round"
+description: "The system design interview at interview pace — when you get it, the 45-minute time budget, what's actually scored, and how it builds on the Day 28 toolkit."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# The System Design Round
+
+If [Day 28](/day28) taught you *system design*, this page is about surviving it **in 45 minutes with someone watching.** The content is the same; the constraints — time, ambiguity, having to drive the conversation — are what make the round distinct. This is a focused pacing guide; for the full framework, building blocks, and a worked example, go to **[Day 28 — System Design 101](/day28)**.
+
+## When you get this round, and how it's weighted
+
+| Level | System design round? | Weight |
+| :--- | :--- | :--- |
+| New grad / junior | usually none | — |
+| Mid-level | yes, 1 round | meaningful, but coding still dominates |
+| Senior (L5/E5+) | yes, often 2 | **make-or-break** — the round that defines the level |
+| Staff+ | yes, plus architecture/leadership | the center of gravity |
+
+The more senior the role, the more this round *is* the interview. A senior candidate who codes well but can't reason about scale, trade-offs, and failure won't get the senior offer.
+
+## The 45 minutes, budgeted
+
+The [Day 28 framework](/day28/the_framework) compressed to interview pace — drive it yourself, don't wait to be led:
+
+<Steps>
+
+### Requirements — ~5 min
+
+Clarify functional (2–3 core features, defer the rest aloud) and non-functional (scale, latency, consistency vs availability). **Do not draw a box until you've done this.**
+
+### Estimation — ~5 min
+
+Back-of-the-envelope: QPS, storage, bandwidth — at *peak*, not average. The number tells you whether you're in the "one box" or "thousand box" world. (Day 28 has an [interactive calculator](/day28/the_framework).)
+
+### High-level design — ~10–15 min
+
+Draw the boxes — client, load balancer, services, cache, database — and **justify each one against a requirement you stated.** Narrate as you draw.
+
+### Deep dives — ~15 min
+
+The part that earns senior offers: **name your own bottleneck and address it.** Sharding the hot table, the celebrity fan-out problem, cache invalidation, a single point of failure.
+
+### Wrap — ~5 min
+
+Summarize trade-offs and what you'd do with more time. Leave the interviewer with a clear picture.
+
+</Steps>
+
+<Callout type="info">
+    **You must drive this round — it's deliberately open-ended.** Unlike a coding problem with a crisp prompt, "design Instagram" is vague *on purpose*. The interviewer is watching whether *you* impose structure: scope it, estimate it, design it, and critique it without being prompted at each step. A candidate who waits to be told what to do next reads as someone who needs hand-holding on ambiguous problems — exactly what senior roles can't have.
+</Callout>
+
+## What's actually scored
+
+Different signals than the coding round:
+
+| Signal | Strong | Weak |
+| :--- | :--- | :--- |
+| **Requirements first** | scopes and estimates before designing | starts drawing boxes immediately |
+| **Trade-off reasoning** | "SQL *because* the access pattern needs transactions" | names tech with no justification ("I'll use Cassandra") |
+| **Identifies bottlenecks** | volunteers the weak point and fixes it | waits to be told what's wrong |
+| **Breadth + depth** | covers the whole system, then goes deep on one piece | only high-level, or lost in one corner |
+| **Communication** | structured, drives the conversation | meanders, needs leading |
+
+<Callout type="warning">
+    **The fatal move is naming technologies without justifying them.** "I'd use Kafka, Redis, and Cassandra" with no reasoning is a buzzword salad that signals memorization, not understanding. Every component must trace to a requirement: *"reads outnumber writes 100:1, so I'll add a cache"*; *"the access pattern is a point lookup by key with no joins, so a key-value store fits and shards trivially."* The justification **is** the interview — see the [Day 28 building blocks](/day28/building_blocks) for the "when and why" of each.
+</Callout>
+
+## Prep, in one line
+
+Work the [Day 28 practice set](/day28/practice_questions) — URL shortener, rate limiter, news feed, chat, key-value store — *out loud, on the clock*, driving all five phases yourself. Two or three of those done end-to-end builds the muscle for any prompt, because they recombine the same building blocks.
+
+## Quick check
+
+<QuizBox
+    question="A candidate opens the system design round by immediately drawing servers and a database. What's the issue?"
+    options={[
+        "Nothing — get to the design fast",
+        "They skipped requirements and estimation — so they're designing before knowing the scale, latency targets, or consistency needs. They risk building the wrong system, and they've shown they don't scope ambiguous problems",
+        "They should have used more databases",
+        "Diagrams shouldn't be drawn at all"
+    ]}
+    correctIndex={1}
+    explanation="Same lesson as the coding round's CLARIFY phase, raised to the system level. Without requirements (functional + non-functional) and a back-of-envelope estimate, every downstream choice is ungrounded — and the interviewer specifically watches whether you impose that structure yourself on an open-ended prompt. Boxes come after scoping, not before."
+/>
+
+<QuizBox
+    question="Why does the system design round become make-or-break specifically at senior level?"
+    options={[
+        "Senior coding problems are easier",
+        "The round tests scale, trade-offs, and failure-handling — exactly the judgment that defines a senior engineer. A senior who codes well but can't reason about distributed-systems trade-offs hasn't demonstrated the level, so this round effectively decides it",
+        "Juniors design better systems",
+        "It replaces all other rounds"
+    ]}
+    correctIndex={1}
+    explanation="Coding ability is necessary but no longer differentiating at senior level — most candidates clear that bar. What separates senior from mid is architectural judgment under ambiguity and scale, which is precisely what this round measures. That's why it carries the most weight (and often two rounds) for senior+ loops."
+/>
+
+Next: **[Rubric & Red Flags](/day29/the_rubric)** — exactly how you're scored across all rounds, what tanks a loop, and the logistics of the day itself.

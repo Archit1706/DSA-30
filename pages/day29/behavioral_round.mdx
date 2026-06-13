@@ -1,0 +1,137 @@
+---
+title: "The Behavioral Round"
+description: "The behavioral interview — the STAR method, an interactive answer builder, Amazon's Leadership Principles, the stories you must prepare, and the traps that sink otherwise-strong candidates."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { StarBuilder } from "../../components/InterviewSimulator";
+export const Tab = Tabs.Tab;
+
+# The Behavioral Round
+
+Engineers love to dismiss the behavioral round as "soft." That's a costly mistake — at Amazon it's *half the loop*, at Netflix it can be the whole thing, and everywhere it's where a hiring manager decides whether you're someone they want in the room at 2 a.m. during an incident. The good news: unlike coding, **it's almost entirely preparable in advance.** The questions are predictable, and the structure is fixed.
+
+## STAR — the only structure you need
+
+Every "tell me about a time…" answer follows **STAR**:
+
+| | | Aim for |
+| :--- | :--- | :--- |
+| **S** — Situation | Set the scene and the stakes, briefly. | ~15% |
+| **T** — Task | *Your* specific responsibility or goal. | ~10% |
+| **A** — Action | What **you** did, step by step. The heart of the answer. | ~60% |
+| **R** — Result | The outcome, quantified, plus what you learned. | ~15% |
+
+The number-one behavioral failure is **inverting these proportions** — five minutes of backstory (S) and one sentence of what you actually did (A). Interviewers are scoring *your* judgment and actions, so the Action is where 60% of your words belong, and they should be "**I**" not "we."
+
+## Build one and grade it
+
+Draft a real answer to a classic prompt below. The checklist grades the four things interviewers actually look for: all four parts present, Action as the largest section, "I" (not just "we"), and a *quantified* result.
+
+<StarBuilder />
+
+<Callout type="warning">
+    **"We" hides you; "I" reveals you.** Candidates instinctively say "we decided… we built… we shipped." But the interviewer is hiring *you*, not your team — they need to know what **you** personally contributed. Say "I proposed…", "I wrote…", "I convinced the team by…". Using "we" throughout the Action is the most common reason a true story still scores poorly: it gives no evidence of your individual judgment.
+</Callout>
+
+## The stories you must have ready
+
+Prepare **6–8 stories** in advance, each ~2–3 minutes, drawn from real projects. A good portfolio covers these themes — and most stories can be *reframed* to answer several prompts:
+
+<Steps>
+
+### A hard technical problem you solved
+
+The depth-and-rigor story. Be ready to go arbitrarily deep — interviewers will drill ("why that approach? what did you measure? what would you change?").
+
+### A conflict / disagreement with a teammate or manager
+
+How you handled friction professionally. The key beat: you sought to *understand* the other side and resolved it with data or compromise, not by "winning."
+
+### A failure or mistake you owned
+
+The single most important story, and the one people fumble. Pick a *real* failure, own it without blaming others, and emphasize **what you learned and changed**. "I can't think of one" is a red flag.
+
+### Leadership / driving something without authority
+
+A time you influenced an outcome, mentored someone, or pushed a project forward when it wasn't strictly your job.
+
+### Ambiguity / a tight deadline
+
+Operating when the goal was unclear or time was short — how you scoped, prioritized, and shipped.
+
+### Going above and beyond for a user/customer
+
+Especially for Amazon (Customer Obsession). A time you dug into what the user actually needed.
+
+</Steps>
+
+## Amazon's Leadership Principles — the special case
+
+Amazon evaluates its **16 Leadership Principles** in nearly every round (coding included), and a **Bar Raiser** can veto an offer on culture signal alone. If you're interviewing there, **pre-tag each of your stories to the LPs it demonstrates.** The most-probed ones:
+
+| Leadership Principle | A story that demonstrates it |
+| :--- | :--- |
+| **Customer Obsession** | dug into a user pain point others dismissed |
+| **Ownership** | fixed something outside your lane; thought long-term |
+| **Dive Deep** | found a root cause through data others missed |
+| **Bias for Action** | made a reversible call fast instead of waiting |
+| **Invent and Simplify** | removed complexity / found a simpler solution |
+| **Have Backbone; Disagree and Commit** | respectfully pushed back, then committed once decided |
+| **Deliver Results** | shipped under constraints with a measurable outcome |
+
+<Callout type="info">
+    **One story can serve many principles** — your "shipped a migration under a tight deadline" story might hit Ownership, Bias for Action, *and* Deliver Results. Build a small matrix: stories down the side, LPs across the top, check the boxes. Then whatever LP the interviewer probes, you can reach for the right story in seconds instead of fishing. This prep is what separates Amazon passes from Amazon rejections.
+</Callout>
+
+## Questions to ask *them*
+
+Every round ends with "any questions for me?" — **always have 2–3**, and make them specific, not generic. Strong questions signal genuine interest and seniority:
+
+- "What does success look like for this role in the first 6 months?"
+- "What's the hardest technical problem the team is facing right now?"
+- "How does the team balance shipping speed against tech debt?"
+- "What do you personally enjoy / find frustrating about working here?"
+
+Avoid questions easily answered by the careers page, and never lead with comp/vacation in a technical or hiring-manager round (that's a recruiter conversation).
+
+## Quick check
+
+<QuizBox
+    question="A candidate tells a 4-minute story: 3 minutes of project background, then 'so we shipped it and it worked great.' What's the core problem?"
+    options={[
+        "The story is too short",
+        "The proportions are inverted — almost all Situation, almost no Action, and a vague unquantified Result framed as 'we'. Interviewers score YOUR specific actions and judgment, which got ~10 seconds and no 'I'",
+        "Background is irrelevant and should be skipped",
+        "It needed more technical detail in the setup"
+    ]}
+    correctIndex={1}
+    explanation="STAR should be ~60% Action. This answer is mostly Situation with a one-line, team-credited, unquantified Result — so it gives almost no evidence of what the candidate personally did or decided. The fix: compress the setup, expand 'here's what *I* did, step by step,' and end with a concrete number."
+/>
+
+<QuizBox
+    question="You're asked 'tell me about a time you failed.' What's the strong move?"
+    options={[
+        "Pick a fake weakness disguised as a strength ('I work too hard')",
+        "Tell a real failure you genuinely owned — no blaming others — and spend most of the answer on what you learned and concretely changed afterward. Owning a real mistake signals growth and maturity",
+        "Say you can't think of one",
+        "Blame the failure on a bad teammate or manager"
+    ]}
+    correctIndex={1}
+    explanation="This question tests self-awareness and growth, not perfection. A genuine, owned failure with a clear lesson and behavior change scores well; a non-answer ('can't think of one'), a humble-brag, or blame-shifting all read as lack of self-awareness — a real red flag, especially for ownership-focused cultures like Amazon's."
+/>
+
+<QuizBox
+    question="Why pre-tag your behavioral stories to Amazon's Leadership Principles before the interview?"
+    options={[
+        "It's not necessary — just tell good stories",
+        "Amazon probes specific LPs in nearly every round and a Bar Raiser can veto on culture signal; a story→LP matrix lets you instantly pull the right example for whichever principle is asked, instead of fishing under pressure",
+        "To memorize all 16 word-for-word",
+        "Only managers need to do this"
+    ]}
+    correctIndex={1}
+    explanation="Amazon's behavioral bar is unusually high and explicitly LP-driven. Mapping your 6–8 stories to the principles they demonstrate means that when an interviewer asks for 'a time you dove deep' or 'showed ownership,' you reach for a prepared, well-structured story immediately. Unprepared, candidates ramble or repeat one story — a common Amazon failure mode."
+/>
+
+Next: **[The System Design Round](/day29/system_design_round)** — the design interview at speed, built on the Day 28 toolkit.

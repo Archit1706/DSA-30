@@ -1,0 +1,138 @@
+---
+title: "Rubric & Red Flags"
+description: "How interviewers actually score you — the four coding signals, the hire-scale, the red flags that sink a loop, and the logistics of interview day itself."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { RubricMeter } from "../../components/InterviewSimulator";
+export const Tab = Tabs.Tab;
+
+# Rubric & Red Flags
+
+You've seen every round. Now the meta-question: **how do they decide?** Interviewers don't grade "right answer / wrong answer" — they fill out a structured rubric and cast a vote. Knowing exactly what that rubric measures lets you aim your performance at the things that score, and steer clear of the handful of behaviors that quietly tank an otherwise-strong loop.
+
+## The four coding signals
+
+A coding round produces a score on roughly four dimensions — *not* a binary "solved it." Tap each to see what strong vs weak looks like:
+
+<RubricMeter />
+
+The crucial implication: you can **solve the problem and still fail** (silent, untested, can't explain it), or **not fully solve it and still pass** (clear reasoning, clean partial solution, great collaboration, found your own bug). Optimize for the four signals, not just the green checkmark.
+
+## The hire scale
+
+Interviewers don't vote yes/no — they pick a point on a scale and **write detailed evidence** for it:
+
+| Vote | Meaning |
+| :--- | :--- |
+| **Strong Hire** | "Fight to get this person." Clear across all signals. |
+| **Hire** | Solid; would gladly work with them. |
+| **Lean Hire** | Slightly positive; some gaps. |
+| **Lean No-Hire** | Slightly negative; not convinced. |
+| **No-Hire** | Clear concerns on a core signal. |
+| **Strong No-Hire** | Serious red flag. |
+
+The packet of written feedback often matters more than the headline vote — *"didn't test, I pointed out the bug"* is damning regardless of the box checked. And **consistency across rounds matters**: a debrief with three Hires and one confident No-Hire frequently ends in rejection, because the committee weighs the specific concern.
+
+<Callout type="info">
+    **The bar is "evidence of a strong engineer," not "perfection."** A Strong Hire isn't someone who breezed through flawlessly — it's someone who left clear, written-down evidence on every signal: scoped the problem, reasoned out loud, wrote clean code, tested it, knew the complexity. You're building the interviewer's *case for you*. Every clarifying question, every spoken trade-off, every dry-run is a line of evidence in your packet.
+</Callout>
+
+## Red flags that sink loops
+
+These are the recurring reasons strong technical candidates get rejected — almost all are *process*, not knowledge:
+
+<Steps>
+
+### Coding to silence
+
+Long quiet stretches where the interviewer can't tell what you're thinking. Unscoreable = negative. **Narrate.**
+
+### Diving into code without clarifying
+
+Solving the wrong problem fast. Costs you the CLARIFY signal and often the whole round.
+
+### Declaring "done" without testing
+
+The interviewer finds your bug. Instantly worse than finding it yourself. **Always dry-run.**
+
+### Defensiveness about hints or feedback
+
+Arguing with a nudge reads as "hard to work with" — a culture-fit red flag that outweighs the code.
+
+### Buzzwords without understanding (design rounds)
+
+"I'll use Kafka and Cassandra" with no justification. Memorization, not reasoning.
+
+### Can't explain own complexity
+
+Getting your own Big-O wrong, or hand-waving it, undercuts everything you just built.
+
+### Behavioral: all "we", no "I", or no owned failure
+
+Gives no evidence of *your* contribution or self-awareness.
+
+</Steps>
+
+<Callout type="warning">
+    **Almost every red flag is a process failure, not a knowledge gap — which means they're fixable tonight, not over months.** You don't need more algorithms to stop coding in silence, to dry-run your code, or to take a hint gracefully. These are *habits*, drilled by doing mock problems out loud on a timer. The candidate who fixes their process often jumps a full grade (Lean No-Hire → Hire) without learning a single new data structure.
+</Callout>
+
+## Interview-day logistics
+
+The unglamorous stuff that still loses offers:
+
+- **Virtual:** test your camera, mic, and the coding tool (CoderPad / HackerRank / Google Doc) *beforehand*. Quiet room, stable internet, charger plugged in, water nearby.
+- **Have a backup:** phone hotspot ready in case Wi-Fi drops mid-round — and tell the interviewer immediately if tech fails; they're human.
+- **Think on the shared editor as you would a whiteboard** — many screens have **no autocomplete and no run button**, so practice writing code that compiles in your head.
+- **Onsites are a marathon:** 4–6 back-to-back rounds is exhausting. Eat, hydrate, and **reset between rounds** — the last interviewer doesn't know (or care) that the previous round was rough.
+- **Be kind to everyone**, including the recruiter and coordinator. It gets noticed both ways.
+
+## The one-page cheat sheet
+
+> **Every round:** clarify before you build · think out loud · state brute force then optimize · justify your choices · test with edge cases · know your complexity · take hints gracefully.
+>
+> **Behavioral:** STAR, 60% Action, say "I", quantify the Result, have a real owned failure.
+>
+> **You're not proving you're perfect — you're giving the interviewer evidence to write 'Hire'.**
+
+## Quick check
+
+<QuizBox
+    question="A candidate writes a fully correct, optimal solution but says almost nothing and never tests it. Likely outcome?"
+    options={[
+        "Strong Hire — the code is optimal",
+        "At best a weak/mixed score — they forfeited the Communication and Verification signals entirely. Correct code with no reasoning and no testing leaves the interviewer unable to write evidence for two of the four dimensions",
+        "Automatic pass",
+        "It depends only on the Big-O"
+    ]}
+    correctIndex={1}
+    explanation="The rubric has four signals; this candidate scored on at most two (problem-solving, coding) and zeroed out communication and verification. Interviewers write what they observed — and 'silent, untested' is hard to defend in a debrief even with optimal code. The fix costs nothing technical: narrate and dry-run."
+/>
+
+<QuizBox
+    question="Why are most interview red flags described as 'fixable tonight'?"
+    options={[
+        "Because they require learning new algorithms quickly",
+        "Because they're process/habit failures — coding in silence, not testing, resisting hints, all-'we' behavioral answers — not knowledge gaps. You can change those habits immediately by practicing out loud, without learning any new CS",
+        "They aren't fixable",
+        "Only behavioral flags are fixable"
+    ]}
+    correctIndex={1}
+    explanation="The recurring rejection reasons for technically-capable candidates are overwhelmingly about HOW they perform, not WHAT they know. Narrating, dry-running, accepting hints, and saying 'I' are habits you can adopt in a single practice session — which is why fixing process often raises your grade faster than grinding more problems."
+/>
+
+<QuizBox
+    question="In the debrief, you have three 'Hire' votes and one confident 'No-Hire' citing 'never tested the code, I found the bug.' What's the likely result?"
+    options={[
+        "Easy pass — majority rules",
+        "Often a rejection or an extra round — committees weigh specific, well-evidenced concerns heavily, and a confident No-Hire on a core signal (verification) can outweigh several softer Hires. Consistency across rounds matters",
+        "The No-Hire is ignored",
+        "It guarantees a Strong Hire"
+    ]}
+    correctIndex={1}
+    explanation="Hiring committees aren't simple vote-counters; they read the evidence. A specific, credible concern on a core engineering signal (didn't verify their work) is exactly the kind of thing that sinks or stalls a loop, even amid positive votes. It's why you aim for consistency — one weak round with a damning note can undo three strong ones."
+/>
+
+That's the full mock interview. Tomorrow, **[Day 30 — Victory Lap](/day30)** ties all 30 days into one map — and you walk into the room ready.
