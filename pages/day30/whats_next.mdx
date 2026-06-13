@@ -1,0 +1,117 @@
+---
+title: "What's Next"
+description: "Where to take your DSA skills after the 30 days — a sustainable maintenance cadence, going deeper, competitive programming, system design, and a curated reading list."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+export const Tab = Tabs.Tab;
+
+# What's Next
+
+You finished the sprint. The danger now is the cliff: people grind for a month, land (or don't land) the interview, and let everything evaporate. The skill is real but **perishable** — here's how to keep it, and where to push deeper depending on what you're after.
+
+## First: keep it from decaying
+
+You do **not** need another 30-day grind. You need maintenance — a light, sustainable cadence that keeps the patterns warm:
+
+<Steps>
+
+### A few problems a week, not a death march
+
+2–4 problems weekly keeps recognition sharp. Quality over quantity: a problem you solve *and then explain out loud* beats five you rush. Rotate across patterns so nothing rusts.
+
+### One full mock before any real loop
+
+A week or two before an interview, do a [timed mock](/day29) out loud — coding *and* behavioral. The first real round shouldn't be the first time you've spoken your reasoning aloud in months.
+
+### Re-read the pattern map when rusty
+
+The [pattern map](/day30/the_pattern_map) is a 5-minute warm-up that reloads the "if you see X, reach for Y" reflexes before a session.
+
+### Revisit your weak spots, not your favorites
+
+It's tempting to re-solve problems you're already good at. Spend the time on the patterns that still make you hesitate — DP, graphs, and the specialized structures are the usual suspects.
+
+</Steps>
+
+<Callout type="info">
+    **Spaced repetition beats cramming for durable retention.** Re-solving a problem after a week, then a month, cements the pattern far better than doing ten new ones in a row. Keep a short list of problems that *taught you something* and cycle back to them. The goal is recognition speed, not a high solved-count.
+</Callout>
+
+## Then: pick a direction
+
+Where you go depends on your goal. Three common paths:
+
+<Tabs items={['Land the job', 'Go deeper (CP)', 'Build real systems']} defaultIndex="0">
+    <Tab>
+    **You're interviewing soon.** Your job now is *performance*, not new knowledge.
+    - Do **company-tagged problem sets** for your target (each big-tech company has well-known favorites).
+    - Drill the [mock-interview process](/day29) until clarify → narrate → test → complexity is automatic.
+    - Prepare **6–8 [STAR stories](/day29/behavioral_round)** and, for Amazon, tag them to Leadership Principles.
+    - For mid/senior, work the [system design practice set](/day28/practice_questions) out loud.
+    - Curated lists worth knowing: the **Blind 75** and **NeetCode 150** (focused, pattern-organized), and **Grokking the Coding Interview** (pattern-first).
+    </Tab>
+    <Tab>
+    **You want to get genuinely strong at algorithms.** Competitive programming is the gym.
+    - **Codeforces** (regular contests, the standard arena), **AtCoder** (clean, beginner-friendly Beginner Contests), **LeetCode weekly contests** (interview-flavored).
+    - Push past this course's structures into: advanced graph theory (max-flow / min-cut, bipartite matching), advanced DP (digit DP, DP on trees, bitmask DP), **string algorithms** (suffix arrays/automata), and computational geometry.
+    - The classic text: **Competitive Programmer's Handbook** (Laaksonen, free) and **CP-Algorithms** (cp-algorithms.com).
+    - Contests teach the thing interviews can't: **speed and correctness under a clock**, against a global leaderboard.
+    </Tab>
+    <Tab>
+    **You want to build and design real systems.** Move from "algorithms" to "architecture."
+    - Go deep on [system design](/day28): read **"Designing Data-Intensive Applications"** (Kleppmann) — the single best book on the data layer — and the **System Design Primer** (github.com/donnemartin/system-design-primer).
+    - Build something that *forces* the trade-offs: a rate limiter, a key-value store, a small distributed cache. Implementing one teaches more than reading ten.
+    - Learn the operational side: observability, on-call, incident response, CI/CD — the things that separate "wrote code" from "ran a system."
+    - Contribute to open source: real codebases teach patterns no curated problem can.
+    </Tab>
+</Tabs>
+
+## A short, high-signal reading list
+
+| Resource | For | Why |
+| :--- | :--- | :--- |
+| **Cracking the Coding Interview** (McDowell) | interview prep | the canonical interview book; broad and practical |
+| **Blind 75 / NeetCode 150** | interview prep | pattern-organized, high-yield problem sets |
+| **Competitive Programmer's Handbook** (free) | going deeper | the CP curriculum in one PDF |
+| **CP-Algorithms** (cp-algorithms.com) | reference | clean implementations of advanced algorithms |
+| **Designing Data-Intensive Applications** (Kleppmann) | system design | the definitive guide to the data layer |
+| **System Design Primer** (GitHub) | system design | free, comprehensive, interview-aimed |
+| **Introduction to Algorithms / CLRS** | foundations | the rigorous reference when you want the proofs |
+
+<Callout type="warning">
+    **Don't collect resources — finish one.** The failure mode here is buying five books and a course and finishing none. Pick *one* path and *one* primary resource for it, and actually work through it. Breadth of bookmarks is not progress; a single completed problem set beats three half-read ones. (You just proved you can finish something — apply that.)
+</Callout>
+
+## The mindset that outlasts the syllabus
+
+The specific algorithms will fade and refresh as you use them. What stays is the **approach**: break the unknown into the known, estimate before you build, communicate while you think, and verify before you claim done. That's not an interview trick — it's how good engineers work every day. You spent thirty days building it. Keep using it.
+
+## Quick check
+
+<QuizBox
+    question="After finishing the course, what's the most effective way to retain the skills long-term?"
+    options={[
+        "Immediately start another intensive 30-day grind",
+        "Light, spaced maintenance — a few problems a week, revisiting weak spots and re-solving key problems after a delay — plus a full mock before any real interview. Spaced repetition beats cramming for durable retention",
+        "Never practice again until an interview is scheduled",
+        "Only read books, stop solving problems"
+    ]}
+    correctIndex={1}
+    explanation="Skills decay without use, but another marathon grind isn't sustainable or necessary. A light weekly cadence with spaced repetition (re-solving after a week, then a month) keeps recognition sharp far more efficiently than cramming. Reserve a focused mock for right before a real loop, when performance — not new knowledge — is the goal."
+/>
+
+<QuizBox
+    question="You want to get genuinely faster and stronger at raw algorithmic problem-solving (beyond interview prep). Best path?"
+    options={[
+        "Re-read CLRS cover to cover",
+        "Competitive programming — regular contests on Codeforces/AtCoder/LeetCode, which train speed and correctness under a clock and push you into advanced algorithms the course didn't cover",
+        "Only do system design",
+        "Memorize more problems"
+    ]}
+    correctIndex={1}
+    explanation="Contests are the gym for algorithmic strength: timed, adversarial, and ranked, they build the speed-and-accuracy that untimed problem-grinding can't, while pushing you into advanced graph/DP/string/geometry topics. CLRS is a great reference for proofs, but doing contests is what actually builds the muscle."
+/>
+
+That's the end of the road — and the start of the next one. Head back to the **[Victory Lap overview](/day30)** to ring the bell, or jump to any day from **[the map](/day30)**. Go get the offer. 🚀

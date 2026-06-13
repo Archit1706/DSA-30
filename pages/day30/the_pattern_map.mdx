@@ -1,0 +1,108 @@
+---
+title: "The Pattern Map"
+description: "The interview cheat sheet — 'if you see this clue, reach for that technique' decision guide, plus the Big-O complexity reference for every structure and algorithm in the course."
+---
+
+import { Tabs, Callout } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { PatternPicker } from "../../components/VictoryLap";
+export const Tab = Tabs.Tab;
+
+# The Pattern Map
+
+This is the page to re-read the morning of an interview. Almost every coding problem is a known pattern wearing a costume — and the meta-skill is **stripping off the costume to see the shape underneath**. Below: an interactive decision guide that maps problem *clues* to *techniques* (and back to the day that teaches them), then the Big-O reference table.
+
+## "If you see this, reach for that"
+
+Filter by a keyword from the problem statement, or skim the whole list. Internalize these triggers and most mediums announce their own solution.
+
+<PatternPicker />
+
+<Callout type="info">
+    **The clue is almost always in the problem statement's *constraints and verbs*, not its story.** "Contiguous subarray" → sliding window. "All possible…" → backtracking. "Minimum number of… such that…" → often binary-search-on-the-answer or DP. "Already sorted" → two pointers or binary search. Train yourself to underline those phrases first — they're the costume's seams.
+</Callout>
+
+## The complexity ladder
+
+Know roughly what each complexity *buys* you at interview scale (`n` up to ~10⁵–10⁶ for most problems):
+
+| Complexity | Name | Feels like | OK up to (~1s) |
+| :--- | :--- | :--- | :--- |
+| `O(1)` | constant | instant | any n |
+| `O(log n)` | logarithmic | binary search | astronomically large |
+| `O(n)` | linear | one pass | ~10⁸ |
+| `O(n log n)` | linearithmic | sorting | ~10⁶–10⁷ |
+| `O(n²)` | quadratic | nested loops | ~10⁴ |
+| `O(2ⁿ)` | exponential | all subsets | ~20–25 |
+| `O(n!)` | factorial | all permutations | ~10–12 |
+
+**The constraint tells you the target complexity.** `n ≤ 20`? An exponential `O(2ⁿ)` is fine — think bitmask/backtracking. `n ≤ 10⁵`? You need `O(n log n)` or better — sorting or a hash map. `n ≤ 10⁹`? You can't even *read* all of it — it's `O(log n)` (binary search) or math. Reading the constraints backward into a target Big-O is one of the highest-leverage interview habits.
+
+## Data structure operations at a glance
+
+| Structure | Access | Search | Insert | Delete | Notes |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| Array | `O(1)` | `O(n)` | `O(n)` | `O(n)` | contiguous, cache-friendly |
+| Hash map / set | — | `O(1)`* | `O(1)`* | `O(1)`* | *amortized; the universal speedup |
+| Balanced BST / TreeMap | `O(log n)` | `O(log n)` | `O(log n)` | `O(log n)` | keeps keys sorted |
+| Heap (binary) | `O(1)` peek | `O(n)` | `O(log n)` | `O(log n)` pop | top-k, priority |
+| Stack / Queue | — | — | `O(1)` | `O(1)` | LIFO / FIFO |
+| Trie | — | `O(L)` | `O(L)` | `O(L)` | L = key length, prefix queries |
+| Union-Find | — | `O(α(n))` | `O(α(n))` | — | near-constant connectivity |
+| Segment tree / BIT | — | `O(log n)` | `O(log n)` | `O(log n)` | range query on mutable data |
+
+## Algorithm complexity recap
+
+| Algorithm | Time | Space | Day |
+| :--- | :--- | :--- | :--- |
+| Binary search | `O(log n)` | `O(1)` | [13](/day13) |
+| Merge / Quick / Heap sort | `O(n log n)` | `O(n)` / `O(log n)` / `O(1)` | [11–12](/day11) |
+| BFS / DFS | `O(V + E)` | `O(V)` | [10](/day10) |
+| Dijkstra (heap) | `O((V + E) log V)` | `O(V)` | [21](/day21) |
+| Topological sort | `O(V + E)` | `O(V)` | [23](/day23) |
+| Most DP (1-D / 2-D) | `O(n)` / `O(n·m)` | same or reduced | [14](/day14) |
+| Sliding window | `O(n)` | `O(k)` | [24](/day24) |
+| KMP / Z-algorithm | `O(n + m)` | `O(m)` | [27](/day27) |
+
+## The universal solve loop
+
+When you're stuck, run this — out loud, every time:
+
+1. **Restate** the problem and clarify the constraints. (What's `n`? edge cases? what to return when there's no answer?)
+2. **Read the constraints into a target Big-O.** (`n ≤ 20` → exponential ok; `n ≤ 10⁵` → need n log n.)
+3. **Brute force first** — get *something* correct, state its complexity.
+4. **Find the repeated work** — that's where the optimization lives (hash it, sort it, two-pointer it, memoize it).
+5. **Match it to a pattern** from the map above.
+6. **Code it, test it (incl. edges), state the final complexity.**
+
+<Callout type="warning">
+    **Don't pattern-match so hard that you force the wrong tool.** The map is a set of *strong priors*, not a lookup table — some problems are genuinely novel, and some combine two patterns (e.g. binary search on the answer *with* a greedy feasibility check). If a clue points somewhere but the details don't fit, trust the details. The map gets you to a hypothesis fast; verifying it against the actual problem is still your job.
+</Callout>
+
+## Quick check
+
+<QuizBox
+    question="A problem has n ≤ 22 and asks for the optimal assignment over all subsets. What does the tiny constraint signal?"
+    options={[
+        "You need an O(n) solution",
+        "An exponential O(2ⁿ) approach is acceptable (2²² ≈ 4M) — this is a strong hint toward bitmask DP or backtracking over subsets, which would be far too slow for large n but is fine here",
+        "It's impossible",
+        "Use binary search"
+    ]}
+    correctIndex={1}
+    explanation="Small n (≤ ~20–25) is a classic tell for exponential solutions — subset/bitmask DP or backtracking. The constraint is the hint: an algorithm that's hopeless at n=10⁵ is perfectly fine at n=22. Reading constraints backward into a target complexity is exactly the habit the pattern map trains."
+/>
+
+<QuizBox
+    question="The problem says 'find the longest contiguous subarray whose sum is at most k.' Which pattern does the phrasing point to?"
+    options={[
+        "Backtracking",
+        "Sliding window — 'contiguous subarray with a constraint' is the textbook trigger; expand the right edge, shrink the left when the constraint breaks, all in one O(n) pass",
+        "Dijkstra",
+        "Segment tree"
+    ]}
+    correctIndex={1}
+    explanation="'Contiguous subarray' + 'with a constraint to maintain' is the sliding-window signature. The window grows and shrinks to keep the sum within k, tracking the best length, in linear time. Recognizing that phrase instantly is the whole point of the pattern map."
+/>
+
+Next: **[What's Next](/day30/whats_next)** — where to take these skills from here.

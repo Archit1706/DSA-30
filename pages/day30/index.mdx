@@ -1,22 +1,58 @@
 ---
 title: "Day 30 — Victory Lap"
-description: "Wrap up the 30-day journey — a recap of every pattern covered, a cheat sheet for interview day, and what to study next."
+description: "The capstone of the 30-day journey — a retrospective of everything you learned, the whole map in one picture, the interview-day cheat sheet, and a well-earned celebration."
 ---
 
 import { Callout } from "nextra/components";
+import { ThirtyDayMap, FinishLine } from "../../components/VictoryLap";
 
 # Day 30 — Victory Lap
 
+You made it. Thirty days ago, "dynamic programming" was a phrase that made you flinch and "design Twitter" was a question you'd have frozen on. Now you have a **vocabulary**, a set of **patterns**, and — most importantly — a **process** for attacking problems you've never seen. That last one is the whole point. Nobody memorizes every problem; the people who pass interviews are the ones who can *recognize the shape* and *reach for the right tool*.
+
+Today isn't new material. It's the zoom-out: see the whole map at once, lock in the pattern-recognition reflexes, grab the cheat sheet, and figure out where you go from here. Then we celebrate — you've earned it.
+
+<ThirtyDayMap />
+
+## What you actually learned (the meta-skills)
+
+The individual algorithms matter, but the durable wins are the *transferable* habits underneath them:
+
+- **Cost-first thinking** — you now estimate Big-O *before* you code, and you know when O(n log n) is good enough and when you need O(n). ([Day 1](/day1))
+- **Pattern recognition** — "subarray with a constraint" → sliding window; "all combinations" → backtracking; "prefixes" → trie. You translate a prompt into a known shape. ([The Pattern Map](/day30/the_pattern_map))
+- **The space-time trade-off** — hashing, caching, memoization, precomputation: you trade memory for speed deliberately, and you can name the trade.
+- **Decomposition** — divide & conquer, recursion, DP: break a hard thing into smaller versions of itself.
+- **Communicating under pressure** — clarify, narrate, test, state complexity. The [mock interview](/day29) skill that turns knowledge into offers.
+- **Trade-off reasoning at scale** — there's rarely one right answer in [system design](/day28); there's a well-defended one.
+
 <Callout type="info">
-    This chapter is being written. Check back soon!
+    **The single most important thing you built isn't a list of algorithms — it's a *process*.** When a brand-new problem lands in front of you, you no longer stare blankly. You clarify, you reach for the [pattern map](/day30/the_pattern_map), you state a brute force, you optimize, you test. That loop is what survives long after you've forgotten the exact code for Dijkstra. It's also exactly what every interviewer is trying to measure.
 </Callout>
 
-## What we'll cover
+## The phases, in one breath
 
-- A **retrospective** of everything you've learned — and how it fits together
-- The topics most worth **revisiting**, ranked by how often they show up in real code and interviews
-- **Next steps**: competitive programming contests, deeper system design, language-specific deep dives
-- **Recommended reading** — books, blogs, courses, problem sets
-- A **cake recipe** — you have earned it
+- **Fundamentals (1–5)** — arrays, strings, linked lists, stacks/queues, recursion: the raw materials.
+- **Trees & Hashing (6–8)** — hierarchy, priority, and O(1) lookup.
+- **Graphs (9–10)** — model anything as nodes and edges; explore with DFS/BFS.
+- **Sorting & Searching (11–13)** — order data, then exploit the order (including binary-search-on-the-answer).
+- **Patterns (14–17)** — DP, greedy, backtracking, bits: the four big problem-solving templates.
+- **Specialized Structures (18–23)** — tries, segment trees, union-find, shortest paths, MST, topo sort: the power tools.
+- **Interview Techniques (24–27)** — sliding window, two pointers, divide & conquer, advanced strings: the moves that show up again and again.
+- **Synthesis (28–30)** — system design, the mock interview, and this victory lap: putting it all together.
 
-If you've made it here, you've done something genuinely hard. Now we celebrate, take a breath, and figure out where you go next.
+## Two things to take into the room
+
+1. **[The Pattern Map](/day30/the_pattern_map)** — the "if you see *this*, reach for *that*" decision guide, plus the Big-O cheat sheet. This is the page to re-read the morning of an interview.
+2. **[What's Next](/day30/whats_next)** — where to go from here: keeping the skills sharp, going deeper, contests, and the reading list.
+
+## Ring the bell
+
+<FinishLine />
+
+<Callout type="warning">
+    **Don't let the streak decay to zero.** Skills like these fade without use. You don't need another 30-day grind — you need *maintenance*: a few problems a week, one mock interview before any real loop, and a quick re-read of the [pattern map](/day30/the_pattern_map) when you're rusty. [What's Next](/day30/whats_next) lays out a sustainable cadence. The goal was never to finish the course — it was to become the kind of engineer who finishes the course.
+</Callout>
+
+And yes — you were promised cake. The recipe is simple: take the thing you were afraid of thirty days ago, and notice it doesn't scare you anymore. That's the cake. 🎂
+
+Now go get the offer.
