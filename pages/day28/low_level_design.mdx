@@ -1,0 +1,232 @@
+---
+title: "Low-Level Design (LLD)"
+description: "The other design interview — object-oriented class design, SOLID principles, the patterns worth knowing, and a worked parking-lot example, kept brief and interview-specific."
+---
+
+import { Tabs, Callout, Steps } from "nextra/components";
+import { QuizBox } from "../../components/QuizBox";
+import { ArchitectureDiagram } from "../../components/SystemDesignVisualizer";
+export const Tab = Tabs.Tab;
+
+# Low-Level Design (LLD)
+
+There are **two** design interviews, and they're often confused. Everything else in this chapter is **high-level design (HLD)** — boxes, servers, databases, scale. **Low-level design** zooms all the way in: *"design the **classes** for a parking lot / elevator / vending machine / deck of cards."* No QPS, no sharding — just clean, extensible **object-oriented code**.
+
+<ArchitectureDiagram
+    title="Two different zoom levels — know which one you're being asked"
+    width={780}
+    height={150}
+    nodes={[
+        { id: "hld", label: "HLD", sub: "services, DBs, scale", type: "server", x: 180, y: 70, w: 170 },
+        { id: "lld", label: "LLD", sub: "classes, methods, patterns", type: "service", x: 580, y: 70, w: 200 },
+    ]}
+    edges={[{ from: "hld", to: "lld", label: "zoom in", dashed: true }]}
+    caption="HLD: 'how do the machines fit together?' LLD: 'how do the classes fit together inside one service?' If the prompt is 'design a parking lot' with no mention of scale, it's almost always LLD."
+/>
+
+## What LLD interviews actually grade
+
+Not whether your code runs — whether your **class design** is clean, extensible, and shows you know OOP. The signals they look for:
+
+- **The right objects** — did you find the real entities and give each a single, clear responsibility?
+- **Good relationships** — sensible use of inheritance vs composition, interfaces over concrete types.
+- **Extensibility** — can you add a new vehicle type / payment method without rewriting everything? (Open/Closed.)
+- **Appropriate patterns** — used where they help, not bolted on for show.
+
+## The LLD interview script
+
+<Steps>
+
+### 1. Clarify requirements & scope
+
+Same as HLD: pin down the use cases. *"A parking lot has multiple levels, multiple spot sizes, issues a ticket on entry, charges on exit."* List the core behaviors out loud.
+
+### 2. Identify the core objects (nouns)
+
+Scan the requirements for **nouns** — they're usually your classes. Parking lot → `ParkingLot`, `Level`, `ParkingSpot`, `Vehicle`, `Ticket`, `Payment`. Scan for **verbs** — they're usually your methods (`parkVehicle`, `issueTicket`, `processPayment`).
+
+### 3. Define relationships
+
+Who *has* whom (composition), who *is* a kind of whom (inheritance)? A `ParkingLot` **has** `Level`s; a `Car` **is a** `Vehicle`. Prefer composition; use inheritance only for genuine "is-a".
+
+### 4. Sketch the classes — fields + key methods
+
+Write the class skeletons: fields and method signatures. You don't need full bodies — the *structure* is what's graded.
+
+### 5. Apply patterns & SOLID where they earn their keep
+
+Reach for a pattern only when it solves a real problem in the design (a `Factory` to create vehicles, a `Strategy` for pricing). Name the principle you're honoring.
+
+### 6. Walk a use case through the objects
+
+Narrate one flow end-to-end: *"A car enters → `ParkingLot.parkVehicle(car)` finds a free `ParkingSpot`, creates a `Ticket`, marks the spot occupied…"* This proves the design actually works.
+
+</Steps>
+
+## SOLID — the five principles, in one line each
+
+The vocabulary interviewers listen for. Drop the name when you make the corresponding choice.
+
+| | Principle | One-line meaning |
+| :--- | :--- | :--- |
+| **S** | Single Responsibility | a class should have one reason to change |
+| **O** | Open/Closed | open for extension, closed for modification (add code, don't edit it) |
+| **L** | Liskov Substitution | a subclass must be usable anywhere its parent is, without surprises |
+| **I** | Interface Segregation | many small interfaces beat one fat one — don't force unused methods |
+| **D** | Dependency Inversion | depend on abstractions (interfaces), not concrete classes |
+
+<Callout type="info">
+    **Open/Closed is the one that wins LLD interviews.** When asked "how would you add motorcycles / electric-charging spots / a new payment method?", a design that lets you add a *new class* without touching existing code is the whole point. If your answer requires editing a giant `if/else` on vehicle type, you've failed Open/Closed — refactor to polymorphism or a strategy.
+</Callout>
+
+## The patterns worth knowing (and when they show up)
+
+You don't need all 23 Gang-of-Four patterns. These few cover the vast majority of LLD prompts:
+
+| Pattern | Solves | Shows up in |
+| :--- | :--- | :--- |
+| **Strategy** | swap an algorithm at runtime | pricing rules, payment methods, sorting policy |
+| **Factory** | create objects without hard-coding the class | "make the right `Vehicle`/`Notification` subtype" |
+| **Singleton** | exactly one shared instance | a single `ParkingLot` / config / logger (use sparingly) |
+| **Observer** | notify many listeners on a change | event systems, pub/sub, "spot freed → alert waiters" |
+| **Decorator** | add behavior without subclassing | add-ons, toppings, middleware |
+| **State** | behavior changes with internal state | vending machine, order lifecycle, traffic light |
+
+## A worked mini-example: parking lot
+
+The most-asked LLD question. The class breakdown:
+
+<ArchitectureDiagram
+    title="Parking lot — composition (has-a) and inheritance (is-a)"
+    width={840}
+    height={320}
+    nodes={[
+        { id: "lot", label: "ParkingLot", sub: "Singleton", type: "service", x: 110, y: 60, w: 140 },
+        { id: "level", label: "Level", type: "service", x: 110, y: 180, w: 120 },
+        { id: "spot", label: "ParkingSpot", sub: "size, isFree", type: "service", x: 110, y: 280, w: 140 },
+        { id: "ticket", label: "Ticket", sub: "entryTime", type: "db", x: 380, y: 60, w: 120 },
+        { id: "vehicle", label: "Vehicle", sub: "abstract", type: "gateway", x: 380, y: 200, w: 120 },
+        { id: "car", label: "Car", type: "worker", x: 600, y: 130, w: 100 },
+        { id: "bike", label: "Motorcycle", type: "worker", x: 600, y: 220, w: 110 },
+        { id: "truck", label: "Truck", type: "worker", x: 600, y: 310, w: 100 },
+        { id: "pay", label: "PaymentStrategy", sub: "interface", type: "cache", x: 380, y: 300, w: 150 },
+    ]}
+    edges={[
+        { from: "lot", to: "level", label: "has many" },
+        { from: "level", to: "spot", label: "has many" },
+        { from: "lot", to: "ticket", label: "issues" },
+        { from: "ticket", to: "vehicle", label: "for", dashed: true },
+        { from: "vehicle", to: "car", label: "is-a" },
+        { from: "vehicle", to: "bike", label: "is-a" },
+        { from: "vehicle", to: "truck", label: "is-a" },
+        { from: "lot", to: "pay", label: "uses", dashed: true },
+    ]}
+    caption="ParkingLot (Singleton) has-many Levels, each has-many ParkingSpots. Vehicle is an abstract base; Car/Motorcycle/Truck extend it (add a new type without touching existing code — Open/Closed). PaymentStrategy is an interface so card/cash/UPI swap freely."
+/>
+
+A skeleton — note it's *structure*, not full implementation:
+
+<Tabs items={['Python', 'Java']} defaultIndex="0">
+    <Tab>
+    ```python copy
+    from abc import ABC, abstractmethod
+    from enum import Enum
+
+    class SpotSize(Enum):
+        SMALL, MEDIUM, LARGE = 1, 2, 3
+
+    class Vehicle(ABC):                 # abstract base — the "is-a" root
+        def __init__(self, plate): self.plate = plate
+        @abstractmethod
+        def size(self) -> SpotSize: ...
+
+    class Car(Vehicle):                 # add a new subclass to extend — Open/Closed
+        def size(self): return SpotSize.MEDIUM
+
+    class PaymentStrategy(ABC):         # Strategy pattern — swap at runtime
+        @abstractmethod
+        def pay(self, amount: float) -> bool: ...
+
+    class CardPayment(PaymentStrategy):
+        def pay(self, amount): ...      # charge a card
+
+    class ParkingSpot:
+        def __init__(self, size): self.size, self.is_free = size, True
+
+    class ParkingLot:                   # Singleton: one lot for the system
+        def park_vehicle(self, v: Vehicle) -> "Ticket": ...   # find spot, issue ticket
+        def unpark(self, ticket, payment: PaymentStrategy): ...  # price + pay + free spot
+    ```
+    </Tab>
+    <Tab>
+    ```java copy
+    enum SpotSize { SMALL, MEDIUM, LARGE }
+
+    abstract class Vehicle {                    // "is-a" root
+        String plate;
+        abstract SpotSize size();
+    }
+    class Car extends Vehicle {                 // extend without editing — Open/Closed
+        SpotSize size() { return SpotSize.MEDIUM; }
+    }
+
+    interface PaymentStrategy {                 // Strategy: swap implementations
+        boolean pay(double amount);
+    }
+    class CardPayment implements PaymentStrategy {
+        public boolean pay(double amount) { /* charge */ return true; }
+    }
+
+    class ParkingSpot { SpotSize size; boolean isFree = true; }
+
+    class ParkingLot {                          // Singleton
+        Ticket parkVehicle(Vehicle v) { /* find spot, issue ticket */ return null; }
+        void unpark(Ticket t, PaymentStrategy p) { /* price, pay, free spot */ }
+    }
+    ```
+    </Tab>
+</Tabs>
+
+<Callout type="warning">
+    **Don't over-engineer.** The fastest way to fail LLD is to cram in five patterns nobody asked for. Start with clean classes and single responsibilities; introduce a pattern *only* when the interviewer's follow-up ("now support a new payment type") makes the need obvious. A simple, extensible design beats a clever, pattern-stuffed one.
+</Callout>
+
+## Quick check
+
+<QuizBox
+    question="An interviewer asks you to add 'electric charging spots' to your parking-lot design. Your current code has a switch statement on spot type scattered in three methods. What does this reveal?"
+    options={[
+        "Nothing — switch statements are fine",
+        "A violation of the Open/Closed Principle — adding a type forces you to EDIT existing methods rather than ADD a new class. Refactor to polymorphism (a SpotType hierarchy / strategy) so new types extend the system without modifying it",
+        "You need a Singleton",
+        "The design is already optimal"
+    ]}
+    correctIndex={1}
+    explanation="Scattered type-switches are the classic Open/Closed smell: every new type means hunting down and editing every switch. Replacing them with polymorphism (or a strategy) means a new spot/charging type is a new subclass — existing code is untouched. 'Open for extension, closed for modification' is exactly this."
+/>
+
+<QuizBox
+    question="When does it make sense to introduce the Strategy pattern in an LLD interview?"
+    options={[
+        "Always — use as many patterns as possible",
+        "When you have a family of interchangeable algorithms/behaviors that should be swappable at runtime — e.g. multiple pricing rules or payment methods. It lets you add a new behavior as a new class without conditionals",
+        "Only for database access",
+        "Never — it's outdated"
+    ]}
+    correctIndex={1}
+    explanation="Strategy fits when the same operation has several interchangeable implementations (pricing: hourly vs flat vs surge; payment: card vs cash vs UPI). Encapsulating each as a class behind a common interface removes if/else chains and makes adding a new variant a pure extension. Introduce it when that need appears — not preemptively."
+/>
+
+<QuizBox
+    question="What's the core difference between a high-level design (HLD) and a low-level design (LLD) interview?"
+    options={[
+        "They're the same thing",
+        "HLD designs the system at the architecture level (services, databases, caches, scaling); LLD designs the object-oriented internals of a component (classes, relationships, methods, patterns). 'Design Twitter' is HLD; 'design a deck of cards / parking lot' is LLD",
+        "HLD uses code, LLD uses diagrams",
+        "LLD is only about databases"
+    ]}
+    correctIndex={1}
+    explanation="HLD is about how machines and services fit together at scale; LLD is about how classes fit together inside one program. Different prompts, different skills: HLD rewards trade-off reasoning about distributed systems; LLD rewards clean OOP, SOLID, and judicious design patterns. Identify which you're being asked early."
+/>
+
+Next: **[Basic Questions](/day28/basic_questions)** — concept checks across both the high-level and low-level material, then the [practice set](/day28/practice_questions).
